@@ -4,8 +4,10 @@
 
 (define frames '())  ; list of last few frame times
 
-(define ownship (ship 0 0 (/ pi 2) 0 0 0 '()))
-(define helm (/ pi 2))
+(define ownship (ship 0 0 (* 0.5 3 pi) 0 0 0
+                      (list (shield 100 "red" 100
+                                    '(100 50 25 0 20 20 20 20 20 20 20 20 20 20 20 20)))))
+(define helm (* 0.5 3 pi))
 
 (define (recenter ownship x y)
   (values (- x (object-x ownship)) (- y (object-y ownship))))
@@ -43,21 +45,37 @@
   (send dc draw-rectangle (- x 250) (- y 250) 500 500)
   (send dc set-transformation t))
 
+(define (draw-shield dc shield)
+  (define t (send dc get-transformation))
+  
+  (define num (length (shield-sections shield)))
+  (define arc-size (* 0.9 (/ (* 2 pi) num)))
+  (define radius (shield-radius shield))
+  
+  (for ((section (shield-sections shield))
+        (i (in-naturals)))
+    (define r (/ (* 2 pi i) num))
+    (send dc set-pen (shield-color shield) (* 3 (/ section (shield-max shield))) 'solid)
+    (send dc draw-arc
+          (- (/ radius 2)) (- (/ radius 2))
+          radius radius
+          (- r (* 0.5 arc-size)) (+ r (* 0.5 arc-size))))
+  
+  (send dc set-transformation t))
 
 (define (draw-ship dc s)
   (define t (send dc get-transformation))
-  (match s
-    ((struct* object ((r r)))
-     
-     ;  (match-define ((struct* ship ((r r)))))
-     (send dc rotate (- r))
-     (send dc rotate (* 0.5 pi))
-     (send dc draw-polygon '((-10 . 10)
-                             (0 . 20)
-                             (10 . 10)
-                             (10 . -10)
-                             (-10 . -10)))
-     (send dc set-transformation t))))
+  (send dc rotate (- (object-r s)))
+  (for ((shield (ship-shields s)))
+    (draw-shield dc shield))
+  
+  (send dc set-pen "black" 1 'solid)
+  (send dc draw-polygon '((10 . 10)
+                          (20 . 0)
+                          (10 . -10)
+                          (-10 . -10)
+                          (-10 . 10)))
+  (send dc set-transformation t))
 
 
 (define (draw-framerate dc)
@@ -98,6 +116,7 @@
 (send dc set-scale (/ (send canvas get-width) WIDTH 1.0) (/ (send canvas get-height) HEIGHT -1.0))
 (send dc set-rotation 0)
 (send dc set-smoothing 'smoothed)
+(send dc set-brush "red" 'transparent)
 
 (define (drag dv dt coef)
   (define newv (* dv (expt (1 . - . coef) dt)))

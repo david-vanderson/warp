@@ -14,8 +14,9 @@
 
 (struct object (x y r dx dy dr) #:prefab #:mutable)
 
-(struct shield (radius color sections) #:prefab #:mutable)
+(struct shield (radius color max sections) #:prefab #:mutable)
 ; sections is a list of integers uniformly going counter clock-wise around
-; each integer is how much shields are in that section
+; each integer is how much shields are in that section, up to max
+; section 0 is centered on r=0
 
 (struct ship object (shields) #:prefab #:mutable)
