@@ -146,16 +146,17 @@
   ; get new world
   (define new-ownship (async-channel-try-get update-channel))
   (when new-ownship
+    ;(printf "got update\n")
     (set! last-update-time (current-inexact-milliseconds))
     (set! ownship (deserialize new-ownship))
     ; find my role
     (set! my-role (ship-helm ownship)))
   
   ; physics prediction
-;  (when ownship
-;    (define dt (/ (- current-time last-update-time) 1000))
-;    (update-physics ownship dt)
-;    (set! last-update-time current-time))
+  (when ownship
+    (define dt (/ (- current-time last-update-time) 1000))
+    (update-physics ownship dt)
+    (set! last-update-time current-time))
   
   ;rendering
   (when show-framerate?
