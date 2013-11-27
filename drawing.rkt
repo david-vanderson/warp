@@ -1,0 +1,92 @@
+#lang racket/base
+
+(require racket/class
+         racket/math
+         racket/list)
+
+(require "defs.rkt")
+
+(provide (all-defined-out))
+
+
+(define show-framerate? #t)
+(define frames '())  ; list of last few frame times
+
+(define (add-frame-time current-time)
+  (when show-framerate?
+    (set! frames (cons current-time (take frames (min 10 (length frames)))))))
+
+(define (draw-framerate dc)
+  (when (and show-framerate? (not (empty? frames)))
+    (define t (send dc get-transformation))
+    (send dc translate (- (/ WIDTH 2)) (/ HEIGHT 2))
+    (send dc scale 1 -1)
+    (define start (list-ref frames (- (length frames) 1)))
+    (define end (first frames))
+    (define span (/ (- end start) 1000))
+    (send dc draw-text (format "~a" (truncate (/ (- (length frames) 1) span))) 0 0)
+    (send dc set-transformation t)))
+
+
+(define (recenter thing x y)
+  (values (- x (thing-x thing)) (- y (thing-y thing))))
+
+
+(define (draw-background dc ownspace center)
+  (define t (send dc get-transformation))
+  (define-values (x y) (recenter center 0 0))
+  (send dc draw-rectangle (- x 250) (- y 250) 500 500)
+  (send dc set-transformation t))
+
+
+(define (draw-shield dc shield)
+  (define t (send dc get-transformation))
+  
+  (define num (length (shield-sections shield)))
+  (define arc-size (* 0.9 (/ (* 2 pi) num)))
+  (define radius (shield-radius shield))
+  
+  (for ((section (shield-sections shield))
+        (i (in-naturals)))
+    (define r (/ (* 2 pi i) num))
+    (send dc set-pen (shield-color shield) (* 3 (/ section (shield-max shield))) 'solid)
+    (send dc draw-arc
+          (- (/ radius 2)) (- (/ radius 2))
+          radius radius
+          (- r (* 0.5 arc-size)) (+ r (* 0.5 arc-size))))
+  
+  (send dc set-transformation t))
+
+
+(define (draw-ship dc s)
+  (define t (send dc get-transformation))
+  (send dc rotate (- (thing-r s)))
+  (for ((shield (ship-shields s)))
+    (draw-shield dc shield))
+  
+  (send dc set-pen "black" 1 'solid)
+  (send dc draw-polygon '((10 . 10)
+                          (20 . 0)
+                          (10 . -10)
+                          (-10 . -10)
+                          (-10 . 10)))
+  (send dc set-transformation t))
+
+
+(define (draw-plasma dc p center)
+  (define-values (x y) (recenter center (thing-x p) (thing-y p)))
+  (send dc set-pen (plasma-color p) 1 'solid)
+  (send dc draw-ellipse (- x 5) (- y 5) 10 10))
+
+
+(define (draw-all canvas dc ownspace center)
+  (draw-background dc ownspace center)
+  (define ownship (car (space-objects ownspace)))
+  (for ((o (space-objects ownspace)))
+    (cond
+      ((ship? o)
+       (draw-ship dc o))
+      ((plasma? o)
+       (draw-plasma dc o ownship))))
+  
+  (draw-framerate dc))

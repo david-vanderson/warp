@@ -1,20 +1,18 @@
 #lang racket/base
 
-(require racket/math
-         racket/async-channel
+(require racket/async-channel
          racket/serialize)
 
 (require "defs.rkt"
          "physics.rkt")
 
 (provide command-channel
-         update-physics
          start-server)
 
 (define command-channel (make-async-channel))
 (define client-channels '())
 
-(define SERVER_LOOP_DELAY .1)  ; don't loop more often than X secs
+(define SERVER_LOOP_DELAY .01)  ; don't loop more often than X secs
 (define SERVER_SEND_DELAY .25)  ; don't send updates more often than X secs
 (define ownspace #f)
 
@@ -42,8 +40,7 @@
   
   ; physics
   ;(printf "server physics: ")
-  (for ((o (space-objects ownspace)))
-    (update-physics o dt))
+  (update-physics! ownspace dt)
   
   ; process commands
   (let loop ()

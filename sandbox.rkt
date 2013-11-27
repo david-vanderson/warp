@@ -12,7 +12,9 @@
                             (shield 107 "blue" 100
                                     '(100 50 25 0 20 20 20 20 20 20 20 20 20 20 20 20)))))
 
-(define ownspace (space (list ownship)))
+(define bolt (plasma 200 0 0 -10 0 0 "blue" 10))
+
+(define ownspace (space (list ownship bolt)))
 
 
 (thread (lambda () (start-server ownspace)))

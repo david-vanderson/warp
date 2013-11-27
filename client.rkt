@@ -4,7 +4,8 @@
          racket/serialize)
 
 (require "defs.rkt"
-         "physics.rkt")
+         "physics.rkt"
+         "drawing.rkt")
 (require "server.rkt")
 
 (provide start-client)
@@ -12,8 +13,6 @@
 (define update-channel (make-async-channel))
 
 (define CLIENT_LOOP_DELAY .01)  ; don't loop more often than X secs
-(define show-framerate? #t)
-(define frames '())  ; list of last few frame times
 
 
 (define last-drawn-role "helm")
@@ -21,11 +20,6 @@
 (define me (player "Dave" 123))
 (define my-role #f)
 
-
-(define (recenter ownship x y)
-  (if ownship
-      (values (- x (object-x ownship)) (- y (object-y ownship)))
-      (values x y)))
 
 (define (send-command role)
   (async-channel-put command-channel role))
@@ -63,68 +57,18 @@
     ))
 
 
-(define (draw-background dc)
-  (define t (send dc get-transformation))
-  (define ownship (car (space-objects ownspace)))
-  (define-values (x y) (recenter ownship 0 0))
-  (send dc draw-rectangle (- x 250) (- y 250) 500 500)
-  (send dc set-transformation t))
-
-(define (draw-shield dc shield)
-  (define t (send dc get-transformation))
-  
-  (define num (length (shield-sections shield)))
-  (define arc-size (* 0.9 (/ (* 2 pi) num)))
-  (define radius (shield-radius shield))
-  
-  (for ((section (shield-sections shield))
-        (i (in-naturals)))
-    (define r (/ (* 2 pi i) num))
-    (send dc set-pen (shield-color shield) (* 3 (/ section (shield-max shield))) 'solid)
-    (send dc draw-arc
-          (- (/ radius 2)) (- (/ radius 2))
-          radius radius
-          (- r (* 0.5 arc-size)) (+ r (* 0.5 arc-size))))
-  
-  (send dc set-transformation t))
-
-(define (draw-ship dc s)
-  (define t (send dc get-transformation))
-  (send dc rotate (- (object-r s)))
-  (for ((shield (ship-shields s)))
-    (draw-shield dc shield))
-  
-  (send dc set-pen "black" 1 'solid)
-  (send dc draw-polygon '((10 . 10)
-                          (20 . 0)
-                          (10 . -10)
-                          (-10 . -10)
-                          (-10 . 10)))
-  (send dc set-transformation t))
-
-
-(define (draw-framerate dc)
-  (when (and show-framerate? (not (empty? frames)))
-    (define t (send dc get-transformation))
-    (send dc translate (- (/ WIDTH 2)) (/ HEIGHT 2))
-    (send dc scale 1 -1)
-    (define start (list-ref frames (- (length frames) 1)))
-    (define end (first frames))
-    (define span (/ (- end start) 1000))
-    (send dc draw-text (~a (truncate (/ (- (length frames) 1) span))) 0 0)
-    (send dc set-transformation t)))
-
-
 (define (draw-screen canvas dc)
   ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
   (define t (send dc get-transformation))
   (send dc erase)
+  
   (when ownspace
     (define ownship (car (space-objects ownspace)))
-    (draw-background dc)
-    (draw-ship dc ownship))
+    (draw-all canvas dc ownspace ownship))
+  
   (draw-framerate dc)
   (send dc set-transformation t))
+
 
 (define canvas
   (new my-canvas
@@ -168,12 +112,10 @@
     (set! last-update-time current-time)
     
     ;(printf "client physics: ")
-    (for ((o (space-objects ownspace)))
-      (update-physics o dt)))
+    (update-physics! ownspace dt))
   
   ;rendering
-  (when show-framerate?
-    (set! frames (cons current-time (take frames (min 10 (length frames))))))
+  (add-frame-time current-time)
   (send canvas refresh-now)
   
   ;sleep so we don't hog the whole racket vm

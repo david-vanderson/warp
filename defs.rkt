@@ -13,7 +13,9 @@
 (define 2pi (* 2 pi))
 
 
-(serializable-struct object (x y r dx dy dr) #:mutable)
+(serializable-struct thing (x y r dx dy dr) #:mutable)
+
+(serializable-struct plasma thing (color size) #:mutable)
 
 (serializable-struct shield (radius color max sections) #:mutable)
 ; sections is a list of integers uniformly going counter clock-wise around
@@ -34,6 +36,6 @@
 ; if fore is #t, main thrusters are firing
 ; if left is #t, thrusters on the right side are firing pushing the ship left
 
-(serializable-struct ship object (helm shields) #:mutable)
+(serializable-struct ship thing (helm shields) #:mutable)
 
 (serializable-struct space (objects) #:mutable)
