@@ -47,7 +47,7 @@
           ;(displayln (~v (send event get-key-code)))
           (case (send event get-key-code)
             ((#\f)
-             (define bolt (plasma 200 0 0 -20 0 0 "blue" 10))
+             (define bolt (plasma 200 0 0 -50 0 0 "blue" 10.0 '()))
              (send-command bolt))
 ;            ((#\a) (set-object-dr! ownship (+ (object-dr ownship) .03)))
 ;            ((#\d) (set-object-dr! ownship (- (object-dr ownship) .03)))

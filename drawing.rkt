@@ -47,7 +47,8 @@
   (define radius (shield-radius shield))
   
   (for ((section (shield-sections shield))
-        (i (in-naturals)))
+        (i (in-naturals))
+        #:when (section . > . 0))
     (send dc set-pen (shield-color shield) (* 3 (/ section (shield-max shield))) 'solid)
     (define r (- 2pi (/ (* 2pi i) num)))
     (send dc draw-arc
@@ -76,7 +77,8 @@
 (define (draw-plasma dc p center)
   (define-values (x y) (recenter center (thing-x p) (thing-y p)))
   (send dc set-pen (plasma-color p) 1 'solid)
-  (send dc draw-ellipse (- x 5) (- y 5) 10 10))
+  (define rad (plasma-energy p))
+  (send dc draw-ellipse (- x (/ rad 2)) (- y (/ rad 2)) rad rad))
 
 
 (define (draw-all canvas dc ownspace center)

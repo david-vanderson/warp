@@ -15,7 +15,8 @@
 
 (serializable-struct thing (x y r dx dy dr) #:mutable)
 
-(serializable-struct plasma thing (color size) #:mutable)
+(serializable-struct plasma thing (color energy shields-hit) #:mutable)
+; shields-hit is a list of colors of shields that this plasma has already hit
 
 (serializable-struct shield (radius color max sections) #:mutable)
 ; sections is a vector of integers uniformly going counter clock-wise around

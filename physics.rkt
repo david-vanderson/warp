@@ -105,25 +105,39 @@
   ;(printf "theta ~a, theta* ~a\n" theta theta*)
   (inexact->exact (floor (* (/ theta* 2pi) num))))
 
+(define (plasma-hit-shield! ownspace ownship s p)
+  (when (not (member (shield-color s) (plasma-shields-hit p)))
+    ; find the shield section
+    (define sections (shield-sections s))
+    (define section (find-section s (angle-sub (theta ownship p) (thing-r ownship))))
+    (define se (vector-ref sections section))
+    (when (se . > . 0)
+      (define pe (plasma-energy p))
+      (define damage
+        (cond ((se . >= . 100) pe)
+              ((se . < . pe) se)
+              (else (ceiling (* (/ se 100) pe)))))
+      (when (equal? (shield-color s) (plasma-color p))
+        (set! damage (ceiling (/ damage 2))))
+      (vector-set! sections section (- se damage))
+      (set-plasma-energy! p (- pe damage))
+      (set-plasma-shields-hit! p (cons (shield-color s) (plasma-shields-hit p)))
+      
+      ;(printf "hit, new energy ~a\n" (plasma-energy p))
+      
+      (when ((plasma-energy p) . <= . 0)
+        (set-space-objects! ownspace (remove p (space-objects ownspace)))))))
+
 (define (update-ship-effects! ownspace ownship objects)
   (define plasmas (filter plasma? objects))
   (for* ((s (ship-shields ownship))
          (p plasmas))
     (define dist (- (shield-radius s) (distance ownship p)))
-    (when ((abs dist) . < . (/ (plasma-size p) 2))
-      ; plasma is at the right distance to hit the shield
-      ; find the shield section
-      (define sections (shield-sections s))
-      (define section (find-section s (angle-sub (theta ownship p) (thing-r ownship))))
-      (define energy (vector-ref sections section))
-      (vector-set! sections section (- energy (plasma-size p)))
-      ;(printf "theta ~a, section ~a, energy ~a, after ~a\n" (theta ownship p) section energy (vector-ref sections section))
-      (set-space-objects! ownspace (remove p (space-objects ownspace))))))
-    
-    
+    (when ((abs dist) . < . (/ (plasma-energy p) 2))
+      (plasma-hit-shield! ownspace ownship s p))))
+
 
 (define (update-effects! ownspace)
   (define objects (space-objects ownspace))
   (for ((o objects))
     (cond ((ship? o) (update-ship-effects! ownspace o objects)))))
-         
