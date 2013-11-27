@@ -42,17 +42,17 @@
 (define (draw-shield dc shield)
   (define t (send dc get-transformation))
   
-  (define num (length (shield-sections shield)))
-  (define arc-size (* 0.9 (/ (* 2 pi) num)))
+  (define num (vector-length (shield-sections shield)))
+  (define arc-size (* 0.9 (/ 2pi num)))
   (define radius (shield-radius shield))
   
   (for ((section (shield-sections shield))
         (i (in-naturals)))
-    (define r (/ (* 2 pi i) num))
     (send dc set-pen (shield-color shield) (* 3 (/ section (shield-max shield))) 'solid)
+    (define r (- 2pi (/ (* 2pi i) num)))
     (send dc draw-arc
-          (- (/ radius 2)) (- (/ radius 2))
-          radius radius
+          (- radius) (- radius)
+          (* 2 radius) (* 2 radius)
           (- r (* 0.5 arc-size)) (+ r (* 0.5 arc-size))))
   
   (send dc set-transformation t))

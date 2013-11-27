@@ -18,7 +18,7 @@
 (serializable-struct plasma thing (color size) #:mutable)
 
 (serializable-struct shield (radius color max sections) #:mutable)
-; sections is a list of integers uniformly going counter clock-wise around
+; sections is a vector of integers uniformly going counter clock-wise around
 ; each integer is how much shields are in that section, up to max
 ; section 0 is centered on r=0
 
@@ -37,5 +37,6 @@
 ; if left is #t, thrusters on the right side are firing pushing the ship left
 
 (serializable-struct ship thing (helm shields) #:mutable)
+; shields are in radius order starting with the largest radius
 
 (serializable-struct space (objects) #:mutable)

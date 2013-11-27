@@ -7,14 +7,13 @@
 
 (define ownship (ship 0 0 (* 0.5 3 pi) 0 0 0
                       (helm #f (* 0.5 3 pi) #f #f #f #f)
-                      (list (shield 100 "red" 100
-                                    '(100 50 25 0 20 20 20 20 20 20 20 20 20 20 20 20))
-                            (shield 107 "blue" 100
-                                    '(100 50 25 0 20 20 20 20 20 20 20 20 20 20 20 20)))))
+                      (list 
+                       (shield 57 "blue" 100
+                                    (make-vector 16 100))
+                       (shield 50 "red" 100
+                                    (make-vector 16 100)))))
 
-(define bolt (plasma 200 0 0 -10 0 0 "blue" 10))
-
-(define ownspace (space (list ownship bolt)))
+(define ownspace (space (list ownship)))
 
 
 (thread (lambda () (start-server ownspace)))

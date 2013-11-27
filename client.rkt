@@ -21,8 +21,8 @@
 (define my-role #f)
 
 
-(define (send-command role)
-  (async-channel-put command-channel role))
+(define (send-command cmd)
+  (async-channel-put command-channel cmd))
 
 (define (interpret-click canvas event role)
   (cond ((helm? role)
@@ -43,17 +43,21 @@
     (super-new)
     (define/override (on-event event)
       (interpret-click this event my-role))
-    ;    (define/override (on-char event)
-    ;      ;(displayln (~v (send event get-key-code)))
-    ;      (case (send event get-key-code)
-    ;        ((#\a) (set-object-dr! ownship (+ (object-dr ownship) .03)))
-    ;        ((#\d) (set-object-dr! ownship (- (object-dr ownship) .03)))
-    ;        ((#\w)
-    ;         (set-object-dx! ownship (+ (object-dx ownship) (* 2 (cos (object-r ownship)))))
-    ;         (set-object-dy! ownship (+ (object-dy ownship) (* 2 (sin (object-r ownship))))))
-    ;        ((#\s)
-    ;         (set-object-dx! ownship (- (object-dx ownship) (* 2 (cos (object-r ownship)))))
-    ;         (set-object-dy! ownship (- (object-dy ownship) (* 2 (sin (object-r ownship))))))))
+        (define/override (on-char event)
+          ;(displayln (~v (send event get-key-code)))
+          (case (send event get-key-code)
+            ((#\f)
+             (define bolt (plasma 200 0 0 -20 0 0 "blue" 10))
+             (send-command bolt))
+;            ((#\a) (set-object-dr! ownship (+ (object-dr ownship) .03)))
+;            ((#\d) (set-object-dr! ownship (- (object-dr ownship) .03)))
+;            ((#\w)
+;             (set-object-dx! ownship (+ (object-dx ownship) (* 2 (cos (object-r ownship)))))
+;             (set-object-dy! ownship (+ (object-dy ownship) (* 2 (sin (object-r ownship))))))
+;            ((#\s)
+;             (set-object-dx! ownship (- (object-dx ownship) (* 2 (cos (object-r ownship)))))
+;             (set-object-dy! ownship (- (object-dy ownship) (* 2 (sin (object-r ownship))))))
+            ))
     ))
 
 
@@ -111,8 +115,9 @@
     (define dt (/ (- current-time last-update-time) 1000))
     (set! last-update-time current-time)
     
-    ;(printf "client physics: ")
-    (update-physics! ownspace dt))
+    ;(printf "client physics:\n")
+    (update-physics! ownspace dt)
+    (update-effects! ownspace))
   
   ;rendering
   (add-frame-time current-time)

@@ -7,12 +7,18 @@
 (provide (all-defined-out))
 
 
-(define (add-angle r theta)
-  (define z (+ r theta))
-  (cond ((z . >= . 2pi) (- z 2pi))
-        ((z . < . 0) (+ z 2pi))
-        (else z)))
+(define (angle-norm r)
+  (cond ((r . >= . 2pi) (- r 2pi))
+        ((r . < . 0) (+ r 2pi))
+        (else r)))
 
+(define (angle-add r theta)
+  (angle-norm (+ r theta)))
+
+(define (angle-sub r theta)
+  (angle-norm (- r theta)))
+
+; gives angular distance and direction (-pi to pi)
 (define (angle-diff from to)
   (define diff (- to from))
   (cond (((abs diff) . <= . pi) diff)
@@ -41,7 +47,7 @@
            (set-thing-dr! ownship 0)
            0)  ; don't need to accelerate if we're already there
           (else
-           (define future-r (add-angle r (thing-dr ownship)))  ; we'll be there in 1 sec
+           (define future-r (angle-add r (thing-dr ownship)))  ; we'll be there in 1 sec
            (define future-diff (angle-diff future-r course))
            (define diff (angle-diff r course))
            (define fullRACC (if (positive? diff) RACC (- RACC)))
@@ -60,7 +66,7 @@
 (define (physics! thing dt drag? ddx ddy ddr)
   (set-thing-x! thing (+ (thing-x thing) (* dt (thing-dx thing))))
   (set-thing-y! thing (+ (thing-y thing) (* dt (thing-dy thing))))
-  (set-thing-r! thing (add-angle (thing-r thing) (* dt (thing-dr thing))))
+  (set-thing-r! thing (angle-add (thing-r thing) (* dt (thing-dr thing))))
   (when drag?
     (set-thing-dx! thing (drag (thing-dx thing) dt DRAG_COEF (if (zero? ddx) .1 0)))
     (set-thing-dy! thing (drag (thing-dy thing) dt DRAG_COEF (if (zero? ddy) .1 0)))
@@ -75,3 +81,49 @@
        (physics! o dt #t ddx ddy ddr))
       ((plasma? o)
        (physics! o dt #f 0 0 0)))))
+
+
+(define (distance thing1 thing2)
+  (define dx (- (thing-x thing1) (thing-x thing2)))
+  (define dy (- (thing-y thing1) (thing-y thing2)))
+  (sqrt (+ (* dx dx) (* dy dy))))
+
+(define (all-within object others dist)
+  (define close (filter (lambda (o) ((distance object o) . < . dist)) others))
+  (remove object close))
+
+(define (theta from to)
+  (define dx (- (thing-x to) (thing-x from)))
+  (define dy (- (thing-y to) (thing-y from)))
+  ;(printf "dx ~a, dy ~a\n" dx dy)
+  (atan dy dx))
+
+(define (find-section shield theta)
+  (define num (vector-length (shield-sections shield)))
+  (define arc-size (/ 2pi num))
+  (define theta* (angle-add theta (/ arc-size 2)))
+  ;(printf "theta ~a, theta* ~a\n" theta theta*)
+  (inexact->exact (floor (* (/ theta* 2pi) num))))
+
+(define (update-ship-effects! ownspace ownship objects)
+  (define plasmas (filter plasma? objects))
+  (for* ((s (ship-shields ownship))
+         (p plasmas))
+    (define dist (- (shield-radius s) (distance ownship p)))
+    (when ((abs dist) . < . (/ (plasma-size p) 2))
+      ; plasma is at the right distance to hit the shield
+      ; find the shield section
+      (define sections (shield-sections s))
+      (define section (find-section s (angle-sub (theta ownship p) (thing-r ownship))))
+      (define energy (vector-ref sections section))
+      (vector-set! sections section (- energy (plasma-size p)))
+      ;(printf "theta ~a, section ~a, energy ~a, after ~a\n" (theta ownship p) section energy (vector-ref sections section))
+      (set-space-objects! ownspace (remove p (space-objects ownspace))))))
+    
+    
+
+(define (update-effects! ownspace)
+  (define objects (space-objects ownspace))
+  (for ((o objects))
+    (cond ((ship? o) (update-ship-effects! ownspace o objects)))))
+         

@@ -22,6 +22,8 @@
   (cond
     ((async-channel? cmd)  ; new client
      (set! client-channels (list* cmd client-channels)))
+    ((plasma? cmd)  ; add a plasma
+     (set-space-objects! ownspace (append (space-objects ownspace) (list cmd))))
     ((role? cmd)
      ; find the ship that this role is on
      (define ownship (car (space-objects ownspace)))
@@ -39,8 +41,9 @@
   (define need-update #f)
   
   ; physics
-  ;(printf "server physics: ")
+  ;(printf "server physics:\n")
   (update-physics! ownspace dt)
+  (update-effects! ownspace)
   
   ; process commands
   (let loop ()
@@ -49,9 +52,6 @@
       (set! need-update #t)
       (receive-command command)
       (loop)))
-  
-  ; do collision detection and make all decisions
-  
   
   ; send out updated world
   (when (or need-update
