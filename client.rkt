@@ -6,14 +6,20 @@
 (require "defs.rkt")
 (require "server.rkt")
 
+(provide start-client)
+
+(define update-channel (make-async-channel))
+
 (define CLIENT_LOOP_DELAY .01)  ; don't loop more often than X secs
 (define show-framerate? #t)
 (define frames '())  ; list of last few frame times
+
+
 (define last-drawn-role "helm")
 (define ownship #f)
-
 (define me (player "Dave" 123))
 (define my-role #f)
+
 
 (define (recenter ownship x y)
   (if ownship
@@ -155,6 +161,7 @@
   ; physics prediction
   (when ownship
     (define dt (/ (- current-time last-update-time) 1000))
+    ;(printf "client physics: ")
     (update-physics ownship dt)
     (set! last-update-time current-time))
   
@@ -169,6 +176,8 @@
   
   (queue-callback client-loop #f))
 
-(queue-callback client-loop #f)
+(define (start-client)
+  (async-channel-put command-channel update-channel)
+  (queue-callback client-loop #f))
 
-(thread server-loop)
+

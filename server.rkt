@@ -6,14 +6,14 @@
 
 (require "defs.rkt")
 
-(define command-channel (make-async-channel))
-(define update-channel (make-async-channel))
 (provide command-channel
-         update-channel
          update-physics
-         server-loop)
+         start-server)
 
-(define SERVER_LOOP_DELAY .01)  ; don't loop more often than X secs
+(define command-channel (make-async-channel))
+(define client-channels '())
+
+(define SERVER_LOOP_DELAY .1)  ; don't loop more often than X secs
 (define SERVER_SEND_DELAY .25)  ; don't send updates more often than X secs
 
 (define (add-angle r theta)
@@ -40,7 +40,7 @@
   (define r (object-r ownship))
   (define acc
     (cond ((and
-            ((abs (angle-diff r course)) . < . (/ 2pi 120))  ; within 3 degrees
+            ((abs (angle-diff r course)) . < . (/ 2pi 180))  ; within 2 degrees
             ((abs (object-dr ownship)) . < . (/ 2pi 120)))  ; moving less than 3 degrees / sec
            ;(printf "STOPPING\n")
            (set-object-r! ownship course)
@@ -59,9 +59,9 @@
                   (- (* 0.5 fullRACC) (* -3 future-diff)))
                  (else fullRACC)))))  ; not close, keep at it
   
-  ;(printf "acc ~a\n" acc)
+  ;(printf "r ~a, course ~a, acc ~a\n" r course acc)
   (set-object-dr! ownship (+ (object-dr ownship) (* acc dt)))
-
+  
   ; physics
   (set-object-x! ownship (+ (object-x ownship) (* dt (object-dx ownship))))
   (set-object-y! ownship (+ (object-y ownship) (* dt (object-dy ownship))))
@@ -78,12 +78,15 @@
                             (shield 107 "blue" 100
                                     '(100 50 25 0 20 20 20 20 20 20 20 20 20 20 20 20)))))
 
-(define (receive-command role)
+(define (receive-command cmd)
   (printf "receive-command\n")
-  (cond ((helm? role)
-         ; find the ship that this role is on
-         (set-ship-helm! ownship role)
-         )))
+  (cond
+    ((async-channel? cmd)  ; new client
+     (set! client-channels (list* cmd client-channels)))
+    ((helm? cmd)
+     ; find the ship that this role is on
+     (set-ship-helm! ownship cmd)
+     )))
 
 (define (drag dv dt coef epsilon)
   (define newv (* dv (expt (1 . - . coef) dt)))
@@ -92,32 +95,37 @@
 (define previous-loop-time (current-inexact-milliseconds))
 (define previous-send-time (current-inexact-milliseconds))
 
-(define (server-loop)
+(define (start-server)
   (define current-time (current-inexact-milliseconds))
   (define dt (/ (- current-time previous-loop-time) 1000))
   (set! previous-loop-time current-time)
+  (define need-update #f)
+  
+  ; physics
+  ;(printf "server physics: ")
+  (update-physics ownship dt)
   
   ; process commands
   (let loop ()
     (define command (async-channel-try-get command-channel))
     (when command
+      (set! need-update #t)
       (receive-command command)
       (loop)))
-  
-  ; physics
-  (update-physics ownship dt)
   
   ; do collision detection and make all decisions
   
   
   ; send out updated world
-  (when (> (/ (- current-time previous-send-time) 1000) SERVER_SEND_DELAY)
+  (when (or need-update
+            (> (/ (- current-time previous-send-time) 1000) SERVER_SEND_DELAY))
     (set! previous-send-time current-time)
-;    (printf "server sending\n")
-    (async-channel-put update-channel (serialize ownship)))
+    ;    (printf "server sending\n")
+    (for ((c client-channels))
+      (async-channel-put c (serialize ownship))))
   
   ; sleep so we don't hog the whole racket vm
   (when (dt . < . SERVER_LOOP_DELAY)
     (sleep (- SERVER_LOOP_DELAY dt)))
   
-  (server-loop))
+  (start-server))
