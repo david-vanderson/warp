@@ -3,7 +3,8 @@
 (require racket/async-channel
          racket/serialize)
 
-(require "defs.rkt")
+(require "defs.rkt"
+         "physics.rkt")
 (require "server.rkt")
 
 (provide start-client)
@@ -16,7 +17,7 @@
 
 
 (define last-drawn-role "helm")
-(define ownship #f)
+(define ownspace #f)
 (define me (player "Dave" 123))
 (define my-role #f)
 
@@ -64,6 +65,7 @@
 
 (define (draw-background dc)
   (define t (send dc get-transformation))
+  (define ownship (car (space-objects ownspace)))
   (define-values (x y) (recenter ownship 0 0))
   (send dc draw-rectangle (- x 250) (- y 250) 500 500)
   (send dc set-transformation t))
@@ -117,9 +119,11 @@
   ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
   (define t (send dc get-transformation))
   (send dc erase)
-  (draw-background dc)
+  (when ownspace
+    (define ownship (car (space-objects ownspace)))
+    (draw-background dc)
+    (draw-ship dc ownship))
   (draw-framerate dc)
-  (when ownship (draw-ship dc ownship))
   (send dc set-transformation t))
 
 (define canvas
@@ -150,20 +154,22 @@
   (set! previous-loop-time current-time)
   
   ; get new world
-  (define new-ownship (async-channel-try-get update-channel))
-  (when new-ownship
+  (define update (async-channel-try-get update-channel))
+  (when update
     ;(printf "got update\n")
     (set! last-update-time (current-inexact-milliseconds))
-    (set! ownship (deserialize new-ownship))
+    (set! ownspace (deserialize update))
     ; find my role
-    (set! my-role (ship-helm ownship)))
+    (set! my-role (ship-helm (car (space-objects ownspace)))))
   
   ; physics prediction
-  (when ownship
+  (when ownspace
     (define dt (/ (- current-time last-update-time) 1000))
+    (set! last-update-time current-time)
+    
     ;(printf "client physics: ")
-    (update-physics ownship dt)
-    (set! last-update-time current-time))
+    (for ((o (space-objects ownspace)))
+      (update-physics o dt)))
   
   ;rendering
   (when show-framerate?

@@ -35,3 +35,5 @@
 ; if left is #t, thrusters on the right side are firing pushing the ship left
 
 (serializable-struct ship object (helm shields) #:mutable)
+
+(serializable-struct space (objects) #:mutable)
