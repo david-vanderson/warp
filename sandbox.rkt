@@ -10,7 +10,7 @@
                       (list 
                        (shield 57 "blue" 100
                                     (make-vector 16 0))
-                       #;(shield 50 "red" 100
+                       (shield 50 "red" 100
                                     (make-vector 16 0)))))
 
 (vector-set! (shield-sections (car (ship-shields ownship))) 0 100)

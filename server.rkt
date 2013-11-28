@@ -42,7 +42,7 @@
   
   ; physics
   ;(printf "server physics:\n")
-  (vector-set! (shield-sections (car (ship-shields (car (space-objects ownspace))))) 0 100)
+  ;(vector-set! (shield-sections (car (ship-shields (car (space-objects ownspace))))) 0 100)
   (update-physics! ownspace dt)
   (update-effects! ownspace)
   

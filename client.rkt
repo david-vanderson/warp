@@ -116,8 +116,8 @@
     (set! last-update-time current-time)
     
     ;(printf "client physics:\n")
-;    (update-physics! ownspace dt)
-;    (update-effects! ownspace)
+    (update-physics! ownspace dt)
+    (update-effects! ownspace)
     )
   
   ;rendering

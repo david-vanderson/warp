@@ -76,21 +76,22 @@
 
 
 (define (spread-shields! ship dt)
-  (printf "spread-shields!\n")
+;  (printf "spread-shields!\n")
   (for ((s (ship-shields ship)))
-    (let loop ()
+    (let loop ((pipe? #t))
       (define sections (shield-sections s))
       (define n (vector-length sections))
       (define new-sections (vector-copy sections))
       (define arc-size (/ (* 2pi (shield-radius s)) n))
+      (define pipe-size (if pipe? (* dt (/ 15.0 arc-size)) 0))
       
-      (define tweak 35)
+      (define tweak 30)
       (define dt* (min 1.0 dt (/ arc-size tweak)))
       (set! dt (- dt dt*))
       
-      (printf "sections (~a) " (~r (for/fold ((sum 0)) ((s sections)) (+ sum s))))
-      (for ((s sections)) (printf "~a, " (~r s)))
-      (printf "\ntweak ~a, arc-size ~a, dt ~a, dt* ~a\n" tweak (~r arc-size) (~r dt) (~r dt*))
+;      (printf "sections (~a) " (~r (for/fold ((sum 0)) ((s sections)) (+ sum s))))
+;      (for ((s sections)) (printf "~a, " (~r s)))
+;      (printf "\ntweak ~a, pipe-size ~a, arc-size ~a, dt ~a, dt* ~a\n" tweak (~r pipe-size) (~r arc-size) (~r dt) (~r dt*))
       
       (for ((i n))
         (define prev (if (i . > . 0)        (sub1 i) (sub1 n)))
@@ -100,18 +101,22 @@
         (define ne (vector-ref sections next))
         
         (when (ie . > . (add1 pe))
-          (define change (* tweak dt* (/ (- ie pe) 3.0 arc-size)))
+          (define pipe-change (min (/ (- ie pe) 2) pipe-size))
+          (define ratio-change (* tweak dt* (/ (- ie pe) 3.0 arc-size)))
+          (define change (max pipe-change ratio-change))
           (vector-set! new-sections i (- (vector-ref new-sections i) change))
           (vector-set! new-sections prev (+ (vector-ref new-sections prev) change)))
         (when (ie . > . (add1 ne))
-          (define change (* tweak dt* (/ (- ie ne) 3.0 arc-size)))
+          (define pipe-change (min (/ (- ie ne) 2) pipe-size))
+          (define ratio-change (* tweak dt* (/ (- ie ne) 3.0 arc-size)))
+          (define change (max pipe-change ratio-change))
           (vector-set! new-sections i (- (vector-ref new-sections i) change))
           (vector-set! new-sections next (+ (vector-ref new-sections next) change))))
       
       (set-shield-sections! s new-sections)
       (when (dt . > . 0)
         (printf "respreading shields\n")
-        (loop))
+        (loop #f))
       )))
 
 
