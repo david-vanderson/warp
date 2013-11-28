@@ -41,3 +41,29 @@
 ; shields are in radius order starting with the largest radius
 
 (serializable-struct space (objects) #:mutable)
+
+
+(define (get-role stack)
+  (cadr (reverse stack)))
+
+(define (get-center stack)
+  (cadr stack))
+
+; returns a list (stack) of all objects from ownspace to the player (player last)
+; if player is not in space, return #f
+(define (find-player obj id)
+  (define x
+    (cond
+      ((space? obj) (filter ship? (space-objects obj)))
+      ((ship? obj) (list (ship-helm obj)))
+      ((role? obj) (list (role-player obj)))
+      ((player? obj) obj)))
+  
+  (cond
+    ((player? x)
+     (if (equal? id (player-id x))
+         (list x)
+         #f))
+    (else
+     (define found (ormap (lambda (o) (find-player o id)) x))
+     (and found (cons obj found)))))

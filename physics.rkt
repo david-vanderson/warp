@@ -75,10 +75,12 @@
     (set-thing-dr! thing (drag (thing-dr thing) dt R_DRAG_COEF (if (zero? ddr) (/ 2pi 360) 0)))))
 
 
-(define (spread-shields! ship dt)
+(define (spread-shields! ship dt-arg)
 ;  (printf "spread-shields!\n")
   (for ((s (ship-shields ship)))
+;    (printf "shields ~a\n" (shield-color s))
     (let loop ((pipe? #t))
+      (define dt dt-arg)
       (define sections (shield-sections s))
       (define n (vector-length sections))
       (define new-sections (vector-copy sections))

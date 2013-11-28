@@ -10,23 +10,26 @@
          start-server)
 
 (define command-channel (make-async-channel))
+(define server-channels '())
 (define client-channels '())
 
 (define SERVER_LOOP_DELAY .03)  ; don't loop more often than X secs
 (define SERVER_SEND_DELAY .25)  ; don't send updates more often than X secs
 (define ownspace #f)
+(define new-client #f)
 
 
 (define (receive-command cmd)
   (printf "receive-command\n")
   (cond
-    ((async-channel? cmd)  ; new client
-     (set! client-channels (list* cmd client-channels)))
+    ((player? cmd)
+     (new-client ownspace cmd))
     ((plasma? cmd)  ; add a plasma
      (set-space-objects! ownspace (append (space-objects ownspace) (list cmd))))
     ((role? cmd)
      ; find the ship that this role is on
-     (define ownship (car (space-objects ownspace)))
+     (define stack (find-player ownspace (player-id (role-player cmd))))
+     (define ownship (caddr (reverse stack)))
      (cond ((helm? cmd)
             (set-ship-helm! ownship cmd))))))
 
@@ -48,28 +51,41 @@
   
   ; process commands
   (let loop ()
-    (define command (async-channel-try-get command-channel))
-    (when command
+    (define x (async-channel-try-get command-channel))
+    (when x
+      ; new client
+      (set! client-channels (list* x client-channels))
+      (define ch (make-async-channel))
+      (set! server-channels (list* ch server-channels))
+      (async-channel-put x ch)
       (set! need-update #t)
-      (receive-command command)
       (loop)))
+  
+  (for ((ch server-channels))
+    (let loop ()
+      (define x (async-channel-try-get ch))
+      (when x
+        (set! need-update #t)
+        (receive-command x)
+        (loop))))
   
   ; send out updated world
   (when (or need-update
             (> (/ (- current-time previous-send-time) 1000) SERVER_SEND_DELAY))
     (set! previous-send-time current-time)
-    ;    (printf "server sending\n")
+    ;(printf "server sending ~v\n" ownspace)
     (for ((c client-channels))
       (async-channel-put c (serialize ownspace))))
   
   ; sleep so we don't hog the whole racket vm
   (define loop-time (/ (- (current-inexact-milliseconds) current-time) 1000))
   (if (loop-time . < . SERVER_LOOP_DELAY)
-    (sleep (- SERVER_LOOP_DELAY loop-time))
-    (begin (printf "SERVER LOOP TOO LONG: ~a\n" loop-time)))
+      (sleep (- SERVER_LOOP_DELAY loop-time))
+      (begin (printf "SERVER LOOP TOO LONG: ~a\n" loop-time)))
   
   (server-loop))
 
-(define (start-server new-space)
+(define (start-server new-space new-client-arg)
   (set! ownspace new-space)
+  (set! new-client new-client-arg)
   (server-loop))

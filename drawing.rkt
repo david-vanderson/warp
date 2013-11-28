@@ -61,8 +61,10 @@
   (send dc set-transformation t))
 
 
-(define (draw-ship dc s)
+(define (draw-ship dc s center)
+  (define-values (x y) (recenter center (thing-x s) (thing-y s)))
   (define t (send dc get-transformation))
+  (send dc translate x y)
   (send dc rotate (- (thing-r s)))
   (for ((shield (ship-shields s)))
     (draw-shield dc shield))
@@ -83,14 +85,14 @@
   (send dc draw-ellipse (- x (/ rad 2)) (- y (/ rad 2)) rad rad))
 
 
-(define (draw-all canvas dc ownspace center)
+(define (draw-all canvas dc ownspace stack)
+  (define center (get-center stack))
   (draw-background dc ownspace center)
-  (define ownship (car (space-objects ownspace)))
   (for ((o (space-objects ownspace)))
     (cond
       ((ship? o)
-       (draw-ship dc o))
+       (draw-ship dc o center))
       ((plasma? o)
-       (draw-plasma dc o ownship))))
+       (draw-plasma dc o center))))
   
   (draw-framerate dc))
