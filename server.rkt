@@ -12,7 +12,7 @@
 (define command-channel (make-async-channel))
 (define client-channels '())
 
-(define SERVER_LOOP_DELAY .01)  ; don't loop more often than X secs
+(define SERVER_LOOP_DELAY .03)  ; don't loop more often than X secs
 (define SERVER_SEND_DELAY .25)  ; don't send updates more often than X secs
 (define ownspace #f)
 
@@ -42,6 +42,7 @@
   
   ; physics
   ;(printf "server physics:\n")
+  (vector-set! (shield-sections (car (ship-shields (car (space-objects ownspace))))) 0 100)
   (update-physics! ownspace dt)
   (update-effects! ownspace)
   
@@ -62,8 +63,10 @@
       (async-channel-put c (serialize ownspace))))
   
   ; sleep so we don't hog the whole racket vm
-  (when (dt . < . SERVER_LOOP_DELAY)
-    (sleep (- SERVER_LOOP_DELAY dt)))
+  (define loop-time (/ (- (current-inexact-milliseconds) current-time) 1000))
+  (if (loop-time . < . SERVER_LOOP_DELAY)
+    (sleep (- SERVER_LOOP_DELAY loop-time))
+    (begin (printf "SERVER LOOP TOO LONG: ~a\n" loop-time)))
   
   (server-loop))
 

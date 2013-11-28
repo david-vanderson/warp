@@ -12,7 +12,7 @@
 
 (define update-channel (make-async-channel))
 
-(define CLIENT_LOOP_DELAY .01)  ; don't loop more often than X secs
+(define CLIENT_LOOP_DELAY .03)  ; don't loop more often than X secs
 
 
 (define last-drawn-role "helm")
@@ -116,16 +116,19 @@
     (set! last-update-time current-time)
     
     ;(printf "client physics:\n")
-    (update-physics! ownspace dt)
-    (update-effects! ownspace))
+;    (update-physics! ownspace dt)
+;    (update-effects! ownspace)
+    )
   
   ;rendering
   (add-frame-time current-time)
   (send canvas refresh-now)
   
   ;sleep so we don't hog the whole racket vm
-  (when (dt . < . CLIENT_LOOP_DELAY)
-    (sleep (- CLIENT_LOOP_DELAY dt)))
+  (define loop-time (/ (- (current-inexact-milliseconds) current-time) 1000))
+  (if (loop-time . < . CLIENT_LOOP_DELAY)
+    (sleep (- CLIENT_LOOP_DELAY loop-time))
+    (begin (printf "CLIENT LOOP TOO LONG: ~a\n" loop-time)))
   
   (queue-callback client-loop #f))
 

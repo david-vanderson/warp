@@ -5,13 +5,15 @@
          "client.rkt"
          "server.rkt")
 
-(define ownship (ship 0 0 (* 0.5 3 pi) 0 0 0
-                      (helm #f (* 0.5 3 pi) #f #f #f #f)
+(define ownship (ship 0 0 (* 0.5 pi) 0 0 0
+                      (helm #f (* 0.5 pi) #f #f #f #f)
                       (list 
                        (shield 57 "blue" 100
-                                    (make-vector 16 100))
-                       (shield 50 "red" 100
-                                    (make-vector 16 100)))))
+                                    (make-vector 16 0))
+                       #;(shield 50 "red" 100
+                                    (make-vector 16 0)))))
+
+(vector-set! (shield-sections (car (ship-shields ownship))) 0 100)
 
 (define ownspace (space (list ownship)))
 
