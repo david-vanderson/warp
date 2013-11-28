@@ -31,6 +31,18 @@
      (define stack (find-player ownspace (player-id (role-player cmd))))
      (define ownship (caddr (reverse stack)))
      (cond ((helm? cmd)
+            (when (helm-aft cmd)
+              (set-helm-aft! cmd #f)
+              (define rx (cos (thing-r ownship)))
+              (define ry (sin (thing-r ownship)))
+              (define x (+ (thing-x ownship) (* 20 rx)))
+              (define y (+ (thing-y ownship) (* 20 ry)))
+              (define p (plasma x y 0
+                                (+ (thing-dx ownship) (* 30 rx))
+                                (+ (thing-dy ownship) (* 30 ry))
+                                0 "blue" 10.0 '()))
+              (set-space-objects! ownspace (list* p (space-objects ownspace)))
+              )
             (set-ship-helm! ownship cmd))))))
 
 

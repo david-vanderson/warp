@@ -19,10 +19,10 @@
 
 (define (new-client ownspace player)
   (printf "new-client ~a\n" (player-id player))
-  (define x (* 100 (player-id player)))
+  (define x (* 200 (sub1 (player-id player))))
   (define new-ship
     (ship x 0 (* 0.5 pi) 0 0 0
-          (helm player (* 0.5 pi) #f #f #f #f)
+          (helm player (* 0.5 pi) #t #f #f #f)
           (list 
            (shield 57 "blue" 100 (make-vector 16 0))
            (shield 50 "red" 100 (make-vector 16 0)))))

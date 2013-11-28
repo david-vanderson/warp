@@ -40,7 +40,7 @@
 (define (steer! ownship dt)
   (define course (helm-course (ship-helm ownship)))
   (define r (thing-r ownship))
-  (define acc
+  (define ddr
     (cond ((and
             ((abs (angle-diff r course)) . < . (/ 2pi 180))  ; within 2 degrees
             ((abs (thing-dr ownship)) . < . (/ 2pi 120)))  ; moving less than 3 degrees / sec
@@ -62,8 +62,19 @@
                  (else fullRACC)))))  ; not close, keep at it
   
   ;(printf "r ~a, course ~a, acc ~a\n" r course acc)
-  (set-thing-dr! ownship (+ (thing-dr ownship) (* acc dt)))
-  (values 0 0 acc))
+  (set-thing-dr! ownship (+ (thing-dr ownship) (* ddr dt)))
+  
+  (define ddx 0)
+  (define ddy 0)
+  (when (helm-fore (ship-helm ownship))
+    (set! ddx (* 20 (cos (thing-r ownship))))
+    (set! ddy (* 20 (sin (thing-r ownship)))))
+  
+  (set-thing-dx! ownship (+ (thing-dx ownship) (* ddx dt)))
+  (set-thing-dy! ownship (+ (thing-dy ownship) (* ddy dt)))
+  
+  (values ddx ddy ddr))
+
 
 (define (physics! thing dt drag? ddx ddy ddr)
   (set-thing-x! thing (+ (thing-x thing) (* dt (thing-dx thing))))
