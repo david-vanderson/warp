@@ -83,14 +83,16 @@
       (define n (vector-length sections))
       (define new-sections (vector-copy sections))
       (define arc-size (/ (* 2pi (shield-radius s)) n))
+      (define pipe-size (* dt (/ 1000.0 arc-size)))
       
       (define tweak 35)
-      (define dt* (min 1.0 dt (/ arc-size tweak)))
-      (set! dt (- dt dt*))
+;      (define dt* (min 1.0 dt (/ arc-size tweak)))
+;      (set! dt (- dt dt*))
+      (define dt* dt)
       
       (printf "sections (~a) " (~r (for/fold ((sum 0)) ((s sections)) (+ sum s))))
       (for ((s sections)) (printf "~a, " (~r s)))
-      (printf "\ntweak ~a, arc-size ~a, dt ~a, dt* ~a\n" tweak (~r arc-size) (~r dt) (~r dt*))
+      (printf "\npipe-size ~a, arc-size ~a, dt ~a, dt* ~a\n" pipe-size (~r arc-size) (~r dt) (~r dt*))
       
       (for ((i n))
         (define prev (if (i . > . 0)        (sub1 i) (sub1 n)))
@@ -100,18 +102,19 @@
         (define ne (vector-ref sections next))
         
         (when (ie . > . (add1 pe))
-          (define change (* tweak dt* (/ (- ie pe) 3.0 arc-size)))
+          (define change (min (/ (- ie pe) 2) pipe-size))
           (vector-set! new-sections i (- (vector-ref new-sections i) change))
           (vector-set! new-sections prev (+ (vector-ref new-sections prev) change)))
         (when (ie . > . (add1 ne))
-          (define change (* tweak dt* (/ (- ie ne) 3.0 arc-size)))
+          (define change (min (/ (- ie ne) 2) pipe-size))
+          ;(define change (* tweak dt* (/ (- ie ne) 3.0 arc-size)))
           (vector-set! new-sections i (- (vector-ref new-sections i) change))
           (vector-set! new-sections next (+ (vector-ref new-sections next) change))))
       
       (set-shield-sections! s new-sections)
-      (when (dt . > . 0)
-        (printf "respreading shields\n")
-        (loop))
+;      (when (dt . > . 0)
+;        (printf "respreading shields\n")
+;        (loop))
       )))
 
 
