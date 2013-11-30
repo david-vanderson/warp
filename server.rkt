@@ -40,7 +40,7 @@
               (define p (plasma x y 0
                                 (+ (thing-dx ownship) (* 30 rx))
                                 (+ (thing-dy ownship) (* 30 ry))
-                                0 "blue" 10.0 '()))
+                                0 "blue" 10.0 (ship-id ownship) '()))
               (set-space-objects! ownspace (list* p (space-objects ownspace)))
               )
             (set-ship-helm! ownship cmd))))))

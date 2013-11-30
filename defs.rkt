@@ -12,10 +12,15 @@
 (define R_DRAG_COEF .7)  ; lose X% of your velocity / sec
 (define 2pi (* 2 pi))
 
+(define (random-id)
+  (random 4294967087))
+
 
 (serializable-struct thing (x y r dx dy dr) #:mutable)
 
-(serializable-struct plasma thing (color energy shields-hit) #:mutable)
+(serializable-struct plasma thing (color energy ownship-id shields-hit) #:mutable)
+; ownship is unique id of the ship that fired it, or #f if it belongs to no ship
+;  - plasma will not interact with the shields of ownship
 ; shields-hit is a list of colors of shields that this plasma has already hit
 
 (serializable-struct shield (radius color max sections) #:mutable)
@@ -23,7 +28,7 @@
 ; each integer is how much shields are in that section, up to max
 ; section 0 is centered on r=0
 
-(serializable-struct player (name id) #:mutable)
+(serializable-struct player (id name) #:mutable)
 ; id uniquely defines this player
 ; name is what is shown in UIs
 
@@ -37,7 +42,7 @@
 ; if fore is #t, main thrusters are firing
 ; if left is #t, thrusters on the right side are firing pushing the ship left
 
-(serializable-struct ship thing (helm shields) #:mutable)
+(serializable-struct ship thing (id helm shields) #:mutable)
 ; shields are in radius order starting with the largest radius
 
 (serializable-struct space (objects) #:mutable)

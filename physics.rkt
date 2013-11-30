@@ -87,9 +87,9 @@
 
 
 (define (spread-shields! ship dt-arg)
-;  (printf "spread-shields!\n")
+  ;  (printf "spread-shields!\n")
   (for ((s (ship-shields ship)))
-;    (printf "shields ~a\n" (shield-color s))
+    ;    (printf "shields ~a\n" (shield-color s))
     (let loop ((pipe? #t))
       (define dt dt-arg)
       (define sections (shield-sections s))
@@ -102,9 +102,9 @@
       (define dt* (min 1.0 dt (/ arc-size tweak)))
       (set! dt (- dt dt*))
       
-;      (printf "sections (~a) " (~r (for/fold ((sum 0)) ((s sections)) (+ sum s))))
-;      (for ((s sections)) (printf "~a, " (~r s)))
-;      (printf "\ntweak ~a, pipe-size ~a, arc-size ~a, dt ~a, dt* ~a\n" tweak (~r pipe-size) (~r arc-size) (~r dt) (~r dt*))
+      ;      (printf "sections (~a) " (~r (for/fold ((sum 0)) ((s sections)) (+ sum s))))
+      ;      (for ((s sections)) (printf "~a, " (~r s)))
+      ;      (printf "\ntweak ~a, pipe-size ~a, arc-size ~a, dt ~a, dt* ~a\n" tweak (~r pipe-size) (~r arc-size) (~r dt) (~r dt*))
       
       (for ((i n))
         (define prev (if (i . > . 0)        (sub1 i) (sub1 n)))
@@ -196,7 +196,10 @@
 
 
 (define (update-ship-effects! ownspace ownship objects)
-  (define plasmas (filter plasma? objects))
+  (define plasmas (filter (lambda (o) (and (plasma? o)
+                                           (not (equal? (plasma-ownship-id o)
+                                                        (ship-id ownship)))))
+                          objects))
   (for* ((s (ship-shields ownship))
          (p plasmas))
     (define dist (- (shield-radius s) (distance ownship p)))
