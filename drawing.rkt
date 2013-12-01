@@ -8,16 +8,11 @@
 
 (provide (all-defined-out))
 
+(define (add-frame-time current-time frames)
+  (cons current-time (take frames (min 10 (length frames)))))
 
-(define show-framerate? #t)
-(define frames '())  ; list of last few frame times
-
-(define (add-frame-time current-time)
-  (when show-framerate?
-    (set! frames (cons current-time (take frames (min 10 (length frames)))))))
-
-(define (draw-framerate dc)
-  (when (and show-framerate? (not (empty? frames)))
+(define (draw-framerate dc frames)
+  (when (not (empty? frames))
     (define t (send dc get-transformation))
     (send dc translate (- (/ WIDTH 2)) (/ HEIGHT 2))
     (send dc scale 1 -1)
@@ -85,7 +80,7 @@
   (send dc draw-ellipse (- x (/ rad 2)) (- y (/ rad 2)) rad rad))
 
 
-(define (draw-all canvas dc ownspace stack)
+(define (draw-all canvas dc frames ownspace stack)
   (define center (get-center stack))
   (draw-background dc ownspace center)
   (for ((o (space-objects ownspace)))
@@ -95,4 +90,4 @@
       ((plasma? o)
        (draw-plasma dc o center))))
   
-  (draw-framerate dc))
+  (draw-framerate dc frames))

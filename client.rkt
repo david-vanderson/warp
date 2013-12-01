@@ -13,6 +13,8 @@
 (define CLIENT_LOOP_DELAY .03)  ; don't loop more often than X secs
 
 (define (start-client player-arg)
+  (current-eventspace (make-eventspace))
+  
   (define update-channel (make-async-channel))
   
   ; connect to server
@@ -22,6 +24,7 @@
   
   (async-channel-put server-channel player-arg)
   
+  (define frames '())  ; list of last few frame times
   
   (define ownspace #f)
   (define me player-arg)
@@ -49,13 +52,10 @@
     (define t (send dc get-transformation))
     (send dc erase)
     
-    (when (and ownspace my-stack)
-      (draw-all canvas dc ownspace my-stack))
+    (when (and frames ownspace my-stack)
+      (draw-all canvas dc frames ownspace my-stack))
     
-    (draw-framerate dc)
     (send dc set-transformation t))
-  
-  (current-eventspace (make-eventspace))
   
   (define frame (new (class frame% (super-new))
                      (label "Warp")))
@@ -126,7 +126,7 @@
       )
     
     ;rendering
-    (add-frame-time current-time)
+    (set! frames (add-frame-time current-time frames))
     (send canvas refresh-now)
     
     ;sleep so we don't hog the whole racket vm
