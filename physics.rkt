@@ -140,7 +140,8 @@
       ((ship? o)
        (define-values (ddx ddy ddr) (steer! o dt))
        (physics! o dt #t ddx ddy ddr)
-       (spread-shields! o dt))
+       (spread-shields! o dt)
+       )
       ((plasma? o)
        (physics! o dt #f 0 0 0)))))
 
@@ -170,44 +171,63 @@
   ;(printf "theta ~a, theta* ~a\n" theta theta*)
   (inexact->exact (floor (* (/ theta* 2pi) num))))
 
+(define (plasma-radius p)
+  (/ (plasma-energy p) 2))
 
-(define (plasma-hit-shield! ownspace ownship s p)
-  (when (not (member (shield-color s) (plasma-shields-hit p)))
-    ; find the shield section
-    (define sections (shield-sections s))
-    (define section (find-section s (angle-sub (theta ownship p) (thing-r ownship))))
-    (define se (vector-ref sections section))
-    (when (se . > . 0)
-      (define pe (plasma-energy p))
-      (define damage
-        (cond ((se . >= . 100) pe)
-              ((se . < . pe) se)
-              (else (ceiling (* (/ se 100) pe)))))
-      (when (equal? (shield-color s) (plasma-color p))
-        (set! damage (ceiling (/ damage 2))))
-      (vector-set! sections section (- se damage))
-      (set-plasma-energy! p (- pe damage))
-      (set-plasma-shields-hit! p (cons (shield-color s) (plasma-shields-hit p)))
-      
-      ;(printf "hit, new energy ~a\n" (plasma-energy p))
-      
-      (when ((plasma-energy p) . <= . 0)
-        (set-space-objects! ownspace (remove p (space-objects ownspace)))))))
+(define (reduce-plasma! space p damage)
+  (set-plasma-energy! p (- (plasma-energy p) damage))
+  (when ((plasma-energy p) . < . 1)
+    (set-space-objects! space (remove p (space-objects space)))))
 
-
-(define (update-ship-effects! ownspace ownship objects)
-  (define plasmas (filter (lambda (o) (and (plasma? o)
-                                           (not (equal? (plasma-ownship-id o)
-                                                        (ship-id ownship)))))
-                          objects))
-  (for* ((s (ship-shields ownship))
-         (p plasmas))
-    (define dist (- (shield-radius s) (distance ownship p)))
-    (when ((abs dist) . < . (/ (plasma-energy p) 2))
-      (plasma-hit-shield! ownspace ownship s p))))
+(define (plasma-hit-shields! space ship p done)
+  (define dist (distance ship p))
+  (for ((s (ship-shields ship)))
+    (define shield-dist (- (shield-radius s) dist))
+    (when (and (not (equal? (plasma-ownship-id p) (ship-id ship)))
+               ((abs shield-dist) . < . (plasma-radius p))
+               (not (member (shield-color s) (plasma-shields-hit p))))
+      ; find the shield section
+      (define sections (shield-sections s))
+      (define section (find-section s (angle-sub (theta ship p) (thing-r ship))))
+      (define se (vector-ref sections section))
+      (when (se . >= . 1)  ; shields less than 1 are nothing
+        (define pe (plasma-energy p))
+        (define damage
+          (cond ((se . >= . 100) pe)  ; greater than 100 shields absorbs everything
+                (else (* (max 0.1 (/ se 100)) pe))))  ; otherwise a percentage (min 10%)
+        (when (equal? (shield-color s) (plasma-color p))
+          (set! damage (/ damage 2)))
+        ;        (printf "hit, shields ~a plasma ~a damage ~a\n" se pe damage)
+        (vector-set! sections section (max 0 (- se damage)))
+        (reduce-plasma! space p damage)
+        (set-plasma-shields-hit! p (cons (shield-color s) (plasma-shields-hit p)))
+        ;        (printf "new, shields ~a plasma ~a\n" (vector-ref sections section) (plasma-energy p))
+        (done)))))
 
 
-(define (update-effects! ownspace)
-  (define objects (space-objects ownspace))
-  (for ((o objects))
-    (cond ((ship? o) (update-ship-effects! ownspace o objects)))))
+(define (plasma-hit-reactor! space ship p done)
+  (when ((distance ship p) . < . (+ 10 (plasma-radius p)))
+    (define damage (plasma-energy p))
+    (reduce-plasma! space p damage)
+    ; each 1 plasma energy reduces containment by 1%
+    (reduce-reactor! space ship (/ damage 100))
+    (done)))
+
+
+(define (reduce-reactor! space ship damage)
+  (set-ship-containment! ship (- (ship-containment ship) damage))
+  (when ((ship-containment ship) . < . 0)
+    (set-space-objects! space (remove ship (space-objects space)))))
+
+
+(define (update-effects! space)
+  (define objects (space-objects space))
+  (define plasmas (filter plasma? objects))
+  (define ships (filter ship? objects))
+  (for ((p plasmas))
+    ; call (done) if the plasma hits something, so it doesn't hit multiple things
+    (let/ec done
+      (for ((ship ships))
+        (plasma-hit-shields! space ship p done)
+        (plasma-hit-reactor! space ship p done)
+        ))))

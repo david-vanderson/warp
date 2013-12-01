@@ -2,7 +2,8 @@
 
 (require racket/class
          racket/math
-         racket/list)
+         racket/list
+         racket/format)
 
 (require "defs.rkt")
 
@@ -42,7 +43,7 @@
   
   (for ((section (shield-sections shield))
         (i (in-naturals))
-        #:when (section . > . 0))
+        #:when (section . >= . 1))
     (define linear-strength (/ section (shield-max shield)))
     (define log-strength (/ (log (add1 section)) (log (shield-max shield))))
     (send dc set-pen (shield-color shield) (* 3 (* 0.5 (+ linear-strength log-strength))) 'solid)
@@ -60,6 +61,7 @@
   (define-values (x y) (recenter center (thing-x s) (thing-y s)))
   (define t (send dc get-transformation))
   (send dc translate x y)
+  (define t2 (send dc get-transformation))
   (send dc rotate (- (thing-r s)))
   (for ((shield (ship-shields s)))
     (draw-shield dc shield))
@@ -70,6 +72,16 @@
                           (10 . -10)
                           (-10 . -10)
                           (-10 . 10)))
+  
+  (send dc set-transformation t2)
+  
+  (define scale 0.5)
+  (send dc scale scale (- scale))
+  (define text (~r (* 100 (ship-containment s)) #:precision 0))
+  (define-values (w h b v) (send dc get-text-extent text))
+  (send dc translate (* -0.5 w) (* -0.5 h))
+  (send dc draw-text text 0 0)
+  
   (send dc set-transformation t))
 
 

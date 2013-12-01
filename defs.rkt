@@ -42,7 +42,9 @@
 ; if fore is #t, main thrusters are firing
 ; if left is #t, thrusters on the right side are firing pushing the ship left
 
-(serializable-struct ship thing (id helm shields) #:mutable)
+(serializable-struct ship thing (id helm reactor containment shields) #:mutable)
+; reactor is the energy produced by the reactor
+; containment is the percentage of reactor health left (0-1, starts at 1)
 ; shields are in radius order starting with the largest radius
 
 (serializable-struct space (objects) #:mutable)
