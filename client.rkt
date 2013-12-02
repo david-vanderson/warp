@@ -1,8 +1,5 @@
 #lang racket/gui
 
-(require racket/async-channel
-         racket/serialize)
-
 (require "defs.rkt"
          "physics.rkt"
          "drawing.rkt")
@@ -12,26 +9,24 @@
 
 (define CLIENT_LOOP_DELAY .03)  ; don't loop more often than X secs
 
-(define (start-client player-arg)
+(define (start-client ip port player-arg)
   (current-eventspace (make-eventspace))
   
-  (define update-channel (make-async-channel))
-  
   ; connect to server
-  (async-channel-put command-channel update-channel)
+  (define-values (server-in-port server-out-port)
+    (tcp-connect ip port))
   
-  (define server-channel (async-channel-get update-channel))
+  (define (send-command cmd)
+    (write cmd server-out-port)
+    (flush-output server-out-port))
   
-  (async-channel-put server-channel player-arg)
+  (send-command player-arg)
   
   (define frames '())  ; list of last few frame times
   
   (define ownspace #f)
   (define me player-arg)
   (define my-stack #f)
-  
-  (define (send-command cmd)
-    (async-channel-put server-channel cmd))
   
   (define (interpret-click canvas event)
     (when my-stack
@@ -106,12 +101,12 @@
     (set! previous-loop-time current-time)
     
     ; get new world
-    (define update (async-channel-try-get update-channel))
-    (when update
-      ;(printf "got update\n")
-      (set! last-update-time (current-inexact-milliseconds))
+    (when (byte-ready? server-in-port)
+      ;(printf "client byte-ready, ")
+      (define update (read server-in-port))
       ;(printf "update: ~v\n" update)
-      (set! ownspace (deserialize update))
+      (set! ownspace update)
+      (set! last-update-time (current-inexact-milliseconds))
       ; find my role
       (set! my-stack (find-player ownspace (player-id me))))
     
@@ -132,10 +127,14 @@
     ;sleep so we don't hog the whole racket vm
     (define loop-time (/ (- (current-inexact-milliseconds) current-time) 1000))
     (if (loop-time . < . CLIENT_LOOP_DELAY)
-        (sleep (- CLIENT_LOOP_DELAY loop-time))
-        (begin (printf "CLIENT LOOP TOO LONG: ~a\n" loop-time)))
-    
-    (queue-callback client-loop #f))
+        (new timer%
+             (notify-callback (lambda () (queue-callback client-loop #f)))
+             (interval (inexact->exact (floor (* 1000 (- CLIENT_LOOP_DELAY loop-time)))))
+             (just-once? #t))
+        (begin
+          (printf "CLIENT LOOP TOO LONG: ~a\n" loop-time)
+          (queue-callback client-loop #f)))
+    )
   
   (queue-callback client-loop #f))
 

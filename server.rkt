@@ -1,17 +1,15 @@
 #lang racket/base
 
-(require racket/async-channel
-         racket/serialize)
+(require racket/tcp)
 
 (require "defs.rkt"
          "physics.rkt")
 
-(provide command-channel
-         start-server)
+(provide start-server)
 
-(define command-channel (make-async-channel))
-(define server-channels '())
-(define client-channels '())
+(define server-listener #f)
+(define client-in-ports '())
+(define client-out-ports '())
 
 (define SERVER_LOOP_DELAY .03)  ; don't loop more often than X secs
 (define SERVER_SEND_DELAY .25)  ; don't send updates more often than X secs
@@ -61,33 +59,38 @@
   (update-physics! ownspace dt)
   (update-effects! ownspace)
   
-  ; process commands
-  (let loop ()
-    (define x (async-channel-try-get command-channel))
-    (when x
-      ; new client
-      (set! client-channels (list* x client-channels))
-      (define ch (make-async-channel))
-      (set! server-channels (list* ch server-channels))
-      (async-channel-put x ch)
-      (set! need-update #t)
-      (loop)))
+  ; process new clients
+  (when (tcp-accept-ready? server-listener)
+    (printf "server accept-ready\n")
+    (define-values (in out) (tcp-accept server-listener))
+    (set! client-in-ports (cons in client-in-ports))
+    (set! client-out-ports (cons out client-out-ports))
+    (set! need-update #t))
+  ;    (define x (async-channel-try-get command-channel))
+  ;    (when x
+  ;      ; new client
+  ;      (set! client-channels (list* x client-channels))
+  ;      (define ch (make-async-channel))
+  ;      (set! server-channels (list* ch server-channels))
+  ;      (async-channel-put x ch)
+  ;      (set! need-update #t)
+  ;      (loop)))
   
-  (for ((ch server-channels))
-    (let loop ()
-      (define x (async-channel-try-get ch))
-      (when x
-        (set! need-update #t)
-        (receive-command x)
-        (loop))))
+  ; process commands
+  (for ((p client-in-ports))
+    (when (byte-ready? p)
+      (define x (read p))
+      (receive-command x)
+      (set! need-update #t)))
   
   ; send out updated world
   (when (or need-update
             (> (/ (- current-time previous-send-time) 1000) SERVER_SEND_DELAY))
     (set! previous-send-time current-time)
     ;(printf "server sending ~v\n" ownspace)
-    (for ((c client-channels))
-      (async-channel-put c (serialize ownspace))))
+    (for ((p client-out-ports))
+      (write ownspace p)
+      (flush-output p)))
   
   ; sleep so we don't hog the whole racket vm
   (define loop-time (/ (- (current-inexact-milliseconds) current-time) 1000))
@@ -97,7 +100,8 @@
   
   (server-loop))
 
-(define (start-server new-space new-client-arg)
+(define (start-server port new-space new-client-arg)
   (set! ownspace new-space)
   (set! new-client new-client-arg)
+  (set! server-listener (tcp-listen port))
   (server-loop))

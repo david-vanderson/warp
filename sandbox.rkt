@@ -5,27 +5,29 @@
          "client.rkt"
          "server.rkt")
 
-
-(define ownspace (space '()))
-
-(define (new-client ownspace player)
-  (printf "new-client ~a\n" (player-id player))
-  (define x (* 200 (sub1 (player-id player))))
-  (define new-ship
-    (ship x 0 (* 0.5 pi) 0 0 0
+(define (big-ship x y)
+    (ship x y (* 0.5 pi) 0 0 0
           (random-id)
-          (helm player (* 0.5 pi) #t #f #f #f)
+          (helm #f (* 0.5 pi) #f #f #f #f)
           100 1
           (list 
            (shield 57 "blue" 100 (make-vector 16 50))
            (shield 50 "red" 100 (make-vector 16 50)))))
-  ;(vector-set! (shield-sections (car (ship-shields new-ship))) 0 100)
-  ;(vector-set! (shield-sections (cadr (ship-shields new-ship))) 8 100)
-  (set-space-objects! ownspace (cons new-ship (space-objects ownspace))))
 
-(thread (lambda () (start-server ownspace new-client)))
+(define ownspace (space (list (big-ship 0 0) (big-ship 100 0))))
 
-(thread (lambda () (start-client (player 1 "Dave"))))
-(thread (lambda () (start-client (player 2 "Andrea"))))
+(define (new-client ownspace player)
+  (printf "new-client ~a\n" (player-id player))
+  (define ship (car (space-objects ownspace)))
+  (set-role-player! (ship-helm ship) player))
+
+(define port 22381)
+
+(thread (lambda () (start-server port ownspace new-client)))
+
+(sleep 0.5)
+
+(thread (lambda () (start-client "127.0.0.1" port (player 1 "Dave"))))
+;(thread (lambda () (start-client "127.0.0.1" port (player 2 "Andrea"))))
 
 (semaphore-wait (make-semaphore))

@@ -16,38 +16,38 @@
   (random 4294967087))
 
 
-(serializable-struct thing (x y r dx dy dr) #:mutable)
+(struct thing (x y r dx dy dr) #:mutable #:prefab)
 
-(serializable-struct plasma thing (color energy ownship-id shields-hit) #:mutable)
+(struct plasma thing (color energy ownship-id shields-hit) #:mutable #:prefab)
 ; ownship is unique id of the ship that fired it, or #f if it belongs to no ship
 ;  - plasma will not interact with the shields of ownship
 ; shields-hit is a list of colors of shields that this plasma has already hit
 
-(serializable-struct shield (radius color max sections) #:mutable)
+(struct shield (radius color max sections) #:mutable #:prefab)
 ; sections is a vector of integers uniformly going counter clock-wise around
 ; each integer is how much shields are in that section, up to max
 ; section 0 is centered on r=0
 
-(serializable-struct player (id name) #:mutable)
+(struct player (id name) #:mutable #:prefab)
 ; id uniquely defines this player
 ; name is what is shown in UIs
 
-(serializable-struct role (player) #:mutable)
+(struct role (player) #:mutable #:prefab)
 ; player is #f if this role is unoccupied
 
-(serializable-struct captain role () #:mutable)
+(struct captain role () #:mutable #:prefab)
 
-(serializable-struct helm role (course fore aft left right) #:mutable)
+(struct helm role (course fore aft left right) #:mutable #:prefab)
 ; course is angle helm wants to point at
 ; if fore is #t, main thrusters are firing
 ; if left is #t, thrusters on the right side are firing pushing the ship left
 
-(serializable-struct ship thing (id helm reactor containment shields) #:mutable)
+(struct ship thing (id helm reactor containment shields) #:mutable #:prefab)
 ; reactor is the energy produced by the reactor
 ; containment is the percentage of reactor health left (0-1, starts at 1)
 ; shields are in radius order starting with the largest radius
 
-(serializable-struct space (objects) #:mutable)
+(struct space (objects) #:mutable #:prefab)
 
 
 (define (get-role stack)
@@ -62,9 +62,10 @@
   (define x
     (cond
       ((space? obj) (filter ship? (space-objects obj)))
-      ((ship? obj) (list (ship-helm obj)))
-      ((role? obj) (list (role-player obj)))
-      ((player? obj) obj)))
+      ((ship? obj) (filter values (list (ship-helm obj))))
+      ((role? obj) (filter values (list (role-player obj))))
+      ((player? obj) obj)
+      (else (printf "find-player error: ~v\n" obj))))
   
   (cond
     ((player? x)
