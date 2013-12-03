@@ -39,22 +39,23 @@
 
 (define (steer! ownship dt)
   (define course (helm-course (ship-helm ownship)))
-  (define r (thing-r ownship))
+  (define posvel (obj-posvel ownship))
+  (define r (posvel-r posvel))
   (define ddr
     (cond ((and
             ((abs (angle-diff r course)) . < . (/ 2pi 180))  ; within 2 degrees
-            ((abs (thing-dr ownship)) . < . (/ 2pi 120)))  ; moving less than 3 degrees / sec
+            ((abs (posvel-dr posvel)) . < . (/ 2pi 120)))  ; moving less than 3 degrees / sec
            ;(printf "STOPPING\n")
-           (set-thing-r! ownship course)
-           (set-thing-dr! ownship 0)
+           (set-posvel-r! posvel course)
+           (set-posvel-dr! posvel 0)
            0)  ; don't need to accelerate if we're already there
           (else
-           (define future-r (angle-add r (thing-dr ownship)))  ; we'll be there in 1 sec
+           (define future-r (angle-add r (posvel-dr posvel)))  ; we'll be there in 1 sec
            (define future-diff (angle-diff future-r course))
            (define diff (angle-diff r course))
            (define fullRACC (if (positive? diff) RACC (- RACC)))
            
-           (cond ((opposite-sign? diff (thing-dr ownship)) fullRACC)  ; going the wrong way, full acc
+           (cond ((opposite-sign? diff (posvel-dr posvel)) fullRACC)  ; going the wrong way, full acc
                  ((opposite-sign? diff future-diff)
                   ; getting close, accelerate future-diff less
                   ;(printf "getting close, ~a ~a\n" diff future-diff)
@@ -62,35 +63,35 @@
                  (else fullRACC)))))  ; not close, keep at it
   
   ;(printf "r ~a, course ~a, acc ~a\n" r course acc)
-  (set-thing-dr! ownship (+ (thing-dr ownship) (* ddr dt)))
+  (set-posvel-dr! posvel (+ (posvel-dr posvel) (* ddr dt)))
   
   (define ddx 0)
   (define ddy 0)
   (when (helm-fore (ship-helm ownship))
-    (set! ddx (* 20 (cos (thing-r ownship))))
-    (set! ddy (* 20 (sin (thing-r ownship)))))
+    (set! ddx (* 20 (cos (posvel-r posvel))))
+    (set! ddy (* 20 (sin (posvel-r posvel)))))
   
-  (set-thing-dx! ownship (+ (thing-dx ownship) (* ddx dt)))
-  (set-thing-dy! ownship (+ (thing-dy ownship) (* ddy dt)))
+  (set-posvel-dx! posvel (+ (posvel-dx posvel) (* ddx dt)))
+  (set-posvel-dy! posvel (+ (posvel-dy posvel) (* ddy dt)))
   
   (values ddx ddy ddr))
 
 
-(define (physics! thing dt drag? ddx ddy ddr)
-  (set-thing-x! thing (+ (thing-x thing) (* dt (thing-dx thing))))
-  (set-thing-y! thing (+ (thing-y thing) (* dt (thing-dy thing))))
-  (set-thing-r! thing (angle-add (thing-r thing) (* dt (thing-dr thing))))
+(define (physics! posvel dt drag? ddx ddy ddr)
+  (set-posvel-x! posvel (+ (posvel-x posvel) (* dt (posvel-dx posvel))))
+  (set-posvel-y! posvel (+ (posvel-y posvel) (* dt (posvel-dy posvel))))
+  (set-posvel-r! posvel (angle-add (posvel-r posvel) (* dt (posvel-dr posvel))))
   (when drag?
-    (set-thing-dx! thing (drag (thing-dx thing) dt DRAG_COEF (if (zero? ddx) .1 0)))
-    (set-thing-dy! thing (drag (thing-dy thing) dt DRAG_COEF (if (zero? ddy) .1 0)))
-    (set-thing-dr! thing (drag (thing-dr thing) dt R_DRAG_COEF (if (zero? ddr) (/ 2pi 360) 0)))))
+    (set-posvel-dx! posvel (drag (posvel-dx posvel) dt DRAG_COEF (if (zero? ddx) .1 0)))
+    (set-posvel-dy! posvel (drag (posvel-dy posvel) dt DRAG_COEF (if (zero? ddy) .1 0)))
+    (set-posvel-dr! posvel (drag (posvel-dr posvel) dt R_DRAG_COEF (if (zero? ddr) (/ 2pi 360) 0)))))
 
 
 (define (spread-shields! ship dt-arg)
   ;  (printf "spread-shields!\n")
   (for ((s (ship-shields ship)))
     ;    (printf "shields ~a\n" (shield-color s))
-    (let loop ((pipe? #t))
+    (let loop ((pipe? #f))
       (define dt dt-arg)
       (define sections (shield-sections s))
       (define n (vector-length sections))
@@ -98,7 +99,7 @@
       (define arc-size (/ (* 2pi (shield-radius s)) n))
       (define pipe-size (if pipe? (* dt (/ 15.0 arc-size)) 0))
       
-      (define tweak 30)
+      (define tweak 10)
       (define dt* (min 1.0 dt (/ arc-size tweak)))
       (set! dt (- dt dt*))
       
@@ -139,27 +140,22 @@
     (cond
       ((ship? o)
        (define-values (ddx ddy ddr) (steer! o dt))
-       (physics! o dt #t ddx ddy ddr)
+       (physics! (obj-posvel o) dt #t ddx ddy ddr)
        (spread-shields! o dt)
        )
       ((plasma? o)
-       (physics! o dt #f 0 0 0)))))
+       (physics! (obj-posvel o) dt #f 0 0 0)))))
 
 
-(define (distance thing1 thing2)
-  (define dx (- (thing-x thing1) (thing-x thing2)))
-  (define dy (- (thing-y thing1) (thing-y thing2)))
+(define (distance o1 o2)
+  (define dx (- (posvel-x (obj-posvel o1)) (posvel-x (obj-posvel o2))))
+  (define dy (- (posvel-y (obj-posvel o1)) (posvel-y (obj-posvel o2))))
   (sqrt (+ (* dx dx) (* dy dy))))
 
 
-(define (all-within object others dist)
-  (define close (filter (lambda (o) ((distance object o) . < . dist)) others))
-  (remove object close))
-
-
 (define (theta from to)
-  (define dx (- (thing-x to) (thing-x from)))
-  (define dy (- (thing-y to) (thing-y from)))
+  (define dx (- (posvel-x (obj-posvel to)) (posvel-x (obj-posvel from))))
+  (define dy (- (posvel-y (obj-posvel to)) (posvel-y (obj-posvel from))))
   ;(printf "dx ~a, dy ~a\n" dx dy)
   (atan dy dx))
 
@@ -179,16 +175,16 @@
   (when ((plasma-energy p) . < . 1)
     (set-space-objects! space (remove p (space-objects space)))))
 
-(define (plasma-hit-shields! space ship p done)
+(define (plasma-hit-shields! space ship p)
   (define dist (distance ship p))
   (for ((s (ship-shields ship)))
     (define shield-dist (- (shield-radius s) dist))
-    (when (and (not (equal? (plasma-ownship-id p) (ship-id ship)))
+    (when (and (not (equal? (plasma-ownship-id p) (obj-id ship)))
                ((abs shield-dist) . < . (plasma-radius p))
                (not (member (shield-color s) (plasma-shields-hit p))))
       ; find the shield section
       (define sections (shield-sections s))
-      (define section (find-section s (angle-sub (theta ship p) (thing-r ship))))
+      (define section (find-section s (angle-sub (theta ship p) (posvel-r (obj-posvel ship)))))
       (define se (vector-ref sections section))
       (when (se . >= . 1)  ; shields less than 1 are nothing
         (define pe (plasma-energy p))
@@ -202,16 +198,15 @@
         (reduce-plasma! space p damage)
         (set-plasma-shields-hit! p (cons (shield-color s) (plasma-shields-hit p)))
         ;        (printf "new, shields ~a plasma ~a\n" (vector-ref sections section) (plasma-energy p))
-        (done)))))
+        ))))
 
 
-(define (plasma-hit-reactor! space ship p done)
+(define (plasma-hit-reactor! space ship p)
   (when ((distance ship p) . < . (+ 10 (plasma-radius p)))
     (define damage (plasma-energy p))
     (reduce-plasma! space p damage)
     ; each 1 plasma energy reduces containment by 1%
-    (reduce-reactor! space ship (/ damage 100))
-    (done)))
+    (reduce-reactor! space ship (/ damage 100))))
 
 
 (define (reduce-reactor! space ship damage)
@@ -225,9 +220,7 @@
   (define plasmas (filter plasma? objects))
   (define ships (filter ship? objects))
   (for ((p plasmas))
-    ; call (done) if the plasma hits something, so it doesn't hit multiple things
-    (let/ec done
-      (for ((ship ships))
-        (plasma-hit-shields! space ship p done)
-        (plasma-hit-reactor! space ship p done)
-        ))))
+    (for ((ship ships))
+      (plasma-hit-shields! space ship p)
+      (plasma-hit-reactor! space ship p)
+      )))

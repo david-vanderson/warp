@@ -1,7 +1,6 @@
 #lang racket/base
 
 (require racket/class
-         racket/math
          racket/list
          racket/format)
 
@@ -24,8 +23,8 @@
     (send dc set-transformation t)))
 
 
-(define (recenter thing x y)
-  (values (- x (thing-x thing)) (- y (thing-y thing))))
+(define (recenter o x y)
+  (values (- x (posvel-x (obj-posvel o))) (- y (posvel-y (obj-posvel o)))))
 
 
 (define (draw-background dc ownspace center)
@@ -58,11 +57,12 @@
 
 
 (define (draw-ship dc s center)
-  (define-values (x y) (recenter center (thing-x s) (thing-y s)))
+  (define posvel (obj-posvel s))
+  (define-values (x y) (recenter center (posvel-x posvel) (posvel-y posvel)))
   (define t (send dc get-transformation))
   (send dc translate x y)
   (define t2 (send dc get-transformation))
-  (send dc rotate (- (thing-r s)))
+  (send dc rotate (- (posvel-r posvel)))
   (for ((shield (ship-shields s)))
     (draw-shield dc shield))
   
@@ -86,7 +86,7 @@
 
 
 (define (draw-plasma dc p center)
-  (define-values (x y) (recenter center (thing-x p) (thing-y p)))
+  (define-values (x y) (recenter center (posvel-x (obj-posvel p)) (posvel-y (obj-posvel p))))
   (send dc set-pen (plasma-color p) 1 'solid)
   (define rad (plasma-energy p))
   (send dc draw-ellipse (- x (/ rad 2)) (- y (/ rad 2)) rad rad))

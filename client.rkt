@@ -18,7 +18,7 @@
     (tcp-connect ip port))
   
   (define (send-command cmd)
-    (printf "send-command\n")
+    ;(printf "send-command\n")
     (write cmd server-out-port)
     (flush-output server-out-port))
   
@@ -110,7 +110,7 @@
       (set! ownspace update)
       (set! last-update-time (current-inexact-milliseconds))
       ; find my role
-      (set! my-stack (find-player ownspace (player-id me))))
+      (set! my-stack (find-player ownspace (obj-id me))))
     
     ; physics prediction
     (when ownspace
@@ -141,4 +141,4 @@
   (queue-callback client-loop #f))
 
 (module+ main
-  (start-client "127.0.0.1" PORT (player 1 "Dave") #f))
+  (start-client "127.0.0.1" PORT (player 1 #f "Dave") #f))

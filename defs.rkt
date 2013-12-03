@@ -13,42 +13,48 @@
 (define R_DRAG_COEF .7)  ; lose X% of your velocity / sec
 (define 2pi (* 2 pi))
 
-(define (random-id)
-  (random 4294967087))
+(define next-id
+  (let ((id 0))
+    (lambda ()
+      (set! id (add1 id))
+      id)))
 
 
-(struct thing (x y r dx dy dr) #:mutable #:prefab)
+(struct posvel (x y r dx dy dr) #:mutable #:prefab)
 
-(struct plasma thing (color energy ownship-id shields-hit) #:mutable #:prefab)
+(struct obj (id posvel) #:mutable #:prefab)
+; id is used to uniquely identify any game object
+; if posvel is #f, then this obj is inside something else
+; if posvel is not #f, then this is a top-level object that is drawn
+
+(struct plasma obj (color energy ownship-id shields-hit) #:mutable #:prefab)
 ; ownship is unique id of the ship that fired it, or #f if it belongs to no ship
 ;  - plasma will not interact with the shields of ownship
 ; shields-hit is a list of colors of shields that this plasma has already hit
 
-(struct shield (radius color max sections) #:mutable #:prefab)
+(struct shield obj (radius color max sections) #:mutable #:prefab)
 ; sections is a vector of integers uniformly going counter clock-wise around
 ; each integer is how much shields are in that section, up to max
 ; section 0 is centered on r=0
 
-(struct player (id name) #:mutable #:prefab)
-; id uniquely defines this player
+(struct player obj (name) #:mutable #:prefab)
 ; name is what is shown in UIs
 
-(struct role (player) #:mutable #:prefab)
+(struct role obj (player) #:mutable #:prefab)
 ; player is #f if this role is unoccupied
-
-(struct captain role () #:mutable #:prefab)
 
 (struct helm role (course fore aft left right) #:mutable #:prefab)
 ; course is angle helm wants to point at
 ; if fore is #t, main thrusters are firing
 ; if left is #t, thrusters on the right side are firing pushing the ship left
 
-(struct ship thing (id helm reactor containment shields) #:mutable #:prefab)
+(struct ship obj (helm reactor containment shields) #:mutable #:prefab)
 ; reactor is the energy produced by the reactor
 ; containment is the percentage of reactor health left (0-1, starts at 1)
 ; shields are in radius order starting with the largest radius
 
-(struct space (objects) #:mutable #:prefab)
+(struct space (time objects) #:mutable #:prefab)
+; time is milliseconds since the scenario started
 
 
 (define (get-role stack)
@@ -70,7 +76,7 @@
   
   (cond
     ((player? x)
-     (if (equal? id (player-id x))
+     (if (equal? id (obj-id x))
          (list x)
          #f))
     (else
