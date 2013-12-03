@@ -5,6 +5,7 @@
 
 (provide (all-defined-out))
 
+(define PORT 22381)
 (define WIDTH 1024)  ; how many meters wide is the screen view
 (define HEIGHT 768)  ; how many meters tall is the screen view
 (define DRAG_COEF .7)  ; lose X% of your velocity / sec

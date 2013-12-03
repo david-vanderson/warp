@@ -1,6 +1,7 @@
 #lang racket/base
 
-(require racket/tcp)
+(require racket/tcp
+         racket/math)
 
 (require "defs.rkt"
          "physics.rkt")
@@ -66,15 +67,6 @@
     (set! client-in-ports (cons in client-in-ports))
     (set! client-out-ports (cons out client-out-ports))
     (set! need-update #t))
-  ;    (define x (async-channel-try-get command-channel))
-  ;    (when x
-  ;      ; new client
-  ;      (set! client-channels (list* x client-channels))
-  ;      (define ch (make-async-channel))
-  ;      (set! server-channels (list* ch server-channels))
-  ;      (async-channel-put x ch)
-  ;      (set! need-update #t)
-  ;      (loop)))
   
   ; process commands
   (for ((p client-in-ports))
@@ -87,8 +79,8 @@
   (when (or need-update
             (> (/ (- current-time previous-send-time) 1000) SERVER_SEND_DELAY))
     (set! previous-send-time current-time)
-    ;(printf "server sending ~v\n" ownspace)
     (for ((p client-out-ports))
+      ;(printf "server sending ~v\n" ownspace)
       (write ownspace p)
       (flush-output p)))
   
@@ -105,3 +97,22 @@
   (set! new-client new-client-arg)
   (set! server-listener (tcp-listen port))
   (server-loop))
+
+(module+ main
+  (define (big-ship x y)
+    (ship x y (* 0.5 pi) 0 0 0
+          (random-id)
+          (helm #f (* 0.5 pi) #f #f #f #f)
+          100 1
+          (list 
+           (shield 57 "blue" 100 (make-vector 16 50))
+           (shield 50 "red" 100 (make-vector 16 50)))))
+  
+  (define ownspace (space (list (big-ship 0 0) (big-ship 100 0))))
+  
+  (define (new-client ownspace player)
+    (printf "new-client ~a\n" (player-id player))
+    (define ship (car (space-objects ownspace)))
+    (set-role-player! (ship-helm ship) player))
+  
+  (start-server PORT ownspace new-client))

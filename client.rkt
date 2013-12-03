@@ -9,14 +9,16 @@
 
 (define CLIENT_LOOP_DELAY .03)  ; don't loop more often than X secs
 
-(define (start-client ip port player-arg)
-  (current-eventspace (make-eventspace))
+(define (start-client ip port player-arg new-eventspace?)
+  (when new-eventspace?
+    (current-eventspace (make-eventspace)))
   
   ; connect to server
   (define-values (server-in-port server-out-port)
     (tcp-connect ip port))
   
   (define (send-command cmd)
+    (printf "send-command\n")
     (write cmd server-out-port)
     (flush-output server-out-port))
   
@@ -138,4 +140,5 @@
   
   (queue-callback client-loop #f))
 
-
+(module+ main
+  (start-client "127.0.0.1" PORT (player 1 "Dave") #f))

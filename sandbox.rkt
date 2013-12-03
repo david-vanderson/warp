@@ -21,13 +21,11 @@
   (define ship (car (space-objects ownspace)))
   (set-role-player! (ship-helm ship) player))
 
-(define port 22381)
-
-(thread (lambda () (start-server port ownspace new-client)))
+(thread (lambda () (start-server PORT ownspace new-client)))
 
 (sleep 0.5)
 
-(thread (lambda () (start-client "127.0.0.1" port (player 1 "Dave"))))
-;(thread (lambda () (start-client "127.0.0.1" port (player 2 "Andrea"))))
+(thread (lambda () (start-client "127.0.0.1" PORT (player 1 "Dave") #t)))
+;(thread (lambda () (start-client "127.0.0.1" PORT (player 2 "Andrea") #t)))
 
 (semaphore-wait (make-semaphore))
