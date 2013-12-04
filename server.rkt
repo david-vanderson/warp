@@ -13,7 +13,7 @@
 (define client-out-ports '())
 
 (define SERVER_LOOP_DELAY .03)  ; don't loop more often than X secs
-(define SERVER_SEND_DELAY .25)  ; don't send updates more often than X secs
+(define SERVER_SEND_DELAY 1.0)  ; don't send auto updates more often than X secs
 (define ownspace #f)
 (define new-client #f)
 
@@ -61,6 +61,7 @@
   ;(printf "~v\n" (car (space-objects ownspace)))
   (update-physics! ownspace dt)
   (update-effects! ownspace)
+  (set-space-time! ownspace (+ (space-time ownspace) dt))
   
   ; process new clients
   (when (tcp-accept-ready? server-listener)
@@ -82,7 +83,7 @@
             (> (/ (- current-time previous-send-time) 1000) SERVER_SEND_DELAY))
     (set! previous-send-time current-time)
     (for ((p client-out-ports))
-      ;(printf "server sending ~v\n" ownspace)
+      ;(printf "server sending ~a\n" (space-time ownspace))
       (write ownspace p)
       (flush-output p)))
   

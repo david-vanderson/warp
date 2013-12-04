@@ -94,32 +94,50 @@
   (send dc set-smoothing 'smoothed)
   (send dc set-brush "red" 'transparent)
   
-  (define previous-loop-time (current-inexact-milliseconds))
-  (define last-update-time (current-inexact-milliseconds))
+  (define start-space-time #f)
+  (define start-time #f)
+  
+  (define (calc-dt curtime start curspace startspace)
+    (- (/ (- curtime start) 1000)
+       (- curspace startspace)))
   
   (define (client-loop)
     (define current-time (current-inexact-milliseconds))
-    (define dt (/ (- current-time previous-loop-time) 1000))
-    (set! previous-loop-time current-time)
     
     ; get new world
     (when (byte-ready? server-in-port)
       ;(printf "client byte-ready, ")
       (define update (read server-in-port))
       ;(printf "update: ~v\n" update)
+      ;(printf "update ~a\n" (space-time update))
+      (when (not start-space-time)
+        (set! start-space-time (space-time update))
+        (set! start-time (- current-time (* CLIENT_LOOP_DELAY 1000))))
+      
+      (define dt (calc-dt current-time start-time (space-time update) start-space-time))
+      
+      (define diff (/ CLIENT_LOOP_DELAY 3.0))
+      (when (dt . < . 0)  ; started too late
+        (printf "started too late ~a\n" dt)
+        (set! start-time (- start-time (* diff 1000))))
+      (when (dt . > . (* 10 CLIENT_LOOP_DELAY))  ; started too early
+        (printf "catching up too much ~a\n" dt)
+        ;(set! start-time (+ start-time (* diff 1000)))
+        )
+      
       (set! ownspace update)
-      (set! last-update-time (current-inexact-milliseconds))
       ; find my role
       (set! my-stack (find-player ownspace (obj-id me))))
     
+    
     ; physics prediction
     (when ownspace
-      (define dt (/ (- current-time last-update-time) 1000))
-      (set! last-update-time current-time)
-      
-      ;(printf "client physics:\n")
+      (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))
+      (set! dt (max dt 0))  ; don't go backwards
+;      (printf "client physics ~a ~a ~a\n" (space-time ownspace) dt start-time)
       (update-physics! ownspace dt)
       (update-effects! ownspace)
+      (set-space-time! ownspace (+ (space-time ownspace) dt))
       )
     
     ;rendering
