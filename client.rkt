@@ -31,10 +31,10 @@
   (define my-stack #f)
   
   (define (interpret-click canvas event)
-    (when my-stack
-      (define role (get-role my-stack))
-      (cond ((helm? role)
-             (when (send event button-down? 'left)
+    (when (send event button-down? 'left)
+      (when my-stack
+        (define role (get-role my-stack))
+        (cond ((helm? role)
                (printf "~a: helm clicked\n" (player-name me))
                (define x (- (send event get-x) (/ (send canvas get-width) 2)))
                (define y (- (/ (send canvas get-height) 2) (send event get-y)))
@@ -63,7 +63,7 @@
       ((not ownspace)
        (draw-intro dc))
       ((not my-stack)
-       (draw-sector dc ownspace))
+       (draw-no-role dc ownspace))
       (else
        (draw-playing dc ownspace my-stack)))
     
@@ -136,7 +136,7 @@
       
       (set! ownspace update)
       ; find my role
-      (set! my-stack (find-player ownspace (obj-id me))))
+      (set! my-stack (find-id ownspace (obj-id me))))
     
     
     ; physics prediction

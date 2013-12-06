@@ -99,7 +99,7 @@
   (send dc draw-ellipse (- x (/ rad 2)) (- y (/ rad 2)) rad rad))
 
 
-(define (draw-sector dc ownspace)
+(define (draw-no-role dc ownspace)
   (define t (send dc get-transformation))
   
   (define max-x (space-sizex ownspace))

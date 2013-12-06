@@ -1,7 +1,8 @@
 #lang racket/base
 
 (require racket/serialize
-         racket/math)
+         racket/math
+         racket/function)
 
 (provide (all-defined-out))
 
@@ -44,12 +45,19 @@
 (struct role obj (player) #:mutable #:prefab)
 ; player is #f if this role is unoccupied
 
+(struct multirole obj (players) #:mutable #:prefab)
+; players is a list of players in this role
+
+(struct observers multirole (new-players?) #:mutable #:prefab)
+; special role used to contain players while they are choosing their next role
+; new-players? is #t if new players can start in this observer role
+
 (struct helm role (course fore aft left right) #:mutable #:prefab)
 ; course is angle helm wants to point at
 ; if fore is #t, main thrusters are firing
 ; if left is #t, thrusters on the right side are firing pushing the ship left
 
-(struct ship obj (name helm reactor containment shields) #:mutable #:prefab)
+(struct ship obj (name helm observers reactor containment shields) #:mutable #:prefab)
 ; reactor is the energy produced by the reactor
 ; containment is the percentage of reactor health left (0-1, starts at 1)
 ; shields are in radius order starting with the largest radius
@@ -60,36 +68,67 @@
 
 
 (define (get-role stack)
-  (cadr (reverse stack)))
-
-(define (get-center stack)
   (cadr stack))
 
-; returns a list (stack) of all objects from ownspace to the player (player last)
-; if player is not in space, return #f
-(define (find-player obj id)
-  (define x
-    (cond
-      ((space? obj) (filter ship? (space-objects obj)))
-      ((ship? obj) (filter values (list (ship-helm obj))))
-      ((role? obj) (filter values (list (role-player obj))))
-      ((player? obj) obj)
-      (else (printf "find-player error: ~v\n" obj))))
-  
+(define (get-center stack)
+  (car (reverse stack)))
+
+
+(define (get-children o)
   (cond
-    ((player? x)
-     (if (equal? id (obj-id x))
-         (list x)
-         #f))
+    ((space? o) (space-objects o))
+    ((plasma? o) (list))
+    ((ship? o) (append
+                (list (ship-helm o) (ship-observers o))
+                (ship-shields o)))
+    ((multirole? o) (multirole-players o))
+    ((role? o) (filter values (list (role-player o))))
     (else
-     (define found (ormap (lambda (o) (find-player o id)) x))
-     (and found (cons obj found)))))
+     (printf "no children for: ~v\n" o)
+     (list))))
+
+; returns a list (stack) of all objects from ownspace
+; to the object with the given id (found object last)
+; if object is not in space, return #f
+(define (search o id (multiple? #f) (stack '()))
+  (let/ec found
+    (cond
+      ((and (not (space? o)) (integer? id) (= id (obj-id o)))
+       (list (cons o stack)))
+      ((and (not (space? o)) (procedure? id) (id o))
+       (list (cons o stack)))
+      (else
+       (define results
+         (for/list ((c (get-children o)))
+           (define r (search c id multiple? (if (space? o) stack (cons o stack))))
+           (if (and (not multiple?)
+                    (not (null? r)))
+               (found r)
+               r)))
+       (filter (negate null?) (apply append results))))))
+
+
+(define (find-id o id)
+  (define r (search o id))
+  (if (null? r) #f (car r)))
+
+
+(define (find-new-player-roles space)
+  (append (map (lambda (o)
+                 (cond
+                   ((ship? o)
+                    (if (observers-new-players? (ship-observers o))
+                        (list (ship-observers o))
+                        (list)))))
+               (space-objects space))))
 
 
 (define (big-ship x y)
-    (ship (next-id) (posvel x y (* 0.5 pi) 0 0 0) "ship"
-          (helm (next-id) #f #f (* 0.5 pi) #f #f #f #f)
-          100 1
-          (list 
-           (shield (next-id) #f 57 "blue" 100 (make-vector 16 50))
-           (shield (next-id) #f 50 "red" 100 (make-vector 16 50)))))
+  (ship (next-id) (posvel x y (* 0.5 pi) 0 0 0) "ship"
+        (helm (next-id) #f #f (* 0.5 pi) #f #f #f #f)
+        (observers (next-id) #f '() #t)
+        100 1
+        (list)
+        #;(list 
+         (shield (next-id) #f 57 "blue" 100 (make-vector 16 50))
+         (shield (next-id) #f 50 "red" 100 (make-vector 16 50)))))

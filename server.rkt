@@ -25,8 +25,8 @@
      (new-client ownspace cmd))
     ((role? cmd)
      ; find the ship that this role is on
-     (define stack (find-player ownspace (obj-id (role-player cmd))))
-     (define ownship (caddr (reverse stack)))
+     (define stack (find-id ownspace (obj-id cmd)))
+     (define ownship (cadr stack))
      (define pv (obj-posvel ownship))
      (cond ((helm? cmd)
             (when (helm-aft cmd)
