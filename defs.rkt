@@ -37,8 +37,9 @@
 ; each integer is how much shields are in that section, up to max
 ; section 0 is centered on r=0
 
-(struct player obj (name) #:mutable #:prefab)
+(struct player obj (name npc?) #:mutable #:prefab)
 ; name is what is shown in UIs
+; npc is #t if this player is computer controlled, #f if it's a real person
 
 (struct role obj (player) #:mutable #:prefab)
 ; player is #f if this role is unoccupied
@@ -48,13 +49,14 @@
 ; if fore is #t, main thrusters are firing
 ; if left is #t, thrusters on the right side are firing pushing the ship left
 
-(struct ship obj (helm reactor containment shields) #:mutable #:prefab)
+(struct ship obj (name helm reactor containment shields) #:mutable #:prefab)
 ; reactor is the energy produced by the reactor
 ; containment is the percentage of reactor health left (0-1, starts at 1)
 ; shields are in radius order starting with the largest radius
 
-(struct space (time objects) #:mutable #:prefab)
-; time is milliseconds since the scenario started
+(struct space (time sizex sizey objects) #:mutable #:prefab)
+; time is seconds since the scenario started
+; sizex and sizey are how big space is
 
 
 (define (get-role stack)
@@ -82,3 +84,12 @@
     (else
      (define found (ormap (lambda (o) (find-player o id)) x))
      (and found (cons obj found)))))
+
+
+(define (big-ship x y)
+    (ship (next-id) (posvel x y (* 0.5 pi) 0 0 0) "ship"
+          (helm (next-id) #f #f (* 0.5 pi) #f #f #f #f)
+          100 1
+          (list 
+           (shield (next-id) #f 57 "blue" 100 (make-vector 16 50))
+           (shield (next-id) #f 50 "red" 100 (make-vector 16 50)))))

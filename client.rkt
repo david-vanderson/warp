@@ -2,8 +2,8 @@
 
 (require "defs.rkt"
          "physics.rkt"
-         "drawing.rkt")
-(require "server.rkt")
+         "draw.rkt"
+         "draw-intro.rkt")
 
 (provide start-client)
 
@@ -43,14 +43,31 @@
                  (set! course (+ course (* 2 pi))))
                (send-command (struct-copy helm role (course course))))))))
   
+  (define first-frame #t)
   
   (define (draw-screen canvas dc)
+    (when first-frame
+      (set! first-frame #f)
+      (send dc set-initial-matrix #(1 0 0 1 0 0))
+      (send dc set-origin (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
+      (send dc set-scale (/ (send canvas get-width) WIDTH 1.0) (/ (send canvas get-height) HEIGHT -1.0))
+      (send dc set-rotation 0)
+      (send dc set-smoothing 'smoothed)
+      (send dc set-brush "red" 'transparent))
+    
     ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
     (define t (send dc get-transformation))
     (send dc erase)
     
-    (when (and frames ownspace my-stack)
-      (draw-all canvas dc frames ownspace my-stack))
+    (cond
+      ((not ownspace)
+       (draw-intro dc))
+      ((not my-stack)
+       (draw-sector dc ownspace))
+      (else
+       (draw-playing dc ownspace my-stack)))
+    
+    (draw-framerate dc frames)
     
     (send dc set-transformation t))
   
@@ -85,14 +102,6 @@
          (style '(no-autoclear))))
   
   (send frame show #t)
-  
-  (define dc (send canvas get-dc))
-  (send dc set-initial-matrix #(1 0 0 1 0 0))
-  (send dc set-origin (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
-  (send dc set-scale (/ (send canvas get-width) WIDTH 1.0) (/ (send canvas get-height) HEIGHT -1.0))
-  (send dc set-rotation 0)
-  (send dc set-smoothing 'smoothed)
-  (send dc set-brush "red" 'transparent)
   
   (define start-space-time #f)
   (define start-time #f)
@@ -134,7 +143,7 @@
     (when ownspace
       (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))
       (set! dt (max dt 0))  ; don't go backwards
-;      (printf "client physics ~a ~a ~a\n" (space-time ownspace) dt start-time)
+      ;      (printf "client physics ~a ~a ~a\n" (space-time ownspace) dt start-time)
       (update-physics! ownspace dt)
       (update-effects! ownspace)
       (set-space-time! ownspace (+ (space-time ownspace) dt))
@@ -159,4 +168,4 @@
   (queue-callback client-loop #f))
 
 (module+ main
-  (start-client "127.0.0.1" PORT (player 1 #f "Dave") #f))
+  (start-client "127.0.0.1" PORT (player 1 #f "Dave" #f) #f))

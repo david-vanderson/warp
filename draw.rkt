@@ -8,6 +8,13 @@
 
 (provide (all-defined-out))
 
+(define-syntax-rule (with-transform dc e ...)
+  (begin
+    (define t (send dc get-transformation))
+    e ...
+    (send dc set-transformation t)))
+
+
 (define (add-frame-time current-time frames)
   (cons current-time (take frames (min 10 (length frames)))))
 
@@ -19,7 +26,7 @@
     (define start (list-ref frames (- (length frames) 1)))
     (define end (first frames))
     (define span (/ (- end start) 1000))
-    (send dc draw-text (format "~a" (truncate (/ (- (length frames) 1) span))) 0 0)
+    (send dc draw-text (format "~a" (truncate (/ (- (length frames) 1) span))) 0 0 #t)
     (send dc set-transformation t)))
 
 
@@ -28,10 +35,8 @@
 
 
 (define (draw-background dc ownspace center)
-  (define t (send dc get-transformation))
   (define-values (x y) (recenter center 0 0))
-  (send dc draw-rectangle (- x 250) (- y 250) 500 500)
-  (send dc set-transformation t))
+  (send dc draw-rectangle (- x 250) (- y 250) 500 500))
 
 
 (define (draw-shield dc shield)
@@ -57,10 +62,12 @@
 
 
 (define (draw-ship dc s center)
+  (define t (send dc get-transformation))
+  
   (define posvel (obj-posvel s))
   (define-values (x y) (recenter center (posvel-x posvel) (posvel-y posvel)))
-  (define t (send dc get-transformation))
   (send dc translate x y)
+  
   (define t2 (send dc get-transformation))
   (send dc rotate (- (posvel-r posvel)))
   (for ((shield (ship-shields s)))
@@ -92,8 +99,14 @@
   (send dc draw-ellipse (- x (/ rad 2)) (- y (/ rad 2)) rad rad))
 
 
-(define (draw-all canvas dc frames ownspace stack)
-  (define center (get-center stack))
+(define (draw-sector dc ownspace)
+  (define t (send dc get-transformation))
+  
+  (define max-x (space-sizex ownspace))
+  (define max-y (space-sizey ownspace))
+  (define scale (min (/ WIDTH max-x) (/ HEIGHT max-y)))
+  (send dc scale scale scale)
+  (define center (obj #f (posvel 0 0 0 0 0 0)))
   (draw-background dc ownspace center)
   (for ((o (space-objects ownspace)))
     (cond
@@ -102,4 +115,18 @@
       ((plasma? o)
        (draw-plasma dc o center))))
   
-  (draw-framerate dc frames))
+  (send dc scale 1 -1)
+  (send dc draw-text "hello" 0 0)
+  
+  (send dc set-transformation t))
+
+
+(define (draw-playing dc ownspace stack)
+  (define center (get-center stack))
+  (draw-background dc ownspace center)
+  (for ((o (space-objects ownspace)))
+    (cond
+      ((ship? o)
+       (draw-ship dc o center))
+      ((plasma? o)
+       (draw-plasma dc o center)))))
