@@ -35,14 +35,26 @@
       (cond
         (my-stack
          (define role (get-role my-stack))
-         (cond ((helm? role)
-                (printf "~a: helm clicked\n" (player-name me))
-                (define x (- (send event get-x) (/ (send canvas get-width) 2)))
-                (define y (- (/ (send canvas get-height) 2) (send event get-y)))
-                (define course (atan y x))
-                (when (course . < . 0)
-                  (set! course (+ course (* 2 pi))))
-                (send-command (struct-copy helm role (course course))))))
+         (define button (click-button? (buttons my-stack)
+                                       (/ (send event get-x) (send canvas get-width))
+                                       (/ (- (send canvas get-height) (send event get-y))
+                                          (send canvas get-height))))
+         (cond
+           ((helm? role)
+            (when button (printf "~a: helm clicked button ~a\n" (player-name me) button))
+            (case button
+              (("fore")
+               (send-command (struct-copy helm role (fore (not (helm-fore role))))))
+              (("fire")
+               (send-command (struct-copy helm role (aft #t))))
+              (else
+               (printf "~a: helm course change\n" (player-name me))
+               (define x (- (send event get-x) (/ (send canvas get-width) 2)))
+               (define y (- (/ (send canvas get-height) 2) (send event get-y)))
+               (define course (atan y x))
+               (when (course . < . 0)
+                 (set! course (+ course (* 2 pi))))
+               (send-command (struct-copy helm role (course course))))))))
         (else
          (printf "~a: clicked\n" (player-name me))
          (define roles (search ownspace helm? #t))
@@ -62,7 +74,6 @@
       (send dc set-brush "red" 'transparent))
     
     ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
-    (define t (send dc get-transformation))
     (send dc erase)
     
     (cond
@@ -73,9 +84,9 @@
       (else
        (draw-playing dc ownspace my-stack)))
     
+    (draw-buttons canvas dc my-stack)
     (draw-framerate dc frames)
-    
-    (send dc set-transformation t))
+    )
   
   (define frame (new (class frame% (super-new))
                      (label "Warp")))

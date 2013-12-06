@@ -67,6 +67,11 @@
 ; time is seconds since the scenario started
 ; sizex and sizey are how big space is
 
+(struct button (x y width height name label) #:mutable #:prefab)
+; x y width height are 0,0 bottom left corner 1,1 top right
+; name is used internally
+; label is what is written on the button
+
 
 (define (get-role stack)
   (cadr stack))
@@ -115,13 +120,30 @@
   (if (null? r) #f (car r)))
 
 
+(define (buttons stack)
+  (define role (if stack (cadr stack) #f))
+  (cond
+    ((helm? role)
+     (list (button .2 .1 .1 .05 "fore" (if (helm-fore role) "Stop" "Go"))
+           (button .4 .1 .1 .05 "fire" "Fire")))
+    (else '())))
+
+
+(define (click-button? buttons x y)
+  (ormap (lambda (b)
+           ;(printf "click-button? ~a ~a\n" x y)
+           (and (<= (button-x b) x (+ (button-x b) (button-width b)))
+                (<= (button-y b) y (+ (button-y b) (button-height b)))
+                (button-name b)))
+         buttons))
+
+
 (define (big-ship x y)
   (ship (next-id) (posvel x y (* 0.5 pi) 0 0 0) "ship"
         (helm (next-id) #f #f (* 0.5 pi) #f #f #f #f)
         (multirole (next-id) #f
                    (observer (next-id) #f #f) #t '())
         100 1
-        (list)
-        #;(list 
+        (list 
          (shield (next-id) #f 57 "blue" 100 (make-vector 16 50))
          (shield (next-id) #f 50 "red" 100 (make-vector 16 50)))))

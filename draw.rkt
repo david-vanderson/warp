@@ -35,6 +35,7 @@
 
 (define (draw-background dc ownspace center)
   (define-values (x y) (recenter center 0 0))
+  (send dc set-brush "red" 'transparent)
   (send dc draw-rectangle (- x 250) (- y 250) 500 500))
 
 
@@ -92,19 +93,18 @@
 
 (define (draw-no-role dc ownspace)
   (keep-transform dc
-  
-  (define max-x (space-sizex ownspace))
-  (define max-y (space-sizey ownspace))
-  (define scale (min (/ WIDTH max-x) (/ HEIGHT max-y)))
-  (send dc scale scale scale)
-  (define center (obj #f (posvel 0 0 0 0 0 0)))
-  (draw-background dc ownspace center)
-  (for ((o (space-objects ownspace)))
-    (cond
-      ((ship? o)
-       (draw-ship dc o center))
-      ((plasma? o)
-       (draw-plasma dc o center))))))
+    (define max-x (space-sizex ownspace))
+    (define max-y (space-sizey ownspace))
+    (define scale (min (/ WIDTH max-x) (/ HEIGHT max-y)))
+    (send dc scale scale scale)
+    (define center (obj #f (posvel 0 0 0 0 0 0)))
+    (draw-background dc ownspace center)
+    (for ((o (space-objects ownspace)))
+      (cond
+        ((ship? o)
+         (draw-ship dc o center))
+        ((plasma? o)
+         (draw-plasma dc o center))))))
 
 
 (define (draw-playing dc ownspace stack)
@@ -116,3 +116,22 @@
        (draw-ship dc o center))
       ((plasma? o)
        (draw-plasma dc o center)))))
+
+
+(define (draw-buttons canvas dc stack)
+  (define cw (send canvas get-width))
+  (define ch (send canvas get-height))
+  (for ((b (buttons stack)))
+    (keep-transform dc
+      (define-values (x y w h) (values (- (* (button-x b) cw) (/ cw 2))
+                                       (- (* (button-y b) ch) (/ ch 2))
+                                       (* (button-width b) cw)
+                                       (* (button-height b) ch)))
+      (send dc set-brush "lightgray" 'solid)
+      (send dc set-pen "black" 1 'solid)
+      (send dc draw-rectangle x y w h)
+      (send dc translate x (+ y h))
+      (send dc scale 1 -1)
+      (send dc draw-text (button-label b) 5 5))))
+  
+  
