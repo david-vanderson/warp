@@ -32,16 +32,22 @@
   
   (define (interpret-click canvas event)
     (when (send event button-down? 'left)
-      (when my-stack
-        (define role (get-role my-stack))
-        (cond ((helm? role)
-               (printf "~a: helm clicked\n" (player-name me))
-               (define x (- (send event get-x) (/ (send canvas get-width) 2)))
-               (define y (- (/ (send canvas get-height) 2) (send event get-y)))
-               (define course (atan y x))
-               (when (course . < . 0)
-                 (set! course (+ course (* 2 pi))))
-               (send-command (struct-copy helm role (course course))))))))
+      (cond
+        (my-stack
+         (define role (get-role my-stack))
+         (cond ((helm? role)
+                (printf "~a: helm clicked\n" (player-name me))
+                (define x (- (send event get-x) (/ (send canvas get-width) 2)))
+                (define y (- (/ (send canvas get-height) 2) (send event get-y)))
+                (define course (atan y x))
+                (when (course . < . 0)
+                  (set! course (+ course (* 2 pi))))
+                (send-command (struct-copy helm role (course course))))))
+        (else
+         (printf "~a: clicked\n" (player-name me))
+         (define roles (search ownspace helm? #t))
+         (send-command (struct-copy role (caar roles) (player me)))
+         ))))
   
   (define first-frame #t)
   

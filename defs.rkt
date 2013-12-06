@@ -45,12 +45,13 @@
 (struct role obj (player) #:mutable #:prefab)
 ; player is #f if this role is unoccupied
 
-(struct multirole obj (players) #:mutable #:prefab)
-; players is a list of players in this role
-
-(struct observers multirole (new-players?) #:mutable #:prefab)
-; special role used to contain players while they are choosing their next role
+(struct multirole obj (role new-players? roles) #:mutable #:prefab)
+; role is the role that players joining this multirole get
+; roles is a list of roles with players
 ; new-players? is #t if new players can start in this observer role
+
+(struct observer role () #:mutable #:prefab)
+; special role used to contain players while they are choosing their next role
 
 (struct helm role (course fore aft left right) #:mutable #:prefab)
 ; course is angle helm wants to point at
@@ -75,13 +76,14 @@
 
 
 (define (get-children o)
+;  (printf "get-children: ~v\n" o)
   (cond
     ((space? o) (space-objects o))
     ((plasma? o) (list))
     ((ship? o) (append
                 (list (ship-helm o) (ship-observers o))
                 (ship-shields o)))
-    ((multirole? o) (multirole-players o))
+    ((multirole? o) (multirole-roles o))
     ((role? o) (filter values (list (role-player o))))
     (else
      (printf "no children for: ~v\n" o)
@@ -113,20 +115,11 @@
   (if (null? r) #f (car r)))
 
 
-(define (find-new-player-roles space)
-  (append (map (lambda (o)
-                 (cond
-                   ((ship? o)
-                    (if (observers-new-players? (ship-observers o))
-                        (list (ship-observers o))
-                        (list)))))
-               (space-objects space))))
-
-
 (define (big-ship x y)
   (ship (next-id) (posvel x y (* 0.5 pi) 0 0 0) "ship"
         (helm (next-id) #f #f (* 0.5 pi) #f #f #f #f)
-        (observers (next-id) #f '() #t)
+        (multirole (next-id) #f
+                   (observer (next-id) #f #f) #t '())
         100 1
         (list)
         #;(list 

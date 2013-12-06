@@ -19,31 +19,56 @@
 
 
 (define (receive-command cmd)
-  ;(printf "receive-command\n")
+  (printf "receive-command\n")
   (cond
     ((player? cmd)
      (new-client ownspace cmd))
     ((role? cmd)
-     ; find the ship that this role is on
+     ; find our role
      (define stack (find-id ownspace (obj-id cmd)))
-     (define ownship (cadr stack))
-     (define pv (obj-posvel ownship))
-     (cond ((helm? cmd)
-            (when (helm-aft cmd)
-              (set-helm-aft! cmd #f)
-              (define rx (cos (posvel-r pv)))
-              (define ry (sin (posvel-r pv)))
-              (define x (+ (posvel-x pv) (* 20 rx)))
-              (define y (+ (posvel-y pv) (* 20 ry)))
-              (define p (plasma (next-id)
-                                (posvel x y 0
-                                        (+ (posvel-dx pv) (* 30 rx))
-                                        (+ (posvel-dy pv) (* 30 ry))
-                                        0)
-                                "blue" 10.0 (obj-id ownship) '()))
-              (set-space-objects! ownspace (list* p (space-objects ownspace)))
-              )
-            (set-ship-helm! ownship cmd))))))
+     (define ownrole (car stack))
+     (cond
+       ((and (role-player ownrole)
+             (role-player cmd)
+             (= (obj-id (role-player ownrole))
+                (obj-id (role-player cmd))))
+        ; we got a command from the correct player
+        
+        ; make instant changes
+        (when (helm? cmd)
+          (when (helm-aft cmd)
+            (set-helm-aft! cmd #f)
+            
+            (define ownship (cadr stack))
+            (define pv (obj-posvel ownship))
+            (define rx (cos (posvel-r pv)))
+            (define ry (sin (posvel-r pv)))
+            (define x (+ (posvel-x pv) (* 20 rx)))
+            (define y (+ (posvel-y pv) (* 20 ry)))
+            (define p (plasma (next-id)
+                              (posvel x y 0
+                                      (+ (posvel-dx pv) (* 30 rx))
+                                      (+ (posvel-dy pv) (* 30 ry))
+                                      0)
+                              "blue" 10.0 (obj-id ownship) '()))
+            (set-space-objects! ownspace (list* p (space-objects ownspace)))))
+        
+        ; make state changes
+        ;(define-values (name, _ struct-type _) (struct-type-info ownrole))
+        (when (helm? cmd)
+          (set-helm-course! ownrole (helm-course cmd))
+          (set-helm-fore! ownrole (helm-fore cmd))
+          (set-helm-aft! ownrole (helm-aft cmd))
+          (set-helm-left! ownrole (helm-left cmd))
+          (set-helm-right! ownrole (helm-right cmd))))
+       
+       ((and (not (role-player ownrole))
+             (role-player cmd))
+        ; player is entering an empty role
+        (printf "player ~a took role ~v\n" (role-player cmd) ownrole)
+        (set-role-player! ownrole (role-player cmd)))))))
+        
+        
 
 
 (define previous-loop-time (current-inexact-milliseconds))
