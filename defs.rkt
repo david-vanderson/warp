@@ -21,6 +21,8 @@
       id)))
 
 
+;; Game State
+
 (struct posvel (x y r dx dy dr) #:mutable #:prefab)
 
 (struct obj (id posvel) #:mutable #:prefab)
@@ -45,10 +47,10 @@
 (struct role obj (player) #:mutable #:prefab)
 ; player is #f if this role is unoccupied
 
-(struct multirole obj (role new-players? roles) #:mutable #:prefab)
+(struct multirole obj (role start? roles) #:mutable #:prefab)
 ; role is the role that players joining this multirole get
 ; roles is a list of roles with players
-; new-players? is #t if new players can start in this observer role
+; start? is #t if new players can start in this role
 
 (struct observer role () #:mutable #:prefab)
 ; special role used to contain players while they are choosing their next role
@@ -67,31 +69,48 @@
 ; time is seconds since the scenario started
 ; sizex and sizey are how big space is
 
+
+;; Messages
+
+;; Most messages are just role? structs, but here are the exceptions
+
+(struct role-change (player from to) #:mutable #:prefab)
+; from and to are a role? id, multirole? id, or #f (no role)
+
+
+;; UI
+
 (struct button (x y width height name label) #:mutable #:prefab)
 ; x y width height are 0,0 bottom left corner 1,1 top right
 ; name is used internally
 ; label is what is written on the button
 
 
+;; Utilities
+
 (define (get-role stack)
-  (cadr stack))
+  (if stack (cadr stack) #f))
+
+(define (get-ship stack)
+  (car (memf ship? stack)))
 
 (define (get-center stack)
   (car (reverse stack)))
 
 
 (define (get-children o)
-;  (printf "get-children: ~v\n" o)
+  ;(printf "get-children: ~v\n" o)
   (cond
     ((space? o) (space-objects o))
     ((plasma? o) (list))
-    ((ship? o) (append
-                (list (ship-helm o) (ship-observers o))
-                (ship-shields o)))
+    ((ship? o) (filter values (append (list (ship-helm o) (ship-observers o))
+                                      (ship-shields o))))
     ((multirole? o) (multirole-roles o))
     ((role? o) (filter values (list (role-player o))))
+    ((shield? o) (list))
     (else
-     (printf "no children for: ~v\n" o)
+     (printf "get-children hit ELSE clause, o ~v\n" o)
+     (error)
      (list))))
 
 ; returns a list (stack) of all objects from ownspace
@@ -115,18 +134,34 @@
        (filter (negate null?) (apply append results))))))
 
 
-(define (find-id o id)
-  (define r (search o id))
+(define (find-stack o id)
+  (define r (if id (search o id) null))
   (if (null? r) #f (car r)))
 
+(define (find-id o id)
+  (define r (find-stack o id))
+  (if r (car r) #f))
 
-(define (buttons stack)
+(define (buttons stack space)
   (define role (if stack (cadr stack) #f))
   (cond
+    ((not space)
+     ; we haven't joined a server yet
+     (list))
     ((helm? role)
      (list (button .2 .1 .1 .05 "fore" (if (helm-fore role) "Stop" "Go"))
            (button .4 .1 .1 .05 "fire" "Fire")))
-    (else '())))
+    ((observer? role)
+     (list))
+    ((not role)
+     (define start-roles
+       (search space (lambda (o) (and (multirole? o)
+                                      (multirole-start? o))) #t))
+     (for/list ((r start-roles)
+                (i (in-naturals)))
+       (button (* i .15) .05 .14 .05 (obj-id (car r)) (format "Crewer on ~a" (ship-name (get-ship r))))))
+    (else
+     (error "buttons hit ELSE clause, role\n" role))))
 
 
 (define (click-button? buttons x y)
@@ -138,8 +173,8 @@
          buttons))
 
 
-(define (big-ship x y)
-  (ship (next-id) (posvel x y (* 0.5 pi) 0 0 0) "ship"
+(define (big-ship x y name)
+  (ship (next-id) (posvel x y (* 0.5 pi) 0 0 0) name
         (helm (next-id) #f #f (* 0.5 pi) #f #f #f #f)
         (multirole (next-id) #f
                    (observer (next-id) #f #f) #t '())

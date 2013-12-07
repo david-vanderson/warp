@@ -31,34 +31,36 @@
   (define my-stack #f)
   
   (define (interpret-click canvas event)
+    (define role (get-role my-stack))
     (when (send event button-down? 'left)
+      (define button (click-button? (buttons my-stack ownspace)
+                                    (/ (send event get-x) (send canvas get-width))
+                                    (/ (- (send canvas get-height) (send event get-y))
+                                       (send canvas get-height))))
       (cond
-        (my-stack
-         (define role (get-role my-stack))
-         (define button (click-button? (buttons my-stack)
-                                       (/ (send event get-x) (send canvas get-width))
-                                       (/ (- (send canvas get-height) (send event get-y))
-                                          (send canvas get-height))))
-         (cond
-           ((helm? role)
-            (when button (printf "~a: helm clicked button ~a\n" (player-name me) button))
-            (case button
-              (("fore")
-               (send-command (struct-copy helm role (fore (not (helm-fore role))))))
-              (("fire")
-               (send-command (struct-copy helm role (aft #t))))
-              (else
-               (printf "~a: helm course change\n" (player-name me))
-               (define x (- (send event get-x) (/ (send canvas get-width) 2)))
-               (define y (- (/ (send canvas get-height) 2) (send event get-y)))
-               (define course (atan y x))
-               (when (course . < . 0)
-                 (set! course (+ course (* 2 pi))))
-               (send-command (struct-copy helm role (course course))))))))
+        ((and my-stack (helm? role))
+         (when button (printf "~a: helm clicked button ~a\n" (player-name me) button))
+         (case button
+           (("fore")
+            (send-command (struct-copy helm role (fore (not (helm-fore role))))))
+           (("fire")
+            (send-command (struct-copy helm role (aft #t))))
+           (else
+            (printf "~a: helm course change\n" (player-name me))
+            (define x (- (send event get-x) (/ (send canvas get-width) 2)))
+            (define y (- (/ (send canvas get-height) 2) (send event get-y)))
+            (define course (atan y x))
+            (when (course . < . 0)
+              (set! course (+ course (* 2 pi))))
+            (send-command (struct-copy helm role (course course))))))
         (else
-         (printf "~a: clicked\n" (player-name me))
-         (define roles (search ownspace helm? #t))
-         (send-command (struct-copy role (caar roles) (player me)))
+         (when button
+           (printf "~a: clicked button ~a\n" (player-name me) button)
+           (define mr (find-id ownspace button))
+           (send-command (role-change me (if role (obj-id role) #f) (obj-id mr))))
+         ;         (printf "~a: clicked\n" (player-name me))
+         ;         (define roles (search ownspace helm? #t))
+         ;         (send-command (struct-copy role (caar roles) (player me)))
          ))))
   
   (define first-frame #t)
@@ -84,7 +86,7 @@
       (else
        (draw-playing dc ownspace my-stack)))
     
-    (draw-buttons canvas dc my-stack)
+    (draw-buttons canvas dc my-stack ownspace)
     (draw-framerate dc frames)
     )
   
@@ -96,18 +98,18 @@
       (super-new)
       (define/override (on-event event)
         (interpret-click this event))
-      (define/override (on-char event)
-        ;(displayln (~v (send event get-key-code)))
-        (case (send event get-key-code)
-          ((#\f)
-           (define role (get-role my-stack))
-           (when (helm? role)
-             (send-command (struct-copy helm role (aft #t)))))
-          ((#\w)
-           (define role (get-role my-stack))
-           (when (helm? role)
-             (send-command (struct-copy helm role (fore (not (helm-fore role)))))))
-          ))
+      ;      (define/override (on-char event)
+      ;        ;(displayln (~v (send event get-key-code)))
+      ;        (case (send event get-key-code)
+      ;          ((#\f)
+      ;           (define role (get-role my-stack))
+      ;           (when (helm? role)
+      ;             (send-command (struct-copy helm role (aft #t)))))
+      ;          ((#\w)
+      ;           (define role (get-role my-stack))
+      ;           (when (helm? role)
+      ;             (send-command (struct-copy helm role (fore (not (helm-fore role)))))))
+      ;          ))
       ))
   
   (define canvas
@@ -153,7 +155,9 @@
       
       (set! ownspace update)
       ; find my role
-      (set! my-stack (find-id ownspace (obj-id me))))
+      (set! my-stack (find-stack ownspace (obj-id me)))
+      ;(printf "update stack ~v\n" my-stack)
+      )
     
     
     ; physics prediction

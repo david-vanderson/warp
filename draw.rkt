@@ -118,10 +118,10 @@
        (draw-plasma dc o center)))))
 
 
-(define (draw-buttons canvas dc stack)
+(define (draw-buttons canvas dc stack space)
   (define cw (send canvas get-width))
   (define ch (send canvas get-height))
-  (for ((b (buttons stack)))
+  (for ((b (buttons stack space)))
     (keep-transform dc
       (define-values (x y w h) (values (- (* (button-x b) cw) (/ cw 2))
                                        (- (* (button-y b) ch) (/ ch 2))

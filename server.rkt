@@ -18,14 +18,53 @@
 (define new-client #f)
 
 
+;; Server Utilities
+
+(define (copy-role r)
+  (cond
+    ((helm? r) (struct-copy helm r))
+    ((observer? r) (struct-copy observer r))
+    (else (error "copy-role hit ELSE clause, role:\n" r))))
+
+(define (join-role! r p)
+  (printf "player ~v joining role ~v\n" p r)
+  (cond
+    ((and (role? r) (not (role-player r)))
+     (set-role-player! r p)
+     #t)
+    ((multirole? r)
+     (define new-role (copy-role (multirole-role r)))
+     (set-role-player! new-role p)
+     (set-multirole-roles!
+      r (cons new-role (multirole-roles r)))
+     #t)
+    ((not r)
+     #t)  ; can always leave space
+    (else #f)))
+
+(define (leave-role! r p)
+  (printf "player ~v leaving role ~v\n" p r)
+  (cond
+    ((role? r) (set-role-player! r #f))
+    ((multirole? r) (set-multirole-roles!
+                     r (filter (lambda (xr) (not (equal? (role-player xr) p)))
+                               (multirole-roles r))))))
+
+
 (define (receive-command cmd)
-  (printf "receive-command\n")
+  (printf "receive-command ~v\n" cmd)
   (cond
     ((player? cmd)
      (new-client ownspace cmd))
+    ((role-change? cmd)
+     (define p (role-change-player cmd))
+     (define from (find-id ownspace (role-change-from cmd)))
+     (define to (find-id ownspace (role-change-to cmd)))
+     (when (join-role! to p)
+       (leave-role! from p)))
     ((role? cmd)
      ; find our role
-     (define stack (find-id ownspace (obj-id cmd)))
+     (define stack (find-stack ownspace (obj-id cmd)))
      (define ownrole (car stack))
      (cond
        ((and (role-player ownrole)
@@ -67,8 +106,8 @@
         ; player is entering an empty role
         (printf "player ~a took role ~v\n" (role-player cmd) ownrole)
         (set-role-player! ownrole (role-player cmd)))))))
-        
-        
+
+
 
 
 (define previous-loop-time (current-inexact-milliseconds))
