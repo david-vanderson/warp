@@ -22,12 +22,12 @@
 
 (define (copy-role r)
   (cond
-    ((helm? r) (struct-copy helm r))
     ((observer? r) (struct-copy observer r))
+    ((crewer? r) (struct-copy crewer r))
     (else (error "copy-role hit ELSE clause, role:\n" r))))
 
 (define (join-role! r p)
-  (printf "player ~v joining role ~v\n" p r)
+  ;(printf "player ~v joining role ~v\n" p r)
   (cond
     ((and (role? r) (not (role-player r)))
      (set-role-player! r p)
@@ -43,7 +43,7 @@
     (else #f)))
 
 (define (leave-role! r p)
-  (printf "player ~v leaving role ~v\n" p r)
+  ;(printf "player ~v leaving role ~v\n" p r)
   (cond
     ((role? r) (set-role-player! r #f))
     ((multirole? r) (set-multirole-roles!
@@ -52,7 +52,7 @@
 
 
 (define (receive-command cmd)
-  (printf "receive-command ~v\n" cmd)
+  ;(printf "receive-command ~v\n" cmd)
   (cond
     ((player? cmd)
      (new-client ownspace cmd))

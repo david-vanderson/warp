@@ -53,6 +53,9 @@
 ; start? is #t if new players can start in this role
 
 (struct observer role () #:mutable #:prefab)
+; role where you don't do anything but you see the "captain's view"
+
+(struct crewer role () #:mutable #:prefab)
 ; special role used to contain players while they are choosing their next role
 
 (struct helm role (course fore aft left right) #:mutable #:prefab)
@@ -60,7 +63,7 @@
 ; if fore is #t, main thrusters are firing
 ; if left is #t, thrusters on the right side are firing pushing the ship left
 
-(struct ship obj (name helm observers reactor containment shields) #:mutable #:prefab)
+(struct ship obj (name helm observers crewers reactor containment shields) #:mutable #:prefab)
 ; reactor is the energy produced by the reactor
 ; containment is the percentage of reactor health left (0-1, starts at 1)
 ; shields are in radius order starting with the largest radius
@@ -103,7 +106,7 @@
   (cond
     ((space? o) (space-objects o))
     ((plasma? o) (list))
-    ((ship? o) (filter values (append (list (ship-helm o) (ship-observers o))
+    ((ship? o) (filter values (append (list (ship-helm o) (ship-observers o) (ship-crewers o))
                                       (ship-shields o))))
     ((multirole? o) (multirole-roles o))
     ((role? o) (filter values (list (role-player o))))
@@ -153,13 +156,19 @@
            (button .4 .1 .1 .05 "fire" "Fire")))
     ((observer? role)
      (list))
+    ((crewer? role)
+     (list))
     ((not role)
      (define start-roles
        (search space (lambda (o) (and (multirole? o)
                                       (multirole-start? o))) #t))
      (for/list ((r start-roles)
                 (i (in-naturals)))
-       (button (* i .15) .05 .14 .05 (obj-id (car r)) (format "Crewer on ~a" (ship-name (get-ship r))))))
+       (define role (multirole-role (car r)))
+       (define role-name
+         (cond ((crewer? role) "Crewer")
+               (else "Unknown")))
+       (button (* i .15) .05 .14 .05 (obj-id (car r)) (format "~a on ~a" role-name (ship-name (get-ship r))))))
     (else
      (error "buttons hit ELSE clause, role\n" role))))
 
@@ -177,7 +186,9 @@
   (ship (next-id) (posvel x y (* 0.5 pi) 0 0 0) name
         (helm (next-id) #f #f (* 0.5 pi) #f #f #f #f)
         (multirole (next-id) #f
-                   (observer (next-id) #f #f) #t '())
+                   (observer (next-id) #f #f) #f '())
+        (multirole (next-id) #f
+                   (crewer (next-id) #f #f) #t '())
         100 1
         (list 
          (shield (next-id) #f 57 "blue" 100 (make-vector 16 50))

@@ -26,7 +26,7 @@
       (define start (list-ref frames (- (length frames) 1)))
       (define end (first frames))
       (define span (/ (- end start) 1000))
-      (send dc draw-text (format "~a" (truncate (/ (- (length frames) 1) span))) 0 0 #t))))
+      (send dc draw-text (format "~a" (truncate (/ (- (length frames) 1) span))) 0 0))))
 
 
 (define (recenter o x y)
@@ -108,6 +108,17 @@
 
 
 (define (draw-playing dc ownspace stack)
+  (define role (get-role stack))
+  (cond
+    ((observer? role)
+     (draw-observer dc ownspace stack))
+    ((helm? role)
+     (draw-observer dc ownspace stack))
+    ((crewer? role)
+     (draw-crewer dc ownspace stack))))
+
+
+(define (draw-observer dc ownspace stack)
   (define center (get-center stack))
   (draw-background dc ownspace center)
   (for ((o (space-objects ownspace)))
@@ -116,6 +127,26 @@
        (draw-ship dc o center))
       ((plasma? o)
        (draw-plasma dc o center)))))
+
+
+(define (draw-crewer dc ownspace stack)
+  (define ship (get-ship stack))
+  (keep-transform dc
+    (send dc scale 10 10)
+    
+    (send dc set-pen "black" 1 'solid)
+    (send dc draw-polygon '((10 . 10)
+                            (20 . 0)
+                            (10 . -10)
+                            (-10 . -10)
+                            (-10 . 10)))
+    
+    (define scale 0.5)
+    (send dc scale scale (- scale))
+    (define text (~r (* 100 (ship-containment ship)) #:precision 0))
+    (define-values (w h b v) (send dc get-text-extent text))
+    (send dc translate (* -0.5 w) (* -0.5 h))
+    (send dc draw-text text 0 0)))
 
 
 (define (draw-buttons canvas dc stack space)
@@ -133,5 +164,5 @@
       (send dc translate x (+ y h))
       (send dc scale 1 -1)
       (send dc draw-text (button-label b) 5 5))))
-  
-  
+
+
