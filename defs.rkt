@@ -63,7 +63,7 @@
 ; if fore is #t, main thrusters are firing
 ; if left is #t, thrusters on the right side are firing pushing the ship left
 
-(struct ship obj (name helm observers crewers reactor containment shields) #:mutable #:prefab)
+(struct ship obj (name helm observers crew reactor containment shields) #:mutable #:prefab)
 ; reactor is the energy produced by the reactor
 ; containment is the percentage of reactor health left (0-1, starts at 1)
 ; shields are in radius order starting with the largest radius
@@ -101,24 +101,31 @@
   (car (reverse stack)))
 
 
+(define (role-name role)
+  (cond ((crewer? role) "Crewer")
+        ((helm? role) "Helm")
+        ((observer? role) "Observer")
+        (else "Unknown")))
+
+
 (define (get-children o)
   ;(printf "get-children: ~v\n" o)
   (cond
     ((space? o) (space-objects o))
     ((plasma? o) (list))
-    ((ship? o) (filter values (append (list (ship-helm o) (ship-observers o) (ship-crewers o))
+    ((ship? o) (filter values (append (list (ship-helm o) (ship-observers o) (ship-crew o))
                                       (ship-shields o))))
     ((multirole? o) (multirole-roles o))
     ((role? o) (filter values (list (role-player o))))
     ((shield? o) (list))
+    ((player? o) (list))
     (else
      (printf "get-children hit ELSE clause, o ~v\n" o)
      (error)
      (list))))
 
-; returns a list (stack) of all objects from ownspace
-; to the object with the given id (found object last)
-; if object is not in space, return #f
+; returns a list of stacks of all objects from ownspace
+; to the object with the given id (found object first)
 (define (search o id (multiple? #f) (stack '()))
   (let/ec found
     (cond
@@ -136,6 +143,8 @@
                r)))
        (filter (negate null?) (apply append results))))))
 
+(define (find-all o id)
+  (map car (search o id #t)))
 
 (define (find-stack o id)
   (define r (if id (search o id) null))
@@ -147,28 +156,46 @@
 
 (define (buttons stack space)
   (define role (if stack (cadr stack) #f))
+  (define leave (button 0 0 .1 .05 "leave" "Leave"))
   (cond
     ((not space)
      ; we haven't joined a server yet
      (list))
     ((helm? role)
-     (list (button .2 .1 .1 .05 "fore" (if (helm-fore role) "Stop" "Go"))
+     (list leave
+           (button .2 .1 .1 .05 "fore" (if (helm-fore role) "Stop" "Go"))
            (button .4 .1 .1 .05 "fire" "Fire")))
     ((observer? role)
-     (list))
+     (list leave))
     ((crewer? role)
-     (list))
+     (define ship-roles
+       (find-all (get-ship stack)
+                 (lambda (o) (or (multirole? o)
+                                 (and (role? o) (not (role-player o)))))))
+     (cons 
+      leave
+      (for/list ((r ship-roles)
+                 (i (in-naturals)))
+        (cond
+          ((role? r)
+           (button (* i .15) .05 .14 .05 (obj-id r)
+                   (format "~a" (role-name r))))
+          ((multirole? r)
+           (define role (multirole-role r))
+           (button (* i .15) .05 .14 .05 (obj-id r)
+                   (format "~a" (role-name role))))))))
     ((not role)
-     (define start-roles
+     (define start-stacks
        (search space (lambda (o) (and (multirole? o)
                                       (multirole-start? o))) #t))
-     (for/list ((r start-roles)
-                (i (in-naturals)))
-       (define role (multirole-role (car r)))
-       (define role-name
-         (cond ((crewer? role) "Crewer")
-               (else "Unknown")))
-       (button (* i .15) .05 .14 .05 (obj-id (car r)) (format "~a on ~a" role-name (ship-name (get-ship r))))))
+     (cons
+      leave
+      (for/list ((s start-stacks)
+                 (i (in-naturals)))
+        (define mr (car s))
+        (button (* i .15) .05 .14 .05 (obj-id mr)
+                (format "~a on ~a" (role-name (multirole-role mr))
+                        (ship-name (get-ship s)))))))
     (else
      (error "buttons hit ELSE clause, role\n" role))))
 

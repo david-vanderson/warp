@@ -118,6 +118,14 @@
      (draw-crewer dc ownspace stack))))
 
 
+(define (draw-overlay dc ownspace stack)
+  (define role (get-role stack))
+  (keep-transform dc
+    (send dc translate 0 (/ HEIGHT 2))
+    (send dc scale 1 -1)
+    (send dc draw-text (role-name role) 0 0)))
+
+
 (define (draw-observer dc ownspace stack)
   (define center (get-center stack))
   (draw-background dc ownspace center)
@@ -132,7 +140,7 @@
 (define (draw-crewer dc ownspace stack)
   (define ship (get-ship stack))
   (keep-transform dc
-    (send dc scale 10 10)
+    (send dc scale 20 20)
     
     (send dc set-pen "black" 1 'solid)
     (send dc draw-polygon '((10 . 10)
@@ -150,8 +158,8 @@
 
 
 (define (draw-buttons canvas dc stack space)
-  (define cw (send canvas get-width))
-  (define ch (send canvas get-height))
+  (define cw WIDTH)
+  (define ch HEIGHT)
   (for ((b (buttons stack space)))
     (keep-transform dc
       (define-values (x y w h) (values (- (* (button-x b) cw) (/ cw 2))

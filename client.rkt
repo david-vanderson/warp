@@ -38,6 +38,15 @@
                                     (/ (- (send canvas get-height) (send event get-y))
                                        (send canvas get-height))))
       (cond
+        ((and my-stack button (equal? button "leave"))
+         (define role (get-role my-stack))
+         (printf "~a leaving role ~a\n" (player-name me) (role-name role))
+         (cond
+           ((crewer? role)
+            (send-command (role-change me (obj-id role) #f)))
+           (else
+            (define crew (ship-crew (get-ship my-stack)))
+            (send-command (role-change me (obj-id role) (obj-id crew))))))
         ((and my-stack (helm? role))
          (when button (printf "~a: helm clicked button ~a\n" (player-name me) button))
          (case button
@@ -84,7 +93,8 @@
       ((not my-stack)
        (draw-no-role dc ownspace))
       (else
-       (draw-playing dc ownspace my-stack)))
+       (draw-playing dc ownspace my-stack)
+       (draw-overlay dc ownspace my-stack)))
     
     (draw-buttons canvas dc my-stack ownspace)
     (draw-framerate dc frames)
