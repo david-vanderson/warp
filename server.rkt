@@ -15,7 +15,6 @@
 (define SERVER_LOOP_DELAY .03)  ; don't loop more often than X secs
 (define SERVER_SEND_DELAY 1.0)  ; don't send auto updates more often than X secs
 (define ownspace #f)
-(define new-client #f)
 
 
 ;; Server Utilities
@@ -54,8 +53,6 @@
 (define (receive-command cmd)
   ;(printf "receive-command ~v\n" cmd)
   (cond
-    ((player? cmd)
-     (new-client ownspace cmd))
     ((role-change? cmd)
      (define p (role-change-player cmd))
      (define from (find-id ownspace (role-change-from cmd)))
@@ -84,7 +81,7 @@
             (define ry (sin (posvel-r pv)))
             (define x (+ (posvel-x pv) (* 20 rx)))
             (define y (+ (posvel-y pv) (* 20 ry)))
-            (define p (plasma (gen-id)
+            (define p (plasma (next-id)
                               (posvel x y 0
                                       (+ (posvel-dx pv) (* 30 rx))
                                       (+ (posvel-dy pv) (* 30 ry))
@@ -131,6 +128,10 @@
   (when (tcp-accept-ready? server-listener)
     (printf "server accept-ready\n")
     (define-values (in out) (tcp-accept server-listener))
+    
+    ; need to assign an id to the new player
+    (write (player (next-id) #f "New Player" #f) out)
+    
     (set! client-in-ports (cons in client-in-ports))
     (set! client-out-ports (cons out client-out-ports))
     (set! need-update #t))
@@ -159,9 +160,8 @@
   
   (server-loop))
 
-(define (start-server port new-space new-client-arg)
+(define (start-server port new-space)
   (set! ownspace new-space)
-  (set! new-client new-client-arg)
   (set! server-listener (tcp-listen port))
   (server-loop))
 
@@ -169,7 +169,4 @@
   
   (define ownspace (space 0 2000 2000 (list (big-ship 0 0 "Ship1") (big-ship 100 0 "Ship2"))))
   
-  (define (new-client ownspace player)
-    (printf "new-client ~a\n" (obj-id player)))
-  
-  (start-server PORT ownspace new-client))
+  (start-server PORT ownspace))

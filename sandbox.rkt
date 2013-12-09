@@ -7,17 +7,11 @@
 
 (define ownspace (space 0 2000 2000 (list (big-ship 100 100 "Ship1") (big-ship 200 100 "Ship2"))))
 
-(define (new-client ownspace player)
-  (printf "new-client ~a\n" (obj-id player))
-;  (define ship (car (space-objects ownspace)))
-;  (set-role-player! (ship-helm ship) player)
-  )
-
-(thread (lambda () (start-server PORT ownspace new-client)))
+(thread (lambda () (start-server PORT ownspace)))
 
 (sleep 0.5)
 
-(thread (lambda () (start-client "127.0.0.1" PORT (player (gen-id) #f "Dave" #f) #t)))
-;(thread (lambda () (start-client "127.0.0.1" PORT (player (gen-id) #f "Andrea" #f) #t)))
+(thread (lambda () (start-client "127.0.0.1" PORT "Dave" #t)))
+;(thread (lambda () (start-client "127.0.0.1" PORT "Andrea" #t)))
 
 (semaphore-wait (make-semaphore))

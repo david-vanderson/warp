@@ -9,9 +9,13 @@
 
 (define CLIENT_LOOP_DELAY .03)  ; don't loop more often than X secs
 
-(define (start-client ip port player-arg new-eventspace?)
+(define (start-client ip port name new-eventspace?)
   (when new-eventspace?
     (current-eventspace (make-eventspace)))
+  
+  (define ownspace #f)
+  (define my-stack #f)
+  (define frames '())  ; list of last few frame times
   
   ; connect to server
   (define-values (server-in-port server-out-port)
@@ -22,13 +26,11 @@
     (write cmd server-out-port)
     (flush-output server-out-port))
   
-  (send-command player-arg)
   
-  (define frames '())  ; list of last few frame times
+  ; read a player struct that has our unique id
+  (define me (read server-in-port))
+  (set-player-name! me name)
   
-  (define ownspace #f)
-  (define me player-arg)
-  (define my-stack #f)
   
   (define (interpret-click canvas event)
     (define role (get-role my-stack))
@@ -199,4 +201,4 @@
   (queue-callback client-loop #f))
 
 (module+ main
-  (start-client "127.0.0.1" PORT (player (gen-id) #f "Dave" #f) #f))
+  (start-client "127.0.0.1" PORT "Dave" #f))

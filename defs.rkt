@@ -14,8 +14,11 @@
 (define R_DRAG_COEF .7)  ; lose X% of your velocity / sec
 (define 2pi (* 2 pi))
 
-(define (gen-id)
-  (random 4294967087))
+(define next-id
+  (let ((id 0))
+    (lambda ()
+      (set! id (add1 id))
+      id)))
 
 ;; Game State
 
@@ -206,13 +209,13 @@
 
 
 (define (big-ship x y name)
-  (ship (gen-id) (posvel x y (* 0.5 pi) 0 0 0) name
-        (helm (gen-id) #f #f (* 0.5 pi) #f #f #f #f)
-        (multirole (gen-id) #f
-                   (observer (gen-id) #f #f) #f '())
-        (multirole (gen-id) #f
-                   (crewer (gen-id) #f #f) #t '())
+  (ship (next-id) (posvel x y (* 0.5 pi) 0 0 0) name
+        (helm (next-id) #f #f (* 0.5 pi) #f #f #f #f)
+        (multirole (next-id) #f
+                   (observer (next-id) #f #f) #f '())
+        (multirole (next-id) #f
+                   (crewer (next-id) #f #f) #t '())
         100 1
         (list 
-         (shield (gen-id) #f 57 "blue" 100 (make-vector 16 50))
-         (shield (gen-id) #f 50 "red" 100 (make-vector 16 50)))))
+         (shield (next-id) #f 57 "blue" 100 (make-vector 16 50))
+         (shield (next-id) #f 50 "red" 100 (make-vector 16 50)))))
