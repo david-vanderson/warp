@@ -199,4 +199,4 @@
   (queue-callback client-loop #f))
 
 (module+ main
-  (start-client "127.0.0.1" PORT (player 1 #f "Dave" #f) #f))
+  (start-client "127.0.0.1" PORT (player (gen-id) #f "Dave" #f) #f))

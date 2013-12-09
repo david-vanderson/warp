@@ -17,7 +17,7 @@
 
 (sleep 0.5)
 
-(thread (lambda () (start-client "127.0.0.1" PORT (player (next-id) #f "Dave" #f) #t)))
-;(thread (lambda () (start-client "127.0.0.1" PORT (player (next-id) #f "Andrea" #f) #t)))
+(thread (lambda () (start-client "127.0.0.1" PORT (player (gen-id) #f "Dave" #f) #t)))
+;(thread (lambda () (start-client "127.0.0.1" PORT (player (gen-id) #f "Andrea" #f) #t)))
 
 (semaphore-wait (make-semaphore))

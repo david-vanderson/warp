@@ -84,7 +84,7 @@
             (define ry (sin (posvel-r pv)))
             (define x (+ (posvel-x pv) (* 20 rx)))
             (define y (+ (posvel-y pv) (* 20 ry)))
-            (define p (plasma (next-id)
+            (define p (plasma (gen-id)
                               (posvel x y 0
                                       (+ (posvel-dx pv) (* 30 rx))
                                       (+ (posvel-dy pv) (* 30 ry))
@@ -167,11 +167,9 @@
 
 (module+ main
   
-  (define ownspace (space 0 (list (big-ship 0 0) (big-ship 100 0))))
+  (define ownspace (space 0 2000 2000 (list (big-ship 0 0 "Ship1") (big-ship 100 0 "Ship2"))))
   
   (define (new-client ownspace player)
-    (printf "new-client ~a\n" (obj-id player))
-    (define ship (car (space-objects ownspace)))
-    (set-role-player! (ship-helm ship) player))
+    (printf "new-client ~a\n" (obj-id player)))
   
   (start-server PORT ownspace new-client))
