@@ -24,8 +24,10 @@
 
 (struct posvel (x y r dx dy dr) #:mutable #:prefab)
 
-(struct obj (id posvel) #:mutable #:prefab)
+(struct obj (id start-time posvel) #:mutable #:prefab)
 ; id is used to uniquely identify any game object
+; start-time is seconds since scenario start that this object was created
+;  - used for animations
 ; if posvel is #f, then this obj is inside something else
 ; if posvel is not #f, then this is a top-level object that is drawn
 
@@ -209,13 +211,13 @@
 
 
 (define (big-ship x y name)
-  (ship (next-id) (posvel x y (* 0.5 pi) 0 0 0) name
-        (helm (next-id) #f #f (* 0.5 pi) #f #f #f #f)
-        (multirole (next-id) #f
-                   (observer (next-id) #f #f) #f '())
-        (multirole (next-id) #f
-                   (crewer (next-id) #f #f) #t '())
+  (ship (next-id) #f (posvel x y (* 0.5 pi) 0 0 0) name
+        (helm (next-id) #f #f #f (* 0.5 pi) #f #f #f #f)
+        (multirole (next-id) #f #f
+                   (observer (next-id) #f #f #f) #f '())
+        (multirole (next-id) #f #f
+                   (crewer (next-id) #f #f #f) #t '())
         100 1
         (list 
-         (shield (next-id) #f 57 "blue" 100 (make-vector 16 50))
-         (shield (next-id) #f 50 "red" 100 (make-vector 16 50)))))
+         (shield (next-id) #f #f 57 "blue" 100 (make-vector 16 50))
+         (shield (next-id) #f #f 50 "red" 100 (make-vector 16 50)))))

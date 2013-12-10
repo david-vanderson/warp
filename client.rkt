@@ -74,17 +74,14 @@
          ;         (send-command (struct-copy role (caar roles) (player me)))
          ))))
   
-  (define first-frame #t)
-  
   (define (draw-screen canvas dc)
-    (when first-frame
-      (set! first-frame #f)
-      (send dc set-initial-matrix #(1 0 0 1 0 0))
-      (send dc set-origin (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
-      (send dc set-scale (/ (send canvas get-width) WIDTH 1.0) (/ (send canvas get-height) HEIGHT -1.0))
-      (send dc set-rotation 0)
-      (send dc set-smoothing 'smoothed)
-      (send dc set-brush "red" 'transparent))
+    (send dc set-initial-matrix #(1 0 0 1 0 0))
+    (send dc set-origin (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
+    (define scale (min (/ (send canvas get-width) WIDTH 1.0) (/ (send canvas get-height) HEIGHT)))
+    (send dc set-scale scale (- scale))
+    (send dc set-rotation 0)
+    (send dc set-smoothing 'smoothed)
+    (send dc set-brush "red" 'transparent)
     
     ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
     (send dc erase)
@@ -102,8 +99,18 @@
     (draw-framerate dc frames)
     )
   
+  
+  (define-values (left-inset top-inset) (get-display-left-top-inset))
+  (define-values (screen-w screen-h) (get-display-size))
+  
   (define frame (new (class frame% (super-new))
-                     (label "Warp")))
+                     (label "Warp")
+;                     (x (- left-inset))
+;                     (y (- top-inset))
+;                     (width screen-w)
+;                     (height screen-h)
+;                     (style '(hide-menu-bar no-caption no-resize-border))
+                     ))
   
   (define my-canvas
     (class canvas%
@@ -131,6 +138,7 @@
          (min-height HEIGHT)
          (paint-callback draw-screen)
          (style '(no-autoclear))))
+  
   
   (send frame show #t)
   
@@ -178,8 +186,8 @@
       (set! dt (max dt 0))  ; don't go backwards
       ;      (printf "client physics ~a ~a ~a\n" (space-time ownspace) dt start-time)
       (update-physics! ownspace dt)
-      (update-effects! ownspace)
       (set-space-time! ownspace (+ (space-time ownspace) dt))
+      (update-effects! ownspace)
       )
     
     ;rendering

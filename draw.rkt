@@ -2,7 +2,8 @@
 
 (require racket/class
          racket/list
-         racket/format)
+         racket/format
+         racket/math)
 
 (require "defs.rkt")
 
@@ -84,10 +85,19 @@
     (send dc draw-text text 0 0)))
 
 
-(define (draw-plasma dc p center)
+(define (draw-plasma dc p center space)
   (define-values (x y) (recenter center (posvel-x (obj-posvel p)) (posvel-y (obj-posvel p))))
   (send dc set-pen (plasma-color p) 1 'solid)
   (define rad (plasma-energy p))
+  (define t (- (space-time space) (obj-start-time p)))
+  (define rot (* pi (- t (truncate t))))
+  (send dc draw-line
+        (- x (* 10 (cos rot))) (- y (* 10 (sin rot)))
+        (+ x (* 10 (cos rot))) (+ y (* 10 (sin rot))))
+  (set! rot (+ rot (/ pi 2)))
+  (send dc draw-line
+        (- x (* 10 (cos rot))) (- y (* 10 (sin rot)))
+        (+ x (* 10 (cos rot))) (+ y (* 10 (sin rot))))
   (send dc draw-ellipse (- x (/ rad 2)) (- y (/ rad 2)) rad rad))
 
 
@@ -97,14 +107,14 @@
     (define max-y (space-sizey ownspace))
     (define scale (min (/ WIDTH max-x) (/ HEIGHT max-y)))
     (send dc scale scale scale)
-    (define center (obj #f (posvel 0 0 0 0 0 0)))
+    (define center (obj #f #f (posvel 0 0 0 0 0 0)))
     (draw-background dc ownspace center)
     (for ((o (space-objects ownspace)))
       (cond
         ((ship? o)
          (draw-ship dc o center))
         ((plasma? o)
-         (draw-plasma dc o center))))))
+         (draw-plasma dc o center ownspace))))))
 
 
 (define (draw-playing dc ownspace stack)
@@ -134,7 +144,7 @@
       ((ship? o)
        (draw-ship dc o center))
       ((plasma? o)
-       (draw-plasma dc o center)))))
+       (draw-plasma dc o center ownspace)))))
 
 
 (define (draw-crewer dc ownspace stack)

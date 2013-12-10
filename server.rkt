@@ -81,7 +81,7 @@
             (define ry (sin (posvel-r pv)))
             (define x (+ (posvel-x pv) (* 20 rx)))
             (define y (+ (posvel-y pv) (* 20 ry)))
-            (define p (plasma (next-id)
+            (define p (plasma (next-id) (space-time ownspace)
                               (posvel x y 0
                                       (+ (posvel-dx pv) (* 30 rx))
                                       (+ (posvel-dy pv) (* 30 ry))
@@ -121,8 +121,8 @@
   ;(vector-set! (shield-sections (car (ship-shields (car (space-objects ownspace))))) 0 100)
   ;(printf "~v\n" (car (space-objects ownspace)))
   (update-physics! ownspace dt)
-  (update-effects! ownspace)
   (set-space-time! ownspace (+ (space-time ownspace) dt))
+  (update-effects! ownspace)
   
   ; process new clients
   (when (tcp-accept-ready? server-listener)
@@ -130,7 +130,7 @@
     (define-values (in out) (tcp-accept server-listener))
     
     ; need to assign an id to the new player
-    (write (player (next-id) #f "New Player" #f) out)
+    (write (player (next-id) #f #f "New Player" #f) out)
     
     (set! client-in-ports (cons in client-in-ports))
     (set! client-out-ports (cons out client-out-ports))
