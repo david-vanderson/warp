@@ -5,7 +5,7 @@
          "client.rkt"
          "server.rkt")
 
-(define ownspace (space 0 2000 2000 (list (big-ship 100 100 "Ship1") (big-ship 200 100 "Ship2"))))
+(define ownspace (space 0 2000 2000 (list (big-ship 0 0 "Ship1") (big-ship 200 0 "Ship2"))))
 
 (thread (lambda () (start-server PORT ownspace)))
 

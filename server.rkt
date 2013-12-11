@@ -25,6 +25,7 @@
     ((crewer? r) (struct-copy crewer r))
     (else (error "copy-role hit ELSE clause, role:\n" r))))
 
+
 (define (join-role! r p)
   ;(printf "player ~v joining role ~v\n" p r)
   (cond
@@ -41,13 +42,19 @@
      #t)  ; can always leave space
     (else #f)))
 
-(define (leave-role! r p)
+
+(define (leave-role! stack p)
+  (define r (car stack))  ; will always be a role?
+  (define con (cadr stack))  ; could be multirole?
   ;(printf "player ~v leaving role ~v\n" p r)
   (cond
-    ((role? r) (set-role-player! r #f))
-    ((multirole? r) (set-multirole-roles!
-                     r (filter (lambda (xr) (not (equal? (role-player xr) p)))
-                               (multirole-roles r))))))
+    ((multirole? con)
+     (define seen #f)  ; always remove the first instance of player
+     (set-multirole-roles!
+      con (filter (lambda (xr) (or (not (equal? (role-player xr) p))
+                                   (begin0 seen (set! seen #t))))
+                  (multirole-roles con))))
+    (else (set-role-player! r #f))))
 
 
 (define (receive-command cmd)
@@ -55,10 +62,10 @@
   (cond
     ((role-change? cmd)
      (define p (role-change-player cmd))
-     (define from (find-id ownspace (role-change-from cmd)))
+     (define from (find-stack ownspace (role-change-from cmd)))
      (define to (find-id ownspace (role-change-to cmd)))
      (when (join-role! to p)
-       (leave-role! from p)))
+       (when from (leave-role! from p))))
     ((role? cmd)
      ; find our role
      (define stack (find-stack ownspace (obj-id cmd)))

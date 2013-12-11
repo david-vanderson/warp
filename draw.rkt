@@ -12,9 +12,18 @@
 (define-syntax-rule (keep-transform dc e ...)
   (begin
     (define t (send dc get-transformation))
-    e ...
-    (send dc set-transformation t)))
+    (define a (let () e ...))
+    (send dc set-transformation t)
+    a))
 
+(define (get-scale dc)
+  (vector-ref (send dc get-initial-matrix) 0))
+
+(define (dc->screen dc x y)
+  (define m (send dc get-initial-matrix))
+  (values
+   (+ (* x (vector-ref m 0)) (* y (vector-ref m 1)) (vector-ref m 4))
+   (+ (* x (vector-ref m 2)) (* y (vector-ref m 3)) (vector-ref m 5))))
 
 (define (add-frame-time current-time frames)
   (cons current-time (take frames (min 10 (length frames)))))
@@ -59,6 +68,21 @@
             (- r (* 0.5 arc-size)) (+ r (* 0.5 arc-size))))))
 
 
+(define ship-external
+  '((10 . 10)
+    (0 . 20)
+    (-10 . 10)
+    (-10 . -10)
+    (10 . -10)))
+
+(define ship-internal
+  '((10 . 10)
+    (0 . 20)
+    (-10 . 10)
+    (-10 . -10)
+    (10 . -10)))
+
+
 (define (draw-ship dc s center)
   (keep-transform dc
     (define posvel (obj-posvel s))
@@ -70,12 +94,9 @@
       (for ((shield (ship-shields s)))
         (draw-shield dc shield))
       
+      (send dc rotate (/ pi 2))
       (send dc set-pen "black" 1 'solid)
-      (send dc draw-polygon '((10 . 10)
-                              (20 . 0)
-                              (10 . -10)
-                              (-10 . -10)
-                              (-10 . 10))))
+      (send dc draw-polygon ship-external))
     
     (define scale 0.5)
     (send dc scale scale (- scale))
@@ -92,12 +113,12 @@
   (define t (- (space-time space) (obj-start-time p)))
   (define rot (* pi (- t (truncate t))))
   (send dc draw-line
-        (- x (* 10 (cos rot))) (- y (* 10 (sin rot)))
-        (+ x (* 10 (cos rot))) (+ y (* 10 (sin rot))))
+        (- x (* rad (cos rot))) (- y (* rad (sin rot)))
+        (+ x (* rad (cos rot))) (+ y (* rad (sin rot))))
   (set! rot (+ rot (/ pi 2)))
   (send dc draw-line
-        (- x (* 10 (cos rot))) (- y (* 10 (sin rot)))
-        (+ x (* 10 (cos rot))) (+ y (* 10 (sin rot))))
+        (- x (* rad (cos rot))) (- y (* rad (sin rot)))
+        (+ x (* rad (cos rot))) (+ y (* rad (sin rot))))
   (send dc draw-ellipse (- x (/ rad 2)) (- y (/ rad 2)) rad rad))
 
 
@@ -114,7 +135,8 @@
         ((ship? o)
          (draw-ship dc o center))
         ((plasma? o)
-         (draw-plasma dc o center ownspace))))))
+         (draw-plasma dc o center ownspace)))))
+  (list))
 
 
 (define (draw-playing dc ownspace stack)
@@ -133,7 +155,8 @@
   (keep-transform dc
     (send dc translate 0 (/ HEIGHT 2))
     (send dc scale 1 -1)
-    (send dc draw-text (role-name role) 0 0)))
+    (send dc draw-text (role-name role) 0 0))
+  (list))
 
 
 (define (draw-observer dc ownspace stack)
@@ -144,38 +167,63 @@
       ((ship? o)
        (draw-ship dc o center))
       ((plasma? o)
-       (draw-plasma dc o center ownspace)))))
+       (draw-plasma dc o center ownspace))))
+  (list))
 
 
 (define (draw-crewer dc ownspace stack)
   (define ship (get-ship stack))
   (keep-transform dc
-    (send dc scale 20 20)
-    
-    (send dc set-pen "black" 1 'solid)
-    (send dc draw-polygon '((10 . 10)
-                            (20 . 0)
-                            (10 . -10)
-                            (-10 . -10)
-                            (-10 . 10)))
-    
-    (define scale 0.5)
-    (send dc scale scale (- scale))
-    (define text (~r (* 100 (ship-containment ship)) #:precision 0))
-    (define-values (w h b v) (send dc get-text-extent text))
-    (send dc translate (* -0.5 w) (* -0.5 h))
-    (send dc draw-text text 0 0)))
+    (send dc scale 18 18)
+    (send dc set-pen "black" (/ 1.0 (get-scale dc)) 'solid)
+    (send dc draw-polygon ship-internal))
+  
+  (define hangar-buttons
+    (for/list ((o (ship-hangar ship))
+               (i (in-naturals)))
+      (keep-transform dc
+        (define angle (* i (/ 2pi (length (ship-hangar ship)))))
+        (send dc rotate angle)
+        (send dc translate 0 100)
+        (send dc rotate (- angle))
+        
+        (cond
+          ((weapon-pod? o)
+           (send dc set-pen "black" 1.0 'solid)
+           (send dc draw-ellipse -20 -20 40 40)
+           (send dc scale 1 -1)
+           (send dc draw-text "W" -10 -10)
+           
+           (define-values (x y) (dc->screen dc -10 -10))
+           ;(printf "x,y ~a,~a\n" x y)
+           
+           (button x y 20 20 (obj-id o) "W"))
+          ))))
+  
+  (define ship-roles
+    (find-all (get-ship stack)
+              (lambda (o) (or (multirole? o)
+                              (and (role? o) (not (role-player o)))))))
+  (append
+   (list leave-button)
+   hangar-buttons
+   (for/list ((r ship-roles)
+              (i (in-naturals)))
+     (cond
+       ((role? r)
+        (button (+ (/ (- WIDTH) 2) 100 (* i 100)) (+ (/ (- HEIGHT) 2) 60) 100 30 (obj-id r)
+                (format "~a" (role-name r))))
+       ((multirole? r)
+        (define role (multirole-role r))
+        (button (+ (/ (- WIDTH) 2) 100 (* i 100)) (+ (/ (- HEIGHT) 2) 60) 100 30 (obj-id r)
+                (format "~a" (role-name role))))))))
 
 
-(define (draw-buttons canvas dc stack space)
-  (define cw WIDTH)
-  (define ch HEIGHT)
-  (for ((b (buttons stack space)))
+(define (draw-buttons dc buttons)
+  (for ((b buttons))
     (keep-transform dc
-      (define-values (x y w h) (values (- (* (button-x b) cw) (/ cw 2))
-                                       (- (* (button-y b) ch) (/ ch 2))
-                                       (* (button-width b) cw)
-                                       (* (button-height b) ch)))
+      (define-values (x y w h) (values (button-x b) (button-y b)
+                                       (button-width b) (button-height b)))
       (send dc set-brush "lightgray" 'solid)
       (send dc set-pen "black" 1 'solid)
       (send dc draw-rectangle x y w h)

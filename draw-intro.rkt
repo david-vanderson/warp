@@ -16,4 +16,5 @@
     
     ; This screen is where you type in your name and the server IP
     
-    ))
+    )
+  (list))

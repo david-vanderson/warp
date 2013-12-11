@@ -15,6 +15,7 @@
   
   (define ownspace #f)
   (define my-stack #f)
+  (define buttons #f)
   (define frames '())  ; list of last few frame times
   
   ; connect to server
@@ -32,13 +33,26 @@
   (set-player-name! me name)
   
   
+  
+  (define (click-button? buttons x y)
+    (ormap (lambda (b)
+             (and (<= (button-x b) x (+ (button-x b) (button-width b)))
+                  (<= (button-y b) y (+ (button-y b) (button-height b)))
+                  (button-name b)))
+           buttons))
+  
+  
   (define (interpret-click canvas event)
     (define role (get-role my-stack))
-    (when (send event button-down? 'left)
-      (define button (click-button? (buttons my-stack ownspace)
-                                    (/ (send event get-x) (send canvas get-width))
-                                    (/ (- (send canvas get-height) (send event get-y))
-                                       (send canvas get-height))))
+    (when (and buttons (send event button-down? 'left))
+      (define scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
+      (define button (click-button? buttons
+                                    (/ (- (send event get-x)
+                                          (/ (send canvas get-width) 2))
+                                       scale)
+                                    (/ (- (/ (send canvas get-height) 2)
+                                          (send event get-y))
+                                       scale)))
       (cond
         ((and my-stack button (equal? button "leave"))
          (define role (get-role my-stack))
@@ -75,29 +89,30 @@
          ))))
   
   (define (draw-screen canvas dc)
-    (send dc set-initial-matrix #(1 0 0 1 0 0))
-    (send dc set-origin (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
-    (define scale (min (/ (send canvas get-width) WIDTH 1.0) (/ (send canvas get-height) HEIGHT)))
-    (send dc set-scale scale (- scale))
-    (send dc set-rotation 0)
     (send dc set-smoothing 'smoothed)
     (send dc set-brush "red" 'transparent)
-    
-    ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
-    (send dc erase)
-    
-    (cond
-      ((not ownspace)
-       (draw-intro dc))
-      ((not my-stack)
-       (draw-no-role dc ownspace))
-      (else
-       (draw-playing dc ownspace my-stack)
-       (draw-overlay dc ownspace my-stack)))
-    
-    (draw-buttons canvas dc my-stack ownspace)
-    (draw-framerate dc frames)
-    )
+    (keep-transform dc
+      (send dc translate (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
+      (define scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
+      (send dc scale scale (- scale))
+      
+      ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
+      (send dc erase)
+      
+      (define role-buttons
+        (cond
+          ((not ownspace)
+           (draw-intro dc))
+          ((not my-stack)
+           (draw-no-role dc ownspace))
+          (else
+           (append
+             (draw-playing dc ownspace my-stack)
+             (draw-overlay dc ownspace my-stack)))))
+      
+      (set! buttons (append role-buttons (get-buttons my-stack ownspace)))
+      (draw-buttons dc buttons)
+      (draw-framerate dc frames)))
   
   
   (define-values (left-inset top-inset) (get-display-left-top-inset))
@@ -105,11 +120,11 @@
   
   (define frame (new (class frame% (super-new))
                      (label "Warp")
-;                     (x (- left-inset))
-;                     (y (- top-inset))
-;                     (width screen-w)
-;                     (height screen-h)
-;                     (style '(hide-menu-bar no-caption no-resize-border))
+                     ;                     (x (- left-inset))
+                     ;                     (y (- top-inset))
+                     ;                     (width screen-w)
+                     ;                     (height screen-h)
+                     ;                     (style '(hide-menu-bar no-caption no-resize-border))
                      ))
   
   (define my-canvas

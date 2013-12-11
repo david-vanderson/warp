@@ -64,10 +64,16 @@
 ; if fore is #t, main thrusters are firing
 ; if left is #t, thrusters on the right side are firing pushing the ship left
 
-(struct ship obj (name helm observers crew reactor containment shields) #:mutable #:prefab)
+(struct weapons role (fire) #:mutable #:prefab)
+; fire is #t if we want to shoot a plasma
+
+(struct weapon-pod obj (role) #:mutable #:prefab)
+
+(struct ship obj (name helm observers crew reactor containment shields hangar) #:mutable #:prefab)
 ; reactor is the energy produced by the reactor
 ; containment is the percentage of reactor health left (0-1, starts at 1)
 ; shields are in radius order starting with the largest radius
+; hangar is a list of all the stuff on the ship
 
 (struct space (time sizex sizey objects) #:mutable #:prefab)
 ; time is seconds since the scenario started
@@ -88,6 +94,12 @@
 ; x y width height are 0,0 bottom left corner 1,1 top right
 ; name is used internally
 ; label is what is written on the button
+
+
+
+
+(define leave-button (button (/ (- WIDTH) 2) (/ (- HEIGHT) 2) 60 30 "leave" "Leave"))
+
 
 
 ;; Utilities
@@ -155,36 +167,22 @@
   (define r (find-stack o id))
   (if r (car r) #f))
 
-(define (buttons stack space)
+(define (get-buttons stack space)
   (define role (if stack (cadr stack) #f))
-  (define leave (button 0 0 .1 .05 "leave" "Leave"))
+  (define x0 (/ (- WIDTH) 2))
+  (define y0 (/ (- HEIGHT) 2))
+  (define bh 30)
+  (define leave (button x0 y0 60 bh "leave" "Leave"))
   (cond
     ((not space)
      ; we haven't joined a server yet
      (list))
     ((helm? role)
      (list leave
-           (button .2 .1 .1 .05 "fore" (if (helm-fore role) "Stop" "Go"))
-           (button .4 .1 .1 .05 "fire" "Fire")))
+           (button -100 -100 60 bh "fore" (if (helm-fore role) "Stop" "Go"))
+           (button  100 -100 60 bh "fire" "Fire")))
     ((observer? role)
      (list leave))
-    ((crewer? role)
-     (define ship-roles
-       (find-all (get-ship stack)
-                 (lambda (o) (or (multirole? o)
-                                 (and (role? o) (not (role-player o)))))))
-     (cons 
-      leave
-      (for/list ((r ship-roles)
-                 (i (in-naturals)))
-        (cond
-          ((role? r)
-           (button (* i .15) .05 .14 .05 (obj-id r)
-                   (format "~a" (role-name r))))
-          ((multirole? r)
-           (define role (multirole-role r))
-           (button (* i .15) .05 .14 .05 (obj-id r)
-                   (format "~a" (role-name role))))))))
     ((not role)
      (define start-stacks
        (search space (lambda (o) (and (multirole? o)
@@ -194,20 +192,13 @@
       (for/list ((s start-stacks)
                  (i (in-naturals)))
         (define mr (car s))
-        (button (* i .15) .05 .14 .05 (obj-id mr)
+        (button (+ x0 100 (* i 200)) (+ y0 bh bh) 150 bh (obj-id mr)
                 (format "~a on ~a" (role-name (multirole-role mr))
                         (ship-name (get-ship s)))))))
+    ((crewer? role)
+     (list))
     (else
-     (error "buttons hit ELSE clause, role\n" role))))
-
-
-(define (click-button? buttons x y)
-  (ormap (lambda (b)
-           ;(printf "click-button? ~a ~a\n" x y)
-           (and (<= (button-x b) x (+ (button-x b) (button-width b)))
-                (<= (button-y b) y (+ (button-y b) (button-height b)))
-                (button-name b)))
-         buttons))
+     (error "get-buttons hit ELSE clause, role\n" role))))
 
 
 (define (big-ship x y name)
@@ -220,4 +211,12 @@
         100 1
         (list 
          (shield (next-id) #f #f 57 "blue" 100 (make-vector 16 50))
-         (shield (next-id) #f #f 50 "red" 100 (make-vector 16 50)))))
+         (shield (next-id) #f #f 50 "red" 100 (make-vector 2 50)))
+        (list
+         (weapon-pod (next-id) #f #f
+                     (weapons (next-id) #f #f #f #f))
+         (weapon-pod (next-id) #f #f
+                     (weapons (next-id) #f #f #f #f))
+         (weapon-pod (next-id) #f #f
+                     (weapons (next-id) #f #f #f #f)))
+        ))
