@@ -30,21 +30,32 @@
           ((weapon-pod? o)
            (send dc set-pen "black" 1.0 'solid)
            (send dc scale 1 -1)
-           (send dc draw-text (format "Weapon Pod ~a" (add1 i)) 65 -15)
+           (send dc draw-text "Weapon Pod" 0 0)
            (send dc scale 1 -1)
-           ;(send dc draw-ellipse -20 -20 40 40)
-           (define-values (x y) (dc->canon canvas dc -10 -10))
-           (button x y 65 30 5 5 (obj-id (weapon-pod-role o)) "Deploy")
-           )
-          ))))
+           
+           (cond ((role-player (weapon-pod-role o))
+                  (send dc scale 1 -1)
+                  (send dc draw-text (player-name (role-player (weapon-pod-role o))) 120 0)
+                  #f)
+                 (else
+                  (define-values (x y) (dc->canon canvas dc 120 -25))
+                  (button x y 65 30 5 5 (obj-id (weapon-pod-role o)) "Deploy")
+                  )))))))
   
   (define helm-button
-    (button -50 200 100 30 5 5 (obj-id (ship-helm ship)) "Helm"))
+    (cond ((role-player (ship-helm ship))
+           (send dc scale 1 -1)
+           (send dc draw-text (format "Helm ~a" (player-name (role-player (ship-helm ship))))
+                 -50 -225)
+           (send dc scale 1 -1)
+           #f)
+          (else
+           (button -50 200 100 30 5 5 (obj-id (ship-helm ship)) "Helm"))))
   
   (define obs-button
     (button -50 150 100 30 5 5 (obj-id (ship-observers ship)) "Observe"))
   
-  (append
-   (list leave-button helm-button obs-button)
-   hangar-buttons))
+  (filter values (append
+                  (list leave-button helm-button obs-button)
+                  hangar-buttons)))
 
