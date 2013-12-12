@@ -2,9 +2,10 @@
 
 (require "defs.rkt"
          "physics.rkt"
-         "helm.rkt"
          "draw.rkt"
-         "draw-intro.rkt")
+         "draw-intro.rkt"
+         "helm.rkt"
+         "crewer.rkt")
 
 (provide start-client)
 
@@ -53,6 +54,7 @@
     (define x (/ (- (send event get-x) (/ (send canvas get-width) 2)) scale))
     (define y (/ (- (/ (send canvas get-height) 2) (send event get-y)) scale))
     (define button (click-button? buttons x y))
+    (printf "click ~a ~a ~a\n" x y button)
     (cond
       ((and button (equal? button "leave"))
        (cond
@@ -61,12 +63,16 @@
          (else
           (define crew (ship-crew (get-ship my-stack)))
           (send-command (role-change me (obj-id role) (obj-id crew))))))
+      ((crewer? role)
+       (send-command (click-crewer x y button role ownspace me)))
       ((helm? role)
        (send-command (click-helm x y button role)))
       (button
-       ;(printf "~a: clicked button ~a\n" (player-name me) button)
+       ; player is choosing starting role
        (define mr (find-id ownspace button))
-       (send-command (role-change me (if role (obj-id role) #f) (obj-id mr))))))
+       (send-command (role-change me (if role (obj-id role) #f) (obj-id mr))))
+      (else
+       (error "click hit ELSE clause"))))
   
   
   (define (draw-screen canvas dc)
@@ -78,6 +84,7 @@
       (send dc scale scale (- scale))
       
       ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
+      
       (send dc erase)
       
       (define role (get-role my-stack))
@@ -89,13 +96,16 @@
               ((not my-stack)
                (draw-no-role dc ownspace))
               ((helm? role)
-               (draw-helm dc role ownspace my-stack))
+               (draw-helm dc ownspace my-stack))
+              ((crewer? role)
+               (draw-crewer dc ownspace my-stack))
+              ((observer? role)
+               (draw-observer dc ownspace my-stack))
               (else
-               (append
-                (draw-playing dc ownspace my-stack)
-                (draw-overlay dc ownspace my-stack)))))
+               (error "didn't know what to draw"))))
       
       (draw-buttons dc buttons)
+      (draw-overlay dc ownspace my-stack)
       (draw-framerate dc frames)))
   
   

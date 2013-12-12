@@ -22,7 +22,8 @@
      (struct-copy helm role (course course)))))
 
 
-(define (draw-helm dc role ownspace stack)
+(define (draw-helm dc ownspace stack)
+  (define role (get-role stack))
   (draw-observer dc ownspace stack)
   (list leave-button
         (button -100 -100 60 30 "fore" (if (helm-fore role) "Stop" "Go"))
