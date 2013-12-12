@@ -136,15 +136,24 @@
          (draw-ship dc o center))
         ((plasma? o)
          (draw-plasma dc o center ownspace)))))
-  (list))
+  
+  (define start-stacks
+    (search ownspace (lambda (o) (and (multirole? o)
+                                   (multirole-start? o))) #t))
+  (cons
+   leave-button
+   (for/list ((s start-stacks)
+              (i (in-naturals)))
+     (define mr (car s))
+     (button (+ LEFT 100 (* i 200)) (+ BOTTOM 60) 150 30 (obj-id mr)
+             (format "~a on ~a" (role-name (multirole-role mr))
+                     (ship-name (get-ship s)))))))
 
 
 (define (draw-playing dc ownspace stack)
   (define role (get-role stack))
   (cond
     ((observer? role)
-     (draw-observer dc ownspace stack))
-    ((helm? role)
      (draw-observer dc ownspace stack))
     ((crewer? role)
      (draw-crewer dc ownspace stack))))
@@ -168,7 +177,7 @@
        (draw-ship dc o center))
       ((plasma? o)
        (draw-plasma dc o center ownspace))))
-  (list))
+  (list leave-button))
 
 
 (define (draw-crewer dc ownspace stack)

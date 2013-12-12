@@ -9,6 +9,8 @@
 (define PORT 22381)
 (define WIDTH 1024)  ; how many meters wide is the screen view
 (define HEIGHT 768)  ; how many meters tall is the screen view
+(define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view
+(define BOTTOM (/ (- HEIGHT) 2))  ; bottom edge of canonical view
 (define DRAG_COEF .7)  ; lose X% of your velocity / sec
 (define RACC .5)  ; gain X radians / sec / sec
 (define R_DRAG_COEF .7)  ; lose X% of your velocity / sec
@@ -166,39 +168,6 @@
 (define (find-id o id)
   (define r (find-stack o id))
   (if r (car r) #f))
-
-(define (get-buttons stack space)
-  (define role (if stack (cadr stack) #f))
-  (define x0 (/ (- WIDTH) 2))
-  (define y0 (/ (- HEIGHT) 2))
-  (define bh 30)
-  (define leave (button x0 y0 60 bh "leave" "Leave"))
-  (cond
-    ((not space)
-     ; we haven't joined a server yet
-     (list))
-    ((helm? role)
-     (list leave
-           (button -100 -100 60 bh "fore" (if (helm-fore role) "Stop" "Go"))
-           (button  100 -100 60 bh "fire" "Fire")))
-    ((observer? role)
-     (list leave))
-    ((not role)
-     (define start-stacks
-       (search space (lambda (o) (and (multirole? o)
-                                      (multirole-start? o))) #t))
-     (cons
-      leave
-      (for/list ((s start-stacks)
-                 (i (in-naturals)))
-        (define mr (car s))
-        (button (+ x0 100 (* i 200)) (+ y0 bh bh) 150 bh (obj-id mr)
-                (format "~a on ~a" (role-name (multirole-role mr))
-                        (ship-name (get-ship s)))))))
-    ((crewer? role)
-     (list))
-    (else
-     (error "get-buttons hit ELSE clause, role\n" role))))
 
 
 (define (big-ship x y name)

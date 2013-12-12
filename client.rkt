@@ -2,6 +2,7 @@
 
 (require "defs.rkt"
          "physics.rkt"
+         "helm.rkt"
          "draw.rkt"
          "draw-intro.rkt")
 
@@ -23,9 +24,10 @@
     (tcp-connect ip port))
   
   (define (send-command cmd)
-    ;(printf "send-command\n")
-    (write cmd server-out-port)
-    (flush-output server-out-port))
+    ;(printf "send-command ~v\n" cmd)
+    (when cmd
+      (write cmd server-out-port)
+      (flush-output server-out-port)))
   
   
   ; read a player struct that has our unique id
@@ -35,58 +37,37 @@
   
   
   (define (click-button? buttons x y)
-    (ormap (lambda (b)
-             (and (<= (button-x b) x (+ (button-x b) (button-width b)))
-                  (<= (button-y b) y (+ (button-y b) (button-height b)))
-                  (button-name b)))
-           buttons))
+    (if (not buttons)
+        #f
+        (ormap (lambda (b)
+                 (and (<= (button-x b) x (+ (button-x b) (button-width b)))
+                      (<= (button-y b) y (+ (button-y b) (button-height b)))
+                      (button-name b)))
+               buttons)))
   
   
-  (define (interpret-click canvas event)
+  (define (click canvas event)
     (define role (get-role my-stack))
-    (when (and buttons (send event button-down? 'left))
-      (define scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
-      (define button (click-button? buttons
-                                    (/ (- (send event get-x)
-                                          (/ (send canvas get-width) 2))
-                                       scale)
-                                    (/ (- (/ (send canvas get-height) 2)
-                                          (send event get-y))
-                                       scale)))
-      (cond
-        ((and my-stack button (equal? button "leave"))
-         (define role (get-role my-stack))
-         (printf "~a leaving role ~a\n" (player-name me) (role-name role))
-         (cond
-           ((crewer? role)
-            (send-command (role-change me (obj-id role) #f)))
-           (else
-            (define crew (ship-crew (get-ship my-stack)))
-            (send-command (role-change me (obj-id role) (obj-id crew))))))
-        ((and my-stack (helm? role))
-         (when button (printf "~a: helm clicked button ~a\n" (player-name me) button))
-         (case button
-           (("fore")
-            (send-command (struct-copy helm role (fore (not (helm-fore role))))))
-           (("fire")
-            (send-command (struct-copy helm role (aft #t))))
-           (else
-            (printf "~a: helm course change\n" (player-name me))
-            (define x (- (send event get-x) (/ (send canvas get-width) 2)))
-            (define y (- (/ (send canvas get-height) 2) (send event get-y)))
-            (define course (atan y x))
-            (when (course . < . 0)
-              (set! course (+ course (* 2 pi))))
-            (send-command (struct-copy helm role (course course))))))
-        (else
-         (when button
-           (printf "~a: clicked button ~a\n" (player-name me) button)
-           (define mr (find-id ownspace button))
-           (send-command (role-change me (if role (obj-id role) #f) (obj-id mr))))
-         ;         (printf "~a: clicked\n" (player-name me))
-         ;         (define roles (search ownspace helm? #t))
-         ;         (send-command (struct-copy role (caar roles) (player me)))
-         ))))
+    (define scale (min (/ (send canvas get-width) WIDTH)
+                       (/ (send canvas get-height) HEIGHT)))
+    (define x (/ (- (send event get-x) (/ (send canvas get-width) 2)) scale))
+    (define y (/ (- (/ (send canvas get-height) 2) (send event get-y)) scale))
+    (define button (click-button? buttons x y))
+    (cond
+      ((and button (equal? button "leave"))
+       (cond
+         ((crewer? role)
+          (send-command (role-change me (obj-id role) #f)))
+         (else
+          (define crew (ship-crew (get-ship my-stack)))
+          (send-command (role-change me (obj-id role) (obj-id crew))))))
+      ((helm? role)
+       (send-command (click-helm x y button role)))
+      (button
+       ;(printf "~a: clicked button ~a\n" (player-name me) button)
+       (define mr (find-id ownspace button))
+       (send-command (role-change me (if role (obj-id role) #f) (obj-id mr))))))
+  
   
   (define (draw-screen canvas dc)
     (send dc set-smoothing 'smoothed)
@@ -99,18 +80,21 @@
       ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
       (send dc erase)
       
-      (define role-buttons
-        (cond
-          ((not ownspace)
-           (draw-intro dc))
-          ((not my-stack)
-           (draw-no-role dc ownspace))
-          (else
-           (append
-             (draw-playing dc ownspace my-stack)
-             (draw-overlay dc ownspace my-stack)))))
+      (define role (get-role my-stack))
       
-      (set! buttons (append role-buttons (get-buttons my-stack ownspace)))
+      (set! buttons
+            (cond
+              ((not ownspace)
+               (draw-intro dc))
+              ((not my-stack)
+               (draw-no-role dc ownspace))
+              ((helm? role)
+               (draw-helm dc role ownspace my-stack))
+              (else
+               (append
+                (draw-playing dc ownspace my-stack)
+                (draw-overlay dc ownspace my-stack)))))
+      
       (draw-buttons dc buttons)
       (draw-framerate dc frames)))
   
@@ -131,7 +115,8 @@
     (class canvas%
       (super-new)
       (define/override (on-event event)
-        (interpret-click this event))
+        (when (send event button-down? 'left)
+          (click this event)))
       ;      (define/override (on-char event)
       ;        ;(displayln (~v (send event get-key-code)))
       ;        (case (send event get-key-code)
