@@ -71,11 +71,11 @@
 
 (struct weapon-pod obj (role) #:mutable #:prefab)
 
-(struct ship obj (name helm observers crew reactor containment shields hangar) #:mutable #:prefab)
+(struct ship obj (name helm observers crew reactor containment shields pods) #:mutable #:prefab)
 ; reactor is the energy produced by the reactor
 ; containment is the percentage of reactor health left (0-1, starts at 1)
 ; shields are in radius order starting with the largest radius
-; hangar is a list of all the stuff on the ship
+; pods is a list of all the pods on the ship
 
 (struct space (time sizex sizey objects) #:mutable #:prefab)
 ; time is seconds since the scenario started
@@ -129,11 +129,12 @@
     ((space? o) (space-objects o))
     ((plasma? o) (list))
     ((ship? o) (filter values (append (list (ship-helm o) (ship-observers o) (ship-crew o))
-                                      (ship-shields o))))
+                                      (ship-shields o) (ship-pods o))))
     ((multirole? o) (multirole-roles o))
     ((role? o) (filter values (list (role-player o))))
     ((shield? o) (list))
     ((player? o) (list))
+    ((weapon-pod? o) (list (weapon-pod-role o)))
     (else
      (printf "get-children hit ELSE clause, o ~v\n" o)
      (error)

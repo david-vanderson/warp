@@ -70,7 +70,7 @@
        (define mr (find-id ownspace button))
        (send-command (role-change me (if role (obj-id role) #f) (obj-id mr))))
       (else
-       (error "click hit ELSE clause"))))
+       (printf "click hit ELSE clause\n"))))
   
   
   (define (draw-screen canvas dc)

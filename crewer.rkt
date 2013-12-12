@@ -22,39 +22,29 @@
     (send dc draw-polygon ship-internal))
   
   (define hangar-buttons
-    (for/list ((o (ship-hangar ship))
+    (for/list ((o (ship-pods ship))
                (i (in-naturals)))
       (keep-transform dc
-        (define angle (* i (/ 2pi (length (ship-hangar ship)))))
-        (send dc rotate angle)
-        (send dc translate 0 100)
-        (send dc rotate (- angle))
-        
+        (send dc translate -100 (- 100 (* i 50)))
         (cond
           ((weapon-pod? o)
            (send dc set-pen "black" 1.0 'solid)
-           (send dc draw-ellipse -20 -20 40 40)
+           (send dc scale 1 -1)
+           (send dc draw-text (format "Weapon Pod ~a" (add1 i)) 65 -15)
+           (send dc scale 1 -1)
+           ;(send dc draw-ellipse -20 -20 40 40)
            (define-values (x y) (dc->canon canvas dc -10 -10))
-           ;(printf "x,y ~a,~a\n" x y)
-           
-           (button x y 20 20 2 2 (obj-id o) "W"))
+           (button x y 65 30 5 5 (obj-id (weapon-pod-role o)) "Deploy")
+           )
           ))))
   
-  (define ship-roles
-    (find-all (get-ship stack)
-              (lambda (o) (or (multirole? o)
-                              (and (role? o) (not (role-player o)))))))
+  (define helm-button
+    (button -50 200 100 30 5 5 (obj-id (ship-helm ship)) "Helm"))
+  
+  (define obs-button
+    (button -50 150 100 30 5 5 (obj-id (ship-observers ship)) "Observe"))
+  
   (append
-   (list leave-button)
-   hangar-buttons
-   (for/list ((r ship-roles)
-              (i (in-naturals)))
-     (cond
-       ((role? r)
-        (button (+ (/ (- WIDTH) 2) 100 (* i 100)) (+ (/ (- HEIGHT) 2) 60) 100 30 5 5 (obj-id r)
-                (format "~a" (role-name r))))
-       ((multirole? r)
-        (define role (multirole-role r))
-        (button (+ (/ (- WIDTH) 2) 100 (* i 100)) (+ (/ (- HEIGHT) 2) 60) 100 30 5 5 (obj-id r)
-                (format "~a" (role-name role))))))))
+   (list leave-button helm-button obs-button)
+   hangar-buttons))
 
