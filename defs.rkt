@@ -92,7 +92,7 @@
 
 ;; UI
 
-(struct button (x y width height name label) #:mutable #:prefab)
+(struct button (x y width height left-inset top-inset name label) #:mutable #:prefab)
 ; x y width height are 0,0 bottom left corner 1,1 top right
 ; name is used internally
 ; label is what is written on the button
@@ -100,7 +100,7 @@
 
 
 
-(define leave-button (button (/ (- WIDTH) 2) (/ (- HEIGHT) 2) 60 30 "leave" "Leave"))
+(define leave-button (button (/ (- WIDTH) 2) (/ (- HEIGHT) 2) 60 30 5 5 "leave" "Leave"))
 
 
 

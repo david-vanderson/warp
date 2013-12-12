@@ -16,14 +16,25 @@
     (send dc set-transformation t)
     a))
 
-(define (get-scale dc)
+(define (dc-scale dc)
   (vector-ref (send dc get-initial-matrix) 0))
 
-(define (dc->screen dc x y)
+(define (canvas-scale canvas)
+  (min (/ (send canvas get-width) WIDTH)
+       (/ (send canvas get-height) HEIGHT)))
+
+(define (screen->canon canvas x y)
+  (define scale (canvas-scale canvas))
+  (define cw (send canvas get-width))
+  (define ch (send canvas get-height))
+  (values (/ (- x (/ cw 2)) scale)
+          (/ (- (/ ch 2) y) scale)))
+
+(define (dc->canon canvas dc x y)
   (define m (send dc get-initial-matrix))
-  (values
-   (+ (* x (vector-ref m 0)) (* y (vector-ref m 1)) (vector-ref m 4))
-   (+ (* x (vector-ref m 2)) (* y (vector-ref m 3)) (vector-ref m 5))))
+  (define sx (+ (* x (vector-ref m 0)) (* y (vector-ref m 1)) (vector-ref m 4)))
+  (define sy (+ (* x (vector-ref m 2)) (* y (vector-ref m 3)) (vector-ref m 5)))
+  (screen->canon canvas sx sy))
 
 (define (add-frame-time current-time frames)
   (cons current-time (take frames (min 10 (length frames)))))
@@ -145,7 +156,7 @@
    (for/list ((s start-stacks)
               (i (in-naturals)))
      (define mr (car s))
-     (button (+ LEFT 100 (* i 200)) (+ BOTTOM 60) 150 30 (obj-id mr)
+     (button (+ LEFT 100 (* i 200)) (+ BOTTOM 60) 150 30 5 5 (obj-id mr)
              (format "~a on ~a" (role-name (multirole-role mr))
                      (ship-name (get-ship s)))))))
 
@@ -181,6 +192,6 @@
       (send dc draw-rectangle x y w h)
       (send dc translate x (+ y h))
       (send dc scale 1 -1)
-      (send dc draw-text (button-label b) 5 5))))
+      (send dc draw-text (button-label b) (button-left-inset b) (button-top-inset b)))))
 
 

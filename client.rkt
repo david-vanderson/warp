@@ -49,10 +49,8 @@
   
   (define (click canvas event)
     (define role (get-role my-stack))
-    (define scale (min (/ (send canvas get-width) WIDTH)
-                       (/ (send canvas get-height) HEIGHT)))
-    (define x (/ (- (send event get-x) (/ (send canvas get-width) 2)) scale))
-    (define y (/ (- (/ (send canvas get-height) 2) (send event get-y)) scale))
+    (define scale (canvas-scale canvas))
+    (define-values (x y) (screen->canon canvas (send event get-x) (send event get-y)))
     (define button (click-button? buttons x y))
     (printf "click ~a ~a ~a\n" x y button)
     (cond
@@ -98,7 +96,7 @@
               ((helm? role)
                (draw-helm dc ownspace my-stack))
               ((crewer? role)
-               (draw-crewer dc ownspace my-stack))
+               (draw-crewer canvas dc ownspace my-stack))
               ((observer? role)
                (draw-observer dc ownspace my-stack))
               (else

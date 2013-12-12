@@ -26,5 +26,5 @@
   (define role (get-role stack))
   (draw-observer dc ownspace stack)
   (list leave-button
-        (button -100 -100 60 30 "fore" (if (helm-fore role) "Stop" "Go"))
-        (button  100 -100 60 30 "fire" "Fire")))
+        (button -100 -100 60 30 5 5 "fore" (if (helm-fore role) "Stop" "Go"))
+        (button  100 -100 60 30 5 5 "fire" "Fire")))

@@ -14,11 +14,11 @@
     (role-change me (if role (obj-id role) #f) (obj-id mr))))
 
 
-(define (draw-crewer dc ownspace stack)
+(define (draw-crewer canvas dc ownspace stack)
   (define ship (get-ship stack))
   (keep-transform dc
     (send dc scale 18 18)
-    (send dc set-pen "black" (/ 1.0 (get-scale dc)) 'solid)
+    (send dc set-pen "black" (/ 1.0 (dc-scale dc)) 'solid)
     (send dc draw-polygon ship-internal))
   
   (define hangar-buttons
@@ -34,13 +34,10 @@
           ((weapon-pod? o)
            (send dc set-pen "black" 1.0 'solid)
            (send dc draw-ellipse -20 -20 40 40)
-           (send dc scale 1 -1)
-           (send dc draw-text "W" -10 -10)
-           
-           (define-values (x y) (dc->screen dc -10 -10))
+           (define-values (x y) (dc->canon canvas dc -10 -10))
            ;(printf "x,y ~a,~a\n" x y)
            
-           (button x y 20 20 (obj-id o) "W"))
+           (button x y 20 20 2 2 (obj-id o) "W"))
           ))))
   
   (define ship-roles
@@ -54,9 +51,10 @@
               (i (in-naturals)))
      (cond
        ((role? r)
-        (button (+ (/ (- WIDTH) 2) 100 (* i 100)) (+ (/ (- HEIGHT) 2) 60) 100 30 (obj-id r)
+        (button (+ (/ (- WIDTH) 2) 100 (* i 100)) (+ (/ (- HEIGHT) 2) 60) 100 30 5 5 (obj-id r)
                 (format "~a" (role-name r))))
        ((multirole? r)
         (define role (multirole-role r))
-        (button (+ (/ (- WIDTH) 2) 100 (* i 100)) (+ (/ (- HEIGHT) 2) 60) 100 30 (obj-id r)
+        (button (+ (/ (- WIDTH) 2) 100 (* i 100)) (+ (/ (- HEIGHT) 2) 60) 100 30 5 5 (obj-id r)
                 (format "~a" (role-name role))))))))
+
