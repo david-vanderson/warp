@@ -134,6 +134,21 @@
       )))
 
 
+(define (move-pod! pod dt)
+  (define role (pod-role pod))
+  (cond ((and (pod-stowed? pod)
+              (podrole-angle role))
+         (set-pod-deploying?! pod #t)
+         (set-pod-angle! pod (podrole-angle role)))
+        ((and (pod-deployed? pod)
+              (not (podrole-angle role)))
+         (set-pod-deploying?! pod #f)))
+  
+  (define +/- (if (pod-deploying? pod) + -))
+  (define d (max 0 (min POD_D (+/- (pod-dist pod) (* 10 dt)))))
+  (set-pod-dist! pod d))
+
+
 ; This is used on both server and client (for prediction)
 (define (update-physics! ownspace dt)
   (for ((o (space-objects ownspace)))
@@ -142,6 +157,7 @@
        (define-values (ddx ddy ddr) (steer! o dt))
        (physics! (obj-posvel o) dt #t ddx ddy ddr)
        (spread-shields! o dt)
+       (for ((p (ship-pods o))) (move-pod! p dt))
        )
       ((plasma? o)
        (physics! (obj-posvel o) dt #f 0 0 0)))))

@@ -15,6 +15,7 @@
 (define RACC .5)  ; gain X radians / sec / sec
 (define R_DRAG_COEF .7)  ; lose X% of your velocity / sec
 (define 2pi (* 2 pi))
+(define POD_D 20)  ; meters out from center of ship pods go
 
 (define next-id
   (let ((id 0))
@@ -61,15 +62,29 @@
 (struct crewer role () #:mutable #:prefab)
 ; special role used to contain players while they are choosing their next role
 
-(struct helm role (course fore aft left right) #:mutable #:prefab)
+(struct helm role (course fore) #:mutable #:prefab)
 ; course is angle helm wants to point at
 ; if fore is #t, main thrusters are firing
-; if left is #t, thrusters on the right side are firing pushing the ship left
 
-(struct weapons role (fire) #:mutable #:prefab)
-; fire is #t if we want to shoot a plasma
+(struct podrole role (angle) #:mutable #:prefab)
+; angle is with respect to the ship
+;  - #f means we want to retract, a number means we want to deploy at that angle
 
-(struct weapon-pod obj (role) #:mutable #:prefab)
+(struct weapons podrole (fire) #:mutable #:prefab)
+; fire is an angle if we want to shoot a plasma (at that angle)
+
+(struct pod obj (role deploying? angle dist) #:mutable #:prefab)
+; deploying? is #t if going out, #f if going in
+; angle is our deploy angle with respect to the ship
+; dist is how far from the ship center we are
+
+(struct weapon-pod pod () #:mutable #:prefab)
+
+
+; XXX this should be a weapon-seat that is in a pod with it's own angle,
+; the pod should only be a container for a seat
+
+
 
 (struct ship obj (name helm observers crew reactor containment shields pods) #:mutable #:prefab)
 ; reactor is the energy produced by the reactor
@@ -109,6 +124,9 @@
 (define (get-role stack)
   (if stack (cadr stack) #f))
 
+(define (get-pod stack)
+  (car (memf pod? stack)))
+
 (define (get-ship stack)
   (car (memf ship? stack)))
 
@@ -120,6 +138,7 @@
   (cond ((crewer? role) "Crewer")
         ((helm? role) "Helm")
         ((observer? role) "Observer")
+        ((weapons? role) "Weapons")
         (else "Unknown")))
 
 
@@ -134,7 +153,7 @@
     ((role? o) (filter values (list (role-player o))))
     ((shield? o) (list))
     ((player? o) (list))
-    ((weapon-pod? o) (list (weapon-pod-role o)))
+    ((weapon-pod? o) (list (pod-role o)))
     (else
      (printf "get-children hit ELSE clause, o ~v\n" o)
      (error)
@@ -170,10 +189,16 @@
   (define r (find-stack o id))
   (if r (car r) #f))
 
+(define (pod-deployed? pod)
+  (and (pod-deploying? pod) (= (pod-dist pod) POD_D)))
+
+(define (pod-stowed? pod)
+  (and (not (pod-deploying? pod)) (= (pod-dist pod) 0)))
+
 
 (define (big-ship x y name)
   (ship (next-id) #f (posvel x y (* 0.5 pi) 0 0 0) name
-        (helm (next-id) #f #f #f (* 0.5 pi) #f #f #f #f)
+        (helm (next-id) #f #f #f (* 0.5 pi) #f)
         (multirole (next-id) #f #f
                    (observer (next-id) #f #f #f) #f '())
         (multirole (next-id) #f #f
@@ -183,10 +208,13 @@
          (shield (next-id) #f #f 57 "blue" 100 (make-vector 16 50))
          (shield (next-id) #f #f 50 "red" 100 (make-vector 2 50)))
         (list
-         (weapon-pod (next-id) #f #f
-                     (weapons (next-id) #f #f #f #f))
-         (weapon-pod (next-id) #f #f
-                     (weapons (next-id) #f #f #f #f))
-         (weapon-pod (next-id) #f #f
-                     (weapons (next-id) #f #f #f #f)))
+         (weapon-pod (next-id) #f #f 
+                     (weapons (next-id) #f #f #f #f #f)
+                     #f 0 0)
+         (weapon-pod (next-id) #f #f 
+                     (weapons (next-id) #f #f #f #f #f)
+                     #f 0 0)
+         (weapon-pod (next-id) #f #f 
+                     (weapons (next-id) #f #f #f #f #f)
+                     #f 0 0))
         ))

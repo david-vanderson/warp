@@ -102,12 +102,14 @@
     
     (keep-transform dc
       (send dc rotate (- (posvel-r posvel)))
+      (for ((pod (ship-pods s)))
+        (draw-pod dc pod))
+      (keep-transform dc
+        (send dc rotate (/ pi 2))
+        (send dc set-pen "black" 1 'solid)
+        (send dc draw-polygon ship-external))
       (for ((shield (ship-shields s)))
-        (draw-shield dc shield))
-      
-      (send dc rotate (/ pi 2))
-      (send dc set-pen "black" 1 'solid)
-      (send dc draw-polygon ship-external))
+        (draw-shield dc shield)))
     
     (define scale 0.5)
     (send dc scale scale (- scale))
@@ -115,6 +117,17 @@
     (define-values (w h b v) (send dc get-text-extent text))
     (send dc translate (* -0.5 w) (* -0.5 h))
     (send dc draw-text text 0 0)))
+
+
+; assuming dc is already centered on middle of ship and rotated for the ship
+(define (draw-pod dc pod)
+  (when ((pod-dist pod) . > . 0)
+    (keep-transform dc
+      (send dc set-pen "black" 1 'solid)
+      (send dc rotate (- (pod-angle pod)))
+      (send dc draw-line 0 0 (pod-dist pod) 0)
+      (send dc translate (pod-dist pod) 0)
+      (send dc draw-ellipse -5 -5 10 10))))
 
 
 (define (draw-plasma dc p center space)

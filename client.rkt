@@ -5,7 +5,8 @@
          "draw.rkt"
          "draw-intro.rkt"
          "helm.rkt"
-         "crewer.rkt")
+         "crewer.rkt"
+         "weapons.rkt")
 
 (provide start-client)
 
@@ -25,7 +26,7 @@
     (tcp-connect ip port))
   
   (define (send-command cmd)
-    ;(printf "send-command ~v\n" cmd)
+    (printf "send-command ~v\n" cmd)
     (when cmd
       (write cmd server-out-port)
       (flush-output server-out-port)))
@@ -52,7 +53,7 @@
     (define scale (canvas-scale canvas))
     (define-values (x y) (screen->canon canvas (send event get-x) (send event get-y)))
     (define button (click-button? buttons x y))
-    (printf "click ~a ~a ~a\n" x y button)
+    ;(printf "click ~a ~a ~a\n" x y button)
     (cond
       ((and button (equal? button "leave"))
        (cond
@@ -64,7 +65,9 @@
       ((crewer? role)
        (send-command (click-crewer x y button role ownspace me)))
       ((helm? role)
-       (send-command (click-helm x y button role)))
+       (send-command (click-helm x y button my-stack)))
+      ((weapons? role)
+       (send-command (click-weapons x y button my-stack)))
       (button
        ; player is choosing starting role
        (define mr (find-id ownspace button))
@@ -99,6 +102,8 @@
                (draw-crewer canvas dc ownspace my-stack))
               ((observer? role)
                (draw-observer dc ownspace my-stack))
+              ((weapons? role)
+               (draw-weapons dc ownspace my-stack))
               (else
                (error "didn't know what to draw"))))
       

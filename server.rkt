@@ -4,7 +4,9 @@
          racket/math)
 
 (require "defs.rkt"
-         "physics.rkt")
+         "physics.rkt"
+         "helm.rkt"
+         "weapons.rkt")
 
 (provide start-server)
 
@@ -68,49 +70,21 @@
        (when from (leave-role! from p))))
     ((role? cmd)
      ; find our role
-     (define stack (find-stack ownspace (obj-id cmd)))
-     (define ownrole (car stack))
+     (define stack (find-stack ownspace (obj-id (role-player cmd))))
+     (define ownrole (get-role stack))
      (cond
        ((and (role-player ownrole)
              (role-player cmd)
              (= (obj-id (role-player ownrole))
                 (obj-id (role-player cmd))))
         ; we got a command from the correct player
-        
-        ; make instant changes
-        (when (helm? cmd)
-          (when (helm-aft cmd)
-            (set-helm-aft! cmd #f)
-            
-            (define ownship (cadr stack))
-            (define pv (obj-posvel ownship))
-            (define rx (cos (posvel-r pv)))
-            (define ry (sin (posvel-r pv)))
-            (define x (+ (posvel-x pv) (* 20 rx)))
-            (define y (+ (posvel-y pv) (* 20 ry)))
-            (define p (plasma (next-id) (space-time ownspace)
-                              (posvel x y 0
-                                      (+ (posvel-dx pv) (* 30 rx))
-                                      (+ (posvel-dy pv) (* 30 ry))
-                                      0)
-                              "blue" 10.0 (obj-id ownship) '()))
-            (set-space-objects! ownspace (list* p (space-objects ownspace)))))
-        
-        ; make state changes
-        ;(define-values (name, _ struct-type _) (struct-type-info ownrole))
-        (when (helm? cmd)
-          (set-helm-course! ownrole (helm-course cmd))
-          (set-helm-fore! ownrole (helm-fore cmd))
-          (set-helm-aft! ownrole (helm-aft cmd))
-          (set-helm-left! ownrole (helm-left cmd))
-          (set-helm-right! ownrole (helm-right cmd))))
+        (cond
+          ((weapons? cmd) (command-weapons cmd ownspace stack))
+          ((helm? cmd) (command-helm cmd ownspace stack))
+          (else
+           (error "command role hit ELSE clause ~v" cmd))))
        
-       ((and (not (role-player ownrole))
-             (role-player cmd))
-        ; player is entering an empty role
-        (printf "player ~a took role ~v\n" (role-player cmd) ownrole)
-        (set-role-player! ownrole (role-player cmd)))))))
-
+       (else (error "got a command from the wrong player?"))))))
 
 
 
