@@ -198,7 +198,7 @@
 
 (define (big-ship x y name)
   (ship (next-id) #f (posvel x y (* 0.5 pi) 0 0 0) name
-        (helm (next-id) #f #f #f (* 0.5 pi) #f)
+        (helm (next-id) #f #f #f (* 1.4 pi) #f)
         (multirole (next-id) #f #f
                    (observer (next-id) #f #f #f) #f '())
         (multirole (next-id) #f #f
@@ -209,8 +209,8 @@
          (shield (next-id) #f #f 50 "red" 100 (make-vector 2 50)))
         (list
          (weapon-pod (next-id) #f #f 
-                     (weapons (next-id) #f #f #f #f #f)
-                     #f 0 0)
+                     (weapons (next-id) #f #f #f 0 #f)
+                     #t 0 POD_D)
          (weapon-pod (next-id) #f #f 
                      (weapons (next-id) #f #f #f #f #f)
                      #f 0 0)
