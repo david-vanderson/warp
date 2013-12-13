@@ -1,7 +1,6 @@
 #lang racket/base
 
-(require racket/serialize
-         racket/math
+(require racket/math
          racket/function)
 
 (provide (all-defined-out))
@@ -15,6 +14,8 @@
 (define RACC .5)  ; gain X radians / sec / sec
 (define R_DRAG_COEF .7)  ; lose X% of your velocity / sec
 (define 2pi (* 2 pi))
+(define bgcolor "black")
+(define fgcolor "white")
 (define POD_D 20)  ; meters out from center of ship pods go
 
 (define next-id
@@ -198,7 +199,7 @@
 
 (define (big-ship x y name)
   (ship (next-id) #f (posvel x y (* 0.5 pi) 0 0 0) name
-        (helm (next-id) #f #f #f (* 1.4 pi) #f)
+        (helm (next-id) #f #f #f (* 0.5 pi) #f)
         (multirole (next-id) #f #f
                    (observer (next-id) #f #f #f) #f '())
         (multirole (next-id) #f #f
@@ -209,8 +210,8 @@
          (shield (next-id) #f #f 50 "red" 100 (make-vector 2 50)))
         (list
          (weapon-pod (next-id) #f #f 
-                     (weapons (next-id) #f #f #f 0 #f)
-                     #t 0 POD_D)
+                     (weapons (next-id) #f #f #f #f #f)
+                     #f 0 0)
          (weapon-pod (next-id) #f #f 
                      (weapons (next-id) #f #f #f #f #f)
                      #f 0 0)

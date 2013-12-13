@@ -106,7 +106,7 @@
         (draw-pod dc pod))
       (keep-transform dc
         (send dc rotate (/ pi 2))
-        (send dc set-pen "black" 1 'solid)
+        (send dc set-pen fgcolor 1 'solid)
         (send dc draw-polygon ship-external))
       (for ((shield (ship-shields s)))
         (draw-shield dc shield)))
@@ -123,7 +123,7 @@
 (define (draw-pod dc pod)
   (when ((pod-dist pod) . > . 0)
     (keep-transform dc
-      (send dc set-pen "black" 1 'solid)
+      (send dc set-pen fgcolor 1 'solid)
       (send dc rotate (- (pod-angle pod)))
       (send dc draw-line 0 0 (pod-dist pod) 0)
       (send dc translate (pod-dist pod) 0)
@@ -200,8 +200,8 @@
     (keep-transform dc
       (define-values (x y w h) (values (button-x b) (button-y b)
                                        (button-width b) (button-height b)))
-      (send dc set-brush "lightgray" 'solid)
-      (send dc set-pen "black" 1 'solid)
+      (send dc set-brush "darkgray" 'solid)
+      (send dc set-pen fgcolor 1 'solid)
       (send dc draw-rectangle x y w h)
       (send dc translate x (+ y h))
       (send dc scale 1 -1)

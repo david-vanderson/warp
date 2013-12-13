@@ -78,7 +78,8 @@
   
   (define (draw-screen canvas dc)
     (send dc set-smoothing 'smoothed)
-    (send dc set-brush "red" 'transparent)
+    (send dc set-background bgcolor)
+    (send dc set-text-foreground fgcolor)
     (keep-transform dc
       (send dc translate (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
       (define scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
@@ -86,7 +87,7 @@
       
       ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
       
-      (send dc erase)
+      (send dc clear)
       
       (define role (get-role my-stack))
       

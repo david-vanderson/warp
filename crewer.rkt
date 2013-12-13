@@ -8,6 +8,7 @@
 (provide (all-defined-out))
 
 
+; client
 (define (click-crewer x y button role ownspace me)
   (cond (button
          (define mr (find-id ownspace button))
@@ -15,11 +16,13 @@
         (else #f)))
   
 
+; client
 (define (draw-crewer canvas dc ownspace stack)
   (define ship (get-ship stack))
   (keep-transform dc
     (send dc scale 18 18)
-    (send dc set-pen "black" (/ 1.0 (dc-scale dc)) 'solid)
+    (send dc set-pen fgcolor (/ 1.0 (dc-scale dc)) 'solid)
+    (send dc set-brush bgcolor 'solid)
     (send dc draw-polygon ship-internal))
   
   (define hangar-buttons
@@ -29,7 +32,7 @@
         (send dc translate -100 (- 100 (* i 50)))
         (cond
           ((pod? o)
-           (send dc set-pen "black" 1.0 'solid)
+           (send dc set-pen fgcolor 1.0 'solid)
            (send dc scale 1 -1)
            (send dc draw-text (format "~a Pod" (role-name (pod-role o))) 0 0)
            (send dc scale 1 -1)
