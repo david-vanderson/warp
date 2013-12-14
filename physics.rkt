@@ -87,25 +87,6 @@
     (set-posvel-dr! posvel (drag (posvel-dr posvel) dt R_DRAG_COEF (if (zero? ddr) (/ 2pi 360) 0)))))
 
 
-(define (spread-shields! ship dt)
-  ;  (printf "spread-shields!\n")
-  (for ((s (ship-shields ship)))
-    ;    (printf "shields ~a\n" (shield-color s))
-    (define sections (shield-sections s))
-    (define n (vector-length sections))
-    (define arc-size (/ (* 2pi (shield-radius s)) n))
-    (define pipe-size (/ (min dt 1.0) arc-size))
-    
-    (for ((i n))
-      (define k (modulo (add1 i) n))
-      (when (not (= i k))  ; make sure we have > 1 shield sections
-        (define ie (vector-ref sections i))
-        (define ke (vector-ref sections k))
-        (define change (* (- ie ke) pipe-size))
-        (vector-set! sections i (- ie change))
-        (vector-set! sections k (+ ke change))))))
-
-
 (define (move-pod! pod dt)
   (define role (pod-role pod))
   (cond ((and (pod-stowed? pod)
@@ -128,7 +109,6 @@
       ((ship? o)
        (define-values (ddx ddy ddr) (steer! o dt))
        (physics! (obj-posvel o) dt #t ddx ddy ddr)
-       (spread-shields! o dt)
        (for ((p (ship-pods o))) (move-pod! p dt))
        )
       ((plasma? o)
