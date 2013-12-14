@@ -66,7 +66,7 @@
                                (+ (* 60 (cos a)) (posvel-dx ps) rvx)
                                (+ (* 60 (sin a)) (posvel-dy ps) rvy)
                                0)
-                       "blue" 10.0 (obj-id ship) '()))
+                       "blue" 10.0 #f #;(obj-id ship) '()))
      (set-space-objects! space (cons p (space-objects space))))
     (else
      (error "click-weapons hit ELSE clause"))))

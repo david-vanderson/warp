@@ -143,11 +143,11 @@
 
 (define (start-server port new-space)
   (set! ownspace new-space)
-  (set! server-listener (tcp-listen port))
+  (set! server-listener (tcp-listen port 4 #t))
   (server-loop))
 
 (module+ main
   
-  (define ownspace (space 0 2000 2000 (list (big-ship 0 0 "Ship1") (big-ship 100 0 "Ship2"))))
+  (define ownspace (space 0 2000 2000 (list (big-ship 0 0 "Ship1") (big-ship 200 0 "Ship2"))))
   
   (start-server PORT ownspace))

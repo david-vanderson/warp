@@ -206,8 +206,8 @@
                    (crewer (next-id) #f #f #f) #t '())
         100 1
         (list 
-         (shield (next-id) #f #f 57 "blue" 100 (make-vector 16 50))
-         (shield (next-id) #f #f 50 "red" 100 (make-vector 2 50)))
+         (shield (next-id) #f #f 57 "blue" 100 (vector 100 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
+         (shield (next-id) #f #f 50 "red" 100 (vector 100 0)))
         (list
          (weapon-pod (next-id) #f #f 
                      (weapons (next-id) #f #f #f #f #f)
