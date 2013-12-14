@@ -1,5 +1,8 @@
 #lang racket/base
 
+(require racket/class
+         racket/math)
+
 (require "defs.rkt"
          "draw.rkt")
 
@@ -22,15 +25,8 @@
      (set-podrole-angle! cmd angle)
      cmd)
     ((pod-deployed? pod)
-     ; we are firing, need the angle, ship is centered on the screen
-     (define ps (obj-posvel ship))
-     (define podangle (+ (posvel-r ps) (pod-angle pod)))
-     (define px (* (pod-dist pod) (cos podangle)))
-     (define py (* (pod-dist pod) (sin podangle)))
-     (define center (obj #f #f (posvel px py #f #f #f #f)))
-     (define-values (fx fy) (recenter center x y))
-     (printf "x y fx fy ~a ~a ~a ~a\n" x y fx fy)
-     (define fangle (atan fy fx))
+     ; we are firing, need the angle
+     (define fangle (atan y x))
      (when (fangle . < . 0)
        (set! fangle (+ fangle 2pi)))
      (struct-copy weapons role (fire fangle)))
@@ -73,6 +69,47 @@
 
 
 ; client
-(define (draw-weapons dc ownspace stack)
-  (draw-observer dc ownspace stack)
+(define (draw-weapons dc stack)
+  (define role (get-role stack))
+  (define pod (get-pod stack))
+  (define ship (get-ship stack))
+  (define space (get-space stack))
+  
+  (define center (obj #f #f (posvel
+                             (+ (posvel-x (obj-posvel ship))
+                                (* (pod-dist pod) (cos (+ (posvel-r (obj-posvel ship))
+                                                          (pod-angle pod)))))
+                             (+ (posvel-y (obj-posvel ship))
+                                (* (pod-dist pod) (sin (+ (posvel-r (obj-posvel ship))
+                                                          (pod-angle pod)))))
+                             0 0 0 0)))
+                                    
+  
+  (draw-background dc space center)
+  ; draw other ships/objects
+  (for ((o (space-objects space))
+        #:when (not (= (obj-id o) (obj-id ship))))
+    (draw-object dc o center space))
+  
+  (keep-transform dc
+    (define-values (x y) (recenter center (posvel-x (obj-posvel ship)) (posvel-y (obj-posvel ship))))
+    (send dc translate x y)
+    (send dc rotate (- (posvel-r (obj-posvel ship))))
+    
+    ; draw other pods on my ship
+    (for ((p (ship-pods ship))
+          #:when (not (= (obj-id p) (obj-id pod))))
+      (draw-pod dc p))
+    
+    ; draw my pod
+    (draw-pod dc pod)
+    
+    ; draw my ship and shields
+    (keep-transform dc
+      (send dc rotate (/ pi 2))
+      (send dc set-pen fgcolor 1 'solid)
+      (send dc draw-polygon ship-external))
+    (for ((shield (ship-shields ship)))
+      (draw-shield dc shield)))
+  
   (list leave-button))

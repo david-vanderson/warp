@@ -94,6 +94,14 @@
     (10 . -10)))
 
 
+(define (draw-object dc o center space)
+  (cond
+    ((ship? o)
+     (draw-ship dc o center))
+    ((plasma? o)
+     (draw-plasma dc o center space))))
+
+
 (define (draw-ship dc s center)
   (keep-transform dc
     (define posvel (obj-posvel s))

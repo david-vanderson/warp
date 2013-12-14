@@ -104,7 +104,7 @@
               ((observer? role)
                (draw-observer dc ownspace my-stack))
               ((weapons? role)
-               (draw-weapons dc ownspace my-stack))
+               (draw-weapons dc my-stack))
               (else
                (error "didn't know what to draw"))))
       

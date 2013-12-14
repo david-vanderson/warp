@@ -132,6 +132,9 @@
   (car (memf ship? stack)))
 
 (define (get-center stack)
+  (cadr (reverse stack)))
+
+(define (get-space stack)
   (car (reverse stack)))
 
 
@@ -172,7 +175,7 @@
       (else
        (define results
          (for/list ((c (get-children o)))
-           (define r (search c id multiple? (if (space? o) stack (cons o stack))))
+           (define r (search c id multiple? (cons o stack)))
            (if (and (not multiple?)
                     (not (null? r)))
                (found r)

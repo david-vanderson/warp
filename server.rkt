@@ -119,10 +119,12 @@
   
   ; process commands
   (for ((p client-in-ports))
-    (when (byte-ready? p)
-      (define x (read p))
-      (receive-command x)
-      (set! need-update #t)))
+    (let loop ()
+      (when (byte-ready? p)
+        (define x (read p))
+        (receive-command x)
+        (set! need-update #t)
+        (loop))))
   
   ; send out updated world
   (when (or need-update
