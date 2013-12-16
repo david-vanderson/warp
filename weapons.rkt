@@ -71,13 +71,7 @@
   (define ship (get-ship stack))
   (define spv (obj-posvel ship))
   (define space (get-space stack))
-  
-  (define center (obj #f #f (posvel
-                             (+ (posvel-x spv)
-                                (* (pod-dist pod) (cos (+ (posvel-r spv) (pod-angle pod)))))
-                             (+ (posvel-y spv)
-                                (* (pod-dist pod) (sin (+ (posvel-r spv) (pod-angle pod)))))
-                             0 0 0 0)))
+  (define center (get-center stack))
   
   
   (draw-background dc space center)
@@ -106,5 +100,16 @@
       (send dc draw-polygon ship-external))
     (for ((shield (ship-shields ship)))
       (draw-shield dc shield)))
+  
+  ; draw my hud
+  (when (or (not pod) (pod-deployed? pod))
+    (keep-transform dc
+      (send dc rotate (- (posvel-r spv)))
+      (define line-size 50)
+      (define w (pod-console pod))
+      (send dc set-pen "red" 1 'solid)
+      (for ((a (list (+ (weapon-angle w) (/ (weapon-spread w) 2))
+                     (- (weapon-angle w) (/ (weapon-spread w) 2)))))
+        (send dc draw-line 0 0 (* line-size (cos a)) (* line-size (sin a))))))
   
   (list leave-button))

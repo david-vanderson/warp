@@ -78,9 +78,9 @@
 
 (struct console (role) #:mutable #:prefab)
 
-(struct weapon console (direction spread) #:mutable #:prefab)
-; direction is an angle with respect to the ship/pod we are one
-; spread is the angle within which we can shoot
+(struct weapon console (angle spread) #:mutable #:prefab)
+; angle is with respect to the ship/pod we are one
+; spread is the angle within which we can shoot (centered on angle)
 
 (struct weapons role (fire) #:mutable #:prefab)
 ; fire is an angle if we want to shoot a plasma (at that angle)
@@ -133,7 +133,17 @@
   (car (memf ship? stack)))
 
 (define (get-center stack)
-  (cadr (reverse stack)))
+  (define center (cadr (reverse stack)))
+  (define spv (obj-posvel center))
+  (define p (memf pod? stack))
+  (cond ((and p (not (pod-stowed? (car p))))
+         (define pod (car p))
+         (obj #f #f (posvel (+ (posvel-x spv)
+                                (* (pod-dist pod) (cos (+ (posvel-r spv) (pod-angle pod)))))
+                             (+ (posvel-y spv)
+                                (* (pod-dist pod) (sin (+ (posvel-r spv) (pod-angle pod)))))
+                             (posvel-r spv) 0 0 0)))
+        (else center)))
 
 (define (get-space stack)
   (car (reverse stack)))
@@ -214,7 +224,7 @@
          (shield (next-id) #f #f 50 "red" 100 (vector 100 0)))
         (list
          (pod (next-id) #f #f 
-                     (weapon (weapons (next-id) #f #f #f #f) 0 (/ pi 4))
+                     (weapon (weapons (next-id) #f #f #f #f) 0 (/ pi 2))
                      #f 0 #f 0)
          )
         ))

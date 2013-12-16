@@ -80,6 +80,8 @@
     (send dc set-smoothing 'smoothed)
     (send dc set-background bgcolor)
     (send dc set-text-foreground fgcolor)
+    (send dc set-font (send the-font-list find-or-create-font
+                          12 'default 'normal 'normal #f 'partly-smoothed #f 'aligned))
     (keep-transform dc
       (send dc translate (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
       (define scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
@@ -116,7 +118,7 @@
   (define-values (left-inset top-inset) (get-display-left-top-inset))
   (define-values (screen-w screen-h) (get-display-size))
   
-  (define frame (new (class frame% (super-new))
+  (define frame (new frame%
                      (label "Warp")
                      ;                     (x (- left-inset))
                      ;                     (y (- top-inset))

@@ -92,7 +92,9 @@
   (define da (pod-desired-angle pod))
   (cond ((and (pod-stowed? pod) da)
          (set-pod-deploying?! pod #t)
-         (set-pod-angle! pod da))
+         (set-pod-angle! pod da)
+         (when (weapon? (pod-console pod))
+           (set-weapon-angle! (pod-console pod) da)))
         
         ((and (pod-deployed? pod) (not da))
          (set-pod-deploying?! pod #f)))

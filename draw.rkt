@@ -122,9 +122,9 @@
     (define scale 0.5)
     (send dc scale scale (- scale))
     (define text (~r (* 100 (ship-containment s)) #:precision 0))
-    (define-values (w h b v) (send dc get-text-extent text))
+    (define-values (w h b v) (send dc get-text-extent text #f #t))
     (send dc translate (* -0.5 w) (* -0.5 h))
-    (send dc draw-text text 0 0)))
+    (send dc draw-text text 0 0 #t)))
 
 
 ; assuming dc is already centered on middle of ship and rotated for the ship
