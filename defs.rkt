@@ -67,25 +67,23 @@
 ; course is angle helm wants to point at
 ; if fore is #t, main thrusters are firing
 
-(struct podrole role (angle) #:mutable #:prefab)
-; angle is with respect to the ship
-;  - #f means we want to retract, a number means we want to deploy at that angle
-
-(struct weapons podrole (fire) #:mutable #:prefab)
-; fire is an angle if we want to shoot a plasma (at that angle)
-
-(struct pod obj (role deploying? angle dist) #:mutable #:prefab)
+(struct pod obj (console deploying? angle desired-angle dist) #:mutable #:prefab)
+; console is the thing that is on this pod
 ; deploying? is #t if going out, #f if going in
 ; angle is our deploy angle with respect to the ship
+; desired-angle is what the person in this pod wants (set by player)
+;  - #f means retract and leave role, #t means retract and wait for click
+;  - a number means deploy at that angle
 ; dist is how far from the ship center we are
 
-(struct weapon-pod pod () #:mutable #:prefab)
+(struct console (role) #:mutable #:prefab)
 
+(struct weapon console (direction spread) #:mutable #:prefab)
+; direction is an angle with respect to the ship/pod we are one
+; spread is the angle within which we can shoot
 
-; XXX this should be a weapon-seat that is in a pod with it's own angle,
-; the pod should only be a container for a seat
-
-
+(struct weapons role (fire) #:mutable #:prefab)
+; fire is an angle if we want to shoot a plasma (at that angle)
 
 (struct ship obj (name helm observers crew reactor containment shields pods) #:mutable #:prefab)
 ; reactor is the energy produced by the reactor
@@ -104,6 +102,9 @@
 
 (struct role-change (player from to) #:mutable #:prefab)
 ; from and to are a role? id, multirole? id, or #f (no role)
+
+(struct pod-cmd (pod angle) #:mutable #:prefab)
+; pod is a pod? id, angle is the new pod-desired-angle
 
 
 ;; UI
@@ -157,7 +158,7 @@
     ((role? o) (filter values (list (role-player o))))
     ((shield? o) (list))
     ((player? o) (list))
-    ((weapon-pod? o) (list (pod-role o)))
+    ((pod? o) (list (console-role (pod-console o))))
     (else
      (printf "get-children hit ELSE clause, o ~v\n" o)
      (error)
@@ -212,13 +213,8 @@
          (shield (next-id) #f #f 57 "blue" 100 (vector 100 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
          (shield (next-id) #f #f 50 "red" 100 (vector 100 0)))
         (list
-         (weapon-pod (next-id) #f #f 
-                     (weapons (next-id) #f #f #f #f #f)
-                     #f 0 0)
-         (weapon-pod (next-id) #f #f 
-                     (weapons (next-id) #f #f #f #f #f)
-                     #f 0 0)
-         (weapon-pod (next-id) #f #f 
-                     (weapons (next-id) #f #f #f #f #f)
-                     #f 0 0))
+         (pod (next-id) #f #f 
+                     (weapon (weapons (next-id) #f #f #f #f) 0 (/ pi 4))
+                     #f 0 #f 0)
+         )
         ))

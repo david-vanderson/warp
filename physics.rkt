@@ -88,13 +88,13 @@
 
 
 (define (move-pod! pod dt)
-  (define role (pod-role pod))
-  (cond ((and (pod-stowed? pod)
-              (podrole-angle role))
+  (define role (console-role (pod-console pod)))
+  (define da (pod-desired-angle pod))
+  (cond ((and (pod-stowed? pod) da)
          (set-pod-deploying?! pod #t)
-         (set-pod-angle! pod (podrole-angle role)))
-        ((and (pod-deployed? pod)
-              (not (podrole-angle role)))
+         (set-pod-angle! pod da))
+        
+        ((and (pod-deployed? pod) (not da))
          (set-pod-deploying?! pod #f)))
   
   (define +/- (if (pod-deploying? pod) + -))

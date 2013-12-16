@@ -68,24 +68,17 @@
      (define to (find-id ownspace (role-change-to cmd)))
      (when (join-role! to p)
        (when from (leave-role! from p))))
+    ((pod-cmd? cmd)
+     (define pod (find-id ownspace (pod-cmd-pod cmd)))
+     (set-pod-desired-angle! pod (pod-cmd-angle cmd)))
     ((role? cmd)
      ; find our role
      (define stack (find-stack ownspace (obj-id (role-player cmd))))
-     (define ownrole (get-role stack))
      (cond
-       ((and (role-player ownrole)
-             (role-player cmd)
-             (= (obj-id (role-player ownrole))
-                (obj-id (role-player cmd))))
-        ; we got a command from the correct player
-        (cond
-          ((weapons? cmd) (command-weapons cmd ownspace stack))
-          ((helm? cmd) (command-helm cmd ownspace stack))
-          (else
-           (error "command role hit ELSE clause ~v" cmd))))
-       
-       (else (error "got a command from the wrong player?"))))))
-
+       ((weapons? cmd) (command-weapons cmd ownspace stack))
+       ((helm? cmd) (command-helm cmd ownspace stack))
+       (else
+        (error "command role hit ELSE clause ~v" cmd))))))
 
 
 (define previous-loop-time (current-inexact-milliseconds))

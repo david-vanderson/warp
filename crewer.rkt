@@ -32,18 +32,19 @@
         (send dc translate -100 (- 100 (* i 50)))
         (cond
           ((pod? o)
+           (define role (console-role (pod-console o)))
            (send dc set-pen fgcolor 1.0 'solid)
            (send dc scale 1 -1)
-           (send dc draw-text (format "~a Pod" (role-name (pod-role o))) 0 0)
+           (send dc draw-text (format "~a Pod" (role-name role)) 0 0)
            (send dc scale 1 -1)
            
-           (cond ((role-player (pod-role o))
+           (cond ((role-player role)
                   (send dc scale 1 -1)
-                  (send dc draw-text (player-name (role-player (pod-role o))) 120 0)
+                  (send dc draw-text (player-name (role-player role)) 120 0)
                   #f)
                  (else
                   (define-values (x y) (dc->canon canvas dc 120 -25))
-                  (button x y 65 30 5 5 (obj-id (pod-role o)) "Deploy")
+                  (button x y 65 30 5 5 (obj-id role) "Deploy")
                   )))))))
   
   (define helm-button
