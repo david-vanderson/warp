@@ -3,7 +3,8 @@
 (require racket/class
          racket/list
          racket/format
-         racket/math)
+         racket/math
+         racket/draw)
 
 (require "defs.rkt")
 
@@ -115,6 +116,7 @@
       (keep-transform dc
         (send dc rotate (/ pi 2))
         (send dc set-pen fgcolor 1 'solid)
+        (send dc set-brush nocolor 'transparent)
         (send dc draw-polygon ship-external))
       (for ((shield (ship-shields s)))
         (draw-shield dc shield)))
@@ -124,7 +126,14 @@
     (define text (~r (* 100 (ship-containment s)) #:precision 0))
     (define-values (w h b v) (send dc get-text-extent text #f #t))
     (send dc translate (* -0.5 w) (* -0.5 h))
-    (send dc draw-text text 0 0 #t)))
+    (send dc set-brush fgcolor 'solid)
+    (send dc set-pen nocolor 1 'transparent)
+    (let ((p (new dc-path%)))
+      (send p text-outline (send dc get-font) text 0 0)
+      (send dc draw-path p 0 0))
+
+    ;(send dc draw-text text 0 0 #t)
+    ))
 
 
 ; assuming dc is already centered on middle of ship and rotated for the ship

@@ -6,7 +6,8 @@
 (require "defs.rkt"
          "physics.rkt"
          "helm.rkt"
-         "weapons.rkt")
+         "weapons.rkt"
+         "tactics.rkt")
 
 (provide start-server)
 
@@ -76,6 +77,7 @@
      (define stack (find-stack ownspace (obj-id (role-player cmd))))
      (cond
        ((weapons? cmd) (command-weapons cmd ownspace stack))
+       ((tactics? cmd) (command-tactics cmd ownspace stack))
        ((helm? cmd) (command-helm cmd ownspace stack))
        (else
         (error "command role hit ELSE clause ~v" cmd))))))

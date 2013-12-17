@@ -16,6 +16,7 @@
 (define 2pi (* 2 pi))
 (define bgcolor "black")
 (define fgcolor "white")
+(define nocolor "whitesmoke")  ; used with a transparent pen/brush
 (define POD_D 20)  ; meters out from center of ship pods go
 
 (define next-id
@@ -23,6 +24,10 @@
     (lambda ()
       (set! id (add1 id))
       id)))
+
+(define (debug fmt . args)
+  (apply printf fmt args)
+  (list-ref args (sub1 (length args))))
 
 ;; Game State
 
@@ -84,6 +89,12 @@
 
 (struct weapons role (fire) #:mutable #:prefab)
 ; fire is an angle if we want to shoot a plasma (at that angle)
+
+(struct tactical console (angle spread) #:mutable #:prefab)
+; angle is with respect to the ship/pod we are one
+
+(struct tactics role (buff) #:mutable #:prefab)
+; buff is #t if we want to buff the shields in front of us
 
 (struct ship obj (name helm observers crew reactor containment shields pods) #:mutable #:prefab)
 ; reactor is the energy produced by the reactor
@@ -154,6 +165,7 @@
         ((helm? role) "Helm")
         ((observer? role) "Observer")
         ((weapons? role) "Weapons")
+        ((tactics? role) "Tactics")
         (else "Unknown")))
 
 
@@ -210,6 +222,24 @@
 (define (pod-stowed? pod)
   (and (not (pod-deploying? pod)) (= (pod-dist pod) 0)))
 
+(define (angle-norm r)
+  (cond ((r . >= . 2pi) (- r 2pi))
+        ((r . < . 0) (+ r 2pi))
+        (else r)))
+
+(define (angle-add r theta)
+  (angle-norm (+ r theta)))
+
+(define (angle-sub r theta)
+  (angle-norm (- r theta)))
+
+(define (find-shield-section shield theta)
+  (define num (vector-length (shield-sections shield)))
+  (define arc-size (/ 2pi num))
+  (define theta* (angle-add theta (/ arc-size 2)))
+  ;(printf "theta ~a, theta* ~a\n" theta theta*)
+  (inexact->exact (floor (* (/ theta* 2pi) num))))
+
 
 (define (big-ship x y name)
   (ship (next-id) #f (posvel x y (* 0.5 pi) 0 0 0) name
@@ -225,6 +255,9 @@
         (list
          (pod (next-id) #f #f 
                      (weapon (weapons (next-id) #f #f #f #f) 0 (/ pi 2))
+                     #f 0 #f 0)
+         (pod (next-id) #f #f 
+                     (tactical (tactics (next-id) #f #f #f #f) 0 (/ pi 2))
                      #f 0 #f 0)
          )
         ))

@@ -6,7 +6,8 @@
          "draw-intro.rkt"
          "helm.rkt"
          "crewer.rkt"
-         "weapons.rkt")
+         "weapons.rkt"
+         "tactics.rkt")
 
 (provide start-client)
 
@@ -68,6 +69,8 @@
        (send-command (click-helm x y button my-stack)))
       ((weapons? role)
        (send-command (click-weapons x y button my-stack)))
+      ((tactics? role)
+       (send-command (click-tactics x y button my-stack)))
       (button
        ; player is choosing starting role
        (define mr (find-id ownspace button))
@@ -80,8 +83,8 @@
     (send dc set-smoothing 'smoothed)
     (send dc set-background bgcolor)
     (send dc set-text-foreground fgcolor)
-    (send dc set-font (send the-font-list find-or-create-font
-                          12 'default 'normal 'normal #f 'partly-smoothed #f 'aligned))
+    ;    (send dc set-font (send the-font-list find-or-create-font
+    ;                          12 'default 'normal 'normal #f 'smoothed #f 'aligned))
     (keep-transform dc
       (send dc translate (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
       (define scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
@@ -107,6 +110,8 @@
                (draw-observer dc ownspace my-stack))
               ((weapons? role)
                (draw-weapons dc my-stack))
+              ((tactics? role)
+               (draw-tactics dc my-stack))
               (else
                (error "didn't know what to draw"))))
       

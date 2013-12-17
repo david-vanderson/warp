@@ -1,7 +1,8 @@
 #lang racket/base
 
 (require racket/class
-         racket/math)
+         racket/math
+         racket/list)
 
 (require "defs.rkt"
          "draw.rkt")
@@ -10,58 +11,61 @@
 
 
 ; client
-(define (click-weapons x y button stack)
+(define (click-tactics x y button stack)
   (define role (get-role stack))
   (define pod (get-pod stack))
   (define ship (get-ship stack))
   (cond
+    ((and button (equal? button "buff"))
+     (struct-copy tactics role (buff #t)))
     ((not (pod-deploying? pod))
      ; we are selecting a new angle to deploy to
-     ;(printf "ship ~a, atan ~a\n" (posvel-r (obj-posvel ship)) (atan y x))
+     (printf "ship ~a, atan ~a\n" (posvel-r (obj-posvel ship)) (atan y x))
      (define angle (angle-sub (atan y x) (posvel-r (obj-posvel ship))))
      (pod-cmd (obj-id pod) angle))
-    ((pod-deployed? pod)
-     ; we are firing, need the angle
-     (define fangle (angle-norm (atan y x)))
-     (struct-copy weapons role (fire fangle)))
     (else
-     (printf "click-weapons hit ELSE clause\n")
+     (printf "click-tactics hit ELSE clause\n")
      #f)))
 
 
 ; server
-(define (command-weapons cmd space stack)
+(define (command-tactics cmd space stack)
   (define role (get-role stack))
   (define pod (get-pod stack))
   (define ship (get-ship stack))
   (cond
-    ((weapons-fire cmd)
-     ; we are firing
-     (define ps (obj-posvel ship))
-     (define podangle (+ (posvel-r ps) (pod-angle pod)))
-     (define px (+ (posvel-x ps) (* (pod-dist pod) (cos podangle))))
-     (define py (+ (posvel-y ps) (* (pod-dist pod) (sin podangle))))
-     (define a (weapons-fire cmd))
-     (define x (+ px (* 5 (cos a))))
-     (define y (+ py (* 5 (sin a))))
+    ((tactics-buff cmd)
+     ; we are buffing shields
+     (define s (car (ship-shields ship)))
+     (define ss (shield-sections s))
+     (define num (vector-length ss))
+     (define sections (list (find-shield-section s (pod-angle pod))))
+     (define (avg sections) 
+       (/ (for/sum ((i sections)) (vector-ref ss i)) (length sections)))
+     (let loop ()
+       (when ((avg sections) . > . 50)
+         (define new-sections
+           (remove-duplicates
+            (append (list (modulo (sub1 (car sections)) num))
+                    sections
+                    (list (modulo (add1 (list-ref sections (sub1 (length sections)))) num)))))
+         (when ((length new-sections) . > . (length sections))
+           (set! sections new-sections)
+           (loop))))
      
-     ; add rotational velocity of pod
-     (define rvx (* -1 (* (pod-dist pod) (posvel-dr ps)) (sin podangle)))
-     (define rvy (* 1 (* (pod-dist pod) (posvel-dr ps)) (cos podangle)))
-     
-     (define p (plasma (next-id) (space-time space)
-                       (posvel x y 0
-                               (+ (* 60 (cos a)) (posvel-dx ps) rvx)
-                               (+ (* 60 (sin a)) (posvel-dy ps) rvy)
-                               0)
-                       "blue" 10.0 #f #;(obj-id ship) '()))
-     (set-space-objects! space (cons p (space-objects space))))
+     (define total (for/sum ((i sections)) (max 0.01 (- (shield-max s) (vector-ref ss i)))))
+     (for ((i sections))
+       (vector-set! ss i (min 100
+                              (+ (* 10.0 (/ (- (shield-max s) (vector-ref ss i)) total))
+                                 (vector-ref ss i)))))
+     ;(printf "ss ~v\n" ss)
+     )
     (else
-     (error "command-weapons hit ELSE clause"))))
+     (error "command-tactics hit ELSE clause"))))
 
 
 ; client
-(define (draw-weapons dc stack)
+(define (draw-tactics dc stack)
   (define role (get-role stack))
   (define pod (get-pod stack))
   (define ship (get-ship stack))
@@ -100,15 +104,19 @@
     (for ((shield (ship-shields ship)))
       (draw-shield dc shield)))
   
+  (define buttons (list leave-button))
+  
   ; draw my hud
   (when (or (not pod) (pod-deployed? pod))
+    (set! buttons (cons (button -100 -100 120 30 5 5 "buff" "Buff Shields") buttons))
     (keep-transform dc
       (send dc rotate (- (posvel-r spv)))
       (define line-size 50)
       (define w (pod-console pod))
       (send dc set-pen "red" 1 'solid)
-      (for ((a (list (+ (weapon-angle w) (/ (weapon-spread w) 2))
-                     (- (weapon-angle w) (/ (weapon-spread w) 2)))))
+      (for ((a (list (+ (tactical-angle w) (/ (tactical-spread w) 2))
+                     (- (tactical-angle w) (/ (tactical-spread w) 2)))))
         (send dc draw-line 0 0 (* line-size (cos a)) (* line-size (sin a))))))
   
-  (list leave-button))
+  
+  buttons)
