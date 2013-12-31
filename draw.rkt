@@ -51,12 +51,9 @@
       (send dc draw-text (format "~a" (truncate (/ (- (length frames) 1) span))) 0 0))))
 
 
-(define (recenter o x y)
-  (values (- x (posvel-x (obj-posvel o))) (- y (posvel-y (obj-posvel o)))))
-
-
 (define (draw-background dc ownspace center)
-  (define-values (x y) (recenter center 0 0))
+  (define x (- (posvel-x (obj-posvel center))))
+  (define y (- (posvel-y (obj-posvel center))))
   (send dc set-brush nocolor 'transparent)
   (send dc draw-rectangle (- x 250) (- y 250) 500 500))
 
@@ -88,14 +85,13 @@
 
 (define (draw-ship dc s center)
   (keep-transform dc
-    (define posvel (obj-posvel s))
-    (define-values (x y) (recenter center (posvel-x posvel) (posvel-y posvel)))
+    (define-values (x y) (recenter center s))
     (send dc translate x y)
     
     (keep-transform dc
-      (send dc rotate (- (posvel-r posvel)))
-;      (for ((pod (ship-pods s)))
-;        (draw-pod dc pod))
+      (send dc rotate (- (posvel-r (obj-posvel s))))
+      ;      (for ((pod (ship-pods s)))
+      ;        (draw-pod dc pod))
       (keep-transform dc
         (send dc rotate (/ pi 2))
         (send dc set-pen fgcolor 1 'solid)
@@ -126,7 +122,7 @@
 
 
 (define (draw-plasma dc p center space)
-  (define-values (x y) (recenter center (posvel-x (obj-posvel p)) (posvel-y (obj-posvel p))))
+  (define-values (x y) (recenter center p))
   (send dc set-pen "red" 1 'solid)
   (define rad (plasma-energy p))
   (define t (- (space-time space) (obj-start-time p)))
@@ -142,7 +138,7 @@
 
 
 (define (draw-shield dc space center s)
-  (define-values (x y) (recenter center (posvel-x (obj-posvel s)) (posvel-y (obj-posvel s))))
+  (define-values (x y) (recenter center s))
   (send dc set-pen "blue" 5 'solid)
   (define len (shield-length s))
   (keep-transform dc
@@ -168,7 +164,7 @@
   
   (define start-stacks
     (search ownspace (lambda (o) (and (multirole? o)
-                                   (multirole-start? o))) #t))
+                                      (multirole-start? o))) #t))
   (cons
    leave-button
    (for/list ((s start-stacks)

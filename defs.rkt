@@ -123,6 +123,10 @@
 
 ;; Utilities
 
+(define (recenter center o2)
+  (values (- (posvel-x (obj-posvel o2)) (posvel-x (obj-posvel center)))
+          (- (posvel-y (obj-posvel o2)) (posvel-y (obj-posvel center)))))
+
 (define (get-role stack)
   (if stack (cadr stack) #f))
 

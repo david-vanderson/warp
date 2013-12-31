@@ -84,7 +84,7 @@
        (physics! (obj-posvel o) dt #t ddx ddy ddr)
        )
       ((plasma? o)
-       (physics! (obj-posvel o) dt #t 0 0 0)
+       (physics! (obj-posvel o) dt #f 0 0 0)
        (when ((- (space-time ownspace) (obj-start-time o)) . > . 5.0)
          (reduce-plasma! ownspace o (* dt (plasma-energy o)))))
       ((shield? o)
@@ -107,18 +107,43 @@
 (define (plasma-radius p)
   (/ (plasma-energy p) 2))
 
+(define (plasma-dead? p)
+  ((plasma-energy p) . < . 1))
+
 (define (reduce-plasma! space p damage)
   (set-plasma-energy! p (- (plasma-energy p) damage))
-  (when ((plasma-energy p) . < . 1)
+  (when (plasma-dead? p)
     (set-space-objects! space (remove p (space-objects space)))))
+
+
+(define (reduce-shield! space s damage)
+  (set-shield-energy! s (- (shield-energy s) damage))
+  (when ((shield-energy s) . < . 1)
+    (set-space-objects! space (remove s (space-objects space)))))
 
 
 (define (plasma-hit-ship! space ship p)
   (when (and (not (equal? (plasma-ownship-id p) (obj-id ship)))
-         ((distance ship p) . < . (+ 10 (plasma-radius p))))
+             ((distance ship p) . < . (plasma-radius p)))
     (define damage (plasma-energy p))
     (reduce-plasma! space p damage)
     (reduce-reactor! space ship damage)))
+
+
+(define (plasma-hit-shield! space shield p)
+  (define r (posvel-r (obj-posvel shield)))
+  (define-values (px py) (recenter shield p))
+  (define x (+ (* px (cos r)) (* py (sin r))))
+  (define y (+ (* -1 px (sin r)) (* py (cos r))))
+  ; x,y are now the position of the plasma in the coord space of the shield
+  ; shield is along the y axis
+  (define rad (plasma-radius p))
+  (define l (shield-length shield))
+  (when (and (< (- rad) x rad)
+             (< (- (- l) (* 0.5 rad)) y (+ l (* 0.5 rad))))
+    (define damage (plasma-energy p))
+    (reduce-plasma! space p damage)
+    (reduce-shield! space shield damage)))
 
 
 (define (reduce-reactor! space ship damage)
@@ -129,8 +154,12 @@
 
 (define (update-effects! space)
   (define objects (space-objects space))
-  (define plasmas (filter plasma? objects))
   (define ships (filter ship? objects))
-  (for* ((p plasmas)
-         (ship ships))
-    (plasma-hit-ship! space ship p)))
+  (define plasmas (filter plasma? objects))
+  (define shields (filter shield? objects))
+  (for ((p plasmas))
+    (for ((shield shields))
+      (plasma-hit-shield! space shield p))
+    (when (not (plasma-dead? p))
+      (for ((ship ships))
+        (plasma-hit-ship! space ship p)))))

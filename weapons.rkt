@@ -64,7 +64,7 @@
     (draw-object dc o center space))
   
   (keep-transform dc
-    (define-values (x y) (recenter center (posvel-x spv) (posvel-y spv)))
+    (define-values (x y) (recenter center ship))
     (send dc translate x y)
     (send dc rotate (- (posvel-r spv)))
     (send dc set-pen fgcolor 1 'solid)
