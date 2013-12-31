@@ -42,7 +42,7 @@
                                (+ (* 60 (cos a)) (posvel-dx ps) rvx)
                                (+ (* 60 (sin a)) (posvel-dy ps) rvy)
                                0)
-                       "blue" 10.0 #f #;(obj-id ship) '()))
+                       10.0 (obj-id ship) '()))
      (set-space-objects! space (cons p (space-objects space))))
     (else
      (error "command-weapons hit ELSE clause"))))
@@ -83,9 +83,7 @@
       (send dc rotate (/ pi 2))
       (send dc set-pen fgcolor 1 'solid)
       (send dc set-brush nocolor 'transparent)
-      (send dc draw-polygon ship-external))
-    (for ((shield (ship-shields ship)))
-      (draw-shield dc shield)))
+      (send dc draw-polygon ship-external)))
   
   ; draw my hud
   (keep-transform dc

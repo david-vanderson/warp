@@ -90,9 +90,6 @@
   (define need-update #f)
   
   ; physics
-  ;(printf "server physics:\n")
-  ;(vector-set! (shield-sections (car (ship-shields (car (space-objects ownspace))))) 0 100)
-  ;(printf "~v\n" (car (space-objects ownspace)))
   (update-physics! ownspace dt)
   (set-space-time! ownspace (+ (space-time ownspace) dt))
   (update-effects! ownspace)

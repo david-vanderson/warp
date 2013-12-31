@@ -57,27 +57,8 @@
 
 (define (draw-background dc ownspace center)
   (define-values (x y) (recenter center 0 0))
-  (send dc set-brush "red" 'transparent)
+  (send dc set-brush nocolor 'transparent)
   (send dc draw-rectangle (- x 250) (- y 250) 500 500))
-
-
-(define (draw-shield dc shield)
-  (keep-transform dc
-    (define num (vector-length (shield-sections shield)))
-    (define radius (shield-radius shield))
-    
-    (for ((section (shield-sections shield))
-          (i (in-naturals))
-          #:when (section . >= . 1))
-      (define linear-strength (/ section (shield-max shield)))
-      (define log-strength (/ (log (add1 section)) (log (shield-max shield))))
-      (send dc set-pen (shield-color shield) (* 3 (* 0.5 (+ linear-strength log-strength))) 'solid)
-      (define r (- 2pi (/ (* 2pi i) num)))
-      (define arc-size (* log-strength (/ 2pi num)))
-      (send dc draw-arc
-            (- radius) (- radius)
-            (* 2 radius) (* 2 radius)
-            (- r (* 0.5 arc-size)) (+ r (* 0.5 arc-size))))))
 
 
 (define ship-external
@@ -100,7 +81,9 @@
     ((ship? o)
      (draw-ship dc o center))
     ((plasma? o)
-     (draw-plasma dc o center space))))
+     (draw-plasma dc o center space))
+    ((shield? o)
+     (draw-shield dc space center o))))
 
 
 (define (draw-ship dc s center)
@@ -117,23 +100,18 @@
         (send dc rotate (/ pi 2))
         (send dc set-pen fgcolor 1 'solid)
         (send dc set-brush nocolor 'transparent)
-        (send dc draw-polygon ship-external))
-      (for ((shield (ship-shields s)))
-        (draw-shield dc shield)))
+        (send dc draw-polygon ship-external)))
     
     (define scale 0.5)
     (send dc scale scale (- scale))
-    (define text (~r (* 100 (ship-containment s)) #:precision 0))
+    (define text (~r (ship-containment s) #:precision 0))
     (define-values (w h b v) (send dc get-text-extent text #f #t))
     (send dc translate (* -0.5 w) (* -0.5 h))
     (send dc set-brush fgcolor 'solid)
     (send dc set-pen nocolor 1 'transparent)
     (let ((p (new dc-path%)))
       (send p text-outline (send dc get-font) text 0 0)
-      (send dc draw-path p 0 0))
-
-    ;(send dc draw-text text 0 0 #t)
-    ))
+      (send dc draw-path p 0 0))))
 
 
 ; assuming dc is already centered on middle of ship and rotated for the ship
@@ -149,7 +127,7 @@
 
 (define (draw-plasma dc p center space)
   (define-values (x y) (recenter center (posvel-x (obj-posvel p)) (posvel-y (obj-posvel p))))
-  (send dc set-pen (plasma-color p) 1 'solid)
+  (send dc set-pen "red" 1 'solid)
   (define rad (plasma-energy p))
   (define t (- (space-time space) (obj-start-time p)))
   (define rot (* pi (- t (truncate t))))
@@ -161,6 +139,16 @@
         (- x (* rad (cos rot))) (- y (* rad (sin rot)))
         (+ x (* rad (cos rot))) (+ y (* rad (sin rot))))
   (send dc draw-ellipse (- x (/ rad 2)) (- y (/ rad 2)) rad rad))
+
+
+(define (draw-shield dc space center s)
+  (define-values (x y) (recenter center (posvel-x (obj-posvel s)) (posvel-y (obj-posvel s))))
+  (send dc set-pen "blue" 5 'solid)
+  (define len (shield-length s))
+  (keep-transform dc
+    (send dc translate x y)
+    (send dc rotate (- (posvel-r (obj-posvel s))))
+    (send dc draw-line 0 (* -0.5 len) 0 (* 0.5 len))))
 
 
 (define (draw-no-role dc ownspace)

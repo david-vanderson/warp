@@ -38,13 +38,13 @@
      (define rvx (* -1 (* (pod-dist pod) (posvel-dr ps)) (sin podangle)))
      (define rvy (* 1 (* (pod-dist pod) (posvel-dr ps)) (cos podangle)))
      
-     (define p (plasma (next-id) (space-time space)
-                       (posvel x y 0
-                               (+ (* 60 (cos a)) (posvel-dx ps) rvx)
-                               (+ (* 60 (sin a)) (posvel-dy ps) rvy)
+     (define s (shield (next-id) (space-time space)
+                       (posvel x y a
+                               (+ (* 40 (cos a)) (posvel-dx ps) rvx)
+                               (+ (* 40 (sin a)) (posvel-dy ps) rvy)
                                0)
-                       "blue" 10.0 #f #;(obj-id ship) '()))
-     (set-space-objects! space (cons p (space-objects space)))
+                       20.0 15.0))
+     (set-space-objects! space (cons s (space-objects space)))
      )
     (else
      (error "command-tactics hit ELSE clause"))))
@@ -87,9 +87,7 @@
       (send dc rotate (/ pi 2))
       (send dc set-pen fgcolor 1 'solid)
       (send dc set-brush nocolor 'transparent)
-      (send dc draw-polygon ship-external))
-    (for ((shield (ship-shields ship)))
-      (draw-shield dc shield)))
+      (send dc draw-polygon ship-external)))
   
   (define buttons (list leave-button))
   

@@ -40,15 +40,13 @@
 ; if posvel is #f, then this obj is inside something else
 ; if posvel is not #f, then this is a top-level object that is drawn
 
-(struct plasma obj (color energy ownship-id shields-hit) #:mutable #:prefab)
+(struct plasma obj (energy ownship-id shields-hit) #:mutable #:prefab)
 ; ownship is unique id of the ship that fired it, or #f if it belongs to no ship
 ;  - plasma will not interact with the shields of ownship
-; shields-hit is a list of colors of shields that this plasma has already hit
+; shields-hit is a list of shields that this plasma has already hit
 
-(struct shield obj (radius color max sections) #:mutable #:prefab)
-; sections is a vector of integers uniformly going counter clock-wise around
-; each integer is how much shields are in that section, up to max
-; section 0 is centered on r=0
+(struct shield obj (energy length) #:mutable #:prefab)
+; length is the size of the shield
 
 (struct player obj (name npc?) #:mutable #:prefab)
 ; name is what is shown in UIs
@@ -90,9 +88,9 @@
 (struct tactics role (shield) #:mutable #:prefab)
 ; shield is an angle if we want to shoot a shield barrier (at that angle)
 
-(struct ship obj (name helm observers crew reactor containment shields pods) #:mutable #:prefab)
+(struct ship obj (name helm observers crew reactor containment pods) #:mutable #:prefab)
 ; reactor is the energy produced by the reactor
-; containment is the percentage of reactor health left (0-1, starts at 1)
+; containment is the reactor health left
 ; shields are in radius order starting with the largest radius
 ; pods is a list of all the pods on the ship
 
@@ -166,7 +164,7 @@
     ((space? o) (space-objects o))
     ((plasma? o) (list))
     ((ship? o) (filter values (append (list (ship-helm o) (ship-observers o) (ship-crew o))
-                                      (ship-shields o) (ship-pods o))))
+                                      (ship-pods o))))
     ((multirole? o) (multirole-roles o))
     ((role? o) (filter values (list (role-player o))))
     ((shield? o) (list))
@@ -218,13 +216,6 @@
 (define (angle-sub r theta)
   (angle-norm (- r theta)))
 
-(define (find-shield-section shield theta)
-  (define num (vector-length (shield-sections shield)))
-  (define arc-size (/ 2pi num))
-  (define theta* (angle-add theta (/ arc-size 2)))
-  ;(printf "theta ~a, theta* ~a\n" theta theta*)
-  (inexact->exact (floor (* (/ theta* 2pi) num))))
-
 
 (define (big-ship x y name)
   (ship (next-id) #f (posvel x y (* 0.5 pi) 0 0 0) name
@@ -233,16 +224,13 @@
                    (observer (next-id) #f #f #f) #f '())
         (multirole (next-id) #f #f
                    (crewer (next-id) #f #f #f) #t '())
-        100 1
-        (list 
-         (shield (next-id) #f #f 57 "blue" 100 (vector 100 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
-         (shield (next-id) #f #f 50 "red" 100 (vector 100 0)))
+        110 100
         (list
          (weapon (next-id) #f #f
                  (weapons (next-id) #f #f #f #f)
-                 (/ pi 4) 10 (/ pi 4) (/ pi 2))
+                 (/ pi 4) (sqrt 200) (/ pi 4) (/ pi 2))
          (tactical (next-id) #f #f
                    (tactics (next-id) #f #f #f #f)
-                   (* 3/4 pi) 10 (* 3/4 pi) (/ pi 2))
+                   (* 3/4 pi) (sqrt 200) (* 3/4 pi) (/ pi 2))
          )
         ))
