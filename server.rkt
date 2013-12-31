@@ -69,9 +69,6 @@
      (define to (find-id ownspace (role-change-to cmd)))
      (when (join-role! to p)
        (when from (leave-role! from p))))
-    ((pod-cmd? cmd)
-     (define pod (find-id ownspace (pod-cmd-pod cmd)))
-     (set-pod-desired-angle! pod (pod-cmd-angle cmd)))
     ((role? cmd)
      ; find our role
      (define stack (find-stack ownspace (obj-id (role-player cmd))))

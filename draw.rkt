@@ -111,8 +111,8 @@
     
     (keep-transform dc
       (send dc rotate (- (posvel-r posvel)))
-      (for ((pod (ship-pods s)))
-        (draw-pod dc pod))
+;      (for ((pod (ship-pods s)))
+;        (draw-pod dc pod))
       (keep-transform dc
         (send dc rotate (/ pi 2))
         (send dc set-pen fgcolor 1 'solid)

@@ -75,25 +75,6 @@
     (set-posvel-dr! posvel (drag (posvel-dr posvel) dt R_DRAG_COEF (if (zero? ddr) (/ 2pi 360) 0)))))
 
 
-(define (move-pod! pod dt)
-  (define role (console-role (pod-console pod)))
-  (define da (pod-desired-angle pod))
-  (cond ((and (pod-stowed? pod) da)
-         (set-pod-deploying?! pod #t)
-         (set-pod-angle! pod da)
-         (when (weapon? (pod-console pod))
-           (set-weapon-angle! (pod-console pod) da))
-         (when (tactical? (pod-console pod))
-           (set-tactical-angle! (pod-console pod) da)))
-        
-        ((and (pod-deployed? pod) (not da))
-         (set-pod-deploying?! pod #f)))
-  
-  (define +/- (if (pod-deploying? pod) + -))
-  (define d (max 0 (min POD_D (+/- (pod-dist pod) (* 10 dt)))))
-  (set-pod-dist! pod d))
-
-
 ; This is used on both server and client (for prediction)
 (define (update-physics! ownspace dt)
   (for ((o (space-objects ownspace)))
@@ -101,7 +82,6 @@
       ((ship? o)
        (define-values (ddx ddy ddr) (steer! o dt))
        (physics! (obj-posvel o) dt #t ddx ddy ddr)
-       (for ((p (ship-pods o))) (move-pod! p dt))
        )
       ((plasma? o)
        (physics! (obj-posvel o) dt #f 0 0 0)

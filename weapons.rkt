@@ -12,21 +12,9 @@
 ; client
 (define (click-weapons x y button stack)
   (define role (get-role stack))
-  (define pod (get-pod stack))
-  (define ship (get-ship stack))
-  (cond
-    ((not (pod-deploying? pod))
-     ; we are selecting a new angle to deploy to
-     ;(printf "ship ~a, atan ~a\n" (posvel-r (obj-posvel ship)) (atan y x))
-     (define angle (angle-sub (atan y x) (posvel-r (obj-posvel ship))))
-     (pod-cmd (obj-id pod) angle))
-    ((pod-deployed? pod)
-     ; we are firing, need the angle
-     (define fangle (angle-norm (atan y x)))
-     (struct-copy weapons role (fire fangle)))
-    (else
-     (printf "click-weapons hit ELSE clause\n")
-     #f)))
+  ; we are firing, need the angle
+  (define fangle (angle-norm (atan y x)))
+  (struct-copy weapons role (fire fangle)))
 
 
 ; server
@@ -62,12 +50,11 @@
 
 ; client
 (define (draw-weapons dc stack)
-  (define role (get-role stack))
-  (define pod (get-pod stack))
   (define ship (get-ship stack))
   (define spv (obj-posvel ship))
   (define space (get-space stack))
   (define center (get-center stack))
+  (define w (get-pod stack))
   
   
   (draw-background dc space center)
@@ -83,13 +70,13 @@
     (send dc set-pen fgcolor 1 'solid)
     (send dc set-brush nocolor 'transparent)
     
-    ; draw other pods on my ship
-    (for ((p (ship-pods ship))
-          #:when (not (= (obj-id p) (obj-id pod))))
-      (draw-pod dc p))
-    
-    ; draw my pod
-    (draw-pod dc pod)
+;    ; draw other pods on my ship
+;    (for ((p (ship-pods ship))
+;          #:when (not (= (obj-id p) (obj-id w))))
+;      (draw-pod dc p))
+;    
+;    ; draw my pod
+;    (draw-pod dc w)
     
     ; draw my ship and shields
     (keep-transform dc
@@ -101,14 +88,12 @@
       (draw-shield dc shield)))
   
   ; draw my hud
-  (when (or (not pod) (pod-deployed? pod))
-    (keep-transform dc
-      (send dc rotate (- (posvel-r spv)))
-      (define line-size 50)
-      (define w (pod-console pod))
-      (send dc set-pen "red" 1 'solid)
-      (for ((a (list (+ (weapon-angle w) (/ (weapon-spread w) 2))
-                     (- (weapon-angle w) (/ (weapon-spread w) 2)))))
-        (send dc draw-line 0 0 (* line-size (cos a)) (* line-size (sin a))))))
+  (keep-transform dc
+    (send dc rotate (- (posvel-r spv)))
+    (define line-size 50)
+    (send dc set-pen "red" 1 'solid)
+    (for ((a (list (+ (pod-facing w) (/ (pod-spread w) 2))
+                   (- (pod-facing w) (/ (pod-spread w) 2)))))
+      (send dc draw-line 0 0 (* line-size (cos a)) (* line-size (sin a)))))
   
   (list leave-button))

@@ -72,29 +72,23 @@
 ; course is angle helm wants to point at
 ; if fore is #t, main thrusters are firing
 
-(struct pod obj (console deploying? angle desired-angle dist) #:mutable #:prefab)
-; console is the thing that is on this pod
-; deploying? is #t if going out, #f if going in
-; angle is our deploy angle with respect to the ship
-; desired-angle is what the person in this pod wants (set by player)
-;  - #f means retract and leave role, #t means retract and wait for click
-;  - a number means deploy at that angle
-; dist is how far from the ship center we are
+(struct pod obj (role angle dist facing spread) #:mutable #:prefab)
+; angle/dist is where this pod is with respect to the ship
+; facing is where the pod is directed towards (with respect to the ship)
+; spread is angle within which we can shoot (centered on facing)
 
-(struct console (role) #:mutable #:prefab)
-
-(struct weapon console (angle spread) #:mutable #:prefab)
+(struct weapon pod () #:mutable #:prefab)
 ; angle is with respect to the ship/pod we are one
 ; spread is the angle within which we can shoot (centered on angle)
 
 (struct weapons role (fire) #:mutable #:prefab)
 ; fire is an angle if we want to shoot a plasma (at that angle)
 
-(struct tactical console (angle spread) #:mutable #:prefab)
+(struct tactical pod () #:mutable #:prefab)
 ; angle is with respect to the ship/pod we are one
 
-(struct tactics role (buff) #:mutable #:prefab)
-; buff is #t if we want to buff the shields in front of us
+(struct tactics role (shield) #:mutable #:prefab)
+; shield is an angle if we want to shoot a shield barrier (at that angle)
 
 (struct ship obj (name helm observers crew reactor containment shields pods) #:mutable #:prefab)
 ; reactor is the energy produced by the reactor
@@ -113,9 +107,6 @@
 
 (struct role-change (player from to) #:mutable #:prefab)
 ; from and to are a role? id, multirole? id, or #f (no role)
-
-(struct pod-cmd (pod angle) #:mutable #:prefab)
-; pod is a pod? id, angle is the new pod-desired-angle
 
 
 ;; UI
@@ -147,13 +138,13 @@
   (define center (cadr (reverse stack)))
   (define spv (obj-posvel center))
   (define p (memf pod? stack))
-  (cond ((and p (not (pod-stowed? (car p))))
+  (cond (p
          (define pod (car p))
          (obj #f #f (posvel (+ (posvel-x spv)
-                                (* (pod-dist pod) (cos (+ (posvel-r spv) (pod-angle pod)))))
-                             (+ (posvel-y spv)
-                                (* (pod-dist pod) (sin (+ (posvel-r spv) (pod-angle pod)))))
-                             (posvel-r spv) 0 0 0)))
+                               (* (pod-dist pod) (cos (+ (posvel-r spv) (pod-angle pod)))))
+                            (+ (posvel-y spv)
+                               (* (pod-dist pod) (sin (+ (posvel-r spv) (pod-angle pod)))))
+                            (posvel-r spv) 0 0 0)))
         (else center)))
 
 (define (get-space stack)
@@ -180,7 +171,7 @@
     ((role? o) (filter values (list (role-player o))))
     ((shield? o) (list))
     ((player? o) (list))
-    ((pod? o) (list (console-role (pod-console o))))
+    ((pod? o) (list (pod-role o)))
     (else
      (printf "get-children hit ELSE clause, o ~v\n" o)
      (error)
@@ -216,12 +207,6 @@
   (define r (find-stack o id))
   (if r (car r) #f))
 
-(define (pod-deployed? pod)
-  (and (pod-deploying? pod) (= (pod-dist pod) POD_D)))
-
-(define (pod-stowed? pod)
-  (and (not (pod-deploying? pod)) (= (pod-dist pod) 0)))
-
 (define (angle-norm r)
   (cond ((r . >= . 2pi) (- r 2pi))
         ((r . < . 0) (+ r 2pi))
@@ -253,11 +238,11 @@
          (shield (next-id) #f #f 57 "blue" 100 (vector 100 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
          (shield (next-id) #f #f 50 "red" 100 (vector 100 0)))
         (list
-         (pod (next-id) #f #f 
-                     (weapon (weapons (next-id) #f #f #f #f) 0 (/ pi 2))
-                     #f 0 #f 0)
-         (pod (next-id) #f #f 
-                     (tactical (tactics (next-id) #f #f #f #f) 0 (/ pi 2))
-                     #f 0 #f 0)
+         (weapon (next-id) #f #f
+                 (weapons (next-id) #f #f #f #f)
+                 (/ pi 4) 10 (/ pi 4) (/ pi 2))
+         (tactical (next-id) #f #f
+                   (tactics (next-id) #f #f #f #f)
+                   (* 3/4 pi) 10 (* 3/4 pi) (/ pi 2))
          )
         ))

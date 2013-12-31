@@ -32,7 +32,7 @@
         (send dc translate -100 (- 100 (* i 50)))
         (cond
           ((pod? o)
-           (define role (console-role (pod-console o)))
+           (define role (pod-role o))
            (send dc set-pen fgcolor 1.0 'solid)
            (send dc scale 1 -1)
            (send dc draw-text (format "~a Pod" (role-name role)) 0 0)
