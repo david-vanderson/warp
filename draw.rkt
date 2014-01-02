@@ -137,9 +137,17 @@
   (send dc draw-ellipse (- x (/ rad 2)) (- y (/ rad 2)) rad rad))
 
 
+(define (shield-color s)
+  (define b (send the-color-database find-color "blue"))
+  (make-color (send b red)
+              (send b green) 
+              (send b blue)
+              (/ (shield-energy s) 20.0)))
+
+
 (define (draw-shield dc space center s)
   (define-values (x y) (recenter center s))
-  (send dc set-pen "blue" 5 'solid)
+  (send dc set-pen (shield-color s) 3 'solid)
   (define len (shield-length s))
   (keep-transform dc
     (send dc translate x y)

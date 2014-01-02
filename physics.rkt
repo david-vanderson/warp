@@ -86,9 +86,11 @@
       ((plasma? o)
        (physics! (obj-posvel o) dt #f 0 0 0)
        (when ((- (space-time ownspace) (obj-start-time o)) . > . 5.0)
-         (reduce-plasma! ownspace o (* dt (plasma-energy o)))))
+         (reduce-plasma! ownspace o (* dt 10/5))))
       ((shield? o)
-       (physics! (obj-posvel o) dt #t 0 0 0)))))
+       (physics! (obj-posvel o) dt #t 0 0 0)
+       (when ((- (space-time ownspace) (obj-start-time o)) . > . 10.0)
+         (reduce-shield! ownspace o (* dt 20/10)))))))
 
 
 (define (distance o1 o2)
@@ -124,7 +126,7 @@
 
 (define (plasma-hit-ship! space ship p)
   (when (and (not (equal? (plasma-ownship-id p) (obj-id ship)))
-             ((distance ship p) . < . (plasma-radius p)))
+             ((distance ship p) . < . (+ 10 (plasma-radius p))))
     (define damage (plasma-energy p))
     (reduce-plasma! space p damage)
     (reduce-reactor! space ship damage)))
@@ -140,7 +142,7 @@
   (define rad (plasma-radius p))
   (define l (shield-length shield))
   (when (and (< (- rad) x rad)
-             (< (- (- l) (* 0.5 rad)) y (+ l (* 0.5 rad))))
+             (< (- (- (/ l 2)) rad) y (+ (/ l 2) rad)))
     (define damage (plasma-energy p))
     (reduce-plasma! space p damage)
     (reduce-shield! space shield damage)))
