@@ -1,10 +1,10 @@
 #lang racket/base
 
-(require racket/math
-         racket/vector
-         racket/format)
+(require racket/math)
 
-(require "defs.rkt")
+(require "defs.rkt"
+         "plasma.rkt"
+         "shield.rkt")
 
 (provide (all-defined-out))
 
@@ -104,24 +104,6 @@
   (define dy (- (posvel-y (obj-posvel to)) (posvel-y (obj-posvel from))))
   ;(printf "dx ~a, dy ~a\n" dx dy)
   (atan dy dx))
-
-
-(define (plasma-radius p)
-  (/ (plasma-energy p) 2))
-
-(define (plasma-dead? p)
-  ((plasma-energy p) . < . 1))
-
-(define (reduce-plasma! space p damage)
-  (set-plasma-energy! p (- (plasma-energy p) damage))
-  (when (plasma-dead? p)
-    (set-space-objects! space (remove p (space-objects space)))))
-
-
-(define (reduce-shield! space s damage)
-  (set-shield-energy! s (- (shield-energy s) damage))
-  (when ((shield-energy s) . < . 1)
-    (set-space-objects! space (remove s (space-objects space)))))
 
 
 (define (plasma-hit-ship! space ship p)

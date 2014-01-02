@@ -6,36 +6,12 @@
          racket/math
          racket/draw)
 
-(require "defs.rkt")
+(require "defs.rkt"
+         "draw-utils.rkt"
+         "plasma.rkt"
+         "shield.rkt")
 
 (provide (all-defined-out))
-
-(define-syntax-rule (keep-transform dc e ...)
-  (begin
-    (define t (send dc get-transformation))
-    (define a (let () e ...))
-    (send dc set-transformation t)
-    a))
-
-(define (dc-scale dc)
-  (vector-ref (send dc get-initial-matrix) 0))
-
-(define (canvas-scale canvas)
-  (min (/ (send canvas get-width) WIDTH)
-       (/ (send canvas get-height) HEIGHT)))
-
-(define (screen->canon canvas x y)
-  (define scale (canvas-scale canvas))
-  (define cw (send canvas get-width))
-  (define ch (send canvas get-height))
-  (values (/ (- x (/ cw 2)) scale)
-          (/ (- (/ ch 2) y) scale)))
-
-(define (dc->canon canvas dc x y)
-  (define m (send dc get-initial-matrix))
-  (define sx (+ (* x (vector-ref m 0)) (* y (vector-ref m 1)) (vector-ref m 4)))
-  (define sy (+ (* x (vector-ref m 2)) (* y (vector-ref m 3)) (vector-ref m 5)))
-  (screen->canon canvas sx sy))
 
 (define (add-frame-time current-time frames)
   (cons current-time (take frames (min 10 (length frames)))))
@@ -119,40 +95,6 @@
       (send dc draw-line 0 0 (pod-dist pod) 0)
       (send dc translate (pod-dist pod) 0)
       (send dc draw-ellipse -5 -5 10 10))))
-
-
-(define (draw-plasma dc p center space)
-  (define-values (x y) (recenter center p))
-  (send dc set-pen "red" 1 'solid)
-  (define rad (plasma-energy p))
-  (define t (modulo (- (space-time space) (obj-start-time p)) 1000))
-  (define rot (* pi (/ t 1000.0)))
-  (send dc draw-line
-        (- x (* rad (cos rot))) (- y (* rad (sin rot)))
-        (+ x (* rad (cos rot))) (+ y (* rad (sin rot))))
-  (set! rot (+ rot (/ pi 2)))
-  (send dc draw-line
-        (- x (* rad (cos rot))) (- y (* rad (sin rot)))
-        (+ x (* rad (cos rot))) (+ y (* rad (sin rot))))
-  (send dc draw-ellipse (- x (/ rad 2)) (- y (/ rad 2)) rad rad))
-
-
-(define (shield-color s)
-  (define b (send the-color-database find-color "blue"))
-  (make-color (send b red)
-              (send b green) 
-              (send b blue)
-              (/ (shield-energy s) 20.0)))
-
-
-(define (draw-shield dc space center s)
-  (define-values (x y) (recenter center s))
-  (send dc set-pen (shield-color s) 3 'solid)
-  (define len (shield-length s))
-  (keep-transform dc
-    (send dc translate x y)
-    (send dc rotate (- (posvel-r (obj-posvel s))))
-    (send dc draw-line 0 (* -0.5 len) 0 (* 0.5 len))))
 
 
 (define (draw-no-role dc ownspace)

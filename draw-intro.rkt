@@ -3,7 +3,8 @@
 (require racket/class)
 
 (require "defs.rkt"
-         "draw.rkt")
+         "draw.rkt"
+         "draw-utils.rkt")
 
 (provide (all-defined-out))
 

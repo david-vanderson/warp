@@ -2,6 +2,7 @@
 
 (require "defs.rkt"
          "physics.rkt"
+         "draw-utils.rkt"
          "draw.rkt"
          "draw-intro.rkt"
          "helm.rkt"
