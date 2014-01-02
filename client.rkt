@@ -11,8 +11,6 @@
 
 (provide start-client)
 
-(define CLIENT_LOOP_DELAY .03)  ; don't loop more often than X secs
-
 (define (start-client ip port name new-eventspace?)
   (when new-eventspace?
     (current-eventspace (make-eventspace)))
@@ -172,6 +170,7 @@
   
   (define (client-loop)
     (define current-time (current-inexact-milliseconds))
+;    (printf "client current-time ~a\n" current-time)
     
     ; get new world
     (when (byte-ready? server-in-port)
@@ -181,51 +180,43 @@
       ;(printf "update ~a\n" (space-time update))
       (when (not start-space-time)
         (set! start-space-time (space-time update))
-        (set! start-time (- current-time (* CLIENT_LOOP_DELAY 1000))))
+        (set! start-time current-time))
       
+      ; If the first ownspace is delayed, then our own clock got started late
       (define dt (calc-dt current-time start-time (space-time update) start-space-time))
-      
-      (define diff (/ CLIENT_LOOP_DELAY 3.0))
-      (when (dt . < . 0)  ; started too late
+      (when (dt . < . 0)
         (printf "started too late ~a\n" dt)
-        (set! start-time (- start-time (* diff 1000))))
-      (when (dt . > . (* 10 CLIENT_LOOP_DELAY))  ; started too early
-        (printf "catching up too much ~a\n" dt)
-        ;(set! start-time (+ start-time (* diff 1000)))
-        )
+        (set! start-time (- start-time (* (/ TICK 3.0) 1000))))
       
       (set! ownspace update)
-      ; find my role
-      (set! my-stack (find-stack ownspace (obj-id me)))
-      ;(printf "update stack ~v\n" my-stack)
-      )
+      (set! my-stack (find-stack ownspace (obj-id me))))
     
     
     ; physics prediction
     (when ownspace
-      (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))
-      (set! dt (max dt 0))  ; don't go backwards
-      ;      (printf "client physics ~a ~a ~a\n" (space-time ownspace) dt start-time)
-      (update-physics! ownspace dt)
-      (set-space-time! ownspace (+ (space-time ownspace) dt))
-      (update-effects! ownspace)
-      )
+      (let loop ()
+        (when (TICK . < . (calc-dt current-time start-time (space-time ownspace) start-space-time))
+          (update-physics! ownspace TICK)
+          (set-space-time! ownspace (+ (space-time ownspace) TICK))
+          (update-effects! ownspace)
+          (loop))))
     
     ;rendering
     (set! frames (add-frame-time current-time frames))
     (send canvas refresh-now)
-    
-    ;sleep so we don't hog the whole racket vm
-    (define loop-time (/ (- (current-inexact-milliseconds) current-time) 1000))
-    (if (loop-time . < . CLIENT_LOOP_DELAY)
+      
+    ; sleep so we don't hog the whole racket vm
+    (define sleep-time (- (calc-dt
+                           (current-inexact-milliseconds) start-time
+                           (+ (space-time ownspace) TICK) start-space-time)))
+    (if (sleep-time . > . 0)
         (new timer%
              (notify-callback (lambda () (queue-callback client-loop #f)))
-             (interval (inexact->exact (floor (* 1000 (- CLIENT_LOOP_DELAY loop-time)))))
+             (interval (+ 1 (inexact->exact (floor (* 1000 sleep-time)))))
              (just-once? #t))
         (begin
-          (printf "CLIENT LOOP TOO LONG: ~a\n" loop-time)
-          (queue-callback client-loop #f)))
-    )
+          (printf "client skipping sleep\n")
+          (queue-callback client-loop #f))))
   
   (queue-callback client-loop #f))
 

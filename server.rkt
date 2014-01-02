@@ -14,9 +14,6 @@
 (define server-listener #f)
 (define client-in-ports '())
 (define client-out-ports '())
-
-(define SERVER_LOOP_DELAY .03)  ; don't loop more often than X secs
-(define SERVER_SEND_DELAY 1.0)  ; don't send auto updates more often than X secs
 (define ownspace #f)
 
 
@@ -80,19 +77,23 @@
         (error "command role hit ELSE clause ~v" cmd))))))
 
 
-(define previous-loop-time (current-inexact-milliseconds))
+(define previous-physics-time #f)
 (define previous-send-time (current-inexact-milliseconds))
 
 (define (server-loop)
   (define current-time (current-inexact-milliseconds))
-  (define dt (/ (- current-time previous-loop-time) 1000))
-  (set! previous-loop-time current-time)
+  (when (not previous-physics-time)
+    (set! previous-physics-time current-time))
   (define need-update #f)
   
   ; physics
-  (update-physics! ownspace dt)
-  (set-space-time! ownspace (+ (space-time ownspace) dt))
-  (update-effects! ownspace)
+  (let loop ()
+    (when (TICK . < . (/ (- current-time previous-physics-time) 1000))
+      (set! previous-physics-time (+ previous-physics-time (* 1000 TICK)))
+      (update-physics! ownspace TICK)
+      (set-space-time! ownspace (+ (space-time ownspace) TICK))
+      (update-effects! ownspace)
+      (loop)))
   
   ; process new clients
   (when (tcp-accept-ready? server-listener)
@@ -117,7 +118,7 @@
   
   ; send out updated world
   (when (or need-update
-            (> (/ (- current-time previous-send-time) 1000) SERVER_SEND_DELAY))
+            (SERVER_SEND_DELAY . < . (/ (- current-time previous-send-time) 1000)))
     (set! previous-send-time current-time)
     (for ((p client-out-ports))
       ;(printf "server sending ~a\n" (space-time ownspace))
@@ -125,10 +126,11 @@
       (flush-output p)))
   
   ; sleep so we don't hog the whole racket vm
-  (define loop-time (/ (- (current-inexact-milliseconds) current-time) 1000))
-  (if (loop-time . < . SERVER_LOOP_DELAY)
-      (sleep (- SERVER_LOOP_DELAY loop-time))
-      (begin (printf "SERVER LOOP TOO LONG: ~a\n" loop-time)))
+  (define sleep-time (- (+ previous-physics-time (* 1000 TICK))
+                        (current-inexact-milliseconds)))
+  (if (sleep-time . > . 0)
+      (sleep (/ sleep-time 1000))
+      (printf "server skipping sleep\n"))
   
   (server-loop))
 

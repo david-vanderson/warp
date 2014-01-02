@@ -6,6 +6,8 @@
 (provide (all-defined-out))
 
 (define PORT 22381)
+(define TICK .03)  ; time slice for physics, also determines max client frame rate
+(define SERVER_SEND_DELAY 1.0)  ; don't send auto updates more often than X secs
 (define WIDTH 1024)  ; how many meters wide is the screen view
 (define HEIGHT 768)  ; how many meters tall is the screen view
 (define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view
@@ -17,7 +19,6 @@
 (define bgcolor "black")
 (define fgcolor "white")
 (define nocolor "whitesmoke")  ; used with a transparent pen/brush
-(define POD_D 20)  ; meters out from center of ship pods go
 
 (define next-id
   (let ((id 0))
