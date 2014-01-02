@@ -165,11 +165,10 @@
   (define start-time #f)
   
   (define (calc-dt curtime start curspace startspace)
-    (- (/ (- curtime start) 1000)
-       (- curspace startspace)))
+    (- (- curtime start) (- curspace startspace)))
   
   (define (client-loop)
-    (define current-time (current-inexact-milliseconds))
+    (define current-time (current-milliseconds))
 ;    (printf "client current-time ~a\n" current-time)
     
     ; get new world
@@ -186,7 +185,7 @@
       (define dt (calc-dt current-time start-time (space-time update) start-space-time))
       (when (dt . < . 0)
         (printf "started too late ~a\n" dt)
-        (set! start-time (- start-time (* (/ TICK 3.0) 1000))))
+        (set! start-time (- start-time 10)))
       
       (set! ownspace update)
       (set! my-stack (find-stack ownspace (obj-id me))))
@@ -196,7 +195,7 @@
     (when ownspace
       (let loop ()
         (when (TICK . < . (calc-dt current-time start-time (space-time ownspace) start-space-time))
-          (update-physics! ownspace TICK)
+          (update-physics! ownspace (/ TICK 1000.0))
           (set-space-time! ownspace (+ (space-time ownspace) TICK))
           (update-effects! ownspace)
           (loop))))
@@ -207,15 +206,15 @@
       
     ; sleep so we don't hog the whole racket vm
     (define sleep-time (- (calc-dt
-                           (current-inexact-milliseconds) start-time
+                           (current-milliseconds) start-time
                            (+ (space-time ownspace) TICK) start-space-time)))
     (if (sleep-time . > . 0)
         (new timer%
              (notify-callback (lambda () (queue-callback client-loop #f)))
-             (interval (+ 1 (inexact->exact (floor (* 1000 sleep-time)))))
+             (interval (+ 1 (inexact->exact (floor sleep-time))))
              (just-once? #t))
         (begin
-          (printf "client skipping sleep\n")
+          (printf "client skipping sleep ~a\n" sleep-time)
           (queue-callback client-loop #f))))
   
   (queue-callback client-loop #f))

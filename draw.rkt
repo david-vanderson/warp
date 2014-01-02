@@ -41,7 +41,7 @@
   (cons current-time (take frames (min 10 (length frames)))))
 
 (define (draw-framerate dc frames)
-  (when (not (empty? frames))
+  (when ((length frames) . > . 1)
     (keep-transform dc
       (send dc translate (- (/ WIDTH 2)) (/ HEIGHT 2))
       (send dc scale 1 -1)
@@ -125,8 +125,8 @@
   (define-values (x y) (recenter center p))
   (send dc set-pen "red" 1 'solid)
   (define rad (plasma-energy p))
-  (define t (- (space-time space) (obj-start-time p)))
-  (define rot (* pi (- t (truncate t))))
+  (define t (modulo (- (space-time space) (obj-start-time p)) 1000))
+  (define rot (* pi (/ t 1000.0)))
   (send dc draw-line
         (- x (* rad (cos rot))) (- y (* rad (sin rot)))
         (+ x (* rad (cos rot))) (+ y (* rad (sin rot))))

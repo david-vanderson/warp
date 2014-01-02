@@ -85,11 +85,11 @@
        )
       ((plasma? o)
        (physics! (obj-posvel o) dt #f 0 0 0)
-       (when ((- (space-time ownspace) (obj-start-time o)) . > . 5.0)
+       (when ((- (space-time ownspace) (obj-start-time o)) . > . 5000)
          (reduce-plasma! ownspace o (* dt 10/5))))
       ((shield? o)
        (physics! (obj-posvel o) dt #t 0 0 0)
-       (when ((- (space-time ownspace) (obj-start-time o)) . > . 10.0)
+       (when ((- (space-time ownspace) (obj-start-time o)) . > . 10000)
          (reduce-shield! ownspace o (* dt 20/10)))))))
 
 

@@ -78,19 +78,19 @@
 
 
 (define previous-physics-time #f)
-(define previous-send-time (current-inexact-milliseconds))
+(define previous-send-time (current-milliseconds))
 
 (define (server-loop)
-  (define current-time (current-inexact-milliseconds))
+  (define current-time (current-milliseconds))
   (when (not previous-physics-time)
     (set! previous-physics-time current-time))
   (define need-update #f)
   
   ; physics
   (let loop ()
-    (when (TICK . < . (/ (- current-time previous-physics-time) 1000))
-      (set! previous-physics-time (+ previous-physics-time (* 1000 TICK)))
-      (update-physics! ownspace TICK)
+    (when (TICK . < . (- current-time previous-physics-time))
+      (set! previous-physics-time (+ previous-physics-time TICK))
+      (update-physics! ownspace (/ TICK 1000.0))
       (set-space-time! ownspace (+ (space-time ownspace) TICK))
       (update-effects! ownspace)
       (loop)))
@@ -118,7 +118,7 @@
   
   ; send out updated world
   (when (or need-update
-            (SERVER_SEND_DELAY . < . (/ (- current-time previous-send-time) 1000)))
+            (SERVER_SEND_DELAY . < . (- current-time previous-send-time)))
     (set! previous-send-time current-time)
     (for ((p client-out-ports))
       ;(printf "server sending ~a\n" (space-time ownspace))
@@ -126,11 +126,11 @@
       (flush-output p)))
   
   ; sleep so we don't hog the whole racket vm
-  (define sleep-time (- (+ previous-physics-time (* 1000 TICK))
-                        (current-inexact-milliseconds)))
+  (define sleep-time (- (+ previous-physics-time TICK 1)
+                        (current-milliseconds)))
   (if (sleep-time . > . 0)
-      (sleep (/ sleep-time 1000))
-      (printf "server skipping sleep\n"))
+      (sleep (/ sleep-time 1000.0))
+      (printf "server skipping sleep ~a\n" sleep-time))
   
   (server-loop))
 

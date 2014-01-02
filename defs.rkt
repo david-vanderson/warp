@@ -6,8 +6,8 @@
 (provide (all-defined-out))
 
 (define PORT 22381)
-(define TICK .03)  ; time slice for physics, also determines max client frame rate
-(define SERVER_SEND_DELAY 1.0)  ; don't send auto updates more often than X secs
+(define TICK 30)  ; ms time slice for physics, also determines max client frame rate
+(define SERVER_SEND_DELAY 1000)  ; don't send auto updates more often than X ms
 (define WIDTH 1024)  ; how many meters wide is the screen view
 (define HEIGHT 768)  ; how many meters tall is the screen view
 (define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view
@@ -96,7 +96,7 @@
 ; pods is a list of all the pods on the ship
 
 (struct space (time sizex sizey objects) #:mutable #:prefab)
-; time is seconds since the scenario started
+; time is msec since the scenario started
 ; sizex and sizey are how big space is
 
 
