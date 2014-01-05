@@ -13,6 +13,11 @@
 
 (provide (all-defined-out))
 
+
+(define ship-bitmap (make-bitmap 1 1))
+(send ship-bitmap load-file "images/ship.png" 'png/alpha)
+
+
 (define (add-frame-time current-time frames)
   (cons current-time (take frames (min 10 (length frames)))))
 
@@ -72,11 +77,12 @@
     
     (keep-transform dc
       (send dc rotate (- (posvel-r (obj-posvel s))))
-      (keep-transform dc
-        (send dc rotate (/ pi 2))
-        (send dc set-pen fgcolor 1 'solid)
-        (send dc set-brush nocolor 'transparent)
-        (send dc draw-polygon ship-external))
+      (send dc draw-bitmap
+              ship-bitmap
+              (- (/ (send ship-bitmap get-width) 2))
+              (- (/ (send ship-bitmap get-height) 2)))
+      (send dc set-pen fgcolor 1 'solid)
+      (send dc set-brush nocolor 'transparent)
       (for ((pod (ship-pods s)))
         (draw-pod dc pod)))
     
