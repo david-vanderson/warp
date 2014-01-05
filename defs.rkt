@@ -7,7 +7,7 @@
 
 (define PORT 22381)
 (define TICK 30)  ; ms time slice for physics, also determines max client frame rate
-(define SERVER_SEND_DELAY 1000)  ; don't send auto updates more often than X ms
+(define SERVER_SEND_DELAY 500)  ; don't send auto updates more often than X ms
 (define WIDTH 1024)  ; how many meters wide is the screen view
 (define HEIGHT 768)  ; how many meters tall is the screen view
 (define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view
@@ -49,7 +49,7 @@
 (struct shield obj (energy length) #:mutable #:prefab)
 ; length is the size of the shield
 
-(struct player obj (name npc?) #:mutable #:prefab)
+(struct player obj (name) #:mutable #:prefab)
 ; name is what is shown in UIs
 ; npc is #t if this player is computer controlled, #f if it's a real person
 
@@ -89,7 +89,9 @@
 (struct tactics role (shield) #:mutable #:prefab)
 ; shield is an angle if we want to shoot a shield barrier (at that angle)
 
-(struct ship obj (name helm observers crew reactor containment pods) #:mutable #:prefab)
+(struct ship obj (name npc? faction helm observers crew reactor containment pods) #:mutable #:prefab)
+; npc? is #t if this ship is computer controlled
+; faction is the name that this ship belongs to
 ; reactor is the energy produced by the reactor
 ; containment is the reactor health left
 ; shields are in radius order starting with the largest radius
@@ -124,9 +126,9 @@
 
 ;; Utilities
 
-(define (recenter center o2)
-  (values (- (posvel-x (obj-posvel o2)) (posvel-x (obj-posvel center)))
-          (- (posvel-y (obj-posvel o2)) (posvel-y (obj-posvel center)))))
+(define (recenter center o)
+  (values (- (posvel-x (obj-posvel o)) (posvel-x (obj-posvel center)))
+          (- (posvel-y (obj-posvel o)) (posvel-y (obj-posvel center)))))
 
 (define (get-role stack)
   (if stack (cadr stack) #f))
@@ -221,14 +223,36 @@
 (define (angle-sub r theta)
   (angle-norm (- r theta)))
 
+; gives angular distance and direction (-pi to pi)
+(define (angle-diff from to)
+  (define diff (- to from))
+  (cond (((abs diff) . <= . pi) diff)
+        ((diff . > . pi) (- diff 2pi))
+        (else (+ 2pi diff))))
 
-(define (big-ship x y name)
-  (ship (next-id) #f (posvel x y (* 0.5 pi) 0 0 0) name
-        (helm (next-id) #f #f #f (* 0.5 pi) #f)
-        (multirole (next-id) #f #f
-                   (observer (next-id) #f #f #f) #f '())
-        (multirole (next-id) #f #f
-                   (crewer (next-id) #f #f #f) #t '())
+
+(define (random-between a b)
+  (+ a (* (- b a) (random))))
+
+  
+(define (distance o1 o2)
+  (define dx (- (posvel-x (obj-posvel o1)) (posvel-x (obj-posvel o2))))
+  (define dy (- (posvel-y (obj-posvel o1)) (posvel-y (obj-posvel o2))))
+  (sqrt (+ (* dx dx) (* dy dy))))
+
+
+(define (theta from to)
+  (define dx (- (posvel-x (obj-posvel to)) (posvel-x (obj-posvel from))))
+  (define dy (- (posvel-y (obj-posvel to)) (posvel-y (obj-posvel from))))
+  ;(printf "dx ~a, dy ~a\n" dx dy)
+  (atan dy dx))
+
+
+(define (big-ship name npc? faction x y r fore?)
+  (ship (next-id) #f (posvel x y r 0 0 0) name npc? faction
+        (helm (next-id) #f #f #f r fore?)
+        (if npc? #f (multirole (next-id) #f #f (observer (next-id) #f #f #f) #f '()))
+        (if npc? #f (multirole (next-id) #f #f (crewer (next-id) #f #f #f) #t '()))
         110 100
         (list
          (weapon (next-id) #f #f

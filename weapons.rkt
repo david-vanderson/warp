@@ -57,34 +57,7 @@
   (define center (get-center stack))
   (define w (get-pod stack))
   
-  
-  (draw-background dc space center)
-  ; draw other ships/objects
-  (for ((o (space-objects space))
-        #:when (not (= (obj-id o) (obj-id ship))))
-    (draw-object dc o center space))
-  
-  (keep-transform dc
-    (define-values (x y) (recenter center ship))
-    (send dc translate x y)
-    (send dc rotate (- (posvel-r spv)))
-    (send dc set-pen fgcolor 1 'solid)
-    (send dc set-brush nocolor 'transparent)
-    
-;    ; draw other pods on my ship
-;    (for ((p (ship-pods ship))
-;          #:when (not (= (obj-id p) (obj-id w))))
-;      (draw-pod dc p))
-;    
-;    ; draw my pod
-;    (draw-pod dc w)
-    
-    ; draw my ship and shields
-    (keep-transform dc
-      (send dc rotate (/ pi 2))
-      (send dc set-pen fgcolor 1 'solid)
-      (send dc set-brush nocolor 'transparent)
-      (send dc draw-polygon ship-external)))
+  (draw-view dc center space)
   
   ; draw my hud
   (keep-transform dc

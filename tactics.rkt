@@ -53,44 +53,13 @@
 
 ; client
 (define (draw-tactics dc stack)
-  (define role (get-role stack))
-  (define pod (get-pod stack))
   (define ship (get-ship stack))
   (define spv (obj-posvel ship))
   (define space (get-space stack))
   (define center (get-center stack))
   (define t (get-pod stack))
   
-  
-  (draw-background dc space center)
-  ; draw other ships/objects
-  (for ((o (space-objects space))
-        #:when (not (= (obj-id o) (obj-id ship))))
-    (draw-object dc o center space))
-  
-  (keep-transform dc
-    (define-values (x y) (recenter center ship))
-    (send dc translate x y)
-    (send dc rotate (- (posvel-r spv)))
-    (send dc set-pen fgcolor 1 'solid)
-    (send dc set-brush nocolor 'transparent)
-    
-;    ; draw other pods on my ship
-;    (for ((p (ship-pods ship))
-;          #:when (not (= (obj-id p) (obj-id t))))
-;      (draw-pod dc p))
-;    
-;    ; draw my pod
-;    (draw-pod dc t)
-    
-    ; draw my ship and shields
-    (keep-transform dc
-      (send dc rotate (/ pi 2))
-      (send dc set-pen fgcolor 1 'solid)
-      (send dc set-brush nocolor 'transparent)
-      (send dc draw-polygon ship-external)))
-  
-  (define buttons (list leave-button))
+  (draw-view dc center space)
   
   ; draw my hud
   (keep-transform dc
@@ -102,4 +71,4 @@
       (send dc draw-line 0 0 (* line-size (cos a)) (* line-size (sin a)))))
   
   
-  buttons)
+  (list leave-button))

@@ -7,7 +7,8 @@
          "physics.rkt"
          "helm.rkt"
          "weapons.rkt"
-         "tactics.rkt")
+         "tactics.rkt"
+         "ai.rkt")
 
 (provide start-server)
 
@@ -93,6 +94,7 @@
       (update-physics! ownspace (/ TICK 1000.0))
       (set-space-time! ownspace (+ (space-time ownspace) TICK))
       (update-effects! ownspace)
+      (set! need-update (or need-update (run-ai! ownspace)))
       (loop)))
   
   ; process new clients
@@ -101,7 +103,7 @@
     (define-values (in out) (tcp-accept server-listener))
     
     ; need to assign an id to the new player
-    (write (player (next-id) #f #f "New Player" #f) out)
+    (write (player (next-id) #f #f "New Player") out)
     
     (set! client-in-ports (cons in client-in-ports))
     (set! client-out-ports (cons out client-out-ports))

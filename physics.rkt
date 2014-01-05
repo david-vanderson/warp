@@ -8,21 +8,11 @@
 
 (provide (all-defined-out))
 
-; gives angular distance and direction (-pi to pi)
-(define (angle-diff from to)
-  (define diff (- to from))
-  (cond (((abs diff) . <= . pi) diff)
-        ((diff . > . pi) (- diff 2pi))
-        (else (+ 2pi diff))))
 
 (define (opposite-sign? a b)
   (if (positive? a)
       (negative? b)
       (positive? b)))
-
-(define (drag dv dt coef epsilon)
-  (define newv (* dv (expt (1 . - . coef) dt)))
-  (if ((abs newv) . < . epsilon) 0 newv))
 
 
 (define (steer! ownship dt)
@@ -65,6 +55,11 @@
   (values ddx ddy ddr))
 
 
+(define (drag dv dt coef epsilon)
+  (define newv (* dv (expt (1 . - . coef) dt)))
+  (if ((abs newv) . < . epsilon) 0 newv))
+
+
 (define (physics! posvel dt drag? ddx ddy ddr)
   (set-posvel-x! posvel (+ (posvel-x posvel) (* dt (posvel-dx posvel))))
   (set-posvel-y! posvel (+ (posvel-y posvel) (* dt (posvel-dy posvel))))
@@ -81,8 +76,7 @@
     (cond
       ((ship? o)
        (define-values (ddx ddy ddr) (steer! o dt))
-       (physics! (obj-posvel o) dt #t ddx ddy ddr)
-       )
+       (physics! (obj-posvel o) dt #t ddx ddy ddr))
       ((plasma? o)
        (physics! (obj-posvel o) dt #f 0 0 0)
        (when ((- (space-time ownspace) (obj-start-time o)) . > . 5000)
@@ -91,19 +85,6 @@
        (physics! (obj-posvel o) dt #t 0 0 0)
        (when ((- (space-time ownspace) (obj-start-time o)) . > . 10000)
          (reduce-shield! ownspace o (* dt 20/10)))))))
-
-
-(define (distance o1 o2)
-  (define dx (- (posvel-x (obj-posvel o1)) (posvel-x (obj-posvel o2))))
-  (define dy (- (posvel-y (obj-posvel o1)) (posvel-y (obj-posvel o2))))
-  (sqrt (+ (* dx dx) (* dy dy))))
-
-
-(define (theta from to)
-  (define dx (- (posvel-x (obj-posvel to)) (posvel-x (obj-posvel from))))
-  (define dy (- (posvel-y (obj-posvel to)) (posvel-y (obj-posvel from))))
-  ;(printf "dx ~a, dy ~a\n" dx dy)
-  (atan dy dx))
 
 
 (define (plasma-hit-ship! space ship p)

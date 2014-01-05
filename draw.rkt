@@ -59,6 +59,12 @@
      (draw-shield dc space center o))))
 
 
+(define (draw-view dc center space)
+  (draw-background dc space center)
+  (for ((o (space-objects space)))
+    (draw-object dc o center space)))
+
+
 (define (draw-ship dc s center)
   (keep-transform dc
     (define-values (x y) (recenter center s))
@@ -66,13 +72,13 @@
     
     (keep-transform dc
       (send dc rotate (- (posvel-r (obj-posvel s))))
-      ;      (for ((pod (ship-pods s)))
-      ;        (draw-pod dc pod))
       (keep-transform dc
         (send dc rotate (/ pi 2))
         (send dc set-pen fgcolor 1 'solid)
         (send dc set-brush nocolor 'transparent)
-        (send dc draw-polygon ship-external)))
+        (send dc draw-polygon ship-external))
+      (for ((pod (ship-pods s)))
+        (draw-pod dc pod)))
     
     (define scale 0.5)
     (send dc scale scale (- scale))
@@ -88,32 +94,32 @@
 
 ; assuming dc is already centered on middle of ship and rotated for the ship
 (define (draw-pod dc pod)
-  (when ((pod-dist pod) . > . 0)
-    (keep-transform dc
-      (send dc set-pen fgcolor 1 'solid)
-      (send dc rotate (- (pod-angle pod)))
-      (send dc draw-line 0 0 (pod-dist pod) 0)
-      (send dc translate (pod-dist pod) 0)
-      (send dc draw-ellipse -5 -5 10 10))))
-
-
-(define (draw-no-role dc ownspace)
   (keep-transform dc
-    (define max-x (space-sizex ownspace))
-    (define max-y (space-sizey ownspace))
+    (send dc set-pen fgcolor 1 'solid)
+    (send dc rotate (- (pod-angle pod)))
+    (send dc translate (pod-dist pod) 0)
+    (send dc draw-ellipse -5 -5 10 10)))
+
+
+(define (draw-no-role dc space)
+  (keep-transform dc
+    (define max-x (space-sizex space))
+    (define max-y (space-sizey space))
     (define scale (min (/ WIDTH max-x) (/ HEIGHT max-y)))
     (send dc scale scale scale)
     (define center (obj #f #f (posvel 0 0 0 0 0 0)))
-    (draw-background dc ownspace center)
-    (for ((o (space-objects ownspace)))
+    (draw-background dc space center)
+    (for ((o (space-objects space)))
       (cond
         ((ship? o)
          (draw-ship dc o center))
         ((plasma? o)
-         (draw-plasma dc o center ownspace)))))
+         (draw-plasma dc o center space))
+        ((shield? o)
+         (draw-shield dc space center o)))))
   
   (define start-stacks
-    (search ownspace (lambda (o) (and (multirole? o)
+    (search space (lambda (o) (and (multirole? o)
                                       (multirole-start? o))) #t))
   (cons
    leave-button
@@ -136,13 +142,7 @@
 
 (define (draw-observer dc ownspace stack)
   (define center (get-center stack))
-  (draw-background dc ownspace center)
-  (for ((o (space-objects ownspace)))
-    (cond
-      ((ship? o)
-       (draw-ship dc o center))
-      ((plasma? o)
-       (draw-plasma dc o center ownspace))))
+  (draw-view dc center ownspace)
   (list leave-button))
 
 
