@@ -256,7 +256,7 @@
         110 100
         (list
          (weapon (next-id) #f #f
-                 (weapons (next-id) #f #f #f #f)
+                 (weapons (next-id) #f #f (player (next-id) #f #f "Andrea") #f)
                  (/ pi 4) (sqrt 200) (/ pi 4) (/ pi 2))
          (tactical (next-id) #f #f
                    (tactics (next-id) #f #f #f #f)

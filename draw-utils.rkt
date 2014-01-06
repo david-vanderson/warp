@@ -14,10 +14,6 @@
     a))
 
 
-(define (dc-scale dc)
-  (vector-ref (send dc get-initial-matrix) 0))
-
-
 (define (canvas-scale canvas)
   (min (/ (send canvas get-width) WIDTH)
        (/ (send canvas get-height) HEIGHT)))
