@@ -67,14 +67,16 @@
 (struct crewer role () #:mutable #:prefab)
 ; special role used to contain players while they are choosing their next role
 
-(struct helm role (course fore) #:mutable #:prefab)
-; course is angle helm wants to point at
-; if fore is #t, main thrusters are firing
-
 (struct pod obj (role angle dist facing spread) #:mutable #:prefab)
 ; angle/dist is where this pod is with respect to the ship
 ; facing is where the pod is directed towards (with respect to the ship)
 ; spread is angle within which we can shoot (centered on facing)
+
+(struct helm pod () #:mutable #:prefab)
+
+(struct pilot role (course fore) #:mutable #:prefab)
+; course is angle pilot wants to point at
+; if fore is #t, main thrusters are firing
 
 (struct weapon pod () #:mutable #:prefab)
 ; angle is with respect to the ship/pod we are one
@@ -89,12 +91,11 @@
 (struct tactics role (shield) #:mutable #:prefab)
 ; shield is an angle if we want to shoot a shield barrier (at that angle)
 
-(struct ship obj (name npc? faction helm observers crew reactor containment pods) #:mutable #:prefab)
+(struct ship obj (name npc? faction observers crew reactor containment pods) #:mutable #:prefab)
 ; npc? is #t if this ship is computer controlled
 ; faction is the name that this ship belongs to
 ; reactor is the energy produced by the reactor
 ; containment is the reactor health left
-; shields are in radius order starting with the largest radius
 ; pods is a list of all the pods on the ship
 
 (struct space (time sizex sizey objects) #:mutable #:prefab)
@@ -125,6 +126,9 @@
 
 
 ;; Utilities
+
+(define (ship-pilot s)
+  (pod-role (car (memf helm? (ship-pods s)))))
 
 (define (recenter center o)
   (values (- (posvel-x (obj-posvel o)) (posvel-x (obj-posvel center)))
@@ -158,7 +162,7 @@
 
 (define (role-name role)
   (cond ((crewer? role) "Crewer")
-        ((helm? role) "Helm")
+        ((pilot? role) "Pilot")
         ((observer? role) "Observer")
         ((weapons? role) "Weapons")
         ((tactics? role) "Tactics")
@@ -170,7 +174,7 @@
   (cond
     ((space? o) (space-objects o))
     ((plasma? o) (list))
-    ((ship? o) (filter values (append (list (ship-helm o) (ship-observers o) (ship-crew o))
+    ((ship? o) (filter values (append (list (ship-observers o) (ship-crew o))
                                       (ship-pods o))))
     ((multirole? o) (multirole-roles o))
     ((role? o) (filter values (list (role-player o))))
@@ -250,11 +254,13 @@
 
 (define (big-ship name npc? faction x y r fore?)
   (ship (next-id) #f (posvel x y r 0 0 0) name npc? faction
-        (helm (next-id) #f #f #f r fore?)
         (if npc? #f (multirole (next-id) #f #f (observer (next-id) #f #f #f) #f '()))
         (if npc? #f (multirole (next-id) #f #f (crewer (next-id) #f #f #f) #t '()))
         110 100
         (list
+         (helm (next-id) #f #f
+               (pilot (next-id) #f #f #f r fore?)
+               0 0 #f #f)
          (weapon (next-id) #f #f
                  (weapons (next-id) #f #f (player (next-id) #f #f "Andrea") #f)
                  (/ pi 4) (sqrt 200) (/ pi 4) (/ pi 2))

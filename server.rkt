@@ -5,7 +5,7 @@
 
 (require "defs.rkt"
          "physics.rkt"
-         "helm.rkt"
+         "pilot.rkt"
          "weapons.rkt"
          "tactics.rkt"
          "ai.rkt")
@@ -73,7 +73,7 @@
      (cond
        ((weapons? cmd) (command-weapons cmd ownspace stack))
        ((tactics? cmd) (command-tactics cmd ownspace stack))
-       ((helm? cmd) (command-helm cmd ownspace stack))
+       ((pilot? cmd) (command-pilot cmd ownspace stack))
        (else
         (error "command role hit ELSE clause ~v" cmd))))))
 

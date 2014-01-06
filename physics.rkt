@@ -16,7 +16,7 @@
 
 
 (define (steer! ownship dt)
-  (define course (helm-course (ship-helm ownship)))
+  (define course (pilot-course (ship-pilot ownship)))
   (define posvel (obj-posvel ownship))
   (define r (posvel-r posvel))
   (define ddr
@@ -45,7 +45,7 @@
   
   (define ddx 0)
   (define ddy 0)
-  (when (helm-fore (ship-helm ownship))
+  (when (pilot-fore (ship-pilot ownship))
     (set! ddx (* 20 (cos (posvel-r posvel))))
     (set! ddy (* 20 (sin (posvel-r posvel)))))
   

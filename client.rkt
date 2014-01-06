@@ -5,7 +5,7 @@
          "draw-utils.rkt"
          "draw.rkt"
          "draw-intro.rkt"
-         "helm.rkt"
+         "pilot.rkt"
          "crewer.rkt"
          "weapons.rkt"
          "tactics.rkt")
@@ -64,8 +64,8 @@
           (send-command (role-change me (obj-id role) (obj-id crew))))))
       ((crewer? role)
        (send-command (click-crewer x y button role ownspace me)))
-      ((helm? role)
-       (send-command (click-helm x y button my-stack)))
+      ((pilot? role)
+       (send-command (click-pilot x y button my-stack)))
       ((weapons? role)
        (send-command (click-weapons x y button my-stack)))
       ((tactics? role)
@@ -101,8 +101,8 @@
                (draw-intro dc))
               ((not my-stack)
                (draw-no-role dc ownspace))
-              ((helm? role)
-               (draw-helm dc ownspace my-stack))
+              ((pilot? role)
+               (draw-pilot dc ownspace my-stack))
               ((crewer? role)
                (draw-crewer canvas dc ownspace my-stack))
               ((observer? role)
@@ -142,12 +142,12 @@
       ;        (case (send event get-key-code)
       ;          ((#\f)
       ;           (define role (get-role my-stack))
-      ;           (when (helm? role)
-      ;             (send-command (struct-copy helm role (aft #t)))))
+      ;           (when (pilot? role)
+      ;             (send-command (struct-copy pilot role (aft #t)))))
       ;          ((#\w)
       ;           (define role (get-role my-stack))
-      ;           (when (helm? role)
-      ;             (send-command (struct-copy helm role (fore (not (helm-fore role)))))))
+      ;           (when (pilot? role)
+      ;             (send-command (struct-copy pilot role (fore (not (pilot-fore role)))))))
       ;          ))
       ))
   

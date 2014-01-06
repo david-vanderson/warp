@@ -19,7 +19,7 @@
 
 (define (ai-steer! space ships ownship)
   (define u #f)
-  (define h (ship-helm ownship))
+  (define p (ship-pilot ownship))
   
   (define agro-dist 600)  ; ignore ships farther away than this
   
@@ -37,25 +37,25 @@
   
   (when ne
     (define t (theta ownship ne))
-    (define ht (angle-diff (helm-course h) t))
+    (define ht (angle-diff (pilot-course p) t))
     (define r (posvel-r (obj-posvel ownship)))
-    (unless (helm-fore h)
-      (set-helm-fore! h #t)
+    (unless (pilot-fore p)
+      (set-pilot-fore! p #t)
       (printf "~a moving\n" (ship-name ownship))
       (set! u #t))
     (when (or ((abs ht) . > . (* 3/4 pi))  ; we are heading away from the enemy
               (and (ne-dist . > . 300)  ; enemy is getting away
                    ((abs ht) . > . (* 1/6 pi))))  ; we aren't pointed towards him
       ; retarget for a new attack pass
-      (set-helm-course! h (angle-add t (random-between (- (* 1/8 pi)) (* 1/8 pi))))
-      (set-helm-fore! h #t)
-      (printf "~a attack ~a ~a\n" (ship-name ownship) (ship-name ne) (helm-course h))
+      (set-pilot-course! p (angle-add t (random-between (- (* 1/8 pi)) (* 1/8 pi))))
+      (set-pilot-fore! p #t)
+      (printf "~a attack ~a ~a\n" (ship-name ownship) (ship-name ne) (pilot-course p))
       (set! u #t)))
   
   (when (not ne)
     ; follow other orders?
-    (unless (not (helm-fore h))
-      (set-helm-fore! h #f)
+    (unless (not (pilot-fore p))
+      (set-pilot-fore! p #f)
       (printf "~a stopping\n" (ship-name ownship))
       (set! u #t)))
   u)

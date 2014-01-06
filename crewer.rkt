@@ -54,15 +54,7 @@
              (define-values (x y) (dc->canon canvas dc 0 65))
              (set! buttons (cons (button x y 65 30 5 5 (obj-id role) "Deploy") buttons))
              ))))
-  
-  (cond ((role-player (ship-helm ship))
-         (send dc scale 1 -1)
-         (send dc draw-text (format "Helm ~a" (player-name (role-player (ship-helm ship))))
-               -50 -225)
-         (send dc scale 1 -1))
-        (else
-         (set! buttons (cons (button -50 200 100 30 5 5 (obj-id (ship-helm ship)) "Helm") buttons))))
-          
+
   (set! buttons (cons (button -50 150 100 30 5 5 (obj-id (ship-observers ship)) "Observe") buttons))
   
   buttons)
