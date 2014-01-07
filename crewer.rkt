@@ -44,18 +44,26 @@
       (send dc translate (* scale (pod-dist p) (cos r)) (* scale (pod-dist p) (sin r)))
       (send dc draw-ellipse -5 -5 10 10)
       
-      (define role (pod-role p))
-      (send dc scale 1 -1)
-      (send dc draw-text (format "~a" (role-name role)) 0 10)
-      
-      (cond ((role-player role)
-             (send dc draw-text (player-name (role-player role)) 0 35))
-            (else
-             (define-values (x y) (dc->canon canvas dc 0 65))
-             (set! buttons (cons (button x y 65 30 5 5 (obj-id role) "Deploy") buttons))
-             ))))
-
-  (set! buttons (cons (button -50 150 100 30 5 5 (obj-id (ship-observers ship)) "Observe") buttons))
-  
+      (cond
+        ((multipod? p)
+         (define mr (multipod-multirole p))
+         (send dc scale 1 -1)
+         (send dc draw-text (format "~a" (role-name (multirole-role mr))) 0 10)
+         (define-values (x y) (dc->canon canvas dc 0 65))
+         (set! buttons (cons (button x y 65 30 5 5 (obj-id mr) "Deploy") buttons))
+         (for ((r (multirole-roles mr))
+               (i (in-naturals)))
+           (send dc draw-text (player-name (role-player r)) 0 (+ 70 (* i 20)))))
+        (else
+         (define role (pod-role p))
+         (send dc scale 1 -1)
+         (send dc draw-text (format "~a" (role-name role)) 0 10)
+         
+         (cond
+           ((role-player role)
+            (send dc draw-text (player-name (role-player role)) 0 35))
+           (else
+            (define-values (x y) (dc->canon canvas dc 0 65))
+            (set! buttons (cons (button x y 65 30 5 5 (obj-id role) "Deploy") buttons)))))))) 
   buttons)
 

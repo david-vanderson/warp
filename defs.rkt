@@ -58,11 +58,8 @@
 
 (struct multirole obj (role start? roles) #:mutable #:prefab)
 ; role is the role that players joining this multirole get
-; roles is a list of roles with players
 ; start? is #t if new players can start in this role
-
-(struct observer role () #:mutable #:prefab)
-; role where you don't do anything but you see the "captain's view"
+; roles is a list of roles with players
 
 (struct crewer role () #:mutable #:prefab)
 ; special role used to contain players while they are choosing their next role
@@ -71,6 +68,13 @@
 ; angle/dist is where this pod is with respect to the ship
 ; facing is where the pod is directed towards (with respect to the ship)
 ; spread is angle within which we can shoot (centered on facing)
+
+(struct multipod pod (multirole) #:mutable #:prefab)
+
+(struct observation multipod () #:mutable #:prefab)
+
+(struct observer role () #:mutable #:prefab)
+; role where you don't do anything but you see the "captain's view"
 
 (struct helm pod () #:mutable #:prefab)
 
@@ -91,7 +95,7 @@
 (struct tactics role (shield) #:mutable #:prefab)
 ; shield is an angle if we want to shoot a shield barrier (at that angle)
 
-(struct ship obj (name npc? faction observers crew reactor containment pods) #:mutable #:prefab)
+(struct ship obj (name npc? faction crew reactor containment pods) #:mutable #:prefab)
 ; npc? is #t if this ship is computer controlled
 ; faction is the name that this ship belongs to
 ; reactor is the energy produced by the reactor
@@ -172,14 +176,15 @@
 (define (get-children o)
   ;(printf "get-children: ~v\n" o)
   (cond
+    ((or (plasma? o)
+         (shield? o)
+         (player? o))
+     (list))
     ((space? o) (space-objects o))
-    ((plasma? o) (list))
-    ((ship? o) (filter values (append (list (ship-observers o) (ship-crew o))
-                                      (ship-pods o))))
+    ((ship? o) (filter values (cons (ship-crew o) (ship-pods o))))
     ((multirole? o) (multirole-roles o))
     ((role? o) (filter values (list (role-player o))))
-    ((shield? o) (list))
-    ((player? o) (list))
+    ((multipod? o) (list (multipod-multirole o)))
     ((pod? o) (list (pod-role o)))
     (else
      (printf "get-children hit ELSE clause, o ~v\n" o)
@@ -254,13 +259,16 @@
 
 (define (big-ship name npc? faction x y r fore?)
   (ship (next-id) #f (posvel x y r 0 0 0) name npc? faction
-        (if npc? #f (multirole (next-id) #f #f (observer (next-id) #f #f #f) #f '()))
         (if npc? #f (multirole (next-id) #f #f (crewer (next-id) #f #f #f) #t '()))
         110 100
         (list
          (helm (next-id) #f #f
                (pilot (next-id) #f #f #f r fore?)
                0 0 #f #f)
+         (observation (next-id) #f #f #f 0 10 #f #f
+                      (multirole (next-id) #f #f (observer (next-id) #f #f #f) #f
+                                 (list (observer (next-id) #f #f (player (next-id) #f #f "Andrea"))
+                                       (observer (next-id) #f #f (player (next-id) #f #f "Andrea")))))
          (weapon (next-id) #f #f
                  (weapons (next-id) #f #f (player (next-id) #f #f "Andrea") #f)
                  (/ pi 4) (sqrt 200) (/ pi 4) (/ pi 2))
