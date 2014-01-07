@@ -26,9 +26,27 @@
       (set! id (add1 id))
       id)))
 
+(define (remain a b)
+  (define z (/ a b))
+  (* b (- z (floor z))))
+
 (define (debug fmt . args)
   (apply printf fmt args)
   (list-ref args (sub1 (length args))))
+
+(define-syntax-rule (define/time (name arg ...) e ...)
+  (define (name arg ...)
+    (define start (current-milliseconds))
+    (define ret (let () e ...))
+    (printf "~a ~a\n" (object-name name) (- (current-milliseconds) start))
+    ret))
+
+(define-syntax-rule (with-time name e ...)
+  (begin
+    (define start (current-milliseconds))
+    (define ret (let () e ...))
+    (printf "~a ~a\n" name (- (current-milliseconds) start))
+    ret))
 
 ;; Game State
 
@@ -102,9 +120,8 @@
 ; containment is the reactor health left
 ; pods is a list of all the pods on the ship
 
-(struct space (time sizex sizey objects) #:mutable #:prefab)
+(struct space (time width height objects) #:mutable #:prefab)
 ; time is msec since the scenario started
-; sizex and sizey are how big space is
 
 
 ;; Messages

@@ -3,7 +3,8 @@
 (require racket/math)
 
 (require "defs.rkt"
-         "physics.rkt")
+         "physics.rkt"
+         "tactics.rkt")
 
 (provide (all-defined-out))
 
@@ -13,7 +14,8 @@
   (define ships (filter ship? objects))
   (define aiships (filter ship-npc? ships))
   (for ((s aiships))
-    (set! u (or u (ai-steer! space ships s))))
+    (set! u (or u (ai-steer! space ships s)))
+    (set! u (or u (ai-tactics! space ships s))))
   u)
 
 
@@ -59,3 +61,15 @@
       (printf "~a stopping\n" (ship-name ownship))
       (set! u #t)))
   u)
+
+
+(define (ai-tactics! space ships ownship)
+  (for ((tstack (search ownship tactics? #t)))
+    (cond
+      (((random) . > . 0.9)
+       (define pod (get-pod tstack))
+       (define ps (obj-posvel ownship))
+       (define podangle (+ (posvel-r ps) (pod-angle pod)))
+       (command-tactics (struct-copy tactics (car tstack) (shield podangle))
+        space tstack))))
+  #f)

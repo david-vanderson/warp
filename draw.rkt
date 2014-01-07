@@ -17,6 +17,12 @@
 (define ship-bitmap (make-bitmap 1 1))
 (send ship-bitmap load-file "images/ship.png" 'png/alpha)
 
+(define stars1-bitmap (make-bitmap 1 1))
+(send stars1-bitmap load-file "images/stars.png" 'png/alpha)
+
+(define background-bitmap (make-bitmap 1 1))
+(send background-bitmap load-file "images/background.jpg")
+
 
 (define (add-frame-time current-time frames)
   (cons current-time (take frames (min 10 (length frames)))))
@@ -32,26 +38,24 @@
       (send dc draw-text (format "~a" (truncate (/ (- (length frames) 1) span))) 0 0))))
 
 
-(define (draw-background dc ownspace center)
-  (define x (- (posvel-x (obj-posvel center))))
-  (define y (- (posvel-y (obj-posvel center))))
-  (send dc set-brush nocolor 'transparent)
-  (send dc draw-rectangle (- x 250) (- y 250) 500 500))
-
-
-(define ship-external
-  '((10 . 10)
-    (0 . 20)
-    (-10 . 10)
-    (-10 . -10)
-    (10 . -10)))
-
-(define ship-internal
-  '((10 . 10)
-    (0 . 20)
-    (-10 . 10)
-    (-10 . -10)
-    (10 . -10)))
+(define (draw-background dc space center bitmap scale parallax)
+  (define repeatx (* scale (send bitmap get-width)))
+  (define repeaty (* scale (send bitmap get-height)))
+  (define x (remain (+ (* parallax (posvel-x (obj-posvel center)))
+                       (/ (space-width space) 2)) repeatx))
+  (define y (remain (+ (* parallax (posvel-y (obj-posvel center)))
+                       (/ (space-height space) 2)) repeaty))
+  (for* ((i (in-range (- (ceiling (/ (- (/ WIDTH 2) x) repeatx)))
+                      (ceiling (/ (+ (/ WIDTH 2) x) repeatx))))
+         (k (in-range (- (ceiling (/ (- (/ HEIGHT 2) y) repeaty)))
+                      (ceiling (/ (+ (/ HEIGHT 2) y) repeaty)))))
+    
+    (define xstart (- (* i repeatx) x))
+    (define ystart (- (* k repeaty) y))
+    (keep-transform dc
+      (send dc translate xstart ystart)
+      (send dc scale scale scale)
+      (send dc draw-bitmap bitmap 0 0))))
 
 
 (define (draw-object dc o center space)
@@ -65,7 +69,8 @@
 
 
 (define (draw-view dc center space)
-  (draw-background dc space center)
+  (draw-background dc space center background-bitmap 3 0.5)
+  (draw-background dc space center stars1-bitmap 8 1)
   (for ((o (space-objects space)))
     (draw-object dc o center space)))
 
@@ -77,25 +82,28 @@
     
     (keep-transform dc
       (send dc rotate (- (posvel-r (obj-posvel s))))
+      (send dc set-pen fgcolor 1 'solid)
+      (send dc set-brush nocolor 'transparent)
       (send dc draw-bitmap
               ship-bitmap
               (- (/ (send ship-bitmap get-width) 2))
               (- (/ (send ship-bitmap get-height) 2)))
-      (send dc set-pen fgcolor 1 'solid)
-      (send dc set-brush nocolor 'transparent)
+      
       (for ((pod (ship-pods s)))
         (draw-pod dc pod)))
     
-    (define scale 0.5)
-    (send dc scale scale (- scale))
-    (define text (~r (ship-containment s) #:precision 0))
-    (define-values (w h b v) (send dc get-text-extent text #f #t))
-    (send dc translate (* -0.5 w) (* -0.5 h))
-    (send dc set-brush fgcolor 'solid)
-    (send dc set-pen nocolor 1 'transparent)
-    (let ((p (new dc-path%)))
-      (send p text-outline (send dc get-font) text 0 0)
-      (send dc draw-path p 0 0))))
+;    (define scale 0.5)
+;    (send dc scale scale (- scale))
+;    (define text (~r (ship-containment s) #:precision 0))
+;    (define-values (w h b v) (send dc get-text-extent text #f #t))
+;    (send dc translate (* -0.5 w) (* -0.5 h))
+;    (send dc set-pen nocolor 1 'transparent)
+;    (send dc set-brush fgcolor 'solid)
+;    (let ((p (new dc-path%)))
+;      (send p text-outline (send dc get-font) text 0 0)
+;      (send dc draw-path p 0 0))
+    )
+  )
 
 
 ; assuming dc is already centered on middle of ship and rotated for the ship
@@ -109,20 +117,15 @@
 
 (define (draw-no-role dc space)
   (keep-transform dc
-    (define max-x (space-sizex space))
-    (define max-y (space-sizey space))
+    (define max-x (space-width space))
+    (define max-y (space-height space))
     (define scale (min (/ WIDTH max-x) (/ HEIGHT max-y)))
     (send dc scale scale scale)
     (define center (obj #f #f (posvel 0 0 0 0 0 0)))
-    (draw-background dc space center)
+    (draw-background dc space center background-bitmap 3 0.5)
+    (draw-background dc space center stars1-bitmap 8 1)
     (for ((o (space-objects space)))
-      (cond
-        ((ship? o)
-         (draw-ship dc o center))
-        ((plasma? o)
-         (draw-plasma dc o center space))
-        ((shield? o)
-         (draw-shield dc space center o)))))
+      (draw-object dc o center space)))
   
   (define start-stacks
     (search space (lambda (o) (and (multirole? o)

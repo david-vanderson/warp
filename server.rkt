@@ -143,6 +143,11 @@
 
 (module+ main
   
-  (define ownspace (space 0 2000 2000 (list (big-ship 0 0 "Ship1") (big-ship 200 0 "Ship2"))))
+  (define ownspace
+  (space
+   0 2000 2000
+   (list
+    (big-ship "Rebel1" #f "Rebel" 0 0 0 #f)
+    (big-ship "Empire1" #t "Empire" 400 0 pi #f))))
   
   (start-server PORT ownspace))

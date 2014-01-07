@@ -17,6 +17,7 @@
     (current-eventspace (make-eventspace)))
   
   (define ownspace #f)
+  (define serverspace #f)
   (define my-stack #f)
   (define buttons #f)
   (define frames '())  ; list of last few frame times
@@ -189,6 +190,9 @@
         (set! start-time (- start-time 10)))
       
       (set! ownspace update)
+      
+      (set! serverspace (read (open-input-string (with-output-to-string (lambda () (write update))))))
+      
       (set! my-stack (find-stack ownspace (obj-id me))))
     
     
@@ -204,7 +208,7 @@
     ;rendering
     (set! frames (add-frame-time current-time frames))
     (send canvas refresh-now)
-      
+          
     ; sleep so we don't hog the whole racket vm
     (define sleep-time (- (calc-dt
                            (current-milliseconds) start-time
