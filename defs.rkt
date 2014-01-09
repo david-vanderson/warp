@@ -26,31 +26,10 @@
       (set! id (add1 id))
       id)))
 
-(define (remain a b)
-  (define z (/ a b))
-  (* b (- z (floor z))))
-
-(define (debug fmt . args)
-  (apply printf fmt args)
-  (list-ref args (sub1 (length args))))
-
-(define-syntax-rule (define/time (name arg ...) e ...)
-  (define (name arg ...)
-    (define start (current-milliseconds))
-    (define ret (let () e ...))
-    (printf "~a ~a\n" (object-name name) (- (current-milliseconds) start))
-    ret))
-
-(define-syntax-rule (with-time name e ...)
-  (begin
-    (define start (current-milliseconds))
-    (define ret (let () e ...))
-    (printf "~a ~a\n" name (- (current-milliseconds) start))
-    ret))
-
 ;; Game State
 
-(struct posvel (x y r dx dy dr) #:mutable #:prefab)
+(struct posvel (t x y r dx dy dr) #:mutable #:prefab)
+; t is the last spacetime that this posvel was sent to clients
 
 (struct obj (id start-time posvel) #:mutable #:prefab)
 ; id is used to uniquely identify any game object
@@ -124,12 +103,30 @@
 ; time is msec since the scenario started
 
 
-;; Messages
+;; Changes
+;; client sends a single change at a time, server sends a list to clients
 
-;; Most messages are just role? structs, but here are the exceptions
+;; Most changes are just role? structs, but here are the exceptions
 
 (struct role-change (player from to) #:mutable #:prefab)
 ; from and to are a role? id, multirole? id, or #f (no role)
+
+
+;; Update from server to client
+
+(struct update (time changes pvs) #:mutable #:prefab)
+; time is ms since scenario started
+; changes is list of above structs
+; pvs is a list of pvupdates
+
+(struct chadd (o) #:mutable #:prefab)
+; o is the new object to add to space-objects
+
+(struct pvupdate (id pv) #:mutable #:prefab)
+; id is the object we want to update
+; pv is the new posvel
+
+
 
 
 ;; UI
@@ -147,38 +144,6 @@
 
 
 ;; Utilities
-
-(define (ship-pilot s)
-  (pod-role (car (memf helm? (ship-pods s)))))
-
-(define (recenter center o)
-  (values (- (posvel-x (obj-posvel o)) (posvel-x (obj-posvel center)))
-          (- (posvel-y (obj-posvel o)) (posvel-y (obj-posvel center)))))
-
-(define (get-role stack)
-  (if stack (cadr stack) #f))
-
-(define (get-pod stack)
-  (car (memf pod? stack)))
-
-(define (get-ship stack)
-  (car (memf ship? stack)))
-
-(define (get-center stack)
-  (define center (cadr (reverse stack)))
-  (define spv (obj-posvel center))
-  (define p (memf pod? stack))
-  (cond (p
-         (define pod (car p))
-         (obj #f #f (posvel (+ (posvel-x spv)
-                               (* (pod-dist pod) (cos (+ (posvel-r spv) (pod-angle pod)))))
-                            (+ (posvel-y spv)
-                               (* (pod-dist pod) (sin (+ (posvel-r spv) (pod-angle pod)))))
-                            (posvel-r spv) 0 0 0)))
-        (else center)))
-
-(define (get-space stack)
-  (car (reverse stack)))
 
 
 (define (role-name role)
@@ -208,74 +173,9 @@
      (error)
      (list))))
 
-; returns a list of stacks of all objects from ownspace
-; to the object with the given id (found object first)
-(define (search o id (multiple? #f) (stack '()))
-  (let/ec found
-    (cond
-      ((and (not (space? o)) (integer? id) (= id (obj-id o)))
-       (list (cons o stack)))
-      ((and (not (space? o)) (procedure? id) (id o))
-       (list (cons o stack)))
-      (else
-       (define results
-         (for/list ((c (get-children o)))
-           (define r (search c id multiple? (cons o stack)))
-           (if (and (not multiple?)
-                    (not (null? r)))
-               (found r)
-               r)))
-       (filter (negate null?) (apply append results))))))
-
-(define (find-all o id)
-  (map car (search o id #t)))
-
-(define (find-stack o id)
-  (define r (if id (search o id) null))
-  (if (null? r) #f (car r)))
-
-(define (find-id o id)
-  (define r (find-stack o id))
-  (if r (car r) #f))
-
-(define (angle-norm r)
-  (cond ((r . >= . 2pi) (- r 2pi))
-        ((r . < . 0) (+ r 2pi))
-        (else r)))
-
-(define (angle-add r theta)
-  (angle-norm (+ r theta)))
-
-(define (angle-sub r theta)
-  (angle-norm (- r theta)))
-
-; gives angular distance and direction (-pi to pi)
-(define (angle-diff from to)
-  (define diff (- to from))
-  (cond (((abs diff) . <= . pi) diff)
-        ((diff . > . pi) (- diff 2pi))
-        (else (+ 2pi diff))))
-
-
-(define (random-between a b)
-  (+ a (* (- b a) (random))))
-
-  
-(define (distance o1 o2)
-  (define dx (- (posvel-x (obj-posvel o1)) (posvel-x (obj-posvel o2))))
-  (define dy (- (posvel-y (obj-posvel o1)) (posvel-y (obj-posvel o2))))
-  (sqrt (+ (* dx dx) (* dy dy))))
-
-
-(define (theta from to)
-  (define dx (- (posvel-x (obj-posvel to)) (posvel-x (obj-posvel from))))
-  (define dy (- (posvel-y (obj-posvel to)) (posvel-y (obj-posvel from))))
-  ;(printf "dx ~a, dy ~a\n" dx dy)
-  (atan dy dx))
-
 
 (define (big-ship name npc? faction x y r fore?)
-  (ship (next-id) #f (posvel x y r 0 0 0) name npc? faction
+  (ship (next-id) #f (posvel 0 x y r 0 0 0) name npc? faction
         (if npc? #f (multirole (next-id) #f #f (crewer (next-id) #f #f #f) #t '()))
         110 100
         (list
@@ -287,7 +187,7 @@
                                  (list (observer (next-id) #f #f (player (next-id) #f #f "Andrea"))
                                        (observer (next-id) #f #f (player (next-id) #f #f "Andrea")))))
          (weapon (next-id) #f #f
-                 (weapons (next-id) #f #f (player (next-id) #f #f "Andrea") #f)
+                 (weapons (next-id) #f #f #f #f)
                  (/ pi 4) (sqrt 200) (/ pi 4) (/ pi 2))
          (tactical (next-id) #f #f
                    (tactics (next-id) #f #f #f #f)

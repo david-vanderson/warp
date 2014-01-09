@@ -4,6 +4,7 @@
          racket/draw)
 
 (require "defs.rkt"
+         "utils.rkt"
          "draw-utils.rkt")
 
 (provide (all-defined-out))

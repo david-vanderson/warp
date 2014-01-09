@@ -4,22 +4,15 @@
          racket/math)
 
 (require "defs.rkt"
+         "utils.rkt"
          "draw-utils.rkt"
          "draw.rkt")
 
 (provide (all-defined-out))
 
+;; client/server
 
-; client
-(define (click-weapons x y button stack)
-  (define role (get-role stack))
-  ; we are firing, need the angle
-  (define fangle (angle-norm (atan y x)))
-  (struct-copy weapons role (fire fangle)))
-
-
-; server
-(define (command-weapons cmd space stack)
+(define (update-weapons cmd space stack)
   (define role (get-role stack))
   (define pod (get-pod stack))
   (define ship (get-ship stack))
@@ -39,17 +32,26 @@
      (define rvy (* 1 (* (pod-dist pod) (posvel-dr ps)) (cos podangle)))
      
      (define p (plasma (next-id) (space-time space)
-                       (posvel x y 0
+                       (posvel (space-time space) x y 0
                                (+ (* 60 (cos a)) (posvel-dx ps) rvx)
                                (+ (* 60 (sin a)) (posvel-dy ps) rvy)
                                0)
                        10.0 (obj-id ship) '()))
-     (set-space-objects! space (cons p (space-objects space))))
+     (set-space-objects! space (cons p (space-objects space)))
+     (list (chadd p)))
     (else
      (error "command-weapons hit ELSE clause"))))
 
 
-; client
+;; client
+
+(define (click-weapons x y button stack)
+  (define role (get-role stack))
+  ; we are firing, need the angle
+  (define fangle (angle-norm (atan y x)))
+  (struct-copy weapons role (fire fangle)))
+
+
 (define (draw-weapons dc stack)
   (define ship (get-ship stack))
   (define spv (obj-posvel ship))

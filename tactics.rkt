@@ -5,33 +5,26 @@
          racket/list)
 
 (require "defs.rkt"
+         "utils.rkt"
          "draw-utils.rkt"
          "draw.rkt")
 
 (provide (all-defined-out))
 
+;; client/server
 
-; client
-(define (click-tactics x y button stack)
-  (define role (get-role stack))
-  ; we are firing, need the angle
-  (define fangle (angle-norm (atan y x)))
-  (struct-copy tactics role (shield fangle)))
-
-
-; server
-(define (command-tactics cmd space stack)
+(define (update-tactics c space stack)
   (define role (get-role stack))
   (define pod (get-pod stack))
   (define ship (get-ship stack))
   (cond
-    ((tactics-shield cmd)
+    ((tactics-shield c)
      ; we are firing
      (define ps (obj-posvel ship))
      (define podangle (+ (posvel-r ps) (pod-angle pod)))
      (define px (+ (posvel-x ps) (* (pod-dist pod) (cos podangle))))
      (define py (+ (posvel-y ps) (* (pod-dist pod) (sin podangle))))
-     (define a (tactics-shield cmd))
+     (define a (tactics-shield c))
      (define x (+ px (* 5 (cos a))))
      (define y (+ py (* 5 (sin a))))
      
@@ -40,18 +33,26 @@
      (define rvy (* 1 (* (pod-dist pod) (posvel-dr ps)) (cos podangle)))
      
      (define s (shield (next-id) (space-time space)
-                       (posvel x y a
+                       (posvel (space-time space) x y a
                                (+ (* 40 (cos a)) (posvel-dx ps) rvx)
                                (+ (* 40 (sin a)) (posvel-dy ps) rvy)
                                0)
                        20.0 15.0))
      (set-space-objects! space (cons s (space-objects space)))
-     )
+     (list (chadd s)))
     (else
-     (error "command-tactics hit ELSE clause"))))
+     (error "update-tactics hit ELSE clause"))))
 
 
-; client
+;; client
+
+(define (click-tactics x y button stack)
+  (define role (get-role stack))
+  ; we are firing, need the angle
+  (define fangle (angle-norm (atan y x)))
+  (struct-copy tactics role (shield fangle)))
+
+
 (define (draw-tactics dc stack)
   (define ship (get-ship stack))
   (define spv (obj-posvel ship))

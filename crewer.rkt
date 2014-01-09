@@ -4,6 +4,7 @@
          racket/math)
 
 (require "defs.rkt"
+         "utils.rkt"
          "draw-utils.rkt"
          "draw.rkt")
 

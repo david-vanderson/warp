@@ -4,10 +4,9 @@
          racket/math)
 
 (require "defs.rkt"
+         "utils.rkt"
+         "change.rkt"
          "physics.rkt"
-         "pilot.rkt"
-         "weapons.rkt"
-         "tactics.rkt"
          "ai.rkt")
 
 (provide start-server)
@@ -20,82 +19,14 @@
 
 ;; Server Utilities
 
-(define (copy-role r)
-  (cond
-    ((observer? r) (struct-copy observer r))
-    ((crewer? r) (struct-copy crewer r))
-    (else (error "copy-role hit ELSE clause, role:\n" r))))
-
-
-(define (join-role! r p)
-  ;(printf "player ~v joining role ~v\n" p r)
-  (cond
-    ((and (role? r) (not (role-player r)))
-     (set-role-player! r p)
-     #t)
-    ((multirole? r)
-     (define new-role (copy-role (multirole-role r)))
-     (set-role-player! new-role p)
-     (set-multirole-roles!
-      r (cons new-role (multirole-roles r)))
-     #t)
-    ((not r)
-     #t)  ; can always leave space
-    (else #f)))
-
-
-(define (leave-role! stack p)
-  (define r (car stack))  ; will always be a role?
-  (define con (cadr stack))  ; could be multirole?
-  ;(printf "player ~v leaving role ~v\n" p r)
-  (cond
-    ((multirole? con)
-     (define seen #f)  ; always remove the first instance of player
-     (set-multirole-roles!
-      con (filter (lambda (xr) (or (not (equal? (role-player xr) p))
-                                   (begin0 seen (set! seen #t))))
-                  (multirole-roles con))))
-    (else (set-role-player! r #f))))
-
-
-(define (receive-command cmd)
-  ;(printf "receive-command ~v\n" cmd)
-  (cond
-    ((role-change? cmd)
-     (define p (role-change-player cmd))
-     (define from (find-stack ownspace (role-change-from cmd)))
-     (define to (find-id ownspace (role-change-to cmd)))
-     (when (join-role! to p)
-       (when from (leave-role! from p))))
-    ((role? cmd)
-     ; find our role
-     (define stack (find-stack ownspace (obj-id (role-player cmd))))
-     (cond
-       ((weapons? cmd) (command-weapons cmd ownspace stack))
-       ((tactics? cmd) (command-tactics cmd ownspace stack))
-       ((pilot? cmd) (command-pilot cmd ownspace stack))
-       (else
-        (error "command role hit ELSE clause ~v" cmd))))))
-
 
 (define previous-physics-time #f)
-(define previous-send-time (current-milliseconds))
 
 (define (server-loop)
   (define current-time (current-milliseconds))
   (when (not previous-physics-time)
     (set! previous-physics-time current-time))
   (define need-update #f)
-  
-  ; physics
-  (let loop ()
-    (when (TICK . < . (- current-time previous-physics-time))
-      (set! previous-physics-time (+ previous-physics-time TICK))
-      (update-physics! ownspace (/ TICK 1000.0))
-      (set-space-time! ownspace (+ (space-time ownspace) TICK))
-      (update-effects! ownspace)
-      (set! need-update (or need-update (run-ai! ownspace)))
-      (loop)))
   
   ; process new clients
   (when (tcp-accept-ready? server-listener)
@@ -107,25 +38,56 @@
     
     (set! client-in-ports (cons in client-in-ports))
     (set! client-out-ports (cons out client-out-ports))
-    (set! need-update #t))
+    
+    ; send full state to new client
+    (write ownspace out)
+    (flush-output out))
+  
+  (define updates '())
+  
+  ; physics
+  (when (TICK . < . (- current-time previous-physics-time))
+    (set! previous-physics-time (+ previous-physics-time TICK))
+    (set-space-time! ownspace (+ (space-time ownspace) TICK))
+    (for ((o (space-objects ownspace))) (update-physics! ownspace o (/ TICK 1000.0)))
+    (update-effects! ownspace)
+    (set! need-update (or need-update (run-ai! ownspace))))
+  
+  ; XXX run the ai, return list of changes
+  ; XXX process the ai changes
   
   ; process commands
   (for ((p client-in-ports))
-    (let loop ()
-      (when (byte-ready? p)
-        (define x (read p))
-        (receive-command x)
-        (set! need-update #t)
-        (loop))))
+    (while (byte-ready? p)
+      (define x (read p))
+      ;(printf "server applying command ~v\n" x)
+      (define changes (apply-change! ownspace x #f))
+      (if changes
+          (set! updates (append changes updates))
+          (printf "server made no change ~v\n" x))
+      (set! need-update #t)))
   
-  ; send out updated world
-  (when (or need-update
-            (SERVER_SEND_DELAY . < . (- current-time previous-send-time)))
-    (set! previous-send-time current-time)
-    (for ((p client-out-ports))
-      ;(printf "server sending ~a\n" (space-time ownspace))
-      (write ownspace p)
-      (flush-output p)))
+  ; find least-recently sent posvels
+  (define objs
+    (sort (find-all ownspace (lambda (o) (obj-posvel o)))
+          (lambda (o1 o2) (> (- (space-time ownspace) (posvel-t (obj-posvel o1)))
+                             (- (space-time ownspace) (posvel-t (obj-posvel o2)))))))
+  (define oldest (- (space-time ownspace) (posvel-t (obj-posvel (car objs)))))
+  (when (oldest . > . 1000)
+    (printf "server oldest posvel is ~a\n" oldest))
+  (define pvupdates
+    (for/list ((o objs) (i 10))
+      (define pv (obj-posvel o))
+      (set-posvel-t! pv (space-time ownspace))
+      (pvupdate (obj-id o) pv)))
+  
+  
+  ; send out updates
+  (define u (update (space-time ownspace) updates pvupdates))
+  (for ((p client-out-ports))
+    ;(printf "server sending ~v\n" u)
+    (write u p)
+    (flush-output p))
   
   ; sleep so we don't hog the whole racket vm
   (define sleep-time (- (+ previous-physics-time TICK 1)
@@ -148,6 +110,6 @@
    0 2000 2000
    (list
     (big-ship "Rebel1" #f "Rebel" 0 0 0 #f)
-    (big-ship "Empire1" #t "Empire" 400 0 pi #f))))
+    (big-ship "Empire1" #f "Empire" 400 0 pi #f))))
   
   (start-server PORT ownspace))

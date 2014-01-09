@@ -1,8 +1,7 @@
 #lang racket/base
 
-(require racket/math)
-
 (require "defs.rkt"
+         "utils.rkt"
          "plasma.rkt"
          "shield.rkt")
 
@@ -71,25 +70,24 @@
 
 
 ; This is used on both server and client (for prediction)
-(define (update-physics! ownspace dt)
-  (for ((o (space-objects ownspace)))
-    (cond
-      ((ship? o)
-       (define-values (ddx ddy ddr) (steer! o dt))
-       (physics! (obj-posvel o) dt #t ddx ddy ddr))
-      ((plasma? o)
-       (physics! (obj-posvel o) dt #f 0 0 0)
-       (when ((- (space-time ownspace) (obj-start-time o)) . > . 5000)
-         (reduce-plasma! ownspace o (* dt 10/5))))
-      ((shield? o)
-       (physics! (obj-posvel o) dt #t 0 0 0)
-       (when ((- (space-time ownspace) (obj-start-time o)) . > . 10000)
-         (reduce-shield! ownspace o (* dt 20/10)))))))
+(define (update-physics! space o dt)
+  (cond
+    ((ship? o)
+     (define-values (ddx ddy ddr) (steer! o dt))
+     (physics! (obj-posvel o) dt #t ddx ddy ddr))
+    ((plasma? o)
+     (physics! (obj-posvel o) dt #f 0 0 0)
+     (when (plasma-dead? space o)
+       (set-space-objects! space (remove o (space-objects space)))))
+    ((shield? o)
+     (physics! (obj-posvel o) dt #t 0 0 0)
+     (when ((- (space-time space) (obj-start-time o)) . > . 10000)
+       (reduce-shield! space o (* dt 20/10))))))
 
 
 (define (plasma-hit-ship! space ship p)
   (when (and (not (equal? (plasma-ownship-id p) (obj-id ship)))
-             ((distance ship p) . < . (+ 10 (plasma-radius p))))
+             ((distance ship p) . < . (+ 10 (plasma-radius space p))))
     (define damage (plasma-energy p))
     (reduce-plasma! space p damage)
     (reduce-reactor! space ship damage)))
@@ -102,7 +100,7 @@
   (define y (+ (* -1 px (sin r)) (* py (cos r))))
   ; x,y are now the position of the plasma in the coord space of the shield
   ; shield is along the y axis
-  (define rad (plasma-radius p))
+  (define rad (plasma-radius space p))
   (define l (shield-length shield))
   (when (and (< (- rad) x rad)
              (< (- (- (/ l 2)) rad) y (+ (/ l 2) rad)))
@@ -125,6 +123,6 @@
   (for ((p plasmas))
     (for ((shield shields))
       (plasma-hit-shield! space shield p))
-    (when (not (plasma-dead? p))
+    (when (not (plasma-dead? space p))
       (for ((ship ships))
         (plasma-hit-ship! space ship p)))))

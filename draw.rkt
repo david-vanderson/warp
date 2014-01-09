@@ -7,6 +7,7 @@
          racket/draw)
 
 (require "defs.rkt"
+         "utils.rkt"
          "draw-utils.rkt"
          "plasma.rkt"
          "shield.rkt")
@@ -121,7 +122,7 @@
     (define max-y (space-height space))
     (define scale (min (/ WIDTH max-x) (/ HEIGHT max-y)))
     (send dc scale scale scale)
-    (define center (obj #f #f (posvel 0 0 0 0 0 0)))
+    (define center (obj #f #f (posvel 0 0 0 0 0 0 0)))
     (draw-background dc space center background-bitmap 3 0.5)
     (draw-background dc space center stars1-bitmap 8 1)
     (for ((o (space-objects space)))

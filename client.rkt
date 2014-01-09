@@ -1,6 +1,8 @@
 #lang racket/gui
 
 (require "defs.rkt"
+         "utils.rkt"
+         "change.rkt"
          "physics.rkt"
          "draw-utils.rkt"
          "draw.rkt"
@@ -17,10 +19,10 @@
     (current-eventspace (make-eventspace)))
   
   (define ownspace #f)
-  (define serverspace #f)
   (define my-stack #f)
   (define buttons #f)
   (define frames '())  ; list of last few frame times
+  (define last-update-time #f)
   
   ; connect to server
   (define-values (server-in-port server-out-port)
@@ -36,7 +38,6 @@
   ; read a player struct that has our unique id
   (define me (read server-in-port))
   (set-player-name! me name)
-  
   
   
   (define (click-button? buttons x y)
@@ -80,6 +81,8 @@
   
   
   (define (draw-screen canvas dc)
+;    (when (and serverspace ownspace)
+;      (printf "serverspace time ~a\n   ownspace time ~a\n" (space-time serverspace) (space-time ownspace)))
     (send dc set-smoothing 'smoothed)
     (send dc set-background bgcolor)
     (send dc set-text-foreground fgcolor)
@@ -174,53 +177,71 @@
 ;    (printf "client current-time ~a\n" current-time)
     
     ; get new world
-    (when (byte-ready? server-in-port)
-      ;(printf "client byte-ready, ")
-      (define update (read server-in-port))
-      ;(printf "update: ~v\n" update)
-      ;(printf "update ~a\n" (space-time update))
-      (when (not start-space-time)
-        (set! start-space-time (space-time update))
-        (set! start-time current-time))
+    (define n 0)
+    (while (byte-ready? server-in-port)
+      (set! n (add1 n))
+      (define input (read server-in-port))
+      ;(printf "client input: ~v\n" input)
+      (cond ((space? input)
+             (set! ownspace input)
+             (set! start-space-time (space-time ownspace))
+             (set! start-time current-time)
+             (set! last-update-time start-space-time))
+            ((update? input)
+             (when (not (= (update-time input) (+ last-update-time TICK)))
+               (error "UPDATE TIMES DID NOT MATCH\n"))
+             (set! last-update-time (update-time input))
+             
+             ;(printf "client update space-time ~a update-time ~a\n" (space-time ownspace) (update-time input))
+             
+             (when ((space-time ownspace) . < . (update-time input))
+               ;(printf "ticking ownspace forward for input\n")
+               (set-space-time! ownspace (+ (space-time ownspace) TICK))
+               (for ((o (space-objects ownspace))) (update-physics! ownspace o (/ TICK 1000.0))))
+             (for ((c (update-changes input)))
+               ;(printf "client applying change ~v\n" c)
+               (apply-change! ownspace c (update-time input)))
+             (for ((pvu (update-pvs input)))
+               (update-posvel! ownspace pvu (update-time input)))))
       
-      ; If the first ownspace is delayed, then our own clock got started late
-      (define dt (calc-dt current-time start-time (space-time update) start-space-time))
+      ; If the first space is delayed, then our own clock got started late
+      (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))
       (when (dt . < . 0)
         (printf "started too late ~a\n" dt)
-        (set! start-time (- start-time 10)))
-      
-      (set! ownspace update)
-      
-      (set! serverspace (read (open-input-string (with-output-to-string (lambda () (write update))))))
-      
-      (set! my-stack (find-stack ownspace (obj-id me))))
+        (set! start-time (- start-time 10))))
     
+    ;(printf "client got updates ~a\n" n)
     
-    ; physics prediction
     (when ownspace
-      (let loop ()
-        (when (TICK . < . (calc-dt current-time start-time (space-time ownspace) start-space-time))
-          (update-physics! ownspace (/ TICK 1000.0))
-          (set-space-time! ownspace (+ (space-time ownspace) TICK))
-          (update-effects! ownspace)
-          (loop))))
+      ;(set! ownspace (read (open-input-string (with-output-to-string (lambda () (write serverspace))))))
+      (set! ownspace ownspace)
+      (set! my-stack (find-stack ownspace (obj-id me)))
+    
+      ; physics prediction
+      (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))
+      (when (dt . > . TICK)
+        ;(printf "client ticking forward for prediction\n")
+        (for ((o (space-objects ownspace))) (update-physics! ownspace o (/ TICK 1000.0)))
+        (set-space-time! ownspace (+ (space-time ownspace) TICK))))
     
     ;rendering
     (set! frames (add-frame-time current-time frames))
     (send canvas refresh-now)
           
     ; sleep so we don't hog the whole racket vm
-    (define sleep-time (- (calc-dt
-                           (current-milliseconds) start-time
-                           (+ (space-time ownspace) TICK) start-space-time)))
-    (if (sleep-time . > . 0)
-        (new timer%
-             (notify-callback (lambda () (queue-callback client-loop #f)))
-             (interval (+ 1 (inexact->exact (floor sleep-time))))
-             (just-once? #t))
-        (begin
-          (printf "client skipping sleep ~a\n" sleep-time)
-          (queue-callback client-loop #f))))
+    (define sleep-time (- (calc-dt (current-milliseconds) start-time
+                                   (+ (space-time ownspace) TICK) start-space-time)))
+    (cond
+      ((sleep-time . > . 0)
+       ;(printf "client sleeping ~a\n" sleep-time)
+       (new timer%
+            (notify-callback (lambda () (queue-callback client-loop #f)))
+            (interval (+ 1 (inexact->exact (floor sleep-time))))
+            (just-once? #t)))
+      (else
+       (begin
+         (printf "client skipping sleep ~a\n" sleep-time)
+         (queue-callback client-loop #f)))))
   
   (queue-callback client-loop #f))
 

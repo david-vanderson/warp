@@ -3,6 +3,7 @@
 (require racket/math)
 
 (require "defs.rkt"
+         "utils.rkt"
          "physics.rkt"
          "tactics.rkt")
 
@@ -70,6 +71,6 @@
        (define pod (get-pod tstack))
        (define ps (obj-posvel ownship))
        (define podangle (+ (posvel-r ps) (pod-angle pod)))
-       (command-tactics (struct-copy tactics (car tstack) (shield podangle))
+       (update-tactics (struct-copy tactics (car tstack) (shield podangle))
         space tstack))))
   #f)
