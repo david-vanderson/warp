@@ -8,6 +8,8 @@
 (provide (all-defined-out))
 
 
+;; server and client
+
 (define (opposite-sign? a b)
   (if (positive? a)
       (negative? b)
@@ -69,7 +71,6 @@
     (set-posvel-dr! posvel (drag (posvel-dr posvel) dt R_DRAG_COEF (if (zero? ddr) (/ 2pi 360) 0)))))
 
 
-; This is used on both server and client (for prediction)
 (define (update-physics! space o dt)
   (cond
     ((ship? o)
@@ -85,6 +86,21 @@
        (reduce-shield! space o (* dt 20/10))))))
 
 
+(define (damage-object! space o damage)
+  (cond ((plasma? o) (reduce-plasma! space o damage))
+        ((shield? o) (reduce-shield! space o damage)))
+  (chdam (obj-id o) damage))
+
+
+(define (reduce-reactor! space ship damage)
+  (set-ship-containment! ship (- (ship-containment ship) damage))
+  (when ((ship-containment ship) . <= . 0)
+    (set-space-objects! space (remove ship (space-objects space)))))
+
+
+;; server only
+
+; return a list of changes
 (define (plasma-hit-ship! space ship p)
   (when (and (not (equal? (plasma-ownship-id p) (obj-id ship)))
              ((distance ship p) . < . (+ 10 (plasma-radius space p))))
@@ -92,8 +108,9 @@
     (reduce-plasma! space p damage)
     (reduce-reactor! space ship damage)))
 
-
+; return a list of changes
 (define (plasma-hit-shield! space shield p)
+  (define changes '())
   (define r (posvel-r (obj-posvel shield)))
   (define-values (px py) (recenter shield p))
   (define x (+ (* px (cos r)) (* py (sin r))))
@@ -105,24 +122,22 @@
   (when (and (< (- rad) x rad)
              (< (- (- (/ l 2)) rad) y (+ (/ l 2) rad)))
     (define damage (plasma-energy p))
-    (reduce-plasma! space p damage)
-    (reduce-shield! space shield damage)))
+    (set! changes (cons (damage-object! space p damage) changes))
+    (set! changes (cons (damage-object! space shield damage) changes)))
+  changes)
 
 
-(define (reduce-reactor! space ship damage)
-  (set-ship-containment! ship (- (ship-containment ship) damage))
-  (when ((ship-containment ship) . <= . 0)
-    (set-space-objects! space (remove ship (space-objects space)))))
-
-
+; return a list of changes
 (define (update-effects! space)
+  (define changes '())
   (define objects (space-objects space))
   (define ships (filter ship? objects))
   (define plasmas (filter plasma? objects))
   (define shields (filter shield? objects))
   (for ((p plasmas))
     (for ((shield shields))
-      (plasma-hit-shield! space shield p))
+      (set! changes (append changes (plasma-hit-shield! space shield p))))
     (when (not (plasma-dead? space p))
       (for ((ship ships))
-        (plasma-hit-ship! space ship p)))))
+        (plasma-hit-ship! space ship p))))
+  changes)

@@ -18,7 +18,7 @@
       (update-physics! space o (/ TICK 1000.0))
       (set! pvutime (+ pvutime TICK))))
   (when (not o)
-    (printf "couldn't find obj id ~a\n" (pvupdate-id pvu))))
+    (printf "pvu - couldn't find obj id ~a\n" (pvupdate-id pvu))))
 
 
 ; on the server, you could get conflicting commands
@@ -53,5 +53,11 @@
        (update-physics! space (chadd-o c) (/ TICK 1000.0))
        (set! ctime (+ ctime TICK)))
      (set-space-objects! space (cons (chadd-o c) (space-objects space))))
+    ((chdam? c)
+     (define o (find-id space (chdam-id c)))
+     (when o
+       (damage-object! space o (chdam-damage c)))
+     (when (not o)
+       (printf "chdam - couldn't find obj id ~a\n" (chdam-id c))))
     (else
      (error "apply-change! hit ELSE clause ~v" c))))

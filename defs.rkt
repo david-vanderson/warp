@@ -122,6 +122,10 @@
 (struct chadd (o) #:mutable #:prefab)
 ; o is the new object to add to space-objects
 
+(struct chdam (id damage) #:mutable #:prefab)
+; id is of the object that is being damaged
+; damage is the amount
+
 (struct pvupdate (id pv) #:mutable #:prefab)
 ; id is the object we want to update
 ; pv is the new posvel
