@@ -37,7 +37,7 @@
   (send dc set-pen "red" 3 'solid)
   (define rad (plasma-radius space p))
   (define cycle 2000.0)
-  (define t (modulo (- (space-time space) (obj-start-time p)) cycle))
+  (define t (modulo (obj-age space p) cycle))
   (define rot (* 2pi (/ t cycle)))
   (define num 5)
   (for ((i num))

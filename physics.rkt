@@ -86,17 +86,31 @@
        (set-space-objects! space (remove o (space-objects space)))))))
      
 
+; return list of changes
 (define (damage-object! space o damage)
+  (define changes '())
   (cond ((plasma? o) (reduce-plasma! space o damage))
         ((shield? o) (reduce-shield! space o damage))
-        ((ship? o)   (reduce-reactor! space o damage)))
-  (chdam (obj-id o) damage))
+        ((ship? o)
+         (set! changes (append changes (reduce-reactor! space o damage)))))
+  (append changes (list (chdam (obj-id o) damage))))
 
-
+; return list of changes
 (define (reduce-reactor! space ship damage)
   (set-ship-containment! ship (- (ship-containment ship) damage))
-  (when ((ship-containment ship) . <= . 0)
-    (set-space-objects! space (remove ship (space-objects space)))))
+  (cond (((ship-containment ship) . <= . 0)
+         (set-space-objects! space (remove ship (space-objects space)))
+         (define pv (obj-posvel ship))
+         (for/list ((i 21))
+           (define t (random-between 0 2pi))
+           (define s (random-between 80 120))
+           (chadd (plasma (next-id) (space-time space)
+                          (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
+                                  (+ (* s (cos t)) (posvel-dx pv))
+                                  (+ (* s (sin t)) (posvel-dy pv))
+                                  0)
+                          10.0 #f))))
+        (else '())))
 
 
 ;; server only
@@ -107,8 +121,8 @@
   (when (and (not (equal? (plasma-ownship-id p) (obj-id ship)))
              ((distance ship p) . < . (+ 10 (plasma-radius space p))))
     (define damage (plasma-energy space p))
-    (set! changes (cons (damage-object! space p damage) changes))
-    (set! changes (cons (damage-object! space ship damage) changes)))
+    (set! changes (append changes (damage-object! space p damage)))
+    (set! changes (append changes (damage-object! space ship damage))))
   changes)
 
 ; return a list of changes
@@ -125,8 +139,8 @@
   (when (and (< (- rad) x rad)
              (< (- (- (/ l 2)) rad) y (+ (/ l 2) rad)))
     (define damage (plasma-energy space p))
-    (set! changes (cons (damage-object! space p damage) changes))
-    (set! changes (cons (damage-object! space shield damage) changes)))
+    (set! changes (append changes (damage-object! space p damage)))
+    (set! changes (append changes (damage-object! space shield damage))))
   changes)
 
 
