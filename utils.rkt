@@ -11,6 +11,13 @@
 (define (obj-age space o)
   (- (space-time space) (obj-start-time o)))
 
+; age, life, death are ms since object start time
+(define (linear-fade age life death)
+  (cond ((age . < . life) 1.0)
+        ((age . > . death) 0.0)
+        (else (/ (- death age)
+                 (- death life)))))
+
 (define (remain a b)
   (define z (/ a b))
   (* b (- z (floor z))))

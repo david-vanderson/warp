@@ -38,12 +38,12 @@
 ; if posvel is #f, then this obj is inside something else
 ; if posvel is not #f, then this is a top-level object that is drawn
 
-(struct plasma obj (energy ownship-id shields-hit) #:mutable #:prefab)
-; ownship is unique id of the ship that fired it, or #f if it belongs to no ship
-;  - plasma will not interact with the shields of ownship
-; shields-hit is a list of shields that this plasma has already hit
+(struct plasma obj (e ownship-id) #:mutable #:prefab)
+; e is base energy uncorrected for age
+; ownship is id of the ship that fired it, or #f if it belongs to no ship
 
-(struct shield obj (energy length) #:mutable #:prefab)
+(struct shield obj (e length) #:mutable #:prefab)
+; e is base energy uncorrected for age
 ; length is the size of the shield
 
 (struct player obj (name) #:mutable #:prefab)

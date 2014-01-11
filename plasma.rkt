@@ -12,22 +12,22 @@
 (define PLASMA_DEATH 8000)  ; ms after which plasma is dead
 
 
+(define (plasma-energy space p)
+  (* (linear-fade (obj-age space p) PLASMA_LIFE PLASMA_DEATH)
+     (plasma-e p)))
+
+
 (define (plasma-radius space p)
-  (define age (obj-age space p))
-  (define fade (cond ((age . < . PLASMA_LIFE) 1.0)
-                     ((age . > . PLASMA_DEATH) 0.0)
-                     (else (/ (- PLASMA_DEATH age)
-                              (- PLASMA_DEATH PLASMA_LIFE)))))
-  (* fade (/ (plasma-energy p) 2)))
+  (/ (plasma-energy space p) 2))
 
 
 (define (plasma-dead? space p)
   (or ((obj-age space p) . > . PLASMA_DEATH)
-      ((plasma-energy p) . < . 1)))
+      ((plasma-energy space p) . < . 1)))
 
 
 (define (reduce-plasma! space p damage)
-  (set-plasma-energy! p (- (plasma-energy p) damage))
+  (set-plasma-e! p (- (plasma-e p) (/ damage (linear-fade (obj-age space p) PLASMA_LIFE PLASMA_DEATH))))
   (when (plasma-dead? space p)
     (set-space-objects! space (remove p (space-objects space)))))
 

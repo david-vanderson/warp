@@ -82,13 +82,14 @@
        (set-space-objects! space (remove o (space-objects space)))))
     ((shield? o)
      (physics! (obj-posvel o) dt #t 0 0 0)
-     (when ((- (space-time space) (obj-start-time o)) . > . 10000)
-       (reduce-shield! space o (* dt 20/10))))))
-
+     (when (shield-dead? space o)
+       (set-space-objects! space (remove o (space-objects space)))))))
+     
 
 (define (damage-object! space o damage)
   (cond ((plasma? o) (reduce-plasma! space o damage))
-        ((shield? o) (reduce-shield! space o damage)))
+        ((shield? o) (reduce-shield! space o damage))
+        ((ship? o)   (reduce-reactor! space o damage)))
   (chdam (obj-id o) damage))
 
 
@@ -102,11 +103,13 @@
 
 ; return a list of changes
 (define (plasma-hit-ship! space ship p)
+  (define changes '())
   (when (and (not (equal? (plasma-ownship-id p) (obj-id ship)))
              ((distance ship p) . < . (+ 10 (plasma-radius space p))))
-    (define damage (plasma-energy p))
-    (reduce-plasma! space p damage)
-    (reduce-reactor! space ship damage)))
+    (define damage (plasma-energy space p))
+    (set! changes (cons (damage-object! space p damage) changes))
+    (set! changes (cons (damage-object! space ship damage) changes)))
+  changes)
 
 ; return a list of changes
 (define (plasma-hit-shield! space shield p)
@@ -121,7 +124,7 @@
   (define l (shield-length shield))
   (when (and (< (- rad) x rad)
              (< (- (- (/ l 2)) rad) y (+ (/ l 2) rad)))
-    (define damage (plasma-energy p))
+    (define damage (plasma-energy space p))
     (set! changes (cons (damage-object! space p damage) changes))
     (set! changes (cons (damage-object! space shield damage) changes)))
   changes)
@@ -139,5 +142,5 @@
       (set! changes (append changes (plasma-hit-shield! space shield p))))
     (when (not (plasma-dead? space p))
       (for ((ship ships))
-        (plasma-hit-ship! space ship p))))
+        (set! changes (append changes (plasma-hit-ship! space ship p))))))
   changes)
