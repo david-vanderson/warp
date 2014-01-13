@@ -84,7 +84,7 @@
      (physics! (obj-posvel o) dt #t 0 0 0)
      (when (shield-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))))
-     
+
 
 ; return list of changes
 (define (damage-object! space o damage)
@@ -95,6 +95,7 @@
          (set! changes (append changes (reduce-reactor! space o damage)))))
   (append changes (list (chdam (obj-id o) damage))))
 
+
 ; return list of changes
 (define (reduce-reactor! space ship damage)
   (set-ship-containment! ship (- (ship-containment ship) damage))
@@ -104,12 +105,14 @@
          (for/list ((i 21))
            (define t (random-between 0 2pi))
            (define s (random-between 80 120))
-           (chadd (plasma (next-id) (space-time space)
+           (define p (plasma (next-id) (space-time space)
                           (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
                                   (+ (* s (cos t)) (posvel-dx pv))
                                   (+ (* s (sin t)) (posvel-dy pv))
                                   0)
-                          10.0 #f))))
+                          10.0 #f))
+           (set-space-objects! space (cons p (space-objects space)))
+           (chadd p)))
         (else '())))
 
 
@@ -118,29 +121,35 @@
 ; return a list of changes
 (define (plasma-hit-ship! space ship p)
   (define changes '())
-  (when (and (not (equal? (plasma-ownship-id p) (obj-id ship)))
-             ((distance ship p) . < . (+ 10 (plasma-radius space p))))
-    (define damage (plasma-energy space p))
-    (set! changes (append changes (damage-object! space p damage)))
-    (set! changes (append changes (damage-object! space ship damage))))
+  (when (and (not ((ship-containment ship) . <= . 0))
+             (not (plasma-dead? space p)))
+    (when (and (not (equal? (plasma-ownship-id p) (obj-id ship)))
+               ((distance ship p) . < . (+ 10 (plasma-radius space p))))
+      ;(printf "plasma hit ship ~a (~a ~a)\n" (ship-name ship) (plasma-ownship-id p) (obj-id ship))
+      (define damage (plasma-energy space p))
+      (set! changes (append changes (damage-object! space p damage)))
+      (set! changes (append changes (damage-object! space ship damage)))))
   changes)
+
 
 ; return a list of changes
 (define (plasma-hit-shield! space shield p)
   (define changes '())
-  (define r (posvel-r (obj-posvel shield)))
-  (define-values (px py) (recenter shield p))
-  (define x (+ (* px (cos r)) (* py (sin r))))
-  (define y (+ (* -1 px (sin r)) (* py (cos r))))
-  ; x,y are now the position of the plasma in the coord space of the shield
-  ; shield is along the y axis
-  (define rad (plasma-radius space p))
-  (define l (shield-length shield))
-  (when (and (< (- rad) x rad)
-             (< (- (- (/ l 2)) rad) y (+ (/ l 2) rad)))
-    (define damage (plasma-energy space p))
-    (set! changes (append changes (damage-object! space p damage)))
-    (set! changes (append changes (damage-object! space shield damage))))
+  (when (and (not (shield-dead? space shield))
+             (not (plasma-dead? space p)))
+    (define r (posvel-r (obj-posvel shield)))
+    (define-values (px py) (recenter shield p))
+    (define x (+ (* px (cos r)) (* py (sin r))))
+    (define y (+ (* -1 px (sin r)) (* py (cos r))))
+    ; x,y are now the position of the plasma in the coord space of the shield
+    ; shield is along the y axis
+    (define rad (plasma-radius space p))
+    (define l (shield-length shield))
+    (when (and (< (- rad) x rad)
+               (< (- (- (/ l 2)) rad) y (+ (/ l 2) rad)))
+      (define damage (plasma-energy space p))
+      (set! changes (append changes (damage-object! space p damage)))
+      (set! changes (append changes (damage-object! space shield damage)))))
   changes)
 
 
@@ -154,7 +163,6 @@
   (for ((p plasmas))
     (for ((shield shields))
       (set! changes (append changes (plasma-hit-shield! space shield p))))
-    (when (not (plasma-dead? space p))
-      (for ((ship ships))
-        (set! changes (append changes (plasma-hit-ship! space ship p))))))
+    (for ((ship ships))
+      (set! changes (append changes (plasma-hit-ship! space ship p)))))
   changes)
