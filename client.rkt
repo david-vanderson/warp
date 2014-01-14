@@ -59,8 +59,13 @@
     (cond
       ((and button (equal? button "leave"))
        (cond
-         ((crewer? role)
-          (send-command (role-change me (obj-id role) #f)))
+         ((and (crewer? role) (not (hangar? role)))
+          (define ships (get-ships my-stack))
+          (cond (((length ships) . > . 1)
+                 (define h (car (filter hangarpod? (ship-pods (cadr ships)))))
+                 (send-command (role-change me (obj-id role) (obj-id (multipod-multirole h)))))
+                (else
+                 (send-command (role-change me (obj-id role) #f)))))
          (else
           (define crew (ship-crew (get-ship my-stack)))
           (send-command (role-change me (obj-id role) (obj-id crew))))))

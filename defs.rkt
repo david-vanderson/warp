@@ -61,12 +61,18 @@
 (struct crewer role () #:mutable #:prefab)
 ; special role used to contain players while they are choosing their next role
 
+(struct hangar crewer () #:mutable #:prefab)
+; special role used when players are in the hangar of a ship choosing their next role
+
 (struct pod obj (role angle dist facing spread) #:mutable #:prefab)
 ; angle/dist is where this pod is with respect to the ship
 ; facing is where the pod is directed towards (with respect to the ship)
 ; spread is angle within which we can shoot (centered on facing)
 
 (struct multipod pod (multirole) #:mutable #:prefab)
+
+(struct hangarpod multipod (ships) #:mutable #:prefab)
+; ships is a list of the ships inside the hangar
 
 (struct observation multipod () #:mutable #:prefab)
 
@@ -151,7 +157,8 @@
 
 
 (define (role-name role)
-  (cond ((crewer? role) "Crewer")
+  (cond ((hangar? role) "Hangar")
+        ((crewer? role) "Crewer")
         ((pilot? role) "Pilot")
         ((observer? role) "Observer")
         ((weapons? role) "Weapons")
@@ -170,6 +177,7 @@
     ((ship? o) (filter values (cons (ship-crew o) (ship-pods o))))
     ((multirole? o) (multirole-roles o))
     ((role? o) (filter values (list (role-player o))))
+    ((hangarpod? o) (cons (multipod-multirole o) (hangarpod-ships o)))
     ((multipod? o) (list (multipod-multirole o)))
     ((pod? o) (list (pod-role o)))
     (else
@@ -178,20 +186,24 @@
      (list))))
 
 
-(define (big-ship name npc? faction x y r fore?)
+(define (big-ship name npc? faction x y r fore? hangar?)
   (ship (next-id) #f (posvel 0 x y r 0 0 0) name npc? faction
-        (if npc? #f (multirole (next-id) #f #f (crewer (next-id) #f #f #f) #t '()))
+        (multirole (next-id) #f #f (crewer (next-id) #f #f #f) (not npc?) '())
         110 100
         (list
          (helm (next-id) #f #f
                (pilot (next-id) #f #f #f r fore?)
                0 0 #f #f)
          (observation (next-id) #f #f #f 0 10 #f #f
-                      (multirole (next-id) #f #f (observer (next-id) #f #f #f) #f
-                                 (list (observer (next-id) #f #f (player (next-id) #f #f "Andrea"))
-                                       (observer (next-id) #f #f (player (next-id) #f #f "Andrea")))))
+                      (multirole (next-id) #f #f (observer (next-id) #f #f #f) #f '()))
+         (hangarpod (next-id) #f #f #f 0 -10 #f #f
+                    (multirole (next-id) #f #f (hangar (next-id) #f #f #f) #f '())
+                    (if hangar?
+                        (list (big-ship (string-append name "2") npc? faction 0 0 0 #f #f)
+                              (big-ship (string-append name "3") npc? faction 0 0 0 #f #f))
+                        '()))
          (weapon (next-id) #f #f
-                 (weapons (next-id) #f #f #f #f)
+                 (weapons (next-id) #f #f (player (next-id) #f #f "Andrea") #f)
                  (/ pi 4) (sqrt 200) (/ pi 4) (/ pi 2))
          (tactical (next-id) #f #f
                    (tactics (next-id) #f #f #f #f)

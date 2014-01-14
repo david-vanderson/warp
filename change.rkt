@@ -21,6 +21,45 @@
     (printf "pvu - couldn't find obj id ~a\n" (pvupdate-id pvu))))
 
 
+(define (copy-role r)
+  (cond
+    ((observer? r) (struct-copy observer r))
+    ((hangar? r) (struct-copy hangar r))
+    ((crewer? r) (struct-copy crewer r))
+    (else (error "copy-role hit ELSE clause, role:\n" r))))
+
+
+(define (join-role! r p)
+  ;(printf "player ~v joining role ~v\n" p r)
+  (cond
+    ((and (role? r) (not (role-player r)))
+     (set-role-player! r p)
+     #t)
+    ((multirole? r)
+     (define new-role (copy-role (multirole-role r)))
+     (set-role-player! new-role p)
+     (set-multirole-roles!
+      r (cons new-role (multirole-roles r)))
+     #t)
+    ((not r)
+     #t)  ; can always join no-role
+    (else #f)))
+
+
+(define (leave-role! stack p)
+  (define r (car stack))  ; will always be a role?
+  (define con (cadr stack))  ; could be multirole?
+  ;(printf "player ~v leaving role ~v\n" p r)
+  (cond
+    ((multirole? con)
+     (define seen #f)  ; always remove the first instance of player
+     (set-multirole-roles!
+      con (filter (lambda (xr) (or (not (equal? (role-player xr) p))
+                                   (begin0 seen (set! seen #t))))
+                  (multirole-roles con))))
+    (else (set-role-player! r #f))))
+
+
 ; on the server, you could get conflicting commands
 ; (two players trying to take the same open role)
 ; return #f if we didn't apply the change (should be reported)

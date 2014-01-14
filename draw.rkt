@@ -144,10 +144,13 @@
 (define (draw-overlay dc ownspace stack)
   (when stack
     (define role (get-role stack))
+    (define str (format "~a" (role-name role)))
+    (for ((s (get-ships stack)))
+      (set! str (format "~a on ~a" str (ship-name s))))
     (keep-transform dc
       (send dc translate 0 (/ HEIGHT 2))
       (send dc scale 1 -1)
-      (send dc draw-text (role-name role) 0 0))))
+      (send dc draw-text str 0 0))))
 
 
 (define (draw-observer dc ownspace stack)
