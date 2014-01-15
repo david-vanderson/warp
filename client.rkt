@@ -10,7 +10,8 @@
          "pilot.rkt"
          "crewer.rkt"
          "weapons.rkt"
-         "tactics.rkt")
+         "tactics.rkt"
+         "effect.rkt")
 
 (provide start-client)
 
@@ -202,7 +203,9 @@
              (when ((space-time ownspace) . < . (update-time input))
                ;(printf "ticking ownspace forward for input\n")
                (set-space-time! ownspace (+ (space-time ownspace) TICK))
-               (for ((o (space-objects ownspace))) (update-physics! ownspace o (/ TICK 1000.0))))
+               (for ((o (space-objects ownspace)))
+                 (update-physics! ownspace o (/ TICK 1000.0))
+                 (add-backeffects! ownspace o TICK)))
              (for ((c (update-changes input)))
                ;(printf "client applying change ~v\n" c)
                (apply-change! ownspace c (update-time input)))
@@ -226,7 +229,9 @@
       (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))
       (when (dt . > . TICK)
         ;(printf "client ticking forward for prediction\n")
-        (for ((o (space-objects ownspace))) (update-physics! ownspace o (/ TICK 1000.0)))
+        (for ((o (space-objects ownspace)))
+          (update-physics! ownspace o (/ TICK 1000.0))
+          (add-backeffects! ownspace o TICK))
         (set-space-time! ownspace (+ (space-time ownspace) TICK))))
     
     ;rendering

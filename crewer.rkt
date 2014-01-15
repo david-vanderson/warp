@@ -44,6 +44,8 @@
      (send dc set-brush (make-color 0 0 0 .9) 'solid)
      (define size (* scale (min (send ship-bitmap get-width) (send ship-bitmap get-height))))
      (send dc draw-rectangle (* -0.5 size) (* -0.5 size) size size)
+     
+     ; draw all the ships in the hangar
      (define shipmax 54)
      (define pod (get-pod stack))
      (for ((s (hangarpod-ships pod))
@@ -61,14 +63,11 @@
          (send dc scale 1 -1)
          (send dc draw-text (format "~a" (ship-name s)) 0 5)
          (define-values (x y) (dc->canon canvas dc 0 60))
-         (set! buttons (cons (button x y 65 30 5 5 (obj-id (ship-crew s)) "Join") buttons))
+         (set! buttons (cons (button x y 65 30 5 5 (obj-id (ship-crew s)) "Board") buttons))
          (for ((p (find-all s player?))
                (i (in-naturals)))
            (send dc draw-text (player-name p) 0 (+ 70 (* i 20))))
-         ))
-     
-     ; draw all the ships in the hangar
-     #t)
+         )))
     (else
      ; draw all the pods on the ship
      (send dc set-pen fgcolor 1.0 'solid)

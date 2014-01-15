@@ -137,8 +137,7 @@
       (define e (effect (next-id) (space-time space)
                         (struct-copy posvel (obj-posvel p)
                                      (dx (posvel-dx (obj-posvel ship)))
-                                     (dy (posvel-dy (obj-posvel ship))))
-                        'blah))
+                                     (dy (posvel-dy (obj-posvel ship))))))
       (set! changes (cons (chadd e) changes))))
   changes)
 

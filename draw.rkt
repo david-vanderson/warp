@@ -78,7 +78,11 @@
   (define ships (filter ship? objects))
   (define effects (filter effect? objects))
   (define other (remove* (append ships effects) objects))
-  (for ((o (append ships other effects)))
+  
+  (define backeffects (filter backeffect? effects))
+  (set! effects (remove* backeffects effects))
+  
+  (for ((o (append backeffects ships other effects)))
     (draw-object dc o center space)))
 
 

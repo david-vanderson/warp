@@ -42,8 +42,10 @@
 ; e is base energy uncorrected for age
 ; ownship is id of the ship that fired it, or #f if it belongs to no ship
 
-(struct effect obj (name) #:mutable #:prefab)
-; name is a symbol saying which effect this is
+(struct effect obj () #:mutable #:prefab)
+
+(struct backeffect effect () #:mutable #:prefab)
+; effect where we want to render it behind everything else (like engine output)
 
 (struct shield obj (e length) #:mutable #:prefab)
 ; e is base energy uncorrected for age
@@ -192,7 +194,7 @@
 ;(player (next-id) #f #f "Andrea")
 
 (define (big-ship name npc? faction x y r fore? hangar?)
-  (ship (next-id) #f (posvel 0 x y r 0 0 0) name npc? faction
+  (ship (next-id) 0 (posvel 0 x y r 0 0 0) name npc? faction
         (multirole (next-id) #f #f (crewer (next-id) #f #f #f) (not npc?) '())
         110 100
         (list
