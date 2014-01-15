@@ -2,15 +2,15 @@
 
 (require racket/class
          racket/list
-         racket/format
-         racket/math
-         racket/draw)
+         racket/draw
+         racket/function)
 
 (require "defs.rkt"
          "utils.rkt"
          "draw-utils.rkt"
          "plasma.rkt"
-         "shield.rkt")
+         "shield.rkt"
+         "effect.rkt")
 
 (provide (all-defined-out))
 
@@ -66,13 +66,19 @@
     ((plasma? o)
      (draw-plasma dc o center space))
     ((shield? o)
-     (draw-shield dc space center o))))
+     (draw-shield dc space center o))
+    ((effect? o)
+     (draw-effect dc space center o))))
 
 
 (define (draw-view dc center space)
   (draw-background dc space center background-bitmap 3 0.5)
   (draw-background dc space center stars1-bitmap 8 1)
-  (for ((o (space-objects space)))
+  (define objects (space-objects space))
+  (define ships (filter ship? objects))
+  (define effects (filter effect? objects))
+  (define other (remove* (append ships effects) objects))
+  (for ((o (append ships other effects)))
     (draw-object dc o center space)))
 
 

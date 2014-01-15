@@ -10,7 +10,7 @@
    0 4000 4000
    (list
     (big-ship "Rebel1" #f "Rebel" 0 0 0 #f #t)
-    (big-ship "Empire1" #f "Empire" 100 0 pi #f #t))))
+    (big-ship "Empire1" #f "Empire" 100 0 (/ pi 2) #f #t))))
 
 (thread (lambda () (start-server PORT ownspace)))
 

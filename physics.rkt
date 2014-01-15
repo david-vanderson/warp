@@ -3,7 +3,8 @@
 (require "defs.rkt"
          "utils.rkt"
          "plasma.rkt"
-         "shield.rkt")
+         "shield.rkt"
+         "effect.rkt")
 
 (provide (all-defined-out))
 
@@ -83,6 +84,10 @@
     ((shield? o)
      (physics! (obj-posvel o) dt #t 0 0 0)
      (when (shield-dead? space o)
+       (set-space-objects! space (remove o (space-objects space)))))
+    ((effect? o)
+     (physics! (obj-posvel o) dt #f 0 0 0)
+     (when (effect-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))))
 
 
@@ -128,7 +133,13 @@
       ;(printf "plasma hit ship ~a (~a ~a)\n" (ship-name ship) (plasma-ownship-id p) (obj-id ship))
       (define damage (plasma-energy space p))
       (set! changes (append changes (damage-object! space p damage)))
-      (set! changes (append changes (damage-object! space ship damage)))))
+      (set! changes (append changes (damage-object! space ship damage)))
+      (define e (effect (next-id) (space-time space)
+                        (struct-copy posvel (obj-posvel p)
+                                     (dx (posvel-dx (obj-posvel ship)))
+                                     (dy (posvel-dy (obj-posvel ship))))
+                        'blah))
+      (set! changes (cons (chadd e) changes))))
   changes)
 
 

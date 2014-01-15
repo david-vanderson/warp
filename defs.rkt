@@ -42,6 +42,9 @@
 ; e is base energy uncorrected for age
 ; ownship is id of the ship that fired it, or #f if it belongs to no ship
 
+(struct effect obj (name) #:mutable #:prefab)
+; name is a symbol saying which effect this is
+
 (struct shield obj (e length) #:mutable #:prefab)
 ; e is base energy uncorrected for age
 ; length is the size of the shield
@@ -171,7 +174,8 @@
   (cond
     ((or (plasma? o)
          (shield? o)
-         (player? o))
+         (player? o)
+         (effect? o))
      (list))
     ((space? o) (space-objects o))
     ((ship? o) (filter values (cons (ship-crew o) (ship-pods o))))
@@ -185,6 +189,7 @@
      (error)
      (list))))
 
+;(player (next-id) #f #f "Andrea")
 
 (define (big-ship name npc? faction x y r fore? hangar?)
   (ship (next-id) #f (posvel 0 x y r 0 0 0) name npc? faction
@@ -203,7 +208,7 @@
                               (big-ship (string-append name "3") npc? faction 0 0 0 #f #f))
                         '()))
          (weapon (next-id) #f #f
-                 (weapons (next-id) #f #f (player (next-id) #f #f "Andrea") #f)
+                 (weapons (next-id) #f #f #f #f)
                  (/ pi 4) (sqrt 200) (/ pi 4) (/ pi 2))
          (tactical (next-id) #f #f
                    (tactics (next-id) #f #f #f #f)
