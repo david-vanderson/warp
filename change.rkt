@@ -96,5 +96,23 @@
        (damage-object! space o (chdam-damage c)))
      (when (not o)
        (printf "chdam - couldn't find obj id ~a\n" (chdam-id c))))
+    ((chmov? c)
+     (define o (find-id space (chmov-id c)))
+     (define from (find-id space (chmov-from c)))
+     (cond
+       (from
+        (set-hangarpod-ships! from
+                              (remove o (hangarpod-ships from)
+                                      (lambda (a b) (equal? (ob-id a) (ob-id b))))))
+       (else
+        (set-space-objects! space (remove o (space-objects space)
+                                          (lambda (a b) (equal? (ob-id a) (ob-id b)))))))
+     
+     (define to (find-id space (chmov-to c)))
+     (cond
+       (to
+        (set-hangarpod-ships! to (cons o (hangarpod-ships to))))
+       (else
+        (set-space-objects! space (cons o (space-objects space))))))
     (else
-     (error "apply-change! hit ELSE clause ~v" c))))
+     (error "apply-change! hit ELSE clause" c))))

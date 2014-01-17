@@ -100,6 +100,12 @@
 (define (get-ships stack)
   (filter ship? stack))
 
+(define (get-hangar ship)
+  (define a (filter hangarpod? (ship-pods ship)))
+  (if (null? a)
+      #f
+      (car a)))
+
 (define (get-center stack)
   (define center (get-ship (reverse stack)))
   (define spv (obj-posvel center))
