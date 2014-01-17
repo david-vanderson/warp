@@ -47,10 +47,13 @@
 ;; client
 
 (define (click-tactics x y button stack)
-  (define role (get-role stack))
-  ; we are firing, need the angle
-  (define fangle (angle-norm (atan y x)))
-  (struct-copy tactics role (shield fangle)))
+  (cond
+    ((ship-flying? (get-ship stack))
+     (define role (get-role stack))
+     ; we are firing, need the angle
+     (define fangle (angle-norm (atan y x)))
+     (struct-copy tactics role (shield fangle)))
+    (else #f)))
 
 
 (define (draw-tactics dc stack)
@@ -63,13 +66,14 @@
   (draw-view dc center space)
   
   ; draw my hud
-  (keep-transform dc
-    (send dc rotate (- (posvel-r spv)))
-    (define line-size 50)
-    (send dc set-pen "red" 1 'solid)
-    (for ((a (list (+ (pod-facing t) (/ (pod-spread t) 2))
-                   (- (pod-facing t) (/ (pod-spread t) 2)))))
-      (send dc draw-line 0 0 (* line-size (cos a)) (* line-size (sin a)))))
+  (when (ship-flying? ship)
+    (keep-transform dc
+      (send dc rotate (- (posvel-r spv)))
+      (define line-size 50)
+      (send dc set-pen "red" 1 'solid)
+      (for ((a (list (+ (pod-facing t) (/ (pod-spread t) 2))
+                     (- (pod-facing t) (/ (pod-spread t) 2)))))
+        (send dc draw-line 0 0 (* line-size (cos a)) (* line-size (sin a))))))
   
   
   (list leave-button))

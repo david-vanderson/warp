@@ -11,7 +11,7 @@
 
 (define (add-backeffects! space o dt)
   (when (and (ship? o) (pilot-fore (ship-pilot o))
-             ((modulo (+ dt (obj-age space o)) 500) . <= . dt))
+             ((modulo (+ dt (obj-age space o)) 500) . < . dt))
     (define l -20)
     (define t (posvel-r (obj-posvel o)))
     (define be (backeffect 0 (space-time space)

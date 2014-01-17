@@ -34,7 +34,7 @@
     (define-values (in out) (tcp-accept server-listener))
     
     ; need to assign an id to the new player
-    (write (player (next-id) #f #f "New Player") out)
+    (write (player (next-id) "New Player") out)
     
     (set! client-in-ports (cons in client-in-ports))
     (set! client-out-ports (cons out client-out-ports))
@@ -81,7 +81,7 @@
     (for/list ((o objs) (i 10))
       (define pv (obj-posvel o))
       (set-posvel-t! pv (space-time ownspace))
-      (pvupdate (obj-id o) pv)))
+      (pvupdate (ob-id o) pv)))
   
   
   ; send out updates

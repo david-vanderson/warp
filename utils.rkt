@@ -51,7 +51,7 @@
 (define (search o id (multiple? #f) (stack '()))
   (let/ec found
     (cond
-      ((and (not (space? o)) (integer? id) (= id (obj-id o)))
+      ((and (not (space? o)) (integer? id) (= id (ob-id o)))
        (list (cons o stack)))
       ((and (not (space? o)) (procedure? id) (id o))
        (list (cons o stack)))
@@ -77,6 +77,50 @@
   (define r (find-stack o id))
   (if r (car r) #f))
 
+
+(define (ship-pilot s)
+  (pod-role (car (memf helm? (ship-pods s)))))
+
+(define (ship-flying? ship)
+  (obj-posvel ship))
+
+(define (recenter center o)
+  (values (- (posvel-x (obj-posvel o)) (posvel-x (obj-posvel center)))
+          (- (posvel-y (obj-posvel o)) (posvel-y (obj-posvel center)))))
+
+(define (get-role stack)
+  (if stack (cadr stack) #f))
+
+(define (get-pod stack)
+  (car (memf pod? stack)))
+
+(define (get-ship stack)
+  (car (memf ship? stack)))
+
+(define (get-ships stack)
+  (filter ship? stack))
+
+(define (get-center stack)
+  (define center (get-ship (reverse stack)))
+  (define spv (obj-posvel center))
+  
+  (define ship (get-ship stack))
+  (cond
+    ((and (equal? (ob-id ship) (ob-id center))
+          (pod-facing (get-pod stack)))
+     (define pod (get-pod stack))
+     (obj #f #f (posvel
+                 0
+                 (+ (posvel-x spv) (* (pod-dist pod) (cos (+ (posvel-r spv) (pod-angle pod)))))
+                 (+ (posvel-y spv) (* (pod-dist pod) (sin (+ (posvel-r spv) (pod-angle pod)))))
+                 (posvel-r spv) 0 0 0)))
+    (else center)))
+
+(define (get-space stack)
+  (car (reverse stack)))
+
+
+
 (define (angle-norm r)
   (cond ((r . >= . 2pi) (- r 2pi))
         ((r . < . 0) (+ r 2pi))
@@ -99,7 +143,7 @@
 (define (random-between a b)
   (+ a (* (- b a) (random))))
 
-  
+
 (define (distance o1 o2)
   (define dx (- (posvel-x (obj-posvel o1)) (posvel-x (obj-posvel o2))))
   (define dy (- (posvel-y (obj-posvel o1)) (posvel-y (obj-posvel o2))))
@@ -111,40 +155,3 @@
   (define dy (- (posvel-y (obj-posvel to)) (posvel-y (obj-posvel from))))
   ;(printf "dx ~a, dy ~a\n" dx dy)
   (atan dy dx))
-
-
-(define (ship-pilot s)
-  (pod-role (car (memf helm? (ship-pods s)))))
-
-(define (recenter center o)
-  (values (- (posvel-x (obj-posvel o)) (posvel-x (obj-posvel center)))
-          (- (posvel-y (obj-posvel o)) (posvel-y (obj-posvel center)))))
-
-(define (get-role stack)
-  (if stack (cadr stack) #f))
-
-(define (get-pod stack)
-  (car (memf pod? stack)))
-
-(define (get-ship stack)
-  (car (memf ship? stack)))
-
-(define (get-ships stack)
-  (filter ship? stack))
-
-(define (get-center stack)
-  (define center (cadr (reverse stack)))
-  (define spv (obj-posvel center))
-  (define p (memf pod? stack))
-  (cond (p
-         (define pod (car p))
-         (obj #f #f (posvel 0
-                            (+ (posvel-x spv)
-                               (* (pod-dist pod) (cos (+ (posvel-r spv) (pod-angle pod)))))
-                            (+ (posvel-y spv)
-                               (* (pod-dist pod) (sin (+ (posvel-r spv) (pod-angle pod)))))
-                            (posvel-r spv) 0 0 0)))
-        (else center)))
-
-(define (get-space stack)
-  (car (reverse stack)))

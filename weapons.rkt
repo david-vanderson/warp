@@ -36,7 +36,7 @@
                                (+ (* 60 (cos a)) (posvel-dx ps) rvx)
                                (+ (* 60 (sin a)) (posvel-dy ps) rvy)
                                0)
-                       10.0 (obj-id ship)))
+                       10.0 (ob-id ship)))
      (set-space-objects! space (cons p (space-objects space)))
      (list (chadd p)))
     (else
@@ -46,11 +46,14 @@
 ;; client
 
 (define (click-weapons x y button stack)
-  (define role (get-role stack))
-  ; we are firing, need the angle
-  (define fangle (angle-norm (atan y x)))
-  (struct-copy weapons role (fire fangle)))
-
+  (cond
+    ((ship-flying? (get-ship stack))
+     (define role (get-role stack))
+     ; we are firing, need the angle
+     (define fangle (angle-norm (atan y x)))
+     (struct-copy weapons role (fire fangle)))
+    (else #f)))
+        
 
 (define (draw-weapons dc stack)
   (define ship (get-ship stack))
@@ -62,12 +65,13 @@
   (draw-view dc center space)
   
   ; draw my hud
-  (keep-transform dc
-    (send dc rotate (- (posvel-r spv)))
-    (define line-size 50)
-    (send dc set-pen "red" 1 'solid)
-    (for ((a (list (+ (pod-facing w) (/ (pod-spread w) 2))
-                   (- (pod-facing w) (/ (pod-spread w) 2)))))
-      (send dc draw-line 0 0 (* line-size (cos a)) (* line-size (sin a)))))
+  (when (ship-flying? ship)
+    (keep-transform dc
+      (send dc rotate (- (posvel-r spv)))
+      (define line-size 50)
+      (send dc set-pen "red" 1 'solid)
+      (for ((a (list (+ (pod-facing w) (/ (pod-spread w) 2))
+                     (- (pod-facing w) (/ (pod-spread w) 2)))))
+        (send dc draw-line 0 0 (* line-size (cos a)) (* line-size (sin a))))))
   
   (list leave-button))

@@ -64,14 +64,14 @@
           (define ships (get-ships my-stack))
           (cond (((length ships) . > . 1)
                  (define h (car (filter hangarpod? (ship-pods (cadr ships)))))
-                 (send-command (role-change me (obj-id role) (obj-id (multipod-multirole h)))))
+                 (send-command (role-change me (ob-id role) (ob-id h))))
                 (else
-                 (send-command (role-change me (obj-id role) #f)))))
+                 (send-command (role-change me (ob-id role) #f)))))
          (else
           (define crew (ship-crew (get-ship my-stack)))
-          (send-command (role-change me (obj-id role) (obj-id crew))))))
+          (send-command (role-change me (ob-id role) (ob-id crew))))))
       ((crewer? role)
-       (send-command (click-crewer x y button role ownspace me)))
+       (send-command (click-crewer x y button my-stack)))
       ((pilot? role)
        (send-command (click-pilot x y button my-stack)))
       ((weapons? role)
@@ -80,8 +80,8 @@
        (send-command (click-tactics x y button my-stack)))
       (button
        ; player is choosing starting role
-       (define mr (find-id ownspace button))
-       (send-command (role-change me (if role (obj-id role) #f) (obj-id mr))))
+       (when role (error "choosing a starting role but already in pod ~v\n" my-stack))
+       (send-command (role-change me #f button)))
       (else
        (printf "click hit ELSE clause\n"))))
   
@@ -223,7 +223,7 @@
     (when ownspace
       ;(set! ownspace (read (open-input-string (with-output-to-string (lambda () (write serverspace))))))
       (set! ownspace ownspace)
-      (set! my-stack (find-stack ownspace (obj-id me)))
+      (set! my-stack (find-stack ownspace (ob-id me)))
     
       ; physics prediction
       (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))

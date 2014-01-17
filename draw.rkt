@@ -139,15 +139,15 @@
       (draw-object dc o center space)))
   
   (define start-stacks
-    (search space (lambda (o) (and (multirole? o)
-                                      (multirole-start? o))) #t))
+    (search space (lambda (o) (and (multipod? o)
+                                   (multipod-start? o))) #t))
   (cons
    leave-button
    (for/list ((s start-stacks)
               (i (in-naturals)))
-     (define mr (car s))
-     (button (+ LEFT 100 (* i 200)) (+ BOTTOM 60) 150 30 5 5 (obj-id mr)
-             (format "~a on ~a" (role-name (multirole-role mr))
+     (define mp (car s))
+     (button (+ LEFT 100 (* i 200)) (+ BOTTOM 60) 150 30 5 5 (ob-id mp)
+             (format "~a on ~a" (role-name (pod-role mp))
                      (ship-name (get-ship s)))))))
 
 

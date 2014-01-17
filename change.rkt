@@ -29,35 +29,35 @@
     (else (error "copy-role hit ELSE clause, role:\n" r))))
 
 
-(define (join-role! r p)
+(define (join-role! space roleid p)
+  (define r (find-id space roleid))
   ;(printf "player ~v joining role ~v\n" p r)
   (cond
+    ((not r) #t)  ; can always join no-role
+    ((multipod? r)
+     (define new-role (copy-role (pod-role r)))
+     (set-role-player! new-role p)
+     (set-multipod-roles! r (cons new-role (multipod-roles r)))
+     #t)
     ((and (role? r) (not (role-player r)))
      (set-role-player! r p)
      #t)
-    ((multirole? r)
-     (define new-role (copy-role (multirole-role r)))
-     (set-role-player! new-role p)
-     (set-multirole-roles!
-      r (cons new-role (multirole-roles r)))
-     #t)
-    ((not r)
-     #t)  ; can always join no-role
     (else #f)))
 
 
-(define (leave-role! stack p)
-  (define r (car stack))  ; will always be a role?
-  (define con (cadr stack))  ; could be multirole?
+(define (leave-role! space roleid p)
+  (define stack (find-stack space roleid))
+  (define role (car stack))  ; will always be a role?
+  (define mp (cadr stack))  ; could be multipod?
   ;(printf "player ~v leaving role ~v\n" p r)
   (cond
-    ((multirole? con)
+    ((multipod? mp)
      (define seen #f)  ; always remove the first instance of player
-     (set-multirole-roles!
-      con (filter (lambda (xr) (or (not (equal? (role-player xr) p))
+     (set-multipod-roles!
+      mp (filter (lambda (xr) (or (not (equal? (ob-id (role-player xr)) (ob-id p)))
                                    (begin0 seen (set! seen #t))))
-                  (multirole-roles con))))
-    (else (set-role-player! r #f))))
+                  (multipod-roles mp))))
+    (else (set-role-player! role #f))))
 
 
 ; on the server, you could get conflicting commands
@@ -72,15 +72,13 @@
   (cond
     ((role-change? c)
      (define p (role-change-player c))
-     (define from (find-stack space (role-change-from c)))
-     (define to (find-id space (role-change-to c)))
-     (cond ((join-role! to p)
-            (when from (leave-role! from p))
+     (cond ((join-role! space (role-change-to c) p)
+            (when (role-change-from c) (leave-role! space (role-change-from c) p))
             (list c))
            (else #f)))
     ((role? c)
      ; find our role
-     (define stack (find-stack space (obj-id (role-player c))))
+     (define stack (find-stack space (ob-id (role-player c))))
      (cond
        ((weapons? c) (update-weapons c space stack))
        ((tactics? c) (update-tactics c space stack))
