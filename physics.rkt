@@ -1,5 +1,7 @@
 #lang racket/base
 
+(require racket/math)
+
 (require "defs.rkt"
          "utils.rkt"
          "plasma.rkt"
@@ -71,23 +73,12 @@
   (when drag?
     (when (not (= 0 (posvel-dx pv)))
       (define dtheta (atan (posvel-dy pv) (posvel-dx pv)))
-      (define drad (sqrt (+ (* (posvel-dy pv) (posvel-dy pv))
-                            (* (posvel-dx pv) (posvel-dx pv)))))
       
-      ; angle of motion with respect to course
-      (define thetadiff (angle-sub (posvel-r pv) dtheta))
-      (define d-along (drag (* drad (cos thetadiff)) dt .3 (if acc? 0 .1)))
-      (define d-across (drag (* drad (sin thetadiff)) dt .9 .1))
-      
-      (cond ((= 0 d-along d-across)
-             (set-posvel-dx! pv 0)
-             (set-posvel-dy! pv 0))
-            (else
-             (define newtheta (angle-add (atan d-across d-along) (posvel-r pv)))
-             (define newrad (sqrt (+ (* d-along d-along) (* d-across d-across))))
-             
-             (set-posvel-dx! pv (* newrad (cos newtheta)))
-             (set-posvel-dy! pv (* newrad (sin newtheta))))))
+      ; how different our course and velocity are
+      (define rdiff (abs (angle-diff dtheta (posvel-r pv))))
+      (define dragc (max 0.2 (min 0.9 (/ rdiff (/ pi 4)))))
+      (set-posvel-dx! pv (drag (posvel-dx pv) dt dragc (if acc? 0 .1)))
+      (set-posvel-dy! pv (drag (posvel-dy pv) dt dragc (if acc? 0 .1))))
     (set-posvel-dr! pv (drag (posvel-dr pv) dt R_DRAG_COEF (if accr? 0 (/ 2pi 360))))))
 
 
