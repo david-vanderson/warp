@@ -5,8 +5,7 @@
 (provide (all-defined-out))
 
 (define PORT 22381)
-(define TICK 30)  ; ms time slice for physics, also determines max client frame rate
-(define SERVER_SEND_DELAY 500)  ; don't send auto updates more often than X ms
+(define TICK 33)  ; ms time slice for physics, also determines max client frame rate
 (define WIDTH 1024)  ; how many meters wide is the screen view
 (define HEIGHT 768)  ; how many meters tall is the screen view
 (define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view
@@ -102,7 +101,7 @@
 ; e is base energy uncorrected for age
 ; ownship is id of the ship that fired it, or #f if it belongs to no ship
 
-(struct effect obj () #:mutable #:prefab)
+(struct effect obj (size duration) #:mutable #:prefab)
 
 (struct backeffect effect () #:mutable #:prefab)
 ; effect where we want to render it behind everything else (like engine output)

@@ -21,16 +21,15 @@
                                    0
                                    (- (posvel-dx (obj-posvel o)))
                                    (- (posvel-dy (obj-posvel o)))
-                                   0)))
+                                   0) #f #f))
     (set-space-objects! space (cons be (space-objects space)))))
 
 
-(define EFFECT_DEAD 300)
 (define BACKEFFECT_DEAD 1000)
 
 
 (define (effect-dead? space e)
-  ((obj-age space e) . > . (if (backeffect? e) BACKEFFECT_DEAD EFFECT_DEAD)))
+  ((obj-age space e) . > . (if (backeffect? e) BACKEFFECT_DEAD (effect-duration e))))
 
 
 (define (draw-effect dc space center e)
@@ -38,13 +37,13 @@
          (draw-backeffect dc space center e))
         (else
          (define-values (x y) (recenter center e))
-         (define size (+ 6.0 (* (/ (obj-age space e) EFFECT_DEAD) 6.0)))
+         (define agep (min 1.0 (/ (obj-age space e) (effect-duration e))))
+         (define rad (* 2 agep (effect-size e)))
          (define c (send the-color-database find-color "yellow"))
-         (define cc (make-color (send c red) (send c green) (send c blue)
-                                (- 1.0 (min 1.0 (/ (obj-age space e) EFFECT_DEAD)))))
-         (send dc set-pen cc (/ 18.0 size) 'solid)
+         (define cc (make-color (send c red) (send c green) (send c blue) (- 1.0 agep)))
+         (send dc set-pen cc (* (- 1.0 agep) (* 1 (effect-size e))) 'solid)
          (send dc set-brush nocolor 'transparent)
-         (send dc draw-ellipse (- x (/ size 2)) (- y (/ size 2)) size size))))
+         (send dc draw-ellipse (- x rad) (- y rad) (* 2 rad) (* 2 rad)))))
 
 
 (define (draw-backeffect dc space center e)

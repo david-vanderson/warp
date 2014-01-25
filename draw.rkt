@@ -100,8 +100,8 @@
               (- (/ (send ship-bitmap get-width) 2))
               (- (/ (send ship-bitmap get-height) 2)))
       
-      (for ((pod (ship-pods s)))
-        (draw-pod dc pod)))
+;      (for ((pod (ship-pods s)))
+;        (draw-pod dc pod)))
     
 ;    (define scale 0.5)
 ;    (send dc scale scale (- scale))
@@ -113,17 +113,16 @@
 ;    (let ((p (new dc-path%)))
 ;      (send p text-outline (send dc get-font) text 0 0)
 ;      (send dc draw-path p 0 0))
-    )
-  )
+    )))
 
 
 ; assuming dc is already centered on middle of ship and rotated for the ship
-(define (draw-pod dc pod)
-  (keep-transform dc
-    (send dc set-pen fgcolor 1 'solid)
-    (send dc rotate (- (pod-angle pod)))
-    (send dc translate (pod-dist pod) 0)
-    (send dc draw-ellipse -5 -5 10 10)))
+;(define (draw-pod dc pod)
+;  (keep-transform dc
+;    (send dc set-pen fgcolor 1 'solid)
+;    (send dc rotate (- (pod-angle pod)))
+;    (send dc translate (pod-dist pod) 0)
+;    (send dc draw-ellipse -5 -5 10 10)))
 
 
 (define (draw-no-role dc space)

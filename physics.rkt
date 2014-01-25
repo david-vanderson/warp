@@ -103,22 +103,25 @@
 
 ; return list of changes
 (define (reduce-reactor! space ship damage)
+  (define changes '())
   (set-ship-containment! ship (- (ship-containment ship) damage))
-  (cond (((ship-containment ship) . <= . 0)
-         (set-space-objects! space (remove ship (space-objects space)))
-         (define pv (obj-posvel ship))
-         (for/list ((i 21))
-           (define t (random-between 0 2pi))
-           (define s (random-between 80 120))
-           (define p (plasma (next-id) (space-time space)
-                          (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
-                                  (+ (* s (cos t)) (posvel-dx pv))
-                                  (+ (* s (sin t)) (posvel-dy pv))
-                                  0)
-                          10.0 #f))
-           (set-space-objects! space (cons p (space-objects space)))
-           (chadd p)))
-        (else '())))
+  (when ((ship-containment ship) . <= . 0)
+    (set-space-objects! space (remove ship (space-objects space)))
+    (define pv (obj-posvel ship))
+    (define e (effect (next-id) (space-time space) (struct-copy posvel pv) 45 1000))
+    (set! changes (cons (chadd e) changes))
+    (for ((i 21))
+      (define t (random-between 0 2pi))
+      (define s (random-between 80 120))
+      (define p (plasma (next-id) (space-time space)
+                        (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
+                                (+ (* s (cos t)) (posvel-dx pv))
+                                (+ (* s (sin t)) (posvel-dy pv))
+                                0)
+                        10.0 #f))
+      (set-space-objects! space (cons p (space-objects space)))
+      (set! changes (cons (chadd p) changes))))
+  changes)
 
 
 ;; server only
@@ -137,7 +140,8 @@
       (define e (effect (next-id) (space-time space)
                         (struct-copy posvel (obj-posvel p)
                                      (dx (posvel-dx (obj-posvel ship)))
-                                     (dy (posvel-dy (obj-posvel ship))))))
+                                     (dy (posvel-dy (obj-posvel ship))))
+                        6 300))
       (set! changes (cons (chadd e) changes))))
   changes)
 
