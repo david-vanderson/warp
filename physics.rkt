@@ -47,14 +47,16 @@
   
   (define ddx 0)
   (define ddy 0)
+  (define acc? #f)
   (when (pilot-fore (ship-pilot ownship))
+    (set! acc? #t)
     (set! ddx (* 20 (cos (posvel-r posvel))))
     (set! ddy (* 20 (sin (posvel-r posvel)))))
   
   (set-posvel-dx! posvel (+ (posvel-dx posvel) (* ddx dt)))
   (set-posvel-dy! posvel (+ (posvel-dy posvel) (* ddy dt)))
   
-  (values ddx ddy ddr))
+  (values acc? (not (= 0 ddr))))
 
 
 (define (drag dv dt coef epsilon)
@@ -62,31 +64,48 @@
   (if ((abs newv) . < . epsilon) 0 newv))
 
 
-(define (physics! posvel dt drag? ddx ddy ddr)
-  (set-posvel-x! posvel (+ (posvel-x posvel) (* dt (posvel-dx posvel))))
-  (set-posvel-y! posvel (+ (posvel-y posvel) (* dt (posvel-dy posvel))))
-  (set-posvel-r! posvel (angle-add (posvel-r posvel) (* dt (posvel-dr posvel))))
+(define (physics! pv dt drag? (acc? #f) (accr? #f))
+  (set-posvel-x! pv (+ (posvel-x pv) (* dt (posvel-dx pv))))
+  (set-posvel-y! pv (+ (posvel-y pv) (* dt (posvel-dy pv))))
+  (set-posvel-r! pv (angle-add (posvel-r pv) (* dt (posvel-dr pv))))
   (when drag?
-    (set-posvel-dx! posvel (drag (posvel-dx posvel) dt DRAG_COEF (if (zero? ddx) .1 0)))
-    (set-posvel-dy! posvel (drag (posvel-dy posvel) dt DRAG_COEF (if (zero? ddy) .1 0)))
-    (set-posvel-dr! posvel (drag (posvel-dr posvel) dt R_DRAG_COEF (if (zero? ddr) (/ 2pi 360) 0)))))
+    (when (not (= 0 (posvel-dx pv)))
+      (define dtheta (atan (posvel-dy pv) (posvel-dx pv)))
+      (define drad (sqrt (+ (* (posvel-dy pv) (posvel-dy pv))
+                            (* (posvel-dx pv) (posvel-dx pv)))))
+      
+      ; angle of motion with respect to course
+      (define thetadiff (angle-sub (posvel-r pv) dtheta))
+      (define d-along (drag (* drad (cos thetadiff)) dt .3 (if acc? 0 .1)))
+      (define d-across (drag (* drad (sin thetadiff)) dt .9 .1))
+      
+      (cond ((= 0 d-along d-across)
+             (set-posvel-dx! pv 0)
+             (set-posvel-dy! pv 0))
+            (else
+             (define newtheta (angle-add (atan d-across d-along) (posvel-r pv)))
+             (define newrad (sqrt (+ (* d-along d-along) (* d-across d-across))))
+             
+             (set-posvel-dx! pv (* newrad (cos newtheta)))
+             (set-posvel-dy! pv (* newrad (sin newtheta))))))
+    (set-posvel-dr! pv (drag (posvel-dr pv) dt R_DRAG_COEF (if accr? 0 (/ 2pi 360))))))
 
 
 (define (update-physics! space o dt)
   (cond
     ((ship? o)
-     (define-values (ddx ddy ddr) (steer! o dt))
-     (physics! (obj-posvel o) dt #t ddx ddy ddr))
+     (define-values (acc? accr?) (steer! o dt))
+     (physics! (obj-posvel o) dt #t acc? accr?))
     ((plasma? o)
-     (physics! (obj-posvel o) dt #f 0 0 0)
+     (physics! (obj-posvel o) dt #f)
      (when (plasma-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))
     ((shield? o)
-     (physics! (obj-posvel o) dt #t 0 0 0)
+     (physics! (obj-posvel o) dt #t)
      (when (shield-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))
     ((effect? o)
-     (physics! (obj-posvel o) dt #f 0 0 0)
+     (physics! (obj-posvel o) dt #f)
      (when (effect-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))))
 

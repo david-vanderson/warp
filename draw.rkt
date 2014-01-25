@@ -140,14 +140,12 @@
   (define start-stacks
     (search space (lambda (o) (and (multipod? o)
                                    (multipod-start? o))) #t))
-  (cons
-   leave-button
-   (for/list ((s start-stacks)
+  (for/list ((s start-stacks)
               (i (in-naturals)))
      (define mp (car s))
      (button (+ LEFT 100 (* i 200)) (+ BOTTOM 60) 150 30 5 5 (ob-id mp)
              (format "~a on ~a" (role-name (pod-role mp))
-                     (ship-name (get-ship s)))))))
+                     (ship-name (get-ship s))))))
 
 
 (define (draw-overlay dc ownspace stack)

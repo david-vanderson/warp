@@ -71,7 +71,7 @@
   
   ; find least-recently sent posvels
   (define objs
-    (sort (find-all ownspace (lambda (o) (obj-posvel o)))
+    (sort (space-objects ownspace)
           (lambda (o1 o2) (> (- (space-time ownspace) (posvel-t (obj-posvel o1)))
                              (- (space-time ownspace) (posvel-t (obj-posvel o2)))))))
   (define oldest (- (space-time ownspace) (posvel-t (obj-posvel (car objs)))))
