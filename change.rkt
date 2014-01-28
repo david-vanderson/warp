@@ -78,7 +78,7 @@
            (else #f)))
     ((role? c)
      ; find our role
-     (define stack (find-stack space (ob-id (role-player c))))
+     (define stack (find-stack space (ob-id c)))
      (cond
        ((weapons? c) (update-weapons c space stack))
        ((tactics? c) (update-tactics c space stack))

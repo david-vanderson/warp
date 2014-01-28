@@ -89,7 +89,7 @@
           (- (posvel-y (obj-posvel o)) (posvel-y (obj-posvel center)))))
 
 (define (get-role stack)
-  (if stack (cadr stack) #f))
+  (car (memf role? stack)))
 
 (define (get-pod stack)
   (car (memf pod? stack)))

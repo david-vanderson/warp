@@ -76,7 +76,7 @@
       
       ; how different our course and velocity are
       (define rdiff (abs (angle-diff dtheta (posvel-r pv))))
-      (define dragc (max 0.2 (min 0.9 (/ rdiff (/ pi 4)))))
+      (define dragc (min 0.9 (+ 0.2 (* 0.7 (/ rdiff (/ pi 4))))))
       (set-posvel-dx! pv (drag (posvel-dx pv) dt dragc (if acc? 0 .1)))
       (set-posvel-dy! pv (drag (posvel-dy pv) dt dragc (if acc? 0 .1))))
     (set-posvel-dr! pv (drag (posvel-dr pv) dt R_DRAG_COEF (if accr? 0 (/ 2pi 360))))))

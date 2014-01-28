@@ -50,13 +50,8 @@
     (set! previous-physics-time (+ previous-physics-time TICK))
     (set-space-time! ownspace (+ (space-time ownspace) TICK))
     (for ((o (space-objects ownspace))) (update-physics! ownspace o (/ TICK 1000.0)))
-    (define effect-changes (update-effects! ownspace))
-    ;(printf "server effect-changes ~v\n" effect-changes)
-    (set! updates (append updates effect-changes))
-    (run-ai! ownspace))
-  
-  ; XXX run the ai, return list of changes
-  ; XXX process the ai changes
+    (set! updates (append updates (update-effects! ownspace)))
+    (set! updates (append updates (run-ai! ownspace))))
   
   ; process commands
   (for ((p client-in-ports))

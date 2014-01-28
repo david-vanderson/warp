@@ -41,9 +41,10 @@
 (struct player ob (name) #:mutable #:prefab)
 ; name is what is shown in UIs
 
-(struct role ob (player) #:mutable #:prefab)
+(struct role ob (player npc?) #:mutable #:prefab)
 ; the knobs and dials that a player can adjust
 ; player is #f if this role is unoccupied
+; npc? is #t if this role is controlled by the computer when a player is absent
 
 (struct pod ob (role angle dist facing spread) #:mutable #:prefab)
 ; angle/dist is where this pod is with respect to the ship
@@ -89,8 +90,7 @@
 (struct tactics role (shield) #:mutable #:prefab)
 ; shield is an angle if we want to shoot a shield barrier (at that angle)
 
-(struct ship obj (name npc? faction crew reactor containment pods) #:mutable #:prefab)
-; npc? is #t if this ship is computer controlled
+(struct ship obj (name faction crew reactor containment pods) #:mutable #:prefab)
 ; faction is the name that this ship belongs to
 ; crew is a multipod for players choosing their next role
 ; reactor is the energy produced by the reactor
@@ -197,18 +197,18 @@
 ;(player (next-id) "Andrea")
 
 (define (big-ship name npc? faction x y r fore? hangar?)
-  (ship (next-id) 0 (if hangar? (posvel 0 x y r 0 0 0) #f) name npc? faction
-        (multipod (next-id) (crewer (next-id) #f) #f #f #f #f (not npc?) '())
+  (ship (next-id) 0 (if hangar? (posvel 0 x y r 0 0 0) #f) name faction
+        (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f (not npc?) '())
         110 100
         (list
-         (helm (next-id) (pilot (next-id) #f r fore? #f) 0 0 #f #f)
-         (multipod (next-id) (observer (next-id) #f) 0 10 #f #f #f '())
-         (hangarpod (next-id) (hangar (next-id) #f) 0 -10 #f #f #f '()
+         (helm (next-id) (pilot (next-id) #f npc? r fore? #f) 0 0 #f #f)
+         (multipod (next-id) (observer (next-id) #f #f) 0 10 #f #f #t '())
+         (hangarpod (next-id) (hangar (next-id) #f #f) 0 -10 #f #f #f '()
                     (if hangar?
                         (list (big-ship (string-append name "2") npc? faction 0 0 0 #f #f)
                               (big-ship (string-append name "3") npc? faction 0 0 0 #f #f))
                         '()))
-         (weapon (next-id) (weapons (next-id) #f #f) (degrees->radians 21.8) 21.5 0 (* 0.8 pi))
-         (tactical (next-id) (tactics (next-id) #f #f) (degrees->radians -21.8) 21.5 0 (* 0.8 pi))
+         (weapon (next-id) (weapons (next-id) #f npc? #f) (degrees->radians 21.8) 21.5 0 (* 0.8 pi))
+         (tactical (next-id) (tactics (next-id) #f npc? #f) (degrees->radians -21.8) 21.5 0 (* 0.8 pi))
          )
         ))

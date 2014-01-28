@@ -52,11 +52,11 @@
   
   
   (define (click canvas event)
-    (define role (get-role my-stack))
     (define scale (canvas-scale canvas))
     (define-values (x y) (screen->canon canvas (send event get-x) (send event get-y)))
     (define button (click-button? buttons x y))
     ;(printf "click ~a ~a ~a\n" x y button)
+    (define role (if my-stack (get-role my-stack) #f))
     (cond
       ((and button (equal? button "leave"))
        (cond
@@ -103,7 +103,7 @@
       
       (send dc clear)
       
-      (define role (get-role my-stack))
+      (define role (if my-stack (get-role my-stack) #f))
       
       (set! buttons
             (cond
