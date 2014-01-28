@@ -9,8 +9,10 @@
   (space
    0 4000 4000
    (list
-    (big-ship "Rebel1" #t "Rebel" 0 0 0 #f #t)
-    (big-ship "Empire1" #t "Empire" 200 100 pi #f #t))))
+    (big-ship "Rebel1" "Rebel" 0 0 0 #t #t #f #t #t #f)
+    (big-ship "Empire1" "Empire" 200 200 (* 2/2 pi) #t #t #f #t #t #f))))
+
+(set-posvel-dy! (obj-posvel (cadr (space-objects ownspace))) -10)
 
 (thread (lambda () (start-server PORT ownspace)))
 

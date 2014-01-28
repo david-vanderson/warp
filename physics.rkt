@@ -71,12 +71,12 @@
   (set-posvel-y! pv (+ (posvel-y pv) (* dt (posvel-dy pv))))
   (set-posvel-r! pv (angle-add (posvel-r pv) (* dt (posvel-dr pv))))
   (when drag?
-    (when (not (= 0 (posvel-dx pv)))
+    (when (not (and (= 0 (posvel-dy pv)) (= 0 (posvel-dx pv))))
       (define dtheta (atan (posvel-dy pv) (posvel-dx pv)))
       
       ; how different our course and velocity are
       (define rdiff (abs (angle-diff dtheta (posvel-r pv))))
-      (define dragc (min 0.9 (+ 0.2 (* 0.7 (/ rdiff (/ pi 4))))))
+      (define dragc (min 0.9 (+ 0.4 (* 0.5 (/ rdiff (/ pi 4))))))
       (set-posvel-dx! pv (drag (posvel-dx pv) dt dragc (if acc? 0 .1)))
       (set-posvel-dy! pv (drag (posvel-dy pv) dt dragc (if acc? 0 .1))))
     (set-posvel-dr! pv (drag (posvel-dr pv) dt R_DRAG_COEF (if accr? 0 (/ 2pi 360))))))

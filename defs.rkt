@@ -165,6 +165,16 @@
 ;; Utilities
 
 
+(define (copy-role r)
+  (cond
+    ((observer? r) (struct-copy observer r))
+    ((hangar? r) (struct-copy hangar r))
+    ((crewer? r) (struct-copy crewer r))
+    ((pilot? r) (struct-copy pilot r))
+    ((weapons? r) (struct-copy weapons r))
+    (else (error "copy-role hit ELSE clause, role:\n" r))))
+
+
 (define (role-name role)
   (cond ((hangar? role) "Hangar")
         ((crewer? role) "Crewer")
@@ -196,19 +206,21 @@
 
 ;(player (next-id) "Andrea")
 
-(define (big-ship name npc? faction x y r fore? hangar?)
+(define (big-ship name faction (x 0) (y 0) (r 0)
+                  (fore? #f) (hangar? #f) (npc-crew? #f) (npc-helm? #f)
+                  (npc-weapons? #f) (npc-tactical? #f))
   (ship (next-id) 0 (if hangar? (posvel 0 x y r 0 0 0) #f) name faction
-        (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f (not npc?) '())
+        (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f (not npc-crew?) '())
         110 100
         (list
-         (helm (next-id) (pilot (next-id) #f npc? r fore? #f) 0 0 #f #f)
+         (helm (next-id) (pilot (next-id) #f npc-helm? r fore? #f) 0 0 #f #f)
          (multipod (next-id) (observer (next-id) #f #f) 0 10 #f #f #t '())
          (hangarpod (next-id) (hangar (next-id) #f #f) 0 -10 #f #f #f '()
                     (if hangar?
-                        (list (big-ship (string-append name "2") npc? faction 0 0 0 #f #f)
-                              (big-ship (string-append name "3") npc? faction 0 0 0 #f #f))
+                        (list (big-ship (string-append name "2") faction)
+                              (big-ship (string-append name "3") faction))
                         '()))
-         (weapon (next-id) (weapons (next-id) #f npc? #f) (degrees->radians 21.8) 21.5 0 (* 0.8 pi))
-         (tactical (next-id) (tactics (next-id) #f npc? #f) (degrees->radians -21.8) 21.5 0 (* 0.8 pi))
+         (weapon (next-id) (weapons (next-id) #f npc-weapons? #f) (degrees->radians 21.8) 21.5 0 (* 0.8 pi))
+         (tactical (next-id) (tactics (next-id) #f npc-tactical? #f) (degrees->radians -21.8) 21.5 0 (* 0.8 pi))
          )
         ))

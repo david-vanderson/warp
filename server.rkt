@@ -7,7 +7,8 @@
          "utils.rkt"
          "change.rkt"
          "physics.rkt"
-         "ai.rkt")
+         "pilot.rkt"
+         "weapons.rkt")
 
 (provide start-server)
 
@@ -17,7 +18,24 @@
 (define ownspace #f)
 
 
-;; Server Utilities
+; return a list of commands
+(define (run-ai! space)
+  (define commands '())
+  (define (airole? o)
+    (and (role? o)
+         (role-npc? o)
+         (not (role-player o))))
+  
+  (define airolestacks (search space airole? #t))
+  (for ((s airolestacks))
+    (define r (get-role s))
+    ;(printf "role ~v\n" r)
+    (cond
+      ((pilot? r)
+       (set! commands (append commands (pilot-ai! space s))))
+      ((weapons? r)
+       (set! commands (append commands (weapons-ai! space s))))))
+  commands)
 
 
 (define previous-physics-time #f)
@@ -51,7 +69,13 @@
     (set-space-time! ownspace (+ (space-time ownspace) TICK))
     (for ((o (space-objects ownspace))) (update-physics! ownspace o (/ TICK 1000.0)))
     (set! updates (append updates (update-effects! ownspace)))
-    (set! updates (append updates (run-ai! ownspace))))
+    (define commands (run-ai! ownspace))
+    (for ((c commands))
+      ;(printf "server applying ai command ~v\n" c)
+      (define changes (apply-change! ownspace c #f))
+      (if changes
+          (set! updates (append updates changes))
+          (printf "server made no ai change ~v\n" c))))
   
   ; process commands
   (for ((p client-in-ports))

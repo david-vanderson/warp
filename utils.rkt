@@ -155,9 +155,40 @@
   (define dy (- (posvel-y (obj-posvel o1)) (posvel-y (obj-posvel o2))))
   (sqrt (+ (* dx dx) (* dy dy))))
 
-
 (define (theta from to)
   (define dx (- (posvel-x (obj-posvel to)) (posvel-x (obj-posvel from))))
   (define dy (- (posvel-y (obj-posvel to)) (posvel-y (obj-posvel from))))
   ;(printf "dx ~a, dy ~a\n" dx dy)
   (atan dy dx))
+
+
+(define (pod-xyr pod ship)
+  (define ps (obj-posvel ship))
+  (define podangle (+ (posvel-r ps) (pod-angle pod)))
+  (values (+ (posvel-x ps) (* (pod-dist pod) (cos podangle)))
+          (+ (posvel-y ps) (* (pod-dist pod) (sin podangle)))
+          podangle))
+
+(define (pod-obj pod ship)
+  (define-values (px py pr) (pod-xyr pod ship))
+  (obj #f #f (posvel #f px py pr (posvel-dx (obj-posvel ship)) (posvel-dy (obj-posvel ship)) #f)))
+
+
+;; ai utils
+
+(define (nearest-enemy space ownship)
+  (define agro-dist 600)  ; ignore ships farther away than this
+  
+  (define enemies (filter (lambda (o)
+                            (and (ship? o)
+                                 (not (equal? (ship-faction o) (ship-faction ownship)))))
+                          (space-objects space)))
+  (define ne #f)
+  (define ne-dist #f)
+  (for ((e enemies))
+    (define d (distance ownship e))
+    (when (and (d . < . agro-dist)
+               (or (not ne) (d . < . ne-dist)))
+      (set! ne e)
+      (set! ne-dist d)))
+  ne)

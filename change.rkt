@@ -21,14 +21,6 @@
     (printf "pvu - couldn't find obj id ~a\n" (pvupdate-id pvu))))
 
 
-(define (copy-role r)
-  (cond
-    ((observer? r) (struct-copy observer r))
-    ((hangar? r) (struct-copy hangar r))
-    ((crewer? r) (struct-copy crewer r))
-    (else (error "copy-role hit ELSE clause, role:\n" r))))
-
-
 (define (join-role! space roleid p)
   (define r (find-id space roleid))
   ;(printf "player ~v joining role ~v\n" p r)

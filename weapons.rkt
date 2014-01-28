@@ -10,6 +10,44 @@
 
 (provide (all-defined-out))
 
+
+(define PLASMA_SPEED 60)
+
+
+;; server
+
+; return a list of changes
+(define (weapons-ai! space stack)
+  (define changes '())
+  (define ownship (get-ship stack))
+  (when (ship-flying? ownship)
+    (define w (get-role stack))
+    (define neww (copy-role w))
+    (define ne (nearest-enemy space ownship))
+  
+    (when ne
+      (define me (pod-obj (get-pod stack) ownship))
+      (define vx (- (posvel-dx (obj-posvel ne)) (posvel-dx (obj-posvel me))))
+      (define vy (- (posvel-dy (obj-posvel ne)) (posvel-dy (obj-posvel me))))
+      (define t
+        (cond
+          ((= 0 vy vx)
+           (theta me ne))
+          (else
+           (define v-t (atan vy vx))
+           (define ep-t (theta ne me))
+           (define speed-ratio (/ (sqrt (+ (* vx vx) (* vy vy))) PLASMA_SPEED))
+           (define sin-aim (* (sin (angle-diff ep-t v-t)) speed-ratio))
+           (if (speed-ratio . < . 1)
+               (angle-sub (theta me ne) (asin sin-aim))
+               #f))))
+      
+      (when (and t ((random) . > . 0.95))
+        (set-weapons-fire! neww t)
+        (set! changes (list neww)))))
+  changes)
+
+
 ;; client/server
 
 (define (update-weapons cmd space stack)
@@ -20,9 +58,7 @@
     ((weapons-fire cmd)
      ; we are firing
      (define ps (obj-posvel ship))
-     (define podangle (+ (posvel-r ps) (pod-angle pod)))
-     (define px (+ (posvel-x ps) (* (pod-dist pod) (cos podangle))))
-     (define py (+ (posvel-y ps) (* (pod-dist pod) (sin podangle))))
+     (define-values (px py podangle) (pod-xyr pod ship))
      (define a (weapons-fire cmd))
      (define x (+ px (* 5 (cos a))))
      (define y (+ py (* 5 (sin a))))
@@ -33,8 +69,8 @@
      
      (define p (plasma (next-id) (space-time space)
                        (posvel (space-time space) x y 0
-                               (+ (* 60 (cos a)) (posvel-dx ps) rvx)
-                               (+ (* 60 (sin a)) (posvel-dy ps) rvy)
+                               (+ (* PLASMA_SPEED (cos a)) (posvel-dx ps) rvx)
+                               (+ (* PLASMA_SPEED (sin a)) (posvel-dy ps) rvy)
                                0)
                        10.0 (ob-id ship)))
      (set-space-objects! space (cons p (space-objects space)))

@@ -17,6 +17,45 @@
        (ship-flying? (cadr ships))))
 
 
+;; server
+
+; return a list of changes
+(define (pilot-ai! space stack)
+  (define changes '())
+  (define ownship (get-ship stack))
+  (when (ship-flying? ownship)
+    (define p (get-role stack))
+    (define newp (copy-role p))
+    (define ne (nearest-enemy space ownship))
+  
+    (when ne
+      (define ne-dist (distance ownship ne))
+      
+      (define t (theta ownship ne))
+      (define ht (angle-diff (pilot-course p) t))
+      (define r (posvel-r (obj-posvel ownship)))
+      (unless (pilot-fore p)
+        (set-pilot-fore! newp #t)
+        ;(printf "~a moving\n" (ship-name ownship))
+        (set! changes (list newp)))
+      (when (or ((abs ht) . > . (* 3/4 pi))  ; we are heading away from the enemy
+                (and (ne-dist . > . 300)  ; enemy is getting away
+                     ((abs ht) . > . (* 1/6 pi))))  ; we aren't pointed towards him
+        ; retarget for a new attack pass
+        (set-pilot-course! newp (angle-add t (random-between (- (* 1/8 pi)) (* 1/8 pi))))
+        (set-pilot-fore! newp #t)
+        ;(printf "~a attack ~a ~a\n" (ship-name ownship) (ship-name ne) (pilot-course newp))
+        (set! changes (list newp))))
+  
+    (when (not ne)
+      ; follow other orders?
+      (unless (not (pilot-fore p))
+        (set-pilot-fore! newp #f)
+        ;(printf "~a stopping\n" (ship-name ownship))
+        (set! changes (list newp)))))
+  changes)
+
+
 ;; client/server
 
 (define (update-pilot p space stack)
