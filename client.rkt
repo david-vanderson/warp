@@ -134,6 +134,8 @@
   
   (define frame (new frame%
                      (label "Warp")
+                     (width WIDTH)
+                     (height HEIGHT)
                      ;                     (x (- left-inset))
                      ;                     (y (- top-inset))
                      ;                     (width screen-w)
@@ -164,8 +166,6 @@
   (define canvas
     (new my-canvas
          (parent frame)
-         (min-width WIDTH)
-         (min-height HEIGHT)
          (paint-callback draw-screen)
          (style '(no-autoclear))))
   
