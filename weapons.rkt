@@ -42,7 +42,7 @@
                (angle-sub (theta me ne) (asin sin-aim))
                #f))))
       
-      (when (and t ((random) . > . 0.95))
+      (when (and t ((random) . > . 0.97))
         (set-weapons-fire! neww t)
         (set! changes (list neww)))))
   changes)

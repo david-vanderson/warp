@@ -114,6 +114,7 @@
     
     ; need to assign an id to the new player
     (write (player (next-id) "New Player") out)
+    (flush-output out)
     
     (set! client-in-ports (cons in client-in-ports))
     (set! client-out-ports (cons out client-out-ports))
