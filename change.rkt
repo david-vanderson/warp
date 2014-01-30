@@ -136,7 +136,6 @@
   (if (null? changes)
       '()
       (apply append
-             changes
              (for/list ((c changes))
                (define new-changes (apply-change! space c ctime who))
-               (apply-all-changes! space new-changes ctime who)))))
+               (cons c (apply-all-changes! space new-changes ctime who))))))

@@ -8,7 +8,9 @@
          "change.rkt"
          "physics.rkt"
          "pilot.rkt"
-         "weapons.rkt")
+         "weapons.rkt"
+         "plasma.rkt"
+         "shield.rkt")
 
 (provide start-server)
 
@@ -16,6 +18,66 @@
 (define client-in-ports '())
 (define client-out-ports '())
 (define ownspace #f)
+
+
+; return a list of changes
+(define (plasma-hit-ship! space ship p)
+  (define changes '())
+  (when (and (not ((ship-containment ship) . <= . 0))
+             (not (plasma-dead? space p)))
+    (when (and (not (equal? (plasma-ownship-id p) (ob-id ship)))
+               ((distance ship p) . < . (+ 10 (plasma-radius space p))))
+      ;(printf "plasma hit ship ~a (~a ~a)\n" (ship-name ship) (plasma-ownship-id p) (obj-id ship))
+      (define damage (plasma-energy space p))
+      (define e (effect (next-id) (space-time space)
+                        (struct-copy posvel (obj-posvel p)
+                                     (dx (posvel-dx (obj-posvel ship)))
+                                     (dy (posvel-dy (obj-posvel ship))))
+                        6 300))
+      (set! changes (append changes (list (chdam (ob-id p) damage)
+                                          (chdam (ob-id ship) damage)
+                                          (chadd e))))))
+  changes)
+
+
+; return a list of changes
+(define (plasma-hit-shield! space shield p)
+  (define changes '())
+  (when (and (not (shield-dead? space shield))
+             (not (plasma-dead? space p)))
+    (define r (posvel-r (obj-posvel shield)))
+    (define-values (px py) (recenter shield p))
+    (define x (+ (* px (cos r)) (* py (sin r))))
+    (define y (+ (* -1 px (sin r)) (* py (cos r))))
+    ; x,y are now the position of the plasma in the coord space of the shield
+    ; shield is along the y axis
+    (define rad (plasma-radius space p))
+    (define l (shield-length shield))
+    (when (and (< (- rad) x rad)
+               (< (- (- (/ l 2)) rad) y (+ (/ l 2) rad)))
+      (define damage (plasma-energy space p))
+      (set! changes (append changes (list (chdam (ob-id p) damage)
+                                          (chdam (ob-id shield) damage))))))
+  changes)
+
+
+; return a list of final changes
+(define (effects! space)
+  (define changes '())
+  (define objects (space-objects space))
+  (define ships (filter ship? objects))
+  (define plasmas (filter plasma? objects))
+  (define shields (filter shield? objects))
+  (for ((p plasmas))
+    (for ((shield shields))
+      (define cs (apply-all-changes!
+                  space (plasma-hit-shield! space shield p) (space-time space) "server"))
+      (set! changes (append changes cs)))
+    (for ((ship ships))
+      (define cs (apply-all-changes!
+                  space (plasma-hit-ship! space ship p) (space-time space) "server"))
+      (set! changes (append changes cs))))
+  changes)
 
 
 ; return a list of commands
@@ -68,10 +130,8 @@
     (set-space-time! ownspace (+ (space-time ownspace) TICK))
     (for ((o (space-objects ownspace))) (update-physics! ownspace o (/ TICK 1000.0)))
     
-    (define effects (update-effects! ownspace))
-    (define effect-changes
-      (apply-all-changes! ownspace effects (space-time ownspace) "server"))
-    (set! updates (append updates effect-changes))
+    ; update-effects! returns already-applied changes
+    (set! updates (append updates (effects! ownspace)))
     
     (define commands (run-ai! ownspace))
     (define command-changes

@@ -11,8 +11,6 @@
 (provide (all-defined-out))
 
 
-;; server and client
-
 (define (opposite-sign? a b)
   (if (positive? a)
       (negative? b)
@@ -116,8 +114,8 @@
     (set-space-objects! space (remove ship (space-objects space)))
     (define pv (obj-posvel ship))
     (define e (effect (next-id) (space-time space) (struct-copy posvel pv) 45 1000))
-    (set! changes (cons (chadd e) changes))
-    (for ((i 1))
+    (set! changes (append changes (list (chadd e))))
+    (for ((i 41))
       (define t (random-between 0 2pi))
       (define s (random-between 80 120))
       (define p (plasma (next-id) (space-time space)
@@ -126,63 +124,6 @@
                                 (+ (* s (sin t)) (posvel-dy pv))
                                 0)
                         10.0 #f))
-      (set! changes (cons (chadd p) changes))))
+      (set! changes (append changes (list (chadd p))))))
   changes)
 
-
-;; server only
-
-; return a list of changes
-(define (plasma-hit-ship! space ship p)
-  (define changes '())
-  (when (and (not ((ship-containment ship) . <= . 0))
-             (not (plasma-dead? space p)))
-    (when (and (not (equal? (plasma-ownship-id p) (ob-id ship)))
-               ((distance ship p) . < . (+ 10 (plasma-radius space p))))
-      ;(printf "plasma hit ship ~a (~a ~a)\n" (ship-name ship) (plasma-ownship-id p) (obj-id ship))
-      (define damage (plasma-energy space p))
-      (define e (effect (next-id) (space-time space)
-                        (struct-copy posvel (obj-posvel p)
-                                     (dx (posvel-dx (obj-posvel ship)))
-                                     (dy (posvel-dy (obj-posvel ship))))
-                        6 300))
-      (set! changes (append changes (list (chdam (ob-id p) damage)
-                                          (chdam (ob-id ship) damage)
-                                          (chadd e))))))
-  changes)
-
-
-; return a list of changes
-(define (plasma-hit-shield! space shield p)
-  (define changes '())
-  (when (and (not (shield-dead? space shield))
-             (not (plasma-dead? space p)))
-    (define r (posvel-r (obj-posvel shield)))
-    (define-values (px py) (recenter shield p))
-    (define x (+ (* px (cos r)) (* py (sin r))))
-    (define y (+ (* -1 px (sin r)) (* py (cos r))))
-    ; x,y are now the position of the plasma in the coord space of the shield
-    ; shield is along the y axis
-    (define rad (plasma-radius space p))
-    (define l (shield-length shield))
-    (when (and (< (- rad) x rad)
-               (< (- (- (/ l 2)) rad) y (+ (/ l 2) rad)))
-      (define damage (plasma-energy space p))
-      (set! changes (append changes (list (chdam (ob-id p) damage)
-                                          (chdam (ob-id shield) damage))))))
-  changes)
-
-
-; return a list of changes
-(define (update-effects! space)
-  (define changes '())
-  (define objects (space-objects space))
-  (define ships (filter ship? objects))
-  (define plasmas (filter plasma? objects))
-  (define shields (filter shield? objects))
-  (for ((p plasmas))
-    (for ((shield shields))
-      (set! changes (append changes (plasma-hit-shield! space shield p))))
-    (for ((ship ships))
-      (set! changes (append changes (plasma-hit-ship! space ship p)))))
-  changes)

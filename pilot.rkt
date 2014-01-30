@@ -23,6 +23,7 @@
 (define (pilot-ai! space stack)
   (define changes '())
   (define ownship (get-ship stack))
+  
   (when (ship-flying? ownship)
     (define p (get-role stack))
     (define newp (copy-role p))
