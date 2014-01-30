@@ -208,7 +208,7 @@
                  (add-backeffects! ownspace o TICK)))
              (for ((c (update-changes input)))
                ;(printf "client applying change ~v\n" c)
-               (apply-change! ownspace c (update-time input)))
+               (apply-change! ownspace c (update-time input) "client"))
              (for ((pvu (update-pvs input)))
                (update-posvel! ownspace pvu (update-time input)))))
       
@@ -221,8 +221,6 @@
     ;(printf "client got updates ~a\n" n)
     
     (when ownspace
-      ;(set! ownspace (read (open-input-string (with-output-to-string (lambda () (write serverspace))))))
-      (set! ownspace ownspace)
       (set! my-stack (find-stack ownspace (ob-id me)))
     
       ; physics prediction

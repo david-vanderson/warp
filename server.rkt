@@ -44,7 +44,6 @@
   (define current-time (current-milliseconds))
   (when (not previous-physics-time)
     (set! previous-physics-time current-time))
-  (define need-update #f)
   
   ; process new clients
   (when (tcp-accept-ready? server-listener)
@@ -68,25 +67,28 @@
     (set! previous-physics-time (+ previous-physics-time TICK))
     (set-space-time! ownspace (+ (space-time ownspace) TICK))
     (for ((o (space-objects ownspace))) (update-physics! ownspace o (/ TICK 1000.0)))
-    (set! updates (append updates (update-effects! ownspace)))
+    
+    (define effects (update-effects! ownspace))
+    (define effect-changes
+      (apply-all-changes! ownspace effects (space-time ownspace) "server"))
+    (set! updates (append updates effect-changes))
+    
     (define commands (run-ai! ownspace))
-    (for ((c commands))
-      ;(printf "server applying ai command ~v\n" c)
-      (define changes (apply-change! ownspace c #f))
-      (if changes
-          (set! updates (append updates changes))
-          (printf "server made no ai change ~v\n" c))))
+    (define command-changes
+      (apply-all-changes! ownspace commands (space-time ownspace) "server"))
+    (set! updates (append updates command-changes)))
+  
   
   ; process commands
   (for ((p client-in-ports))
     (while (byte-ready? p)
       (define x (read p))
       ;(printf "server applying command ~v\n" x)
-      (define changes (apply-change! ownspace x #f))
-      (if changes
-          (set! updates (append updates changes))
-          (printf "server made no change ~v\n" x))
-      (set! need-update #t)))
+      (define commands (list x))
+      (define command-changes
+        (apply-all-changes! ownspace commands (space-time ownspace) "server"))
+      (set! updates (append updates command-changes))))
+  
   
   ; find least-recently sent posvels
   (define objs
@@ -128,10 +130,10 @@
 (module+ main
   
   (define ownspace
-  (space
-   0 4000 4000
-   (list
-    (big-ship "Rebel1" #f "Rebel" 0 0 0 #t #t)
-    (big-ship "Empire1" #f "Empire" 100 0 (/ pi 2) #f #t))))
+    (space
+     0 4000 4000
+     (list
+      (big-ship "Rebel1" "Rebel" 0 0 0 #t #t #f #t #t #f)
+      (big-ship "Empire1" "Empire" 200 200 (* 2/2 pi) #t #t #f #t #t #f))))
   
   (start-server PORT ownspace))

@@ -133,9 +133,10 @@
 (struct chadd (o) #:mutable #:prefab)
 ; o is the new object to add to space-objects
 
-(struct chmov (id from to) #:mutable #:prefab)
+(struct chmov (id from to pv) #:mutable #:prefab)
 ; id is of the object to move
 ; from/to are ids of objects, #f means space-objects
+; pv is the new posvel to use for this object
 
 (struct chdam (id damage) #:mutable #:prefab)
 ; id is of the object that is being damaged

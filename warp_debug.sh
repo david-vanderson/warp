@@ -1,2 +1,2 @@
 #!/bin/sh
-racket -l errortrace -t sandbox.rkt
+racket -l errortrace -t $1

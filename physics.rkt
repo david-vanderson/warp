@@ -101,17 +101,14 @@
        (set-space-objects! space (remove o (space-objects space)))))))
 
 
-; return list of changes
+; return list of additional changes
 (define (damage-object! space o damage)
-  (define changes '())
-  (cond ((plasma? o) (reduce-plasma! space o damage))
-        ((shield? o) (reduce-shield! space o damage))
-        ((ship? o)
-         (set! changes (append changes (reduce-reactor! space o damage)))))
-  (append changes (list (chdam (ob-id o) damage))))
+  (cond ((plasma? o) (reduce-plasma! space o damage) '())
+        ((shield? o) (reduce-shield! space o damage) '())
+        ((ship? o) (reduce-reactor! space o damage))))
 
 
-; return list of changes
+; return list of additional changes
 (define (reduce-reactor! space ship damage)
   (define changes '())
   (set-ship-containment! ship (- (ship-containment ship) damage))
@@ -120,7 +117,7 @@
     (define pv (obj-posvel ship))
     (define e (effect (next-id) (space-time space) (struct-copy posvel pv) 45 1000))
     (set! changes (cons (chadd e) changes))
-    (for ((i 21))
+    (for ((i 1))
       (define t (random-between 0 2pi))
       (define s (random-between 80 120))
       (define p (plasma (next-id) (space-time space)
@@ -129,7 +126,6 @@
                                 (+ (* s (sin t)) (posvel-dy pv))
                                 0)
                         10.0 #f))
-      (set-space-objects! space (cons p (space-objects space)))
       (set! changes (cons (chadd p) changes))))
   changes)
 
@@ -145,14 +141,14 @@
                ((distance ship p) . < . (+ 10 (plasma-radius space p))))
       ;(printf "plasma hit ship ~a (~a ~a)\n" (ship-name ship) (plasma-ownship-id p) (obj-id ship))
       (define damage (plasma-energy space p))
-      (set! changes (append changes (damage-object! space p damage)))
-      (set! changes (append changes (damage-object! space ship damage)))
       (define e (effect (next-id) (space-time space)
                         (struct-copy posvel (obj-posvel p)
                                      (dx (posvel-dx (obj-posvel ship)))
                                      (dy (posvel-dy (obj-posvel ship))))
                         6 300))
-      (set! changes (cons (chadd e) changes))))
+      (set! changes (append changes (list (chdam (ob-id p) damage)
+                                          (chdam (ob-id ship) damage)
+                                          (chadd e))))))
   changes)
 
 
@@ -172,8 +168,8 @@
     (when (and (< (- rad) x rad)
                (< (- (- (/ l 2)) rad) y (+ (/ l 2) rad)))
       (define damage (plasma-energy space p))
-      (set! changes (append changes (damage-object! space p damage)))
-      (set! changes (append changes (damage-object! space shield damage)))))
+      (set! changes (append changes (list (chdam (ob-id p) damage)
+                                          (chdam (ob-id shield) damage))))))
   changes)
 
 

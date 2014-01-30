@@ -58,7 +58,7 @@
 
 ;; client/server
 
-(define (update-pilot p space stack)
+(define (change-pilot p space stack)
   (cond
     ((pilot-launch p)  ; server only
      ; launch this ship off of it's parent
@@ -66,26 +66,23 @@
      (define ship (car ships))
      (define parent (cadr ships))
      (define hangar (get-hangar parent))
-     (set-hangarpod-ships! hangar (remove ship (hangarpod-ships hangar)))
      (define r (angle-add (posvel-r (obj-posvel parent)) pi))
-     (set-obj-posvel! ship (posvel 0
-                                   (+ (posvel-x (obj-posvel parent)) (* 20 (cos r)))
-                                   (+ (posvel-y (obj-posvel parent)) (* 20 (sin r)))
-                                   r
-                                   (- (posvel-dx (obj-posvel parent)))
-                                   (- (posvel-dy (obj-posvel parent)))
-                                   0))
-     (define pilot (ship-pilot ship))
+     (define pv (posvel 0
+                        (+ (posvel-x (obj-posvel parent)) (* 20 (cos r)))
+                        (+ (posvel-y (obj-posvel parent)) (* 20 (sin r)))
+                        r
+                        (- (posvel-dx (obj-posvel parent)))
+                        (- (posvel-dy (obj-posvel parent)))
+                        0))
+     (define pilot (copy-role (ship-pilot ship)))
      (set-pilot-course! pilot r)
      (set-pilot-fore! pilot #t)
-     (set-space-objects! space (cons ship (space-objects space)))
-     (list (chmov (ob-id ship) (ob-id hangar) #f) pilot))
+     (list (chmov (ob-id ship) (ob-id hangar) #f pv) pilot))
     (else
-     ; client/server
      (define role (get-role stack))
      (set-pilot-course! role (pilot-course p))
      (set-pilot-fore! role (pilot-fore p))
-     (list p))))
+     '())))
 
 
 ;; client

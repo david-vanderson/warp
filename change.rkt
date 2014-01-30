@@ -52,44 +52,65 @@
     (else (set-role-player! role #f))))
 
 
+; make the change in space, and return a list of additional changes
+;
+; Each change does one or both of:
+; - affect space
+; - produce other additional changes
+; 
+; the additional changes do NOT include descriptions of the effect made on space
+;
+; examples:
+; 1) change is weapons clicked
+;    - no effect, additional changes are the new plasma
+; 2) change is add ship
+;    - effect is new ship, no additional changes
+; 3) change is damage ship
+;    - effect is damage ship, possible additional changes if the ship explodes
+;
 ; on the server, you could get conflicting commands
 ; (two players trying to take the same open role)
 ; return #f if we didn't apply the change (should be reported)
-; return a list of the changes that actually got made
-; example: incoming change is weapons clicked
-;          outgoing change(s) are new plasmas, nobody cares about the click
+;
 ; ctime is the scenario time of the change or #f
 ; - needed when the client has moved space forward and is now picking up old changes
-(define (apply-change! space c ctime)
+;
+; who is a string? for message reporting
+;
+(define (apply-change! space c ctime who)
+  ;(printf "~a applying change ~v\n" who c)
   (cond
     ((role-change? c)
      (define p (role-change-player c))
      (cond ((join-role! space (role-change-to c) p)
             (when (role-change-from c) (leave-role! space (role-change-from c) p))
-            (list c))
-           (else #f)))
+            '())
+           (else (printf "~a didn't apply change ~v\n" who c))))
     ((role? c)
      ; find our role
      (define stack (find-stack space (ob-id c)))
      (cond
-       ((weapons? c) (update-weapons c space stack))
-       ((tactics? c) (update-tactics c space stack))
-       ((pilot? c) (update-pilot c space stack))))
+       ((weapons? c) (change-weapons c space stack))
+       ((tactics? c) (change-tactics c space stack))
+       ((pilot? c) (change-pilot c space stack))))
     ((chadd? c)
-     ;(printf "client adding ~v\n" (chadd-o c))
+     ;(printf "~a adding ~v\n" who (chadd-o c))
      (while (ctime . < . (space-time space))
-       ;(printf "client ticking forward ~v\n" (chadd-o c))
+       ;(printf "~a ticking forward ~v\n" who (chadd-o c))
        (update-physics! space (chadd-o c) (/ TICK 1000.0))
        (set! ctime (+ ctime TICK)))
-     (set-space-objects! space (cons (chadd-o c) (space-objects space))))
+     (set-space-objects! space (cons (chadd-o c) (space-objects space)))
+     '())
     ((chdam? c)
      (define o (find-id space (chdam-id c)))
-     (when o
-       (damage-object! space o (chdam-damage c)))
-     (when (not o)
-       (printf "chdam - couldn't find obj id ~a\n" (chdam-id c))))
+     (cond (o
+            (damage-object! space o (chdam-damage c)))
+           (else
+            (printf "~a chdam - couldn't find obj id ~a\n" who (chdam-id c))
+            '())))
     ((chmov? c)
      (define o (find-id space (chmov-id c)))
+     (set-obj-posvel! o (chmov-pv c))
      (define from (find-id space (chmov-from c)))
      (cond
        (from
@@ -105,6 +126,17 @@
        (to
         (set-hangarpod-ships! to (cons o (hangarpod-ships to))))
        (else
-        (set-space-objects! space (cons o (space-objects space))))))
+        (set-space-objects! space (cons o (space-objects space)))))
+     '())
     (else
      (error "apply-change! hit ELSE clause" c))))
+
+
+(define (apply-all-changes! space changes ctime who)
+  (if (null? changes)
+      '()
+      (apply append
+             changes
+             (for/list ((c changes))
+               (define new-changes (apply-change! space c ctime who))
+               (apply-all-changes! space new-changes ctime who)))))

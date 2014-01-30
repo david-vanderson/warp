@@ -13,7 +13,7 @@
 
 ;; client/server
 
-(define (update-tactics c space stack)
+(define (change-tactics c space stack)
   (define role (get-role stack))
   (define pod (get-pod stack))
   (define ship (get-ship stack))
@@ -38,7 +38,6 @@
                                (+ (* 40 (sin a)) (posvel-dy ps) rvy)
                                0)
                        20.0 15.0))
-     (set-space-objects! space (cons s (space-objects space)))
      (list (chadd s)))
     (else
      (error "update-tactics hit ELSE clause"))))

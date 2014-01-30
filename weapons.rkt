@@ -50,7 +50,7 @@
 
 ;; client/server
 
-(define (update-weapons cmd space stack)
+(define (change-weapons cmd space stack)
   (define role (get-role stack))
   (define pod (get-pod stack))
   (define ship (get-ship stack))
@@ -73,7 +73,6 @@
                                (+ (* PLASMA_SPEED (sin a)) (posvel-dy ps) rvy)
                                0)
                        10.0 (ob-id ship)))
-     (set-space-objects! space (cons p (space-objects space)))
      (list (chadd p)))
     (else
      (error "command-weapons hit ELSE clause"))))
