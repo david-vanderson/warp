@@ -45,7 +45,7 @@
            (define fire-angle (angle-sub (theta me ne) (asin sin-aim)))
            
            ; project vx,vy onto fire-angle to see if the enemy will outrun our plasma
-           (define espeed (* v-l (cos (angle-sub v-r fire-angle))))
+           (define espeed (abs (* v-l (cos (angle-sub v-r fire-angle)))))
            (when (PLASMA_SPEED . > . espeed)
              (set! t fire-angle)))))
       
