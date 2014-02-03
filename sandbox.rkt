@@ -9,8 +9,8 @@
   (space
    0 4000 4000
    (list
-    (big-ship "Rebel1" "Rebel" 0 0 0 #f #t #f #t #t #f)
-    (big-ship "Empire1" "Empire" 200 200 (* 2/2 pi) #t #t #f #t #t #f))))
+    (big-ship "Rebel1" "Rebel" 0 0 0 #f #t #f #t #t #t)
+    (big-ship "Empire1" "Empire" 200 0 pi/2 #f #t #f #t #t #t))))
 
 ;(set-posvel-dy! (obj-posvel (cadr (space-objects ownspace))) -10)
 

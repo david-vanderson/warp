@@ -9,6 +9,7 @@
          "physics.rkt"
          "pilot.rkt"
          "weapons.rkt"
+         "tactics.rkt"
          "plasma.rkt"
          "shield.rkt")
 
@@ -96,7 +97,9 @@
       ((pilot? r)
        (set! commands (append commands (pilot-ai! space s))))
       ((weapons? r)
-       (set! commands (append commands (weapons-ai! space s))))))
+       (set! commands (append commands (weapons-ai! space s))))
+      ((tactics? r)
+       (set! commands (append commands (tactics-ai! space s))))))
   commands)
 
 
@@ -195,7 +198,7 @@
     (space
      0 4000 4000
      (list
-      (big-ship "Rebel1" "Rebel" 0 0 0 #t #t #f #t #t #f)
-      (big-ship "Empire1" "Empire" 200 200 (* 2/2 pi) #t #t #f #t #t #f))))
+      (big-ship "Rebel1" "Rebel" 0 0 0 #f #t #f #t #t #f)
+      (big-ship "Empire1" "Empire" 500 500 0 #f #t #f #t #t #f))))
   
   (start-server PORT ownspace))

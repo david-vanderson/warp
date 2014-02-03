@@ -161,6 +161,9 @@
   ;(printf "dx ~a, dy ~a\n" dx dy)
   (atan dy dx))
 
+(define (dtheta o)
+  (atan (posvel-dy (obj-posvel o)) (posvel-dx (obj-posvel o))))
+
 
 (define (pod-xyr pod ship)
   (define ps (obj-posvel ship))
@@ -192,3 +195,41 @@
       (set! ne e)
       (set! ne-dist d)))
   ne)
+
+
+(define (target-angle source-pos source-vel target-pos target-vel shot-speed)
+  ; relative velocity
+  (define vx (- (if target-vel (posvel-dx (obj-posvel target-vel)) 0)
+                (if source-vel (posvel-dx (obj-posvel source-vel)) 0)))
+  (define vy (- (if target-vel (posvel-dy (obj-posvel target-vel)) 0)
+                (if source-vel (posvel-dy (obj-posvel source-vel)) 0)))
+  (define t #f)
+  (cond
+    ((= 0 vy vx)
+     ; nobody's moving, so shoot directly at them
+     (set! t (theta source-pos target-pos)))
+    (else
+     (define v-r (atan vy vx))
+     (define v-l (sqrt (+ (* vx vx) (* vy vy))))
+     (define ep-r (theta target-pos source-pos))
+     (define sin-aim (* (sin (angle-diff ep-r v-r)) (/ v-l shot-speed)))
+     (when (< -1 sin-aim 1)
+       (set! t (angle-sub (theta source-pos target-pos) (asin sin-aim))))))
+  t)
+  
+
+(define (nearest-incoming-plasma space ownship)
+  (define agro-dist 200)  ; ignore plasmas farther away than this
+  
+  (define plasmas (filter plasma? (space-objects space)))
+  (define np #f)
+  (define np-dist #f)
+  (for ((p plasmas))
+    (define d (distance ownship p))
+    (when (d . < . agro-dist)
+      (define hit-angle (target-angle p #f ownship ownship PLASMA_SPEED))
+      (when (and ((abs (angle-diff hit-angle (dtheta p))) . < . (/ 2pi 120))  ; incoming
+                 (or (not np) (d . < . np-dist)))
+        (set! np p)
+        (set! np-dist d))))
+  np)

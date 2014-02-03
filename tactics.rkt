@@ -11,6 +11,30 @@
 
 (provide (all-defined-out))
 
+
+;; server
+
+; return a list of changes
+(define (tactics-ai! space stack)
+  (define changes '())
+  (define ownship (get-ship stack))
+  (when (ship-flying? ownship)
+    (define role (get-role stack))
+    (define newrole (copy-role role))
+    (define np (nearest-incoming-plasma space ownship))
+    (when np
+      (define me (pod-obj (get-pod stack) ownship))
+      (define t (target-angle me me np np SHIELD_SPEED))
+      
+      ;(printf "incoming plasma at t ~a\n" t)
+      
+      (when (and t ((random) . > . 0.96))
+        (set-tactics-shield! newrole t)
+        (set! changes (list newrole)))))
+  changes)
+
+
+
 ;; client/server
 
 (define (change-tactics c space stack)
@@ -34,8 +58,8 @@
      
      (define s (shield (next-id) (space-time space)
                        (posvel (space-time space) x y a
-                               (+ (* 40 (cos a)) (posvel-dx ps) rvx)
-                               (+ (* 40 (sin a)) (posvel-dy ps) rvy)
+                               (+ (* SHIELD_SPEED (cos a)) (posvel-dx ps) rvx)
+                               (+ (* SHIELD_SPEED (sin a)) (posvel-dy ps) rvy)
                                0)
                        20.0 15.0))
      (list (chadd s)))

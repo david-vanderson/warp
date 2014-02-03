@@ -14,9 +14,13 @@
 (define RACC .5)  ; gain X radians / sec / sec
 (define R_DRAG_COEF .7)  ; lose X% of your velocity / sec
 (define 2pi (* 2 pi))
+(define pi/2 (* 0.5 pi))
 (define bgcolor "black")
 (define fgcolor "white")
 (define nocolor "whitesmoke")  ; used with a transparent pen/brush
+
+(define PLASMA_SPEED 60)
+(define SHIELD_SPEED 40)
 
 (define next-id
   (let ((id 0))
@@ -173,6 +177,7 @@
     ((crewer? r) (struct-copy crewer r))
     ((pilot? r) (struct-copy pilot r))
     ((weapons? r) (struct-copy weapons r))
+    ((tactics? r) (struct-copy tactics r))
     (else (error "copy-role hit ELSE clause, role:\n" r))))
 
 

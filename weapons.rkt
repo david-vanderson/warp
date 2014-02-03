@@ -11,9 +11,6 @@
 (provide (all-defined-out))
 
 
-(define PLASMA_SPEED 60)
-
-
 ;; server
 
 ; return a list of changes
@@ -27,27 +24,7 @@
   
     (when ne
       (define me (pod-obj (get-pod stack) ownship))
-      
-      ; relative velocity
-      (define vx (- (posvel-dx (obj-posvel ne)) (posvel-dx (obj-posvel me))))
-      (define vy (- (posvel-dy (obj-posvel ne)) (posvel-dy (obj-posvel me))))
-      (define t #f)
-      (cond
-        ((= 0 vy vx)
-         ; nobody's moving, so shoot directly at them
-         (set! t (theta me ne)))
-        (else
-         (define v-r (atan vy vx))
-         (define v-l (sqrt (+ (* vx vx) (* vy vy))))
-         (define ep-r (theta ne me))
-         (define sin-aim (* (sin (angle-diff ep-r v-r)) (/ v-l PLASMA_SPEED)))
-         (when (< -1 sin-aim 1)
-           (define fire-angle (angle-sub (theta me ne) (asin sin-aim)))
-           
-           ; project vx,vy onto fire-angle to see if the enemy will outrun our plasma
-           (define espeed (abs (* v-l (cos (angle-sub v-r fire-angle)))))
-           (when (PLASMA_SPEED . > . espeed)
-             (set! t fire-angle)))))
+      (define t (target-angle me me ne ne PLASMA_SPEED))
       
       (when (and t ((random) . > . 0.97))
         (set-weapons-fire! neww t)
