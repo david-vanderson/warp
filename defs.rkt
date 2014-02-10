@@ -21,6 +21,7 @@
 
 (define PLASMA_SPEED 60)
 (define SHIELD_SPEED 40)
+(define MAX_POD_ENERGY 100)
 
 (define next-id
   (let ((id 0))
@@ -50,11 +51,12 @@
 ; player is #f if this role is unoccupied
 ; npc? is #t if this role is controlled by the computer when a player is absent
 
-(struct pod ob (role angle dist facing spread) #:mutable #:prefab)
+(struct pod ob (role angle dist facing spread energy) #:mutable #:prefab)
 ; angle/dist is where this pod is with respect to the ship
 ; facing is where the pod is directed towards (with respect to the ship)
 ; - if #f, then ignore angle/dist when calculating the center of this pod's screen
 ; spread is angle within which we can shoot (centered on facing)
+; energy is how much is in our batteries
 
 (struct multipod pod (start? roles) #:mutable #:prefab)
 ; a place for any number of players to sit, roles are created as needed from pod-role
@@ -216,17 +218,17 @@
                   (fore? #f) (hangar? #f) (npc-crew? #f) (npc-helm? #f)
                   (npc-weapons? #f) (npc-tactical? #f))
   (ship (next-id) 0 (if hangar? (posvel 0 x y r 0 0 0) #f) name faction
-        (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f (not npc-crew?) '())
-        110 100
+        (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f 0 (not npc-crew?) '())
+        100 100
         (list
-         (helm (next-id) (pilot (next-id) #f npc-helm? r fore? #f) 0 0 #f #f)
-         (multipod (next-id) (observer (next-id) #f #f) 0 10 #f #f #t '())
-         (hangarpod (next-id) (hangar (next-id) #f #f) 0 -10 #f #f #f '()
+         (helm (next-id) (pilot (next-id) #f npc-helm? r fore? #f) 0 0 #f #f 0)
+         (multipod (next-id) (observer (next-id) #f #f) 0 10 #f #f 0 #t '())
+         (hangarpod (next-id) (hangar (next-id) #f #f) 0 -10 #f #f 0 #f '()
                     (if hangar?
                         (list (big-ship (string-append name "2") faction)
                               (big-ship (string-append name "3") faction))
                         '()))
-         (weapon (next-id) (weapons (next-id) #f npc-weapons? #f) (degrees->radians 21.8) 21.5 0 (* 0.8 pi))
-         (tactical (next-id) (tactics (next-id) #f npc-tactical? #f) (degrees->radians -21.8) 21.5 0 (* 0.8 pi))
+         (weapon (next-id) (weapons (next-id) #f npc-weapons? #f) (degrees->radians 21.8) 21.5 0 (* 0.8 pi) 0)
+         (tactical (next-id) (tactics (next-id) #f npc-tactical? #f) (degrees->radians -21.8) 21.5 0 (* 0.8 pi) 0)
          )
         ))

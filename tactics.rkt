@@ -83,12 +83,11 @@
   (define ship (get-ship stack))
   (define spv (obj-posvel ship))
   (define space (get-space stack))
-  (define center (get-center stack))
   (define t (get-pod stack))
   
-  (draw-view dc center space)
+  (draw-view dc (get-center stack) space)
+  (draw-hud dc ship t)
   
-  ; draw my hud
   (when (ship-flying? ship)
     (keep-transform dc
       (send dc rotate (- (posvel-r spv)))

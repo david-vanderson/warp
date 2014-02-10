@@ -160,10 +160,12 @@
       (send dc draw-text str 0 0))))
 
 
-(define (draw-observer dc ownspace stack)
-  (define center (get-center stack))
-  (draw-view dc center ownspace)
-  (list leave-button))
+(define (draw-hud dc ship pod)
+  (when (ship-flying? ship)
+    (define con (inexact->exact (round (ship-containment ship))))
+    (draw-hud-status-text dc 1 (format "Con ~a" con)))
+  (when pod
+    (draw-hud-status-text dc 3 (format "Bat ~a" (pod-energy pod)))))
 
 
 (define (draw-buttons dc buttons)

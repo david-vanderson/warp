@@ -33,3 +33,10 @@
   (define sy (+ (* x (vector-ref m 2)) (* y (vector-ref m 3)) (vector-ref m 5)))
   (screen->canon canvas sx sy))
 
+
+(define (draw-hud-status-text dc linenum str)
+  (keep-transform dc
+    (send dc translate (- (/ WIDTH 2)) (/ HEIGHT 2))
+    (send dc translate 0 (* linenum -20))
+    (send dc scale 1 -1)
+    (send dc draw-text str 0 0)))

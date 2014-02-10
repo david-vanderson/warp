@@ -106,10 +106,13 @@
      (struct-copy pilot role (course course)))))
 
 
-(define (draw-pilot dc ownspace stack)
+(define (draw-pilot dc space stack)
   (define role (get-role stack))
   (define ship (get-ship stack))
-  (draw-observer dc ownspace stack)
+  
+  (draw-view dc (get-center stack) space)
+  (draw-hud dc ship (get-pod stack))
+  
   (define buttons (list leave-button))
   (when (can-launch? stack)
     (set! buttons (cons (button -200 -300 70 30 5 5 "launch" "Launch") buttons)))
