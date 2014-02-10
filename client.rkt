@@ -207,6 +207,7 @@
                (set-space-time! ownspace (+ (space-time ownspace) TICK))
                (for ((o (space-objects ownspace)))
                  (update-physics! ownspace o (/ TICK 1000.0))
+                 (when (ship? o) (update-energy! (/ TICK 1000.0) o 0.0))
                  (add-backeffects! ownspace o TICK)))
              (for ((c (update-changes input)))
                ;(printf "client applying change ~v\n" c)
@@ -231,6 +232,7 @@
         ;(printf "client ticking forward for prediction\n")
         (for ((o (space-objects ownspace)))
           (update-physics! ownspace o (/ TICK 1000.0))
+          (when (ship? o) (update-energy! (/ TICK 1000.0) o 0.0))
           (add-backeffects! ownspace o TICK))
         (set-space-time! ownspace (+ (space-time ownspace) TICK))))
     

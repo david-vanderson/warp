@@ -128,6 +128,14 @@
        (else
         (set-space-objects! space (cons o (space-objects space)))))
      '())
+    ((cherg? c)
+     (define o (find-id space (cherg-id c)))
+     (cond (o
+            (set-pod-energy! o (+ (pod-energy o) (cherg-e c)))
+            '())
+           (else
+            (printf "~a cherg - couldn't find obj id ~a\n" who (cherg-id c))
+            '())))
     (else
      (error "apply-change! hit ELSE clause" c))))
 

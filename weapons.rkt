@@ -57,7 +57,7 @@
                                (+ (* PLASMA_SPEED (sin a)) (posvel-dy ps) rvy)
                                0)
                        10.0 (ob-id ship)))
-     (list (chadd p)))
+     (list (chadd p) (cherg (ob-id pod) -10.0)))
     (else
      (error "command-weapons hit ELSE clause"))))
 

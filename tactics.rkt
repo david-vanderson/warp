@@ -62,7 +62,7 @@
                                (+ (* SHIELD_SPEED (sin a)) (posvel-dy ps) rvy)
                                0)
                        20.0 15.0))
-     (list (chadd s)))
+     (list (chadd s) (cherg (ob-id pod) -10.0)))
     (else
      (error "update-tactics hit ELSE clause"))))
 

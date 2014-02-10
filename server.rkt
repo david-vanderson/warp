@@ -63,12 +63,14 @@
 
 
 ; return a list of final changes
-(define (effects! space)
+(define (update-effects! space)
   (define changes '())
   (define objects (space-objects space))
   (define ships (filter ship? objects))
+  
   (define plasmas (filter plasma? objects))
   (define shields (filter shield? objects))
+  
   (for ((p plasmas))
     (for ((shield shields))
       (define cs (apply-all-changes!
@@ -132,10 +134,12 @@
   (when (TICK . < . (- current-time previous-physics-time))
     (set! previous-physics-time (+ previous-physics-time TICK))
     (set-space-time! ownspace (+ (space-time ownspace) TICK))
-    (for ((o (space-objects ownspace))) (update-physics! ownspace o (/ TICK 1000.0)))
+    (for ((o (space-objects ownspace)))
+      (update-physics! ownspace o (/ TICK 1000.0))
+      (when (ship? o) (update-energy! (/ TICK 1000.0) o 0.0)))
     
     ; update-effects! returns already-applied changes
-    (set! updates (append updates (effects! ownspace)))
+    (set! updates (append updates (update-effects! ownspace)))
     
     (define commands (run-ai! ownspace))
     (define command-changes

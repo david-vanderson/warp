@@ -78,8 +78,11 @@
   (if r (car r) #f))
 
 
+(define (ship-helm s)
+  (car (memf helm? (ship-pods s))))
+
 (define (ship-pilot s)
-  (pod-role (car (memf helm? (ship-pods s)))))
+  (pod-role (ship-helm s)))
 
 (define (ship-flying? ship)
   (obj-posvel ship))

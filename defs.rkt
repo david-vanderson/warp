@@ -148,6 +148,10 @@
 ; id is of the object that is being damaged
 ; damage is the amount
 
+(struct cherg (id e) #:mutable #:prefab)
+; id is of the pod whose energy is being changed
+; e is the additional energy (usually negative)
+
 (struct pvupdate (id pv) #:mutable #:prefab)
 ; id is the object we want to update
 ; pv is the new posvel
@@ -219,7 +223,7 @@
                   (npc-weapons? #f) (npc-tactical? #f))
   (ship (next-id) 0 (if hangar? (posvel 0 x y r 0 0 0) #f) name faction
         (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f 0 (not npc-crew?) '())
-        100 100
+        10 100
         (list
          (helm (next-id) (pilot (next-id) #f npc-helm? r fore? #f) 0 0 #f #f 0)
          (multipod (next-id) (observer (next-id) #f #f) 0 10 #f #f 0 #t '())

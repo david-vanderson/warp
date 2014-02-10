@@ -10,7 +10,9 @@
 
 
 (define (add-backeffects! space o dt)
-  (when (and (ship? o) (pilot-fore (ship-pilot o))
+  (when (and (ship? o)
+             (pilot-fore (ship-pilot o))
+             ((pod-energy (ship-helm o)) . > . 0)
              ((modulo (obj-age space o) 500) . < . dt))
     (define l -20)
     (define t (posvel-r (obj-posvel o)))
