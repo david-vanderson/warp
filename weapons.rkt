@@ -10,14 +10,15 @@
 
 (provide (all-defined-out))
 
+(define PLASMA_COST 10.0)
 
 ;; server
 
 ; return a list of changes
-(define (weapons-ai! space stack)
+(define (weapons-ai! space dt stack)
   (define changes '())
   (define ownship (get-ship stack))
-  (when (ship-flying? ownship)
+  (when (and (ship-flying? ownship) ((pod-energy (get-pod stack)) . > . PLASMA_COST))
     (define w (get-role stack))
     (define neww (copy-role w))
     (define ne (nearest-enemy space ownship))
@@ -25,10 +26,17 @@
     (when ne
       (define me (pod-obj (get-pod stack) ownship))
       (define t (target-angle me me ne ne PLASMA_SPEED))
-      
-      (when (and t ((random) . > . 0.97))
-        (set-weapons-fire! neww t)
-        (set! changes (list neww)))))
+      (when t
+        (define pod (get-pod stack))
+        (define podangle (angle-add (posvel-r (obj-posvel ownship)) (pod-facing pod)))
+        (define offset (angle-diff podangle t))
+        (when ((abs offset) . < . (/ (pod-spread pod) 2))
+          (define chance-per-sec (/ (pod-energy pod) MAX_POD_ENERGY))
+          (set! chance-per-sec (expt chance-per-sec 0.7))
+          (define chance-per-tick (- 1.0 (expt (- 1.0 chance-per-sec) dt)))
+          (when ((random) . < . chance-per-tick)
+            (set-weapons-fire! neww t)
+            (set! changes (list neww)))))))
   changes)
 
 
@@ -57,7 +65,7 @@
                                (+ (* PLASMA_SPEED (sin a)) (posvel-dy ps) rvy)
                                0)
                        10.0 (ob-id ship)))
-     (list (chadd p) (cherg (ob-id pod) -10.0)))
+     (list (chadd p) (cherg (ob-id pod) (- PLASMA_COST))))
     (else
      (error "command-weapons hit ELSE clause"))))
 
@@ -67,7 +75,7 @@
 (define (click-weapons x y button stack)
   (cond
     ((and (ship-flying? (get-ship stack))
-          ((pod-energy (get-pod stack)) . > . 10.0))
+          ((pod-energy (get-pod stack)) . > . PLASMA_COST))
      ; we are firing
      (define fangle (angle-norm (atan y x)))
      

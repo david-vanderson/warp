@@ -6,6 +6,7 @@
 
 (define PORT 22381)
 (define TICK 33)  ; ms time slice for physics, also determines max client frame rate
+(define AI_TICK 200)  ; ms time slice for ai
 (define WIDTH 1024)  ; how many meters wide is the screen view
 (define HEIGHT 768)  ; how many meters tall is the screen view
 (define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view

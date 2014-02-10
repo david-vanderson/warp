@@ -148,6 +148,16 @@
                      (ship-name (get-ship s))))))
 
 
+(define (draw-observer dc space stack)
+  (draw-view dc (get-center stack) space)
+  (draw-hud dc (get-ship stack) #f)
+  (for ((p (ship-pods (get-ship stack)))
+        (i (in-naturals)))
+    (define e (inexact->exact (round (pod-energy p))))
+    (draw-hud-status-text dc (+ 10 i) (format "~a ~a" (role-name (pod-role p)) e)))
+  (list leave-button))
+
+
 (define (draw-overlay dc ownspace stack)
   (when stack
     (define role (get-role stack))

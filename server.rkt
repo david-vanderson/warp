@@ -84,7 +84,7 @@
 
 
 ; return a list of commands
-(define (run-ai! space)
+(define (run-ai! space dt)
   (define commands '())
   (define (airole? o)
     (and (role? o)
@@ -99,18 +99,20 @@
       ((pilot? r)
        (set! commands (append commands (pilot-ai! space s))))
       ((weapons? r)
-       (set! commands (append commands (weapons-ai! space s))))
+       (set! commands (append commands (weapons-ai! space dt s))))
       ((tactics? r)
-       (set! commands (append commands (tactics-ai! space s))))))
+       (set! commands (append commands (tactics-ai! space dt s))))))
   commands)
 
 
 (define previous-physics-time #f)
+(define previous-ai-time #f)
 
 (define (server-loop)
   (define current-time (current-milliseconds))
   (when (not previous-physics-time)
-    (set! previous-physics-time current-time))
+    (set! previous-physics-time current-time)
+    (set! previous-ai-time current-time))
   
   ; process new clients
   (when (tcp-accept-ready? server-listener)
@@ -139,9 +141,11 @@
       (when (ship? o) (update-energy! (/ TICK 1000.0) o 0.0)))
     
     ; update-effects! returns already-applied changes
-    (set! updates (append updates (update-effects! ownspace)))
-    
-    (define commands (run-ai! ownspace))
+    (set! updates (append updates (update-effects! ownspace))))
+  
+  (when (AI_TICK . < . (- current-time previous-ai-time))
+    (set! previous-ai-time (+ previous-ai-time AI_TICK))
+    (define commands (run-ai! ownspace (/ AI_TICK 1000.0)))
     (define command-changes
       (apply-all-changes! ownspace commands (space-time ownspace) "server"))
     (set! updates (append updates command-changes)))

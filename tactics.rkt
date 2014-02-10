@@ -11,14 +11,15 @@
 
 (provide (all-defined-out))
 
+(define SHIELD_COST 10.0)
 
 ;; server
 
 ; return a list of changes
-(define (tactics-ai! space stack)
+(define (tactics-ai! space dt stack)
   (define changes '())
   (define ownship (get-ship stack))
-  (when (ship-flying? ownship)
+  (when (and (ship-flying? ownship) ((pod-energy (get-pod stack)) . > . SHIELD_COST))
     (define role (get-role stack))
     (define newrole (copy-role role))
     (define np (nearest-incoming-plasma space ownship))
@@ -26,14 +27,18 @@
       (define me (pod-obj (get-pod stack) ownship))
       (define t (target-angle me me np np SHIELD_SPEED))
       
-      ;(printf "incoming plasma at t ~a\n" t)
-      
-      (when (and t ((random) . > . 0.96))
-        (set-tactics-shield! newrole t)
-        (set! changes (list newrole)))))
+      (when t
+        (define pod (get-pod stack))
+        (define podangle (angle-add (posvel-r (obj-posvel ownship)) (pod-facing pod)))
+        (define offset (angle-diff podangle t))
+        (when ((abs offset) . < . (/ (pod-spread pod) 2))
+          (define chance-per-sec (/ (pod-energy pod) MAX_POD_ENERGY))
+          (set! chance-per-sec (expt chance-per-sec 0.7))
+          (define chance-per-tick (- 1.0 (expt (- 1.0 chance-per-sec) dt)))
+          (when ((random) . < . chance-per-tick)
+            (set-tactics-shield! newrole t)
+            (set! changes (list newrole)))))))
   changes)
-
-
 
 ;; client/server
 
@@ -62,7 +67,7 @@
                                (+ (* SHIELD_SPEED (sin a)) (posvel-dy ps) rvy)
                                0)
                        20.0 15.0))
-     (list (chadd s) (cherg (ob-id pod) -10.0)))
+     (list (chadd s) (cherg (ob-id pod) (- SHIELD_COST))))
     (else
      (error "update-tactics hit ELSE clause"))))
 
@@ -72,7 +77,7 @@
 (define (click-tactics x y button stack)
   (cond
     ((and (ship-flying? (get-ship stack))
-          ((pod-energy (get-pod stack)) . > . 10.0))
+          ((pod-energy (get-pod stack)) . > . SHIELD_COST))
      ; we are firing
      (define fangle (angle-norm (atan y x)))
      
