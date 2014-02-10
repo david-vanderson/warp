@@ -71,11 +71,18 @@
 
 (define (click-tactics x y button stack)
   (cond
-    ((ship-flying? (get-ship stack))
-     (define role (get-role stack))
-     ; we are firing, need the angle
+    ((and (ship-flying? (get-ship stack))
+          ((pod-energy (get-pod stack)) . > . 10.0))
+     ; we are firing
      (define fangle (angle-norm (atan y x)))
-     (struct-copy tactics role (shield fangle)))
+     
+     (define ship (get-ship stack))
+     (define pod (get-pod stack))
+     (define podangle (angle-add (posvel-r (obj-posvel ship)) (pod-facing pod)))
+     (define offset (angle-diff podangle fangle))
+     (if ((abs offset) . < . (/ (pod-spread pod) 2))
+       (struct-copy tactics (get-role stack) (shield fangle))
+       #f))
     (else #f)))
 
 

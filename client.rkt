@@ -225,7 +225,7 @@
     
     (when ownspace
       (set! my-stack (find-stack ownspace (ob-id me)))
-    
+      
       ; physics prediction
       (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))
       (when (dt . > . TICK)
