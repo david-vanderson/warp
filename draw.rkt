@@ -2,8 +2,7 @@
 
 (require racket/class
          racket/list
-         racket/draw
-         racket/function)
+         racket/draw)
 
 (require "defs.rkt"
          "utils.rkt"
