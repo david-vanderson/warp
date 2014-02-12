@@ -178,6 +178,13 @@
   (define (calc-dt curtime start curspace startspace)
     (- (- curtime start) (- curspace startspace)))
   
+  (define (tick-space! space)
+    (set-space-time! space (+ (space-time space) TICK))
+    (for ((o (space-objects space)))
+      (update-physics! space o (/ TICK 1000.0))
+      (when (ship? o) (update-energy! (/ TICK 1000.0) o 0.0))
+      (add-backeffects! space o TICK)))
+  
   (define (client-loop)
     (define current-time (current-milliseconds))
 ;    (printf "client current-time ~a\n" current-time)
@@ -202,11 +209,7 @@
              
              (when ((space-time ownspace) . < . (update-time input))
                ;(printf "ticking ownspace forward for input\n")
-               (set-space-time! ownspace (+ (space-time ownspace) TICK))
-               (for ((o (space-objects ownspace)))
-                 (update-physics! ownspace o (/ TICK 1000.0))
-                 (when (ship? o) (update-energy! (/ TICK 1000.0) o 0.0))
-                 (add-backeffects! ownspace o TICK)))
+               (tick-space! ownspace))
              (for ((c (update-changes input)))
                ;(printf "client applying change ~v\n" c)
                (apply-change! ownspace c (update-time input) "client"))
@@ -226,15 +229,13 @@
       
       ; physics prediction
       (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))
-      (when (dt . > . TICK)
-        ;(printf "client ticking forward for prediction\n")
-        (for ((o (space-objects ownspace)))
-          (update-physics! ownspace o (/ TICK 1000.0))
-          (when (ship? o) (update-energy! (/ TICK 1000.0) o 0.0))
-          (add-backeffects! ownspace o TICK))
-        (set-space-time! ownspace (+ (space-time ownspace) TICK))))
+      (while (dt . > . TICK)
+        ;(printf "client ticking forward for prediction ~a\n" dt)
+        (tick-space! ownspace)
+        (set! dt (calc-dt current-time start-time (space-time ownspace) start-space-time))))
     
     ;rendering
+    ;(printf "client render\n")
     (set! frames (add-frame-time current-time frames))
     (send canvas refresh-now)
           
