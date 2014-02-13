@@ -97,12 +97,20 @@
 (struct tactics role (shield) #:mutable #:prefab)
 ; shield is an angle if we want to shoot a shield barrier (at that angle)
 
-(struct ship obj (name faction crew reactor containment pods) #:mutable #:prefab)
+(struct stats ob (name faction power containment) #:mutable #:prefab)
+; carries all the stats for a ship
+; name is the name of the ship
 ; faction is the name that this ship belongs to
+; power is energy per second the engine produces
+; containment is how much health you have left
+
+(struct ship obj (stats crew pods) #:mutable #:prefab)
 ; crew is a multipod for players choosing their next role
-; reactor is the energy produced by the reactor
-; containment is the reactor health left
 ; pods is a list of all the pods on the ship
+
+(define (ship-name s) (stats-name (ship-stats s)))
+(define (ship-faction s) (stats-faction (ship-stats s)))
+(define (ship-containment s) (stats-containment (ship-stats s)))
 
 (struct plasma obj (e ownship-id) #:mutable #:prefab)
 ; e is base energy uncorrected for age
@@ -222,9 +230,9 @@
 (define (big-ship name faction (x 0) (y 0) (r 0)
                   (fore? #f) (hangar? #f) (npc-crew? #f) (npc-helm? #f)
                   (npc-weapons? #f) (npc-tactical? #f))
-  (ship (next-id) 0 (if hangar? (posvel 0 x y r 0 0 0) #f) name faction
+  (ship (next-id) 0 (if hangar? (posvel 0 x y r 0 0 0) #f)
+        (stats (next-id) name faction 10 100)
         (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f 0 (not npc-crew?) '())
-        10 100
         (list
          (helm (next-id) (pilot (next-id) #f npc-helm? r fore? #f) 0 0 #f #f 0)
          (multipod (next-id) (observer (next-id) #f #f) 0 10 #f #f 0 #t '())

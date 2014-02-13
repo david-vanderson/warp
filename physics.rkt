@@ -112,7 +112,7 @@
 ; return list of additional changes
 (define (reduce-reactor! space ship damage)
   (define changes '())
-  (set-ship-containment! ship (- (ship-containment ship) damage))
+  (set-stats-containment! (ship-stats ship) (- (ship-containment ship) damage))
   (when ((ship-containment ship) . <= . 0)
     (set-space-objects! space (remove ship (space-objects space)))
     (define pv (obj-posvel ship))
@@ -145,7 +145,7 @@
   ; distribute produced and extra energy
   (define pods (filter (lambda (p) (not (multipod? p))) (ship-pods ship)))
   (set! pods (sort pods < #:key (lambda (p) (- MAX_POD_ENERGY (pod-energy p)))))
-  (define e (+ 0.0 (* dt (ship-reactor ship)) extra))
+  (define e (+ 0.0 (* dt (stats-power (ship-stats ship))) extra))
   (while (not (null? pods))
     (define ef (/ e (length pods)))
     (define p (car pods))
