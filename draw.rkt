@@ -9,13 +9,10 @@
          "draw-utils.rkt"
          "plasma.rkt"
          "shield.rkt"
-         "effect.rkt")
+         "effect.rkt"
+         "ships.rkt")
 
 (provide (all-defined-out))
-
-
-(define ship-bitmap (make-bitmap 1 1))
-(send ship-bitmap load-file "images/ship.png" 'png/alpha)
 
 (define stars1-bitmap (make-bitmap 1 1))
 (send stars1-bitmap load-file "images/stars.png" 'png/alpha)
@@ -94,6 +91,7 @@
       (send dc rotate (- (posvel-r (obj-posvel s))))
       (send dc set-pen fgcolor 1 'solid)
       (send dc set-brush nocolor 'transparent)
+      (define ship-bitmap (get-ship-bitmap s))
       (send dc draw-bitmap
               ship-bitmap
               (- (/ (send ship-bitmap get-width) 2))

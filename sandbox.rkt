@@ -2,17 +2,20 @@
 
 (require "defs.rkt"
          "client.rkt"
-         "server.rkt")
+         "server.rkt"
+         "ships.rkt")
 
 (define ownspace
   (space
    0 4000 4000
    (list
-    (big-ship "Rebel1" "Rebel" 0 0 0 #f #t #f #t #t #t)
-    (big-ship "Empire1" "Empire" 400 0 pi/2 #f #t #f #t #t #t)
-    (big-ship "Empire2" "Empire" 600 0 (- pi/2) #f #t #f #t #t #t))))
+    (make-ship "blue-frigate" "Rebel1" "Rebel"
+               #:start-ship? #t #:npc? #t)
+    (make-ship "blue-fighter" "Red 5" "Rebel"
+               #:start-ship? #t #:npc? #t)
+    #;(big-ship "Empire1" "Empire" 400 0 pi/2 #f #t #f #t #t #t)
+    #;(big-ship "Empire2" "Empire" 600 0 (- pi/2) #f #t #f #t #t #t))))
 
-;(set-posvel-dy! (obj-posvel (cadr (space-objects ownspace))) -10)
 
 (thread (lambda () (start-server PORT ownspace)))
 

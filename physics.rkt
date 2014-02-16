@@ -106,11 +106,11 @@
 (define (damage-object! space o damage)
   (cond ((plasma? o) (reduce-plasma! space o damage) '())
         ((shield? o) (reduce-shield! space o damage) '())
-        ((ship? o) (reduce-reactor! space o damage))))
+        ((ship? o) (reduce-ship! space o damage))))
 
 
 ; return list of additional changes
-(define (reduce-reactor! space ship damage)
+(define (reduce-ship! space ship damage)
   (define changes '())
   (set-stats-containment! (ship-stats ship) (- (ship-containment ship) damage))
   (when ((ship-containment ship) . <= . 0)

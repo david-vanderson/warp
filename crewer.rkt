@@ -7,7 +7,8 @@
 (require "defs.rkt"
          "utils.rkt"
          "draw-utils.rkt"
-         "draw.rkt")
+         "draw.rkt"
+         "ships.rkt")
 
 (provide (all-defined-out))
 
@@ -24,6 +25,8 @@
   (define role (get-role stack))
   (define ship (get-ship stack))
   (define buttons (list leave-button))
+  
+  (define ship-bitmap (get-ship-bitmap ship))
   
   ; reversed because we are rotating by pi/2
   (define scale (* 0.9 (min (/ HEIGHT (send ship-bitmap get-width))

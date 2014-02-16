@@ -97,7 +97,7 @@
 (struct tactics role (shield) #:mutable #:prefab)
 ; shield is an angle if we want to shoot a shield barrier (at that angle)
 
-(struct stats ob (name faction power containment) #:mutable #:prefab)
+(struct stats ob (type name faction power containment) #:mutable #:prefab)
 ; carries all the stats for a ship
 ; name is the name of the ship
 ; faction is the name that this ship belongs to
@@ -224,24 +224,3 @@
      (printf "get-children hit ELSE clause, o ~v\n" o)
      (error)
      (list))))
-
-;(player (next-id) "Andrea")
-
-(define (big-ship name faction (x 0) (y 0) (r 0)
-                  (fore? #f) (hangar? #f) (npc-crew? #f) (npc-helm? #f)
-                  (npc-weapons? #f) (npc-tactical? #f))
-  (ship (next-id) 0 (if hangar? (posvel 0 x y r 0 0 0) #f)
-        (stats (next-id) name faction 10 100)
-        (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f 0 (not npc-crew?) '())
-        (list
-         (helm (next-id) (pilot (next-id) #f npc-helm? r fore? #f) 0 0 #f #f 0)
-         (multipod (next-id) (observer (next-id) #f #f) 0 10 #f #f 0 #t '())
-         (hangarpod (next-id) (hangar (next-id) #f #f) 0 -10 #f #f 0 #f '()
-                    (if hangar?
-                        (list (big-ship (string-append name "2") faction)
-                              (big-ship (string-append name "3") faction))
-                        '()))
-         (weapon (next-id) (weapons (next-id) #f npc-weapons? #f) (degrees->radians 21.8) 21.5 0 (* 0.8 pi) 0)
-         (tactical (next-id) (tactics (next-id) #f npc-tactical? #f) (degrees->radians -21.8) 21.5 0 (* 0.8 pi) 0)
-         )
-        ))
