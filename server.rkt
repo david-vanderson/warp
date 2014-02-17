@@ -102,6 +102,21 @@
                     (+ (* perpv2 (sin phi))
                        (* (dmag o2) (sin (- (dtheta o2) phi)) (sin (+ phi pi/2)))))
     
+    ; push the ships out along their new velocities until they aren't colliding
+    
+    (define dv (abs (- (* (dmag o1) (cos (- (dtheta o1) phi)))
+                       (* (dmag o2) (cos (- (dtheta o2) phi))))))
+    
+    (define dt (/ (- (+ (stats-radius (ship-stats ship))
+                        (stats-radius (ship-stats s)))
+                     (distance ship s))
+                  dv))
+    
+    (when (dt . > . (/ TICK 1000.0))
+      (printf "dv ~a dt ~a\n" dv (- dt (/ TICK 1000.0)))
+      (physics! (obj-posvel o1) (- dt (/ TICK 1000.0)) #f)
+      (physics! (obj-posvel o2) (- dt (/ TICK 1000.0)) #f))
+    
     (set-posvel-t! (obj-posvel o1) 0)
     (set-posvel-t! (obj-posvel o2) 0)
     )
