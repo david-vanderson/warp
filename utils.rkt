@@ -165,7 +165,16 @@
   (atan dy dx))
 
 (define (dtheta o)
-  (atan (posvel-dy (obj-posvel o)) (posvel-dx (obj-posvel o))))
+  (define dx (posvel-dx (obj-posvel o)))
+  (define dy (posvel-dy (obj-posvel o)))
+  (if (= 0 dx dy)
+      0
+      (atan dy dx)))
+
+(define (dmag o)
+  (define pv (obj-posvel o))
+  (sqrt (+ (* (posvel-dx pv) (posvel-dx pv))
+           (* (posvel-dy pv) (posvel-dy pv)))))
 
 
 (define (pod-xyr pod ship)

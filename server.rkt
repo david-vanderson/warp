@@ -62,6 +62,51 @@
   changes)
 
 
+(define (perpv o1 m1 o2 m2)
+  (define phi (theta o1 o2))
+  (/ (+ (* (dmag o1) (cos (- (dtheta o1) phi)) (- m1 m2))
+        (* 2 m2 (dmag o2) (cos (- (dtheta o2) phi))))
+     (+ m1 m2)))
+
+
+(define (ship-hit-ship! space ship s)
+  (define changes '())
+  (when (and (not ((ship-containment ship) . <= . 0))
+             (not ((ship-containment s) . <= . 0))
+             ((distance ship s) . < . (+ (stats-radius (ship-stats ship))
+                                         (stats-radius (ship-stats s)))))
+    (printf "ship ~a (vx ~a) hit ship ~a (vx ~a)\n"
+            (ship-name ship) (posvel-dx (obj-posvel ship))
+            (ship-name s) (posvel-dx (obj-posvel s)))
+    (define o1 ship)
+    (define m1 (stats-mass (ship-stats o1)))
+    (define o2 s)
+    (define m2 (stats-mass (ship-stats o2)))
+    (define phi (theta o1 o2))
+    (define perpv1 (perpv o1 m1 o2 m2))
+    (define perpv2 (- (perpv o2 m2 o1 m1)))
+    (printf "perpv1 ~a perpv2 ~a\n" perpv1 perpv2)
+    
+    (set-posvel-dx! (obj-posvel o1)
+                    (+ (* perpv1 (cos phi))
+                       (* (dmag o1) (sin (- (dtheta o1) phi)) (cos (+ phi pi/2)))))
+    (set-posvel-dy! (obj-posvel o1)
+                    (+ (* perpv1 (sin phi))
+                       (* (dmag o1) (sin (- (dtheta o1) phi)) (sin (+ phi pi/2)))))
+    
+    
+    (set-posvel-dx! (obj-posvel o2)
+                    (+ (* perpv2 (cos phi))
+                       (* (dmag o2) (sin (- (dtheta o2) phi)) (cos (+ phi pi/2)))))
+    (set-posvel-dy! (obj-posvel o2)
+                    (+ (* perpv2 (sin phi))
+                       (* (dmag o2) (sin (- (dtheta o2) phi)) (sin (+ phi pi/2)))))
+    
+    (set-posvel-t! (obj-posvel o1) 0)
+    (set-posvel-t! (obj-posvel o2) 0)
+    )
+  changes)
+
 ; return a list of final changes
 (define (update-effects! space)
   (define changes '())
@@ -80,6 +125,15 @@
       (define cs (apply-all-changes!
                   space (plasma-hit-ship! space ship p) (space-time space) "server"))
       (set! changes (append changes cs))))
+  
+  (let loop ((ships ships))
+    (when (not (null? ships))
+      (define ship (car ships))
+      (for ((s (cdr ships)))
+        (define cs (apply-all-changes!
+                    space (ship-hit-ship! space ship s) (space-time space) "server"))
+        (set! changes (append changes cs)))
+      (loop (cdr ships))))
   changes)
 
 

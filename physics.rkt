@@ -87,7 +87,7 @@
   (cond
     ((ship? o)
      (define acc? (steer! o dt))
-     (physics! (obj-posvel o) dt #t acc?))
+     (physics! (obj-posvel o) dt #f acc?))
     ((plasma? o)
      (physics! (obj-posvel o) dt #f)
      (when (plasma-dead? space o)

@@ -97,7 +97,7 @@
 (struct tactics role (shield) #:mutable #:prefab)
 ; shield is an angle if we want to shoot a shield barrier (at that angle)
 
-(struct stats ob (type name faction power containment) #:mutable #:prefab)
+(struct stats ob (type name faction power containment radius mass) #:mutable #:prefab)
 ; carries all the stats for a ship
 ; name is the name of the ship
 ; faction is the name that this ship belongs to
