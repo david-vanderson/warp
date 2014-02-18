@@ -46,7 +46,7 @@
    
   (define acc? #f)
   
-  (when (not (ddr . = . 0))
+  (when (not (= 0 ddr))
     (set! acc? #t)
     (when ((pod-energy h) . > . 0)
       (set-posvel-dr! posvel (+ (posvel-dr posvel) (* ddr dt)))))
@@ -87,7 +87,7 @@
   (cond
     ((ship? o)
      (define acc? (steer! o dt))
-     (physics! (obj-posvel o) dt #f acc?))
+     (physics! (obj-posvel o) dt #t acc?))
     ((plasma? o)
      (physics! (obj-posvel o) dt #f)
      (when (plasma-dead? space o)

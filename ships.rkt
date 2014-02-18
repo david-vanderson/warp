@@ -40,22 +40,25 @@
   
   (case type
     (("blue-frigate")
-     (set-ship-stats! s (stats (next-id) type name faction 10 100 20.5 100))
+     (set-ship-stats! s (stats (next-id) type name faction 10 100 18 100))
      (set-ship-pods!
       s (list
          (helm (next-id) (pilot (next-id) #f (or npc? npc-helm?) r helm-fore? #f) 0 0 #f #f 0)
          (multipod (next-id) (observer (next-id) #f #f) 0 10 #f #f 0 #t '())
-         (hangarpod (next-id) (hangar (next-id) #f #f) 0 -10 #f #f 0 #f '() '())
+         (hangarpod (next-id) (hangar (next-id) #f #f) 0 -10 #f #f 0 #f '()
+                    (list
+                     (make-ship "blue-fighter" "Red 1" "Rebel" #:npc? #t #:posvel? #f)
+                     (make-ship "blue-fighter" "Red 2" "Rebel" #:npc? #t #:posvel? #f)))
          (weapon (next-id) (weapons (next-id) #f (or npc? npc-weapons?) #f)
                  (degrees->radians 21.8) 21.5 0 (* 0.8 pi) 0)
          (tactical (next-id) (tactics (next-id) #f (or npc? npc-tactical?) #f)
                    (degrees->radians -21.8) 21.5 0 (* 0.8 pi) 0))))
     (("blue-fighter")
-     (set-ship-stats! s (stats (next-id) type name faction 10 100 6.5 10))
+     (set-ship-stats! s (stats (next-id) type name faction 10 100 6 10))
      (set-ship-pods!
       s (list
          (helm (next-id) (pilot (next-id) #f (or npc? npc-helm?) r helm-fore? #f) 0 0 #f #f 0)
-         (multipod (next-id) (observer (next-id) #f #f) 0 10 #f #f 0 #t '())
+         (multipod (next-id) (observer (next-id) #f #f) 0 3 #f #f 0 #t '())
          (weapon (next-id) (weapons (next-id) #f (or npc? npc-weapons?) #f)
                  0 6.5 0 (* 0.8 pi) 0)))))
   s)

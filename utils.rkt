@@ -239,8 +239,9 @@
   (for ((p plasmas))
     (define d (distance ownship p))
     (when (d . < . agro-dist)
-      (define hit-angle (target-angle p #f ownship ownship PLASMA_SPEED))
-      (when (and ((abs (angle-diff hit-angle (dtheta p))) . < . (/ 2pi 120))  ; incoming
+      (define t (target-angle p #f ownship ownship PLASMA_SPEED))
+      (when (and t
+                 ((abs (angle-diff t (dtheta p))) . < . (degrees->radians 3))  ; incoming
                  (or (not np) (d . < . np-dist)))
         (set! np p)
         (set! np-dist d))))

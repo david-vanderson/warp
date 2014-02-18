@@ -4,7 +4,8 @@
 
 (require "defs.rkt"
          "utils.rkt"
-         "draw.rkt")
+         "draw.rkt"
+         "physics.rkt")
 
 (provide (all-defined-out))
 
@@ -17,43 +18,93 @@
        (ship-flying? (cadr ships))))
 
 
+; return positive number representing how good a position ownship is in
+(define (pilot-fitness space ownship)
+  (define f 1.0)
+  
+  ; reduce fitness for hitting ships
+  (for ((o (space-objects space)))
+    (when (and (ship? o)
+               (not (= (ob-id ownship) (ob-id o))))
+      (define d (distance ownship o))
+      (define mind (* 2 (+ (stats-radius (ship-stats ownship))
+                           (stats-radius (ship-stats o)))))
+      (when (d . < . mind)
+        (set! f (* f (/ d mind))))))
+  
+  ; increase fitness for being in a good position on the nearest enemy
+  (define ne (nearest-enemy space ownship))
+  (when ne
+    (define ne-dist (distance ownship ne))
+    (define p (ship-pilot ownship))
+    (define t (theta ownship ne))
+    (define ht (abs (angle-diff (posvel-r (obj-posvel ownship)) t)))
+    
+    (cond
+      ((ne-dist . < . 200)
+       ; pointing away is better
+       (set! f (* f (if (ht . > . pi/2) 1.0 0.5))))
+      (else
+        ; pointing more at ne is better
+       (set! f (* f (- 1.0 (/ ht pi))))))
+    
+    ; moving is better
+    (when (not (pilot-fore p))
+      (set! f (* f 0.5))))
+  f)
+
+
 ;; server
 
+(define (pilot-predict! space ship)
+  (for ((i (inexact->exact (round (/ 300.0 TICK)))))
+    (update-physics! space ship (/ TICK 100.0))))
+
 ; return a list of changes
+; the whole world is already predicted forward
 (define (pilot-ai! space stack)
   (define changes '())
+  (define pod (get-pod stack))
+  (define p (get-role stack))
+  (define newp (copy-role p))
   (define ownship (get-ship stack))
+  (define predicted-posvel (obj-posvel ownship))
   
-  (when (ship-flying? ownship)
-    (define p (get-role stack))
-    (define newp (copy-role p))
-    (define ne (nearest-enemy space ownship))
+  ;(printf "~a pilot-ai\n" (ship-name ownship))
   
-    (when ne
-      (define ne-dist (distance ownship ne))
-      
-      (define t (theta ownship ne))
-      (define ht (angle-diff (pilot-course p) t))
-      (define r (posvel-r (obj-posvel ownship)))
-      (unless (pilot-fore p)
-        (set-pilot-fore! newp #t)
-        ;(printf "~a moving\n" (ship-name ownship))
-        (set! changes (list newp)))
-      (when (or ((abs ht) . > . (* 3/4 pi))  ; we are heading away from the enemy
-                (and (ne-dist . > . 300)  ; enemy is getting away
-                     ((abs ht) . > . (* 1/6 pi))))  ; we aren't pointed towards him
-        ; retarget for a new attack pass
-        (set-pilot-course! newp (angle-add t (random-between (- (* 1/8 pi)) (* 1/8 pi))))
-        (set-pilot-fore! newp #t)
-        ;(printf "~a attack ~a ~a\n" (ship-name ownship) (ship-name ne) (pilot-course newp))
-        (set! changes (list newp))))
+  ; search space around our original inputs
+  (define bestp (copy-role p))
+  (define bestfit 0)
+  (set-pod-role! pod newp)
+  (for* ((course-change '(-5 0 5))
+         (engine-on '(#t #f)))
+    
+    ; go back to present
+    (set-obj-posvel! ownship (struct-copy posvel (posvel-t predicted-posvel)))
+    ; set new inputs
+    (set-pilot-course! newp (angle-add (pilot-course p) (degrees->radians course-change)))
+    (set-pilot-fore! newp engine-on)
+    ; predict into future
+    (pilot-predict! space ownship)
+    ; calculate fitness
+    (define fitness (pilot-fitness space ownship))
+    
+    ;(printf "trying ~a ~a ~a\nold p ~v\nnewp  ~v\nbestp ~v\n" course-change engine-on fitness p newp bestp)
+    
+    (when (fitness . > . bestfit)
+      (set! bestfit fitness)
+      (set! bestp (copy-role newp))))
   
-    (when (not ne)
-      ; follow other orders?
-      (unless (not (pilot-fore p))
-        (set-pilot-fore! newp #f)
-        ;(printf "~a stopping\n" (ship-name ownship))
-        (set! changes (list newp)))))
+  ; reset ship to original pilot
+  (set-pod-role! pod p)
+  
+  ; predict our ship back to the future with unchanged inputs
+  (set-obj-posvel! ownship predicted-posvel)
+  
+  (when (not (equal? p bestp))
+    (printf "~a new pilot ~a ~v\n" (ship-name ownship) bestfit bestp)
+    (set! changes (list bestp)))
+  
   changes)
 
 

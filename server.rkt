@@ -11,7 +11,8 @@
          "weapons.rkt"
          "tactics.rkt"
          "plasma.rkt"
-         "shield.rkt")
+         "shield.rkt"
+         "ships.rkt")
 
 (provide start-server)
 
@@ -75,9 +76,9 @@
              (not ((ship-containment s) . <= . 0))
              ((distance ship s) . < . (+ (stats-radius (ship-stats ship))
                                          (stats-radius (ship-stats s)))))
-    (printf "ship ~a (vx ~a) hit ship ~a (vx ~a)\n"
-            (ship-name ship) (posvel-dx (obj-posvel ship))
-            (ship-name s) (posvel-dx (obj-posvel s)))
+;    (printf "ship ~a (vx ~a) hit ship ~a (vx ~a)\n"
+;            (ship-name ship) (posvel-dx (obj-posvel ship))
+;            (ship-name s) (posvel-dx (obj-posvel s)))
     (define o1 ship)
     (define m1 (stats-mass (ship-stats o1)))
     (define o2 s)
@@ -85,7 +86,7 @@
     (define phi (theta o1 o2))
     (define perpv1 (perpv o1 m1 o2 m2))
     (define perpv2 (- (perpv o2 m2 o1 m1)))
-    (printf "perpv1 ~a perpv2 ~a\n" perpv1 perpv2)
+    ;(printf "perpv1 ~a perpv2 ~a\n" perpv1 perpv2)
     
     (set-posvel-dx! (obj-posvel o1)
                     (+ (* perpv1 (cos phi))
@@ -113,7 +114,7 @@
                   dv))
     
     (when (dt . > . (/ TICK 1000.0))
-      (printf "dv ~a dt ~a\n" dv (- dt (/ TICK 1000.0)))
+      ;(printf "dv ~a dt ~a\n" dv (- dt (/ TICK 1000.0)))
       (physics! (obj-posvel o1) (- dt (/ TICK 1000.0)) #f)
       (physics! (obj-posvel o2) (- dt (/ TICK 1000.0)) #f))
     
@@ -161,16 +162,34 @@
          (not (role-player o))))
   
   (define airolestacks (search space airole? #t))
+  (define pilots '())
   (for ((s airolestacks))
     (define r (get-role s))
     ;(printf "role ~v\n" r)
     (cond
       ((pilot? r)
-       (set! commands (append commands (pilot-ai! space s))))
+       (when (ship-flying? (get-ship s))
+         (set! pilots (cons s pilots))))
       ((weapons? r)
        (set! commands (append commands (weapons-ai! space dt s))))
       ((tactics? r)
        (set! commands (append commands (tactics-ai! space dt s))))))
+  
+  ; predict only ships forward
+  (define ships (filter ship? (space-objects ownspace)))
+  (for ((s ships))
+    ; using posvel-t for fun
+    (set-posvel-t! (obj-posvel s) (struct-copy posvel (obj-posvel s)))
+    (pilot-predict! ownspace s))
+  
+  ; run pilot ai
+  (for ((s pilots))
+    (set! commands (append commands (pilot-ai! space s))))
+  
+  ; reset ships
+  (for ((s ships))
+    (set-obj-posvel! s (posvel-t (obj-posvel s))))
+  
   commands)
 
 
@@ -269,14 +288,27 @@
   (set! server-listener (tcp-listen port 4 #t))
   (server-loop))
 
+
+
+
 ;(module+ main
 ;  
 ;  (define ownspace
-;  (space
-;   0 4000 4000
-;   (list
-;    (big-ship "Rebel1" "Rebel" 0 0 0 #f #t #f #t #t #t)
-;    (big-ship "Empire1" "Empire" 400 0 pi/2 #f #t #f #t #t #t)
-;    (big-ship "Empire2" "Empire" 600 0 (- pi/2) #f #t #f #t #t #t))))
+;    (space
+;     0 4000 4000
+;     (list
+;      (make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:start-ship? #t)
+;      (make-ship "blue-frigate" "Empire1" "Empire" #:npc? #t #:start-ship? #t #:x 200 #:y 300 #:r pi)
+;      (make-ship "blue-frigate" "Empire2" "Empire" #:npc? #t #:start-ship? #t #:x 300 #:y 200 #:r pi)
+;      #;(make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:start-ship? #t)
+;      #;(make-ship "blue-fighter" "RF 1" "Rebel" #:npc? #t #:x 0 #:y 80)
+;      #;(make-ship "blue-fighter" "RF 2" "Rebel" #:npc? #t #:x 0 #:y -30)
+;      #;(make-ship "blue-fighter" "EF 1" "Empire" #:npc? #t #:x 100 #:y 0)
+;      #;(make-ship "blue-fighter" "EF 2" "Empire" #:npc? #t #:x 100 #:y 50)
+;      #;(make-ship "blue-fighter" "EF 3" "Empire" #:npc? #t #:x 100 #:y -50)
+;      #;(make-ship "blue-fighter" "Red 5" "Rebel" #:start-ship? #t #:npc? #t
+;                   #:x 100 #:y 20 #:r pi #:dx -20)
+;      #;(big-ship "Empire1" "Empire" 400 0 pi/2 #f #t #f #t #t #t)
+;      #;(big-ship "Empire2" "Empire" 600 0 (- pi/2) #f #t #f #t #t #t))))
 ;  
 ;  (start-server PORT ownspace))
