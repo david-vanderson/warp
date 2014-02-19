@@ -1,6 +1,7 @@
 #lang racket/base
 
-(require racket/class)
+(require racket/class
+         racket/draw)
 
 (require "defs.rkt")
 
@@ -40,3 +41,13 @@
     (send dc translate 0 (* linenum -20))
     (send dc scale 1 -1)
     (send dc draw-text str 0 0)))
+
+
+(define (linear-color color1 color2 z alpha)
+  (define a (send the-color-database find-color color1))
+  (define b (send the-color-database find-color color2))
+  (define nz (- 1.0 z))
+  (make-color (inexact->exact (floor (+ (* nz (send a red))   (* z (send b red)))))
+              (inexact->exact (floor (+ (* nz (send a green)) (* z (send b green)))))
+              (inexact->exact (floor (+ (* nz (send a blue))  (* z (send b blue)))))
+              alpha))

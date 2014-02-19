@@ -4,7 +4,8 @@
          racket/draw)
 
 (require "defs.rkt"
-         "utils.rkt")
+         "utils.rkt"
+         "draw-utils.rkt")
 
 (provide (all-defined-out))
 
@@ -52,14 +53,8 @@
 
 (define (draw-backeffect dc space center e)
   (define-values (x y) (recenter center e))
-  (define a (send the-color-database find-color "white"))
-  (define b (send the-color-database find-color "red"))
   (define z (min 1.0 (/ (obj-age space e) BACKEFFECT_DEAD)))
-  (define nz (- 1.0 z))
-  (define cc (make-color (inexact->exact (floor (+ (* nz (send a red))   (* z (send b red)))))
-                         (inexact->exact (floor (+ (* nz (send a green)) (* z (send b green)))))
-                         (inexact->exact (floor (+ (* nz (send a blue))  (* z (send b blue)))))
-                         nz))
+  (define cc (linear-color "white" "red" z (- 1.0 z)))
   (send dc set-pen cc 1.0 'solid)
   (send dc set-brush cc 'solid)
   (define size 3)

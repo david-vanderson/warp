@@ -72,14 +72,17 @@
   (set-posvel-y! pv (+ (posvel-y pv) (* dt (posvel-dy pv))))
   (set-posvel-r! pv (angle-add (posvel-r pv) (* dt (posvel-dr pv))))
   (when drag?
-    (when (not (and (= 0 (posvel-dy pv)) (= 0 (posvel-dx pv))))
-      (define dtheta (atan (posvel-dy pv) (posvel-dx pv)))
-      
-      ; how different our course and velocity are
-      (define rdiff (abs (angle-diff dtheta (posvel-r pv))))
-      (define dragc (min 0.9 (+ 0.4 (* 0.5 (/ rdiff (/ pi 4))))))
-      (set-posvel-dx! pv (drag (posvel-dx pv) dt dragc (if acc? 0 .1)))
-      (set-posvel-dy! pv (drag (posvel-dy pv) dt dragc (if acc? 0 .1))))
+;    (when (not (and (= 0 (posvel-dy pv)) (= 0 (posvel-dx pv))))
+;      (define dtheta (atan (posvel-dy pv) (posvel-dx pv)))
+;      
+;      ; how different our course and velocity are
+;      (define rdiff (abs (angle-diff dtheta (posvel-r pv))))
+;      (define dragc (min 0.9 (+ 0.4 (* 0.5 (/ rdiff (/ pi 4))))))
+;      (set-posvel-dx! pv (drag (posvel-dx pv) dt dragc (if acc? 0 .1)))
+;      (set-posvel-dy! pv (drag (posvel-dy pv) dt dragc (if acc? 0 .1))))
+    
+    (set-posvel-dx! pv (drag (posvel-dx pv) dt DRAG_COEF (if acc? 0 .1)))
+    (set-posvel-dy! pv (drag (posvel-dy pv) dt DRAG_COEF (if acc? 0 .1)))
     (set-posvel-dr! pv (drag (posvel-dr pv) dt R_DRAG_COEF (if acc? 0 (/ 2pi 360))))))
 
 
@@ -144,19 +147,19 @@
   
   ; distribute produced and extra energy
   (define pods (filter (lambda (p) (not (multipod? p))) (ship-pods ship)))
-  (set! pods (sort pods < #:key (lambda (p) (- MAX_POD_ENERGY (pod-energy p)))))
+  (set! pods (sort pods < #:key (lambda (p) (max 0.0 (- MAX_POD_ENERGY (pod-energy p))))))
   (define e (+ 0.0 (* dt (stats-power (ship-stats ship))) extra))
   (while (not (null? pods))
     (define ef (/ e (length pods)))
     (define p (car pods))
-    (define pod-empty (- MAX_POD_ENERGY (max 0.0 (pod-energy p))))
+    (define pod-empty (max 0.0 (- MAX_POD_ENERGY (max 0.0 (pod-energy p)))))
     (cond
       ((ef . <= . pod-empty)
        (set-pod-energy! p (+ (pod-energy p) ef))
        (set! e (- e ef)))
       (else
        (set! e (- e pod-empty))
-       (set-pod-energy! p MAX_POD_ENERGY)))
+       (set-pod-energy! p (+ (pod-energy p) pod-empty))))
     (set! pods (cdr pods)))
   
   (min extra e))

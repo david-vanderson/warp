@@ -68,8 +68,8 @@
 
 
 (define (draw-view dc center space)
-  (draw-background dc space center background-bitmap 3 0.5)
-  (draw-background dc space center stars1-bitmap 8 1)
+  ;(draw-background dc space center background-bitmap 3 0.5)
+  ;(draw-background dc space center stars1-bitmap 8 1)
   (define objects (space-objects space))
   (define ships (filter ship? objects))
   (define effects (filter effect? objects))
@@ -137,6 +137,9 @@
   (define start-stacks
     (search space (lambda (o) (and (multipod? o)
                                    (multipod-start? o))) #t))
+  
+  (set! start-stacks (filter (lambda (s) (obj-posvel (get-ship s))) start-stacks))
+  
   (for/list ((s start-stacks)
               (i (in-naturals)))
      (define mp (car s))

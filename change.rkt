@@ -136,6 +136,14 @@
            (else
             (printf "~a cherg - couldn't find obj id ~a\n" who (cherg-id c))
             '())))
+    ((new-strat? c)
+     (define o (find-id space (new-strat-ship-id c)))
+     (cond (o
+            (set-ship-ai-strategy! o (new-strat-strat c))
+            '())
+           (else
+            (printf "~a new-strat - couldn't find obj id ~a\n" who (new-strat-ship-id c))
+            '())))
     (else
      (error "apply-change! hit ELSE clause" c))))
 

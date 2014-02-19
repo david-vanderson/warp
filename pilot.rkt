@@ -1,9 +1,11 @@
 #lang racket/base
 
-(require racket/math)
+(require racket/math
+         racket/class)
 
 (require "defs.rkt"
          "utils.rkt"
+         "draw-utils.rkt"
          "draw.rkt"
          "physics.rkt")
 
@@ -18,9 +20,11 @@
        (ship-flying? (cadr ships))))
 
 
-; return positive number representing how good a position ownship is in
+; return [0,1] representing how good ownship's position is
+; goal is where we want to go
 (define (pilot-fitness space ownship)
   (define f 1.0)
+  (define strat (ship-ai-strategy ownship))
   
   ; reduce fitness for hitting ships
   (for ((o (space-objects space)))
@@ -30,27 +34,17 @@
       (define mind (* 2 (+ (stats-radius (ship-stats ownship))
                            (stats-radius (ship-stats o)))))
       (when (d . < . mind)
-        (set! f (* f (/ d mind))))))
+        (set! f (* f (expt (/ d mind) 2))))))
   
-  ; increase fitness for being in a good position on the nearest enemy
-  (define ne (nearest-enemy space ownship))
-  (when ne
-    (define ne-dist (distance ownship ne))
-    (define p (ship-pilot ownship))
-    (define t (theta ownship ne))
-    (define ht (abs (angle-diff (posvel-r (obj-posvel ownship)) t)))
-    
-    (cond
-      ((ne-dist . < . 200)
-       ; pointing away is better
-       (set! f (* f (if (ht . > . pi/2) 1.0 0.5))))
-      (else
-        ; pointing more at ne is better
-       (set! f (* f (- 1.0 (/ ht pi))))))
-    
-    ; moving is better
-    (when (not (pilot-fore p))
-      (set! f (* f 0.5))))
+  (when strat
+    ; assuming "goto" strategy
+    (define d (distance ownship (strategy-args strat)))
+    (when (d . > . AI_GOTO_DIST)
+      (define dd (- d AI_GOTO_DIST))
+      (set! f (* f (if (dd . < . 500.0)
+                       (- 1.0 (/ dd 500.0))
+                       (/ 1.0 dd))))))
+  
   f)
 
 
@@ -59,6 +53,17 @@
 (define (pilot-predict! space ship)
   (for ((i (inexact->exact (round (/ 300.0 TICK)))))
     (update-physics! space ship (/ TICK 100.0))))
+
+
+; update strategy, return strategy if updated
+; pilot-ai! plans the route
+(define (pilot-ai-strategy! space stack)
+  (define new-strat '())
+  (define ship (get-ship stack))
+  (define strat (ship-ai-strategy ship))
+  (strategy-args strat)
+  new-strat)
+
 
 ; return a list of changes
 ; the whole world is already predicted forward
@@ -74,10 +79,10 @@
   
   ; search space around our original inputs
   (define bestp (copy-role p))
-  (define bestfit 0)
+  (define bestfit #f)
   (set-pod-role! pod newp)
-  (for* ((course-change '(-5 0 5))
-         (engine-on '(#t #f)))
+  (for* ((course-change '(0 -25 -5 -1 1 5 25))
+         (engine-on (list (pilot-fore p) (not (pilot-fore p)))))
     
     ; go back to present
     (set-obj-posvel! ownship (struct-copy posvel (posvel-t predicted-posvel)))
@@ -91,7 +96,8 @@
     
     ;(printf "trying ~a ~a ~a\nold p ~v\nnewp  ~v\nbestp ~v\n" course-change engine-on fitness p newp bestp)
     
-    (when (fitness . > . bestfit)
+    (when (or (not bestfit)  ; first pass
+              (fitness . > . bestfit))
       (set! bestfit fitness)
       (set! bestp (copy-role newp))))
   
@@ -170,3 +176,35 @@
   (when (ship-flying? ship)
     (set! buttons (cons (button 0 -300 60 30 5 5 "fore" (if (pilot-fore role) "Stop" "Go")) buttons)))
   buttons)
+
+
+(define (draw-pilot-fitness dc space ship)
+  (define pv (struct-copy posvel (obj-posvel ship)))
+  (for* ((cx (in-range -300 350 25))
+         (cy (in-range -300 350 25)))
+    (define testpv (struct-copy posvel pv))
+    (set-posvel-x! testpv (+ cx (posvel-x testpv)))
+    (set-posvel-y! testpv (+ cy (posvel-y testpv)))
+    (set-obj-posvel! ship testpv)
+    (define f (pilot-fitness space ship))
+    (set-obj-posvel! ship pv)
+    (define cc (linear-color "blue" "red" f 1.0))
+    ;(printf "f ~a cc ~a ~a ~a : ~a ~a ~a\n" f (send cc red) (send cc green) (send cc blue) cx cy cr)
+    (send dc set-pen cc 2.0 'solid)
+    (send dc set-brush cc 'solid)
+    (send dc draw-ellipse (- cx 1.5) (- cy 1.5) 3 3))
+  
+  (define pvp (struct-copy posvel (obj-posvel ship)))
+  (pilot-predict! space ship)
+  (define futurepv (obj-posvel ship))
+  (set-obj-posvel! ship pvp)
+  (send dc set-pen "green" 2.0 'solid)
+  (send dc set-brush nocolor 'transparent)
+  (define-values (fx fy) (recenter ship (obj #f #f futurepv)))
+  (send dc draw-ellipse (- fx 3) (- fy 3) 6 6)
+  
+  (send dc set-pen "green" 2.0 'solid)
+  (send dc set-brush nocolor 'transparent)
+  (define-values (x y) (recenter ship (strategy-args (ship-ai-strategy ship))))
+  (send dc draw-ellipse (- x AI_GOTO_DIST) (- y AI_GOTO_DIST)
+        (* AI_GOTO_DIST 2) (* AI_GOTO_DIST 2)))

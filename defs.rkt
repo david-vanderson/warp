@@ -7,15 +7,17 @@
 (define PORT 22381)
 (define TICK 33)  ; ms time slice for physics, also determines max client frame rate
 (define AI_TICK 200)  ; ms time slice for ai
+(define AI_TICK_PILOT 1000)  ; ms time slice for pilot ai
 (define WIDTH 1024)  ; how many meters wide is the screen view
 (define HEIGHT 768)  ; how many meters tall is the screen view
 (define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view
 (define BOTTOM (/ (- HEIGHT) 2))  ; bottom edge of canonical view
-(define DRAG_COEF .7)  ; lose X% of your velocity / sec
+(define DRAG_COEF .5)  ; lose X% of your velocity / sec
 (define RACC .5)  ; gain X radians / sec / sec
 (define R_DRAG_COEF .7)  ; lose X% of your velocity / sec
 (define 2pi (* 2 pi))
 (define pi/2 (* 0.5 pi))
+(define AI_GOTO_DIST 30)  ; if you are this close you've hit it
 (define bgcolor "black")
 (define fgcolor "white")
 (define nocolor "whitesmoke")  ; used with a transparent pen/brush
@@ -104,9 +106,10 @@
 ; power is energy per second the engine produces
 ; containment is how much health you have left
 
-(struct ship obj (stats crew pods) #:mutable #:prefab)
+(struct ship obj (stats crew pods ai-strategy) #:mutable #:prefab)
 ; crew is a multipod for players choosing their next role
 ; pods is a list of all the pods on the ship
+; ai-strategy is a strategy
 
 (define (ship-name s) (stats-name (ship-stats s)))
 (define (ship-faction s) (stats-faction (ship-stats s)))
@@ -128,17 +131,15 @@
 (struct space (time width height objects) #:mutable #:prefab)
 ; time is msec since the scenario started
 
+(struct strategy (name args) #:mutable #:prefab)
+; name is the state we are in, args are parameters for that state
+
 
 ;; Changes
-;; client sends a single change at a time, server sends a list to clients
-
 ;; Most changes are just role? structs, but here are the exceptions
 
 (struct role-change (player from to) #:mutable #:prefab)
 ; from and to are a role? id, multipod? id, or #f to go to choosing starting multipod
-
-
-;; Update from server to client
 
 (struct update (time changes pvs) #:mutable #:prefab)
 ; time is ms since scenario started
@@ -165,7 +166,9 @@
 ; id is the object we want to update
 ; pv is the new posvel
 
-
+(struct new-strat (ship-id strat) #:mutable #:prefab)
+; ship-id is the id of the ship
+; strat is the new strategy
 
 
 ;; UI

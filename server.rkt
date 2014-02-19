@@ -162,28 +162,41 @@
          (not (role-player o))))
   
   (define airolestacks (search space airole? #t))
-  (define pilots '())
   (for ((s airolestacks))
     (define r (get-role s))
     ;(printf "role ~v\n" r)
     (cond
-      ((pilot? r)
-       (when (ship-flying? (get-ship s))
-         (set! pilots (cons s pilots))))
       ((weapons? r)
        (set! commands (append commands (weapons-ai! space dt s))))
       ((tactics? r)
        (set! commands (append commands (tactics-ai! space dt s))))))
   
+  commands)
+
+
+; return a list of commands
+(define (run-pilot-ai! space)
+  (define commands '())
+  (define (ai-pilot-role? o)
+    (and (pilot? o)
+         (role-npc? o)
+         (not (role-player o))))
+  
+  (define pilot-stacks (filter (lambda (s) (ship-flying? (get-ship s)))
+                               (search space ai-pilot-role? #t)))
+  
+  (for ((s pilot-stacks))
+    (set! commands (append commands (pilot-ai-strategy! space s))))
+  
   ; predict only ships forward
-  (define ships (filter ship? (space-objects ownspace)))
+  (define ships (filter ship? (space-objects space)))
   (for ((s ships))
     ; using posvel-t for fun
     (set-posvel-t! (obj-posvel s) (struct-copy posvel (obj-posvel s)))
-    (pilot-predict! ownspace s))
+    (pilot-predict! space s))
   
   ; run pilot ai
-  (for ((s pilots))
+  (for ((s pilot-stacks))
     (set! commands (append commands (pilot-ai! space s))))
   
   ; reset ships
@@ -195,12 +208,14 @@
 
 (define previous-physics-time #f)
 (define previous-ai-time #f)
+(define previous-pilot-ai-time #f)
 
 (define (server-loop)
   (define current-time (current-milliseconds))
   (when (not previous-physics-time)
     (set! previous-physics-time current-time)
-    (set! previous-ai-time current-time))
+    (set! previous-ai-time current-time)
+    (set! previous-pilot-ai-time current-time))
   
   ; process new clients
   (when (tcp-accept-ready? server-listener)
@@ -234,6 +249,13 @@
   (when (AI_TICK . < . (- current-time previous-ai-time))
     (set! previous-ai-time (+ previous-ai-time AI_TICK))
     (define commands (run-ai! ownspace (/ AI_TICK 1000.0)))
+    (define command-changes
+      (apply-all-changes! ownspace commands (space-time ownspace) "server"))
+    (set! updates (append updates command-changes)))
+  
+  (when (AI_TICK_PILOT . < . (- current-time previous-pilot-ai-time))
+    (set! previous-pilot-ai-time (+ previous-pilot-ai-time AI_TICK_PILOT))
+    (define commands (run-pilot-ai! ownspace))
     (define command-changes
       (apply-all-changes! ownspace commands (space-time ownspace) "server"))
     (set! updates (append updates command-changes)))

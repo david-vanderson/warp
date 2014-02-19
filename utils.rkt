@@ -162,7 +162,9 @@
   (define dx (- (posvel-x (obj-posvel to)) (posvel-x (obj-posvel from))))
   (define dy (- (posvel-y (obj-posvel to)) (posvel-y (obj-posvel from))))
   ;(printf "dx ~a, dy ~a\n" dx dy)
-  (atan dy dx))
+  (if (= 0 dx dy)
+      0
+      (atan dy dx)))
 
 (define (dtheta o)
   (define dx (posvel-dx (obj-posvel o)))
