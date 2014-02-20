@@ -17,7 +17,7 @@
 (define R_DRAG_COEF .7)  ; lose X% of your velocity / sec
 (define 2pi (* 2 pi))
 (define pi/2 (* 0.5 pi))
-(define AI_GOTO_DIST 30)  ; if you are this close you've hit it
+(define AI_GOTO_DIST 50)  ; if you are this close you've hit it
 (define bgcolor "black")
 (define fgcolor "white")
 (define nocolor "whitesmoke")  ; used with a transparent pen/brush
