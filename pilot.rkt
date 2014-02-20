@@ -31,12 +31,10 @@
     (when (and (ship? o)
                (not (= (ob-id ownship) (ob-id o))))
       (define d (distance ownship o))
-      (define mind (+ (stats-radius (ship-stats ownship))
-                      (stats-radius (ship-stats o))))
-      (cond ((d . < . mind)
-             (set! f 0.0))  ; don't hit
-            ((d . < . (* 2 mind))
-             (set! f (* f (/ d (* 2 mind))))))))  ; try not to get close
+      (define mind (* 2 (+ (stats-radius (ship-stats ownship))
+                           (stats-radius (ship-stats o)))))
+      (when (d . < . mind)
+        (set! f (* f (expt (/ d mind) 2))))))
   
   (when strat
     ; assuming "goto" strategy
@@ -46,84 +44,71 @@
       (set! f (* f (if (dd . < . 500.0)
                        (- 1.0 (/ dd 500.0))
                        (/ 1.0 dd))))))
+  
   f)
 
 
 ;; server
 
+(define (pilot-predict! space ship)
+  (for ((i (inexact->exact (round (/ 300.0 TICK)))))
+    (update-physics! space ship (/ TICK 100.0))))
+
+
 ; update strategy, return strategy if updated
 ; pilot-ai! plans the route
 (define (pilot-ai-strategy! space stack)
   (define new-strat '())
-;  (define ship (get-ship stack))
-;  (define strat (ship-ai-strategy ship))
-;  (strategy-args strat)
+  (define ship (get-ship stack))
+  (define strat (ship-ai-strategy ship))
+  (strategy-args strat)
   new-strat)
-
-
-(define (pilot-predict! space ship dt)
-  (for ((i (inexact->exact (round (/ (* 100.0 dt) TICK)))))
-    (update-physics! space ship (/ TICK 100.0))))
-
-
-(define (best-fitness space ships ownship dt)
-  (define p (ship-pilot ownship))
-  (define courses (for/list ((cx '(0 -5 -1 1 5)))
-                    (angle-add (pilot-course p) (degrees->radians cx))))
-  (define engines (list (pilot-fore p) (not (pilot-fore p))))
-  
-  (define bestfit #f)
-  (define bestc #f)
-  (define beste #f)
-  (for* ((c courses) (e engines))
-    (set-pilot-course! p c)
-    (set-pilot-fore! p e)
-    
-    ; run everything forward a second
-    (for ((s ships))  ; includes ownship
-      ; using posvel-t for fun
-      (set-posvel-t! (obj-posvel s) (struct-copy posvel (obj-posvel s)))
-      (pilot-predict! space s 1.0))
-    
-    (define newf (pilot-fitness space ownship))
-    (when (dt . > . 0)
-      (define-values (ff fc fe) (best-fitness space ships ownship (- dt 1.0)))
-      (set! newf (* newf ff)))
-       
-    ; run everything back
-    (for ((s ships))
-      (set-obj-posvel! s (posvel-t (obj-posvel s))))
-    
-    (when (or (not bestfit)  ; first pass
-              (newf . > . bestfit))
-      (set! bestfit newf)
-      (set! bestc c)
-      (set! beste e)))
-  
-  (values bestfit bestc beste))
 
 
 ; return a list of changes
 ; the whole world is already predicted forward
 (define (pilot-ai! space stack)
   (define changes '())
+  (define pod (get-pod stack))
   (define p (get-role stack))
-  (define origp (copy-role p))
+  (define newp (copy-role p))
   (define ownship (get-ship stack))
+  (define predicted-posvel (obj-posvel ownship))
   
-  ; only consider ships
-  (define ships (filter ship? (space-objects space)))
+  ;(printf "~a pilot-ai\n" (ship-name ownship))
   
-  (define-values (ff fc fe) (best-fitness space ships ownship 3.0))
-  (define bestp (copy-role origp))
-  (set-pilot-course! bestp fc)
-  (set-pilot-fore! bestp fe)
+  ; search space around our original inputs
+  (define bestp (copy-role p))
+  (define bestfit #f)
+  (set-pod-role! pod newp)
+  (for* ((course-change '(0 -25 -5 -1 1 5 25))
+         (engine-on (list (pilot-fore p) (not (pilot-fore p)))))
+    
+    ; go back to present
+    (set-obj-posvel! ownship (struct-copy posvel (posvel-t predicted-posvel)))
+    ; set new inputs
+    (set-pilot-course! newp (angle-add (pilot-course p) (degrees->radians course-change)))
+    (set-pilot-fore! newp engine-on)
+    ; predict into future
+    (pilot-predict! space ownship)
+    ; calculate fitness
+    (define fitness (pilot-fitness space ownship))
+    
+    ;(printf "trying ~a ~a ~a\nold p ~v\nnewp  ~v\nbestp ~v\n" course-change engine-on fitness p newp bestp)
+    
+    (when (or (not bestfit)  ; first pass
+              (fitness . > . bestfit))
+      (set! bestfit fitness)
+      (set! bestp (copy-role newp))))
   
   ; reset ship to original pilot
-  (set-pod-role! (get-pod stack) origp)
+  (set-pod-role! pod p)
+  
+  ; predict our ship back to the future with unchanged inputs
+  (set-obj-posvel! ownship predicted-posvel)
   
   (when (not (equal? p bestp))
-    (printf "~a new pilot ~a ~v\n" (ship-name ownship) ff bestp)
+    (printf "~a new pilot ~a ~v\n" (ship-name ownship) bestfit bestp)
     (set! changes (list bestp)))
   
   changes)
@@ -210,7 +195,7 @@
     (send dc draw-ellipse (- cx 1.5) (- cy 1.5) 3 3))
   
   (define pvp (struct-copy posvel (obj-posvel ship)))
-  (pilot-predict! space ship 3.0)
+  (pilot-predict! space ship)
   (define futurepv (obj-posvel ship))
   (set-obj-posvel! ship pvp)
   (send dc set-pen "green" 2.0 'solid)

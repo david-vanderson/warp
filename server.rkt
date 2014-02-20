@@ -186,8 +186,22 @@
                                (search space ai-pilot-role? #t)))
   
   (for ((s pilot-stacks))
-    (set! commands (append commands (pilot-ai-strategy! space s)))
+    (set! commands (append commands (pilot-ai-strategy! space s))))
+  
+  ; predict only ships forward
+  (define ships (filter ship? (space-objects space)))
+  (for ((s ships))
+    ; using posvel-t for fun
+    (set-posvel-t! (obj-posvel s) (struct-copy posvel (obj-posvel s)))
+    (pilot-predict! space s))
+  
+  ; run pilot ai
+  (for ((s pilot-stacks))
     (set! commands (append commands (pilot-ai! space s))))
+  
+  ; reset ships
+  (for ((s ships))
+    (set-obj-posvel! s (posvel-t (obj-posvel s))))
   
   commands)
 
