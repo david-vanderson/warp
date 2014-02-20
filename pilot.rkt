@@ -31,10 +31,12 @@
     (when (and (ship? o)
                (not (= (ob-id ownship) (ob-id o))))
       (define d (distance ownship o))
-      (define mind (* 2 (+ (stats-radius (ship-stats ownship))
-                           (stats-radius (ship-stats o)))))
-      (when (d . < . mind)
-        (set! f (* f (expt (/ d mind) 2))))))
+      (define mind (+ (stats-radius (ship-stats ownship))
+                      (stats-radius (ship-stats o))))
+      (cond ((d . < . mind)
+             (set! f (* f 0.0)))
+            ((d . < . (* 3 mind))
+             (set! f (* f (/ d (* 3 mind))))))))
   
   (when strat
     ; assuming "goto" strategy
@@ -61,11 +63,12 @@
   (define ship (get-ship stack))
   (define strat (ship-ai-strategy ship))
   (when ((distance ship (strategy-args strat)) . < . AI_GOTO_DIST)
-    (define s (strategy "goto" (obj #f #f (posvel #f 0 0 0 #f #f #f))))
+    (define s (strategy "goto" (obj #f #f (posvel #f (- (posvel-x (obj-posvel (strategy-args strat))))
+                                                  (posvel-y (obj-posvel (strategy-args strat))) 0 #f #f #f))))
     (set! changes (list (new-strat (ob-id ship) s))))
   changes)
 
-(define course-changes '(0 -122 -83 -44 -5 3 42 81 120 179))
+(define course-changes '(0 -122 -83 -44 -5 3 42 81 120))
 (define predict-secs 10)
 
 ; return a list of changes
@@ -114,6 +117,12 @@
       (set! bestp (copy-role p))))
   
   (set-pod-role! (ship-helm ownship) origp)
+  
+  (when (and (not (pilot-fore bestp))
+             (pi/2 . < . (abs (angle-diff (posvel-r (obj-posvel ownship))
+                                          (theta ownship (strategy-args (ship-ai-strategy ownship)))))))
+    (printf "~a turning around\n" (ship-name ownship))
+    (set-pilot-course! bestp (theta ownship (strategy-args (ship-ai-strategy ownship)))))
   
   (when (not (equal? origp bestp))
     (printf "~a new pilot ~a ~v\n" (ship-name ownship) bestfit bestp)

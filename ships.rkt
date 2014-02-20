@@ -37,7 +37,7 @@
                   #f
                   (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f 0 start-ship? '())
                   '()
-                  (strategy "goto" (obj #f #f (posvel #f (+ 500 x) (+ 0 y) r #f #f #f)))))
+                  (strategy "goto" (obj #f #f (posvel #f (- x) y r #f #f #f)))))
   
   (case type
     (("blue-frigate")
