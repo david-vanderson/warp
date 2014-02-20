@@ -44,10 +44,11 @@
                   (- (* 0.5 fullRACC) (* -3 future-diff)))
                  (else fullRACC)))))  ; not close, keep at it
    
+  (define racc? #f)
   (define acc? #f)
   
   (when (not (= 0 ddr))
-    (set! acc? #t)
+    (set! racc? #t)
     (when ((pod-energy h) . > . 0)
       (set-posvel-dr! posvel (+ (posvel-dr posvel) (* ddr dt)))))
     
@@ -59,7 +60,7 @@
       (set-posvel-dx! posvel (+ (posvel-dx posvel) (* ddx dt)))
       (set-posvel-dy! posvel (+ (posvel-dy posvel) (* ddy dt)))))
   
-  acc?)
+  (values acc? racc?))
 
 
 (define (drag dv dt coef epsilon)
@@ -67,7 +68,7 @@
   (if ((abs newv) . < . epsilon) 0 newv))
 
 
-(define (physics! pv dt drag? (acc? #f))
+(define (physics! pv dt drag? (acc? #f) (racc? #f))
   (set-posvel-x! pv (+ (posvel-x pv) (* dt (posvel-dx pv))))
   (set-posvel-y! pv (+ (posvel-y pv) (* dt (posvel-dy pv))))
   (set-posvel-r! pv (angle-add (posvel-r pv) (* dt (posvel-dr pv))))
@@ -83,14 +84,14 @@
     
     (set-posvel-dx! pv (drag (posvel-dx pv) dt DRAG_COEF (if acc? 0 .1)))
     (set-posvel-dy! pv (drag (posvel-dy pv) dt DRAG_COEF (if acc? 0 .1)))
-    (set-posvel-dr! pv (drag (posvel-dr pv) dt R_DRAG_COEF (if acc? 0 (/ 2pi 360))))))
+    (set-posvel-dr! pv (drag (posvel-dr pv) dt R_DRAG_COEF (if racc? 0 (/ 2pi 360))))))
 
 
 (define (update-physics! space o dt)
   (cond
     ((ship? o)
-     (define acc? (steer! o dt))
-     (physics! (obj-posvel o) dt #t acc?))
+     (define-values (acc? racc?) (steer! o dt))
+     (physics! (obj-posvel o) dt #t acc? racc?))
     ((plasma? o)
      (physics! (obj-posvel o) dt #f)
      (when (plasma-dead? space o)

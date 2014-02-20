@@ -64,6 +64,7 @@
   (strategy-args strat)
   new-strat)
 
+(define course-changes '(0 -30 -8 -1 1 8 30))
 
 ; return a list of changes
 ; the whole world is already predicted forward
@@ -71,24 +72,24 @@
   (define changes '())
   (define pod (get-pod stack))
   (define p (get-role stack))
-  (define newp (copy-role p))
+  (define origp (copy-role p))
   (define ownship (get-ship stack))
   (define predicted-posvel (obj-posvel ownship))
   
-  ;(printf "~a pilot-ai\n" (ship-name ownship))
+  (printf "~a pilot-ai\n" (ship-name ownship))
   
   ; search space around our original inputs
   (define bestp (copy-role p))
   (define bestfit #f)
-  (set-pod-role! pod newp)
-  (for* ((course-change '(0 -25 -5 -1 1 5 25))
-         (engine-on (list (pilot-fore p) (not (pilot-fore p)))))
+  (for* ((newc (for/list ((c course-changes))
+                 (angle-add (pilot-course p) (degrees->radians c))))
+         (newe (list (pilot-fore p) (not (pilot-fore p)))))
     
     ; go back to present
     (set-obj-posvel! ownship (struct-copy posvel (posvel-t predicted-posvel)))
     ; set new inputs
-    (set-pilot-course! newp (angle-add (pilot-course p) (degrees->radians course-change)))
-    (set-pilot-fore! newp engine-on)
+    (set-pilot-course! p newc)
+    (set-pilot-fore! p newe)
     ; predict into future
     (pilot-predict! space ownship)
     ; calculate fitness
@@ -99,15 +100,17 @@
     (when (or (not bestfit)  ; first pass
               (fitness . > . bestfit))
       (set! bestfit fitness)
-      (set! bestp (copy-role newp))))
+      (set! bestp (copy-role p))
+      (printf "better fit ~a ~v\n" fitness bestp)
+      ))
   
   ; reset ship to original pilot
-  (set-pod-role! pod p)
+  (set-pod-role! pod origp)
   
   ; predict our ship back to the future with unchanged inputs
   (set-obj-posvel! ownship predicted-posvel)
   
-  (when (not (equal? p bestp))
+  (when (not (equal? origp bestp))
     (printf "~a new pilot ~a ~v\n" (ship-name ownship) bestfit bestp)
     (set! changes (list bestp)))
   
@@ -193,6 +196,22 @@
     (send dc set-pen cc 2.0 'solid)
     (send dc set-brush cc 'solid)
     (send dc draw-ellipse (- cx 1.5) (- cy 1.5) 3 3))
+  
+  (for* ((course-change course-changes)
+         (engine-on (list #f #t)))
+    (define p (ship-pilot ship))
+    (define origp (struct-copy pilot p))
+    (set-pilot-course! p (+ (pilot-course p) (degrees->radians course-change)))
+    (set-pilot-fore! p engine-on)
+    (define pvp (struct-copy posvel (obj-posvel ship)))
+    (pilot-predict! space ship)
+    (define futurepv (obj-posvel ship))
+    (set-obj-posvel! ship pvp)
+    (set-pod-role! (ship-helm ship) origp)
+    (send dc set-pen "greenyellow" 2.0 'solid)
+    (send dc set-brush nocolor 'transparent)
+    (define-values (fx fy) (recenter ship (obj #f #f futurepv)))
+    (send dc draw-ellipse (- fx 3) (- fy 3) 6 6))
   
   (define pvp (struct-copy posvel (obj-posvel ship)))
   (pilot-predict! space ship)
