@@ -37,11 +37,11 @@
                   #f
                   (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f 0 start-ship? '())
                   '()
-                  (strategy "goto" (obj #f #f (posvel #f (- x) y r #f #f #f)))))
+                  (strategy "goto" (obj #f #f (posvel #f x y r #f #f #f)))))
   
   (case type
     (("blue-frigate")
-     (set-ship-stats! s (stats (next-id) type name faction 10 100 18 100))
+     (set-ship-stats! s (stats (next-id) type name faction 10 100 18 100 2000 50))
      (set-ship-pods!
       s (list
          (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) r helm-fore? #f) 0 0 #f #f 0)
@@ -55,7 +55,7 @@
          (tactical (next-id) (tactics (next-id) #f (and npc? npc-tactical?) #f)
                    (degrees->radians -21.8) 21.5 0 (* 0.8 pi) 0))))
     (("blue-fighter")
-     (set-ship-stats! s (stats (next-id) type name faction 10 100 6 10))
+     (set-ship-stats! s (stats (next-id) type name faction 10 100 6 10 400 10))
      (set-ship-pods!
       s (list
          (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) r helm-fore? #f) 0 0 #f #f 0)

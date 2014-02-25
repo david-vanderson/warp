@@ -62,9 +62,17 @@
   (define changes '())
   (define ship (get-ship stack))
   (define strat (ship-ai-strategy ship))
-  (when ((distance ship (strategy-args strat)) . < . AI_GOTO_DIST)
-    (define s (strategy "goto" (obj #f #f (posvel #f (- (posvel-x (obj-posvel (strategy-args strat))))
-                                                  (posvel-y (obj-posvel (strategy-args strat))) 0 #f #f #f))))
+  (define ne (nearest-enemy space ship))
+  (when (and ne
+             (or ((distance ship (strategy-args strat)) . < . AI_GOTO_DIST)
+                 ((abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship ne))) . > . (* 4/5 pi))))
+    ; pick a new destination on the far side of ne
+    (define t (angle-add (theta ship ne) (random-between (- (* 1/6 pi)) (* 1/6 pi))))
+    (define r (+ (distance ship ne) (random-between 150 250)))
+    (define s (strategy "goto" (obj #f #f (posvel #f
+                                                  (+ (posvel-x (obj-posvel ship)) (* r (cos t)))
+                                                  (+ (posvel-y (obj-posvel ship)) (* r (sin t)))
+                                                  0 #f #f #f))))
     (set! changes (list (new-strat (ob-id ship) s))))
   changes)
 
@@ -101,13 +109,13 @@
     (define curfit 1.0)
     
     (for ((i predict-secs))
-      (for ((s ships)) (physics! (obj-posvel s) 1.0 #f))
+      (for ((s ships)) (physics! (obj-posvel s) 1.0))
       (pilot-predict! space ownship 1.0)
       (define f (pilot-fitness space ownship))
       (set! maxfit (max maxfit (* curfit (expt f (- predict-secs i)))))
       (set! curfit (* curfit f)))
     
-    (for ((s ships)) (physics! (obj-posvel s) (- predict-secs) #f))
+    (for ((s ships)) (physics! (obj-posvel s) (- predict-secs)))
     (set-obj-posvel! ownship origpv)
         
     (when (or (not bestfit)  ; first pass
@@ -237,7 +245,7 @@
   
   (set-pod-role! (ship-helm ship) origp)
     
-;    (for ((s ships)) (physics! (obj-posvel s) -1.0 #f))
+;    (for ((s ships)) (physics! (obj-posvel s) -1.0))
 ;    (set-obj-posvel! ownship origpv)
 ;    
 ;    

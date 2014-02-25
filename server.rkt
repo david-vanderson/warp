@@ -115,8 +115,8 @@
     
     (when (dt . > . (/ TICK 1000.0))
       ;(printf "dv ~a dt ~a\n" dv (- dt (/ TICK 1000.0)))
-      (physics! (obj-posvel o1) (- dt (/ TICK 1000.0)) #f)
-      (physics! (obj-posvel o2) (- dt (/ TICK 1000.0)) #f))
+      (physics! (obj-posvel o1) (- dt (/ TICK 1000.0)))
+      (physics! (obj-posvel o2) (- dt (/ TICK 1000.0))))
     
     (set-posvel-t! (obj-posvel o1) 0)
     (set-posvel-t! (obj-posvel o2) 0)

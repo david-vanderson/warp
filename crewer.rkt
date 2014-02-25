@@ -56,6 +56,7 @@
          (send dc translate (+ (* -0.5 size) 10 (/ shipmax 2)) (+ (* 0.5 size) -10 (* i -100) (/ shipmax -2)))
          (keep-transform dc
            (send dc rotate (- (/ pi 2)))
+           (define ship-bitmap (get-ship-bitmap s))
            (send dc draw-bitmap
                  ship-bitmap
                  (- (/ (send ship-bitmap get-width) 2))

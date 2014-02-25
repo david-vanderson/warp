@@ -12,9 +12,6 @@
 (define HEIGHT 768)  ; how many meters tall is the screen view
 (define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view
 (define BOTTOM (/ (- HEIGHT) 2))  ; bottom edge of canonical view
-(define DRAG_COEF .5)  ; lose X% of your velocity / sec
-(define RACC .5)  ; gain X radians / sec / sec
-(define R_DRAG_COEF .7)  ; lose X% of your velocity / sec
 (define 2pi (* 2 pi))
 (define pi/2 (* 0.5 pi))
 (define AI_GOTO_DIST 50)  ; if you are this close you've hit it
@@ -99,12 +96,14 @@
 (struct tactics role (shield) #:mutable #:prefab)
 ; shield is an angle if we want to shoot a shield barrier (at that angle)
 
-(struct stats ob (type name faction power containment radius mass) #:mutable #:prefab)
+(struct stats ob (type name faction power containment radius mass thrust rthrust) #:mutable #:prefab)
 ; carries all the stats for a ship
 ; name is the name of the ship
 ; faction is the name that this ship belongs to
 ; power is energy per second the engine produces
 ; containment is how much health you have left
+; thrust is how much force your main engines produce
+; rthrust is how much force your turning engines produce
 
 (struct ship obj (stats crew pods ai-strategy) #:mutable #:prefab)
 ; crew is a multipod for players choosing their next role
