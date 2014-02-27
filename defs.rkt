@@ -102,6 +102,8 @@
 ; faction is the name that this ship belongs to
 ; power is energy per second the engine produces
 ; containment is how much health you have left
+; radius is how big your hit area is
+; mass controls how you bump into other ships
 ; thrust is how much force your main engines produce
 ; rthrust is how much force your turning engines produce
 

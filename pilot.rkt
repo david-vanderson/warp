@@ -35,25 +35,25 @@
                       (stats-radius (ship-stats o))))
       (cond ((d . < . mind)
              (set! f (* f 0.0)))
-            ((d . < . (* 3 mind))
-             (set! f (* f (/ d (* 3 mind))))))))
+            ((d . < . (* 5 mind))
+             (set! f (* f (expt (/ (- d mind) (* 5 mind)) 2)))))))
   
-  (when strat
-    ; assuming "goto" strategy
-    (define d (distance ownship (strategy-args strat)))
-    (when (d . > . AI_GOTO_DIST)
-      ;(define dd (- d AI_GOTO_DIST))
-      (set! f (* f (if (d . < . 500.0)
-                       (- 1.0 (/ d 500.0))
-                       (/ 1.0 d))))))
+  ; assuming "goto" strategy
+  (define d (distance ownship (strategy-args strat)))
+  (when (d . > . AI_GOTO_DIST)
+    ;(define dd (- d AI_GOTO_DIST))
+    (set! f (* f (if (d . < . 500.0)
+                     (- 1.0 (/ d 500.0))
+                     (/ 1.0 d)))))
+  
+  (define ad (abs (angle-diff (posvel-r (obj-posvel ownship))
+                              (theta ownship (strategy-args strat)))))
+  (set! f (* f (- 1.0 (* 0.01 (/ ad pi)))))
   
   f)
 
 
 ;; server
-
-(define (pilot-predict! space ship dt)
-  (update-physics! space ship dt))
 
 
 ; update strategy, return strategy if updated
@@ -68,7 +68,7 @@
                  ((abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship ne))) . > . (* 4/5 pi))))
     ; pick a new destination on the far side of ne
     (define t (angle-add (theta ship ne) (random-between (- (* 1/6 pi)) (* 1/6 pi))))
-    (define r (+ (distance ship ne) (random-between 150 250)))
+    (define r (+ (distance ship ne) (random-between 150 200)))
     (define s (strategy "goto" (obj #f #f (posvel #f
                                                   (+ (posvel-x (obj-posvel ship)) (* r (cos t)))
                                                   (+ (posvel-y (obj-posvel ship)) (* r (sin t)))
@@ -76,7 +76,6 @@
     (set! changes (list (new-strat (ob-id ship) s))))
   changes)
 
-(define course-changes '(0 -122 -83 -44 -5 3 42 81 120))
 (define predict-secs 10)
 
 ; return a list of changes
@@ -87,8 +86,6 @@
   (define p (get-role stack))
   (define origp (copy-role p))
   
-  ;(printf "~a pilot-ai\n" (ship-name ownship))
-  
   ; only worry about ships
   (define ships (filter (lambda (o)
                           (and (ship? o)
@@ -98,43 +95,38 @@
   ; search space around our original inputs
   (define bestp (copy-role p))
   (define bestfit #f)
-  (for* ((newc (for/list ((c course-changes))
-                 (angle-add (pilot-course p) (degrees->radians c))))
-         (newe (list (pilot-fore p) (not (pilot-fore p)))))
-    
+  (for ((newce '((#f 0) (#f -90) (#f 90) (#t 0)
+                        (#t -170) (#t -83) (#t -44) (#t -5)
+                        (#t 3) (#t 42) (#t 81) (#t 120))))
     (define origpv (struct-copy posvel (obj-posvel ownship)))
-    (set-pilot-course! p newc)
-    (set-pilot-fore! p newe)
+    (set-pilot-fore! p (car newce))
+    (set-pilot-course! p (angle-add (pilot-course origp) (degrees->radians (cadr newce))))
     (define maxfit 0.0)
     (define curfit 1.0)
     
     (for ((i predict-secs))
       (for ((s ships)) (physics! (obj-posvel s) 1.0))
-      (pilot-predict! space ownship 1.0)
+      (update-physics! space ownship 0.5)
+      (update-physics! space ownship 0.5)
       (define f (pilot-fitness space ownship))
-      (set! maxfit (max maxfit (* curfit (expt f (- predict-secs i)))))
+      (set! maxfit (max maxfit (* curfit (expt f (- predict-secs i)) (expt 0.9 (- predict-secs i)))))
       (set! curfit (* curfit f)))
     
     (for ((s ships)) (physics! (obj-posvel s) (- predict-secs)))
     (set-obj-posvel! ownship origpv)
-        
+    
     (when (or (not bestfit)  ; first pass
               (maxfit . > . bestfit))
-      ;(printf "better fit ~a ~v\n" maxfit p)
+      ;(printf "better fit ~a ~v\n" maxfit newce)
       (set! bestfit maxfit)
       (set! bestp (copy-role p))))
   
+  (set! p (copy-role bestp))
   (set-pod-role! (ship-helm ownship) origp)
   
-  (when (and (not (pilot-fore bestp))
-             (pi/2 . < . (abs (angle-diff (posvel-r (obj-posvel ownship))
-                                          (theta ownship (strategy-args (ship-ai-strategy ownship)))))))
-    (printf "~a turning around\n" (ship-name ownship))
-    (set-pilot-course! bestp (theta ownship (strategy-args (ship-ai-strategy ownship)))))
-  
-  (when (not (equal? origp bestp))
-    (printf "~a new pilot ~a ~v\n" (ship-name ownship) bestfit bestp)
-    (set! changes (list bestp)))
+  (when (not (equal? origp p))
+    (printf "~a new pilot ~v\n" (ship-name ownship) p)
+    (set! changes (list p)))
   
   changes)
 
@@ -223,22 +215,34 @@
 ;  (set-obj-posvel! ship (struct-copy posvel origpv))
   
   
-  (send dc set-pen "greenyellow" 2.0 'solid)
+  
+  (define ships (filter (lambda (o)
+                             (and (ship? o)
+                                  (not (= (ob-id ship) (ob-id o)))))
+                           (space-objects space)))
+  
   (send dc set-brush nocolor 'transparent)
   (define p (ship-pilot ship))
   (define origp (struct-copy pilot p))
-  (for* ((newc (for/list ((c course-changes))
-                 (angle-add (pilot-course p) (degrees->radians c))))
-         (newe (list (pilot-fore p) (not (pilot-fore p)))))
-    (set-pilot-course! p newc)
-    (set-pilot-fore! p newe)
-    (define maxfit 0)
+  (for ((newce '((#f 0) (#f -90) (#f 90) (#t 0)
+                        (#t -170) (#t -83) (#t -44) (#t -5)
+                        (#t 3) (#t 42) (#t 81) (#t 120))))
+    (define origpv (struct-copy posvel (obj-posvel ship)))
+    (set-pilot-fore! p (car newce))
+    (set-pilot-course! p (angle-add (pilot-course origp) (degrees->radians (cadr newce))))
+    (define maxfit 0.0)
+    (define curfit 1.0)
     
     (for ((i predict-secs))
       (define-values (oldx oldy) (recenter center ship))
-      (pilot-predict! space ship 1.0)
+      (update-physics! space ship 0.5)
+      (update-physics! space ship 0.5)
+      (define f (pilot-fitness space ship))
+      (set! maxfit (max maxfit (* curfit (expt f (- predict-secs i)) (expt 0.9 (- predict-secs i)))))
+      (set! curfit (* curfit f))
       (define-values (newx newy) (recenter center ship))
-      ;(printf "oldx oldy newx newy ~a ~a ~a ~a\n" oldx oldy newx newy)
+      (define cc (linear-color "blue" "red" maxfit 1.0))
+      (send dc set-pen cc 2.0 'solid)
       (send dc draw-line oldx oldy newx newy))
     
     (set-obj-posvel! ship (struct-copy posvel origpv)))

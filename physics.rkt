@@ -18,53 +18,33 @@
 
 
 (define (steer! ownship dt)
+  (define posvel (obj-posvel ownship))
   (define h (ship-helm ownship))
+  
   (define p (pod-role h))
   (define course (pilot-course p))
-  (define posvel (obj-posvel ownship))
   (define r (posvel-r posvel))
-  (define ddr
-    (cond ((and
-            ((abs (angle-diff r course)) . < . (/ 2pi 180))  ; within 2 degrees
-            ((abs (posvel-dr posvel)) . < . (/ 2pi 120)))  ; moving less than 3 degrees / sec
-           ;(printf "STOPPING\n")
-           (set-posvel-r! posvel course)
-           (set-posvel-dr! posvel 0)
-           0)  ; don't need to accelerate if we're already there
-          (else
-           (define future-r (angle-add r (posvel-dr posvel)))  ; we'll be there in 1 sec
-           (define future-diff (angle-diff future-r course))
-           (define diff (angle-diff r course))
-           (define racc (/ (stats-rthrust (ship-stats ownship))
-                        (stats-mass (ship-stats ownship))))
-           (define full_racc (if (positive? diff) racc (- racc)))
-           
-           (cond ((opposite-sign? diff (posvel-dr posvel)) full_racc)  ; going the wrong way, full acc
-                 ((opposite-sign? diff future-diff)
-                  ; getting close, accelerate future-diff less
-                  ;(printf "getting close, ~a ~a\n" diff future-diff)
-                  (- (* 0.5 full_racc) (* -3 future-diff)))
-                 (else full_racc)))))  ; not close, keep at it
-   
-  (define racc? #f)
-  (define acc? #f)
   
-  (when (not (= 0 ddr))
-    (set! racc? #t)
-    (when ((pod-energy h) . > . 0)
-      (set-posvel-dr! posvel (+ (posvel-dr posvel) (* ddr dt)))))
-    
+  (define racc (stats-rthrust (ship-stats ownship)))
+  (cond
+    (((abs (angle-diff r course)) . < . (* racc dt))
+     ;(printf "STOPPING\n")
+     (set-posvel-r! posvel course)
+     (set-posvel-dr! posvel 0))
+    (((pod-energy h) . > . 0)
+     (set-posvel-dr! posvel (if ((angle-diff r course) . > . 0) racc (- racc)))))
+  
+  (define acc? #f)
   (when (pilot-fore (ship-pilot ownship))
     (set! acc? #t)
     (when ((pod-energy h) . > . 0)
-      (define xy_acc (/ (stats-thrust (ship-stats ownship))
-                        (stats-mass (ship-stats ownship))))
+      (define xy_acc (stats-thrust (ship-stats ownship)))
       (define ddx (* xy_acc (cos (posvel-r posvel))))
       (define ddy (* xy_acc (sin (posvel-r posvel))))
       (set-posvel-dx! posvel (+ (posvel-dx posvel) (* ddx dt)))
       (set-posvel-dy! posvel (+ (posvel-dy posvel) (* ddy dt)))))
   
-  (values acc? racc?))
+  acc?)
 
 
 (define (drag dv dt coef epsilon)
@@ -72,22 +52,20 @@
   (if ((abs newv) . < . epsilon) 0 newv))
 
 
-(define (physics! pv dt (drag_xy #f) (drag_r #f) (acc? #f) (racc? #f))
+(define (physics! pv dt (drag_xy #f) (acc? #f))
   (set-posvel-x! pv (+ (posvel-x pv) (* dt (posvel-dx pv))))
   (set-posvel-y! pv (+ (posvel-y pv) (* dt (posvel-dy pv))))
   (set-posvel-r! pv (angle-add (posvel-r pv) (* dt (posvel-dr pv))))
   (when drag_xy
-    (set-posvel-dx! pv (drag (posvel-dx pv) dt drag_xy (if acc? 0 .1)))
-    (set-posvel-dy! pv (drag (posvel-dy pv) dt drag_xy (if acc? 0 .1))))
-  (when drag_r
-    (set-posvel-dr! pv (drag (posvel-dr pv) dt drag_r (if racc? 0 (/ 2pi 360))))))
+    (set-posvel-dx! pv (drag (posvel-dx pv) dt drag_xy (if acc? 0 dt)))
+    (set-posvel-dy! pv (drag (posvel-dy pv) dt drag_xy (if acc? 0 dt)))))
 
 
 (define (update-physics! space o dt)
   (cond
     ((ship? o)
-     (define-values (acc? racc?) (steer! o dt))
-     (physics! (obj-posvel o) dt 0.5 0.7 acc? racc?))
+     (define acc? (steer! o dt))
+     (physics! (obj-posvel o) dt 0.4 acc?))
     ((plasma? o)
      (physics! (obj-posvel o) dt)
      (when (plasma-dead? space o)

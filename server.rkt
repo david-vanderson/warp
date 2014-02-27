@@ -175,7 +175,7 @@
 
 
 ; return a list of commands
-(define (run-pilot-ai! space)
+(define/time (run-pilot-ai! space)
   (define commands '())
   (define (ai-pilot-role? o)
     (and (pilot? o)

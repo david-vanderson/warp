@@ -17,7 +17,7 @@
                  (and (<= 401 (modulo (obj-age space o) 800) (+ 400 dt))
                       ((pod-energy (ship-helm o)) . > . 1))))
     ;(printf "~a adding backeffect at ~a ~a\n" (ship-name o) (modulo (obj-age space o) 500) (obj-age space o))
-    (define l -20)
+    (define l (- (stats-radius (ship-stats o))))
     (define t (posvel-r (obj-posvel o)))
     (define be (backeffect 0 (space-time space)
                            (posvel 0
