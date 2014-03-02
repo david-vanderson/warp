@@ -178,6 +178,9 @@
   (sqrt (+ (* (posvel-dx pv) (posvel-dx pv))
            (* (posvel-dy pv) (posvel-dy pv)))))
 
+(define (hit-distance ship1 ship2)
+  (+ (stats-radius (ship-stats ship1))
+     (stats-radius (ship-stats ship2))))
 
 (define (pod-xyr pod ship)
   (define ps (obj-posvel ship))

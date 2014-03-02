@@ -6,8 +6,7 @@
 
 (define PORT 22381)
 (define TICK 33)  ; ms time slice for physics, also determines max client frame rate
-(define AI_TICK 200)  ; ms time slice for ai
-(define AI_TICK_PILOT 1000)  ; ms time slice for pilot ai
+(define AI_TICK 100)  ; ms time slice for ai
 (define WIDTH 1024)  ; how many meters wide is the screen view
 (define HEIGHT 768)  ; how many meters tall is the screen view
 (define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view
@@ -110,11 +109,12 @@
 (struct ship obj (stats crew pods ai-strategy) #:mutable #:prefab)
 ; crew is a multipod for players choosing their next role
 ; pods is a list of all the pods on the ship
-; ai-strategy is a strategy
+; ai-strategy is a list of strategies, do them in order
 
 (define (ship-name s) (stats-name (ship-stats s)))
 (define (ship-faction s) (stats-faction (ship-stats s)))
 (define (ship-containment s) (stats-containment (ship-stats s)))
+(define (ship-strategy s) (if (null? (ship-ai-strategy s)) #f (car (ship-ai-strategy s))))
 
 (struct plasma obj (e ownship-id) #:mutable #:prefab)
 ; e is base energy uncorrected for age
@@ -132,8 +132,8 @@
 (struct space (time width height objects) #:mutable #:prefab)
 ; time is msec since the scenario started
 
-(struct strategy (name args) #:mutable #:prefab)
-; name is the state we are in, args are parameters for that state
+(struct strategy (name arg) #:mutable #:prefab)
+; name is the state we are in, arg is the parameter(s) for that state
 
 
 ;; Changes
@@ -169,7 +169,7 @@
 
 (struct new-strat (ship-id strat) #:mutable #:prefab)
 ; ship-id is the id of the ship
-; strat is the new strategy
+; strat is the list of new strategies
 
 
 ;; UI

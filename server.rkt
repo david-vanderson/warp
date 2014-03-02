@@ -171,11 +171,13 @@
       ((tactics? r)
        (set! commands (append commands (tactics-ai! space dt s))))))
   
+  (set! commands (append commands (run-pilot-ai! space)))
+  
   commands)
 
 
 ; return a list of commands
-(define/time (run-pilot-ai! space)
+(define (run-pilot-ai! space)
   (define commands '())
   (define (ai-pilot-role? o)
     (and (pilot? o)
@@ -186,6 +188,16 @@
                                (search space ai-pilot-role? #t)))
   
   (for ((s pilot-stacks))
+    (when (equal? #t (role-npc? (get-role s)))
+      (set-role-npc?! (get-role s) 0)))
+  
+  (define sorted-stacks
+    (sort pilot-stacks
+          (lambda (s1 s2) (< (role-npc? (get-role s1))
+                             (role-npc? (get-role s2))))))
+  
+  (for ((s (in-value (car sorted-stacks))))
+    (set-role-npc?! (get-role s) (space-time space))
     (set! commands (append commands (pilot-ai-strategy! space s)))
     (set! commands (append commands (pilot-ai! space s))))
   
@@ -235,13 +247,6 @@
   (when (AI_TICK . < . (- current-time previous-ai-time))
     (set! previous-ai-time (+ previous-ai-time AI_TICK))
     (define commands (run-ai! ownspace (/ AI_TICK 1000.0)))
-    (define command-changes
-      (apply-all-changes! ownspace commands (space-time ownspace) "server"))
-    (set! updates (append updates command-changes)))
-  
-  (when (AI_TICK_PILOT . < . (- current-time previous-pilot-ai-time))
-    (set! previous-pilot-ai-time (+ previous-pilot-ai-time AI_TICK_PILOT))
-    (define commands (run-pilot-ai! ownspace))
     (define command-changes
       (apply-all-changes! ownspace commands (space-time ownspace) "server"))
     (set! updates (append updates command-changes)))

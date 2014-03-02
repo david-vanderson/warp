@@ -20,36 +20,44 @@
        (ship-flying? (cadr ships))))
 
 
-; return [0,1] representing how good ownship's position is
-; goal is where we want to go
-(define (pilot-fitness space ownship)
+; return [0,1] representing how good ship's position is
+(define (pilot-fitness space ship)
   (define f 1.0)
-  (define strat (ship-ai-strategy ownship))
+  (define strat (ship-strategy ship))
   
   ; reduce fitness for hitting ships
   (for ((o (space-objects space)))
     (when (and (ship? o)
-               (not (= (ob-id ownship) (ob-id o))))
-      (define d (distance ownship o))
-      (define mind (+ (stats-radius (ship-stats ownship))
-                      (stats-radius (ship-stats o))))
+               (not (= (ob-id ship) (ob-id o))))
+      (define d (distance ship o))
+      (define mind (hit-distance ship o))
       (cond ((d . < . mind)
              (set! f (* f 0.0)))
-            ((d . < . (* 5 mind))
-             (set! f (* f (expt (/ (- d mind) (* 5 mind)) 2)))))))
+            ((d . < . (* 1.5 mind))
+             (set! f (* f (/ (- d mind) (* 1.5 mind))))))))
   
-  ; assuming "goto" strategy
-  (define d (distance ownship (strategy-args strat)))
-  (when (d . > . AI_GOTO_DIST)
-    ;(define dd (- d AI_GOTO_DIST))
-    (set! f (* f (if (d . < . 500.0)
-                     (- 1.0 (/ d 500.0))
-                     (/ 1.0 d)))))
   
-  (define ad (abs (angle-diff (posvel-r (obj-posvel ownship))
-                              (theta ownship (strategy-args strat)))))
-  (set! f (* f (- 1.0 (* 0.01 (/ ad pi)))))
-  
+  (case (and strat (strategy-name strat))
+    (("retreat")
+     (define ne (findf (lambda (o) (= (ob-id o) (strategy-arg strat))) (space-objects space)))
+     (when ne
+       (define d (distance ship ne))
+       (set! f (* f (min 1.0 (/ d 1000.0))))
+       (define ad (abs (angle-diff (posvel-r (obj-posvel ship))
+                                   (theta ship ne))))
+       (set! f (* f (+ 0.99 (* 0.01 (/ ad pi)))))
+       ))
+    (("attack")
+     ; trying to go to the far side of ne
+     (define ne (findf (lambda (o) (= (ob-id o) (strategy-arg strat))) (space-objects space)))
+     (when ne
+       (define d (distance ship ne))
+       (set! f (* f (- 1.0 (min 1.0 (/ d 1000.0)))))
+       
+       (define ad (abs (angle-diff (posvel-r (obj-posvel ship))
+                                   (theta ship ne))))
+       (set! f (* f (- 1.0 (* 0.01 (/ ad pi))))))))
+     
   f)
 
 
@@ -61,19 +69,42 @@
 (define (pilot-ai-strategy! space stack)
   (define changes '())
   (define ship (get-ship stack))
-  (define strat (ship-ai-strategy ship))
   (define ne (nearest-enemy space ship))
-  (when (and ne
-             (or ((distance ship (strategy-args strat)) . < . AI_GOTO_DIST)
-                 ((abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship ne))) . > . (* 4/5 pi))))
-    ; pick a new destination on the far side of ne
-    (define t (angle-add (theta ship ne) (random-between (- (* 1/6 pi)) (* 1/6 pi))))
-    (define r (+ (distance ship ne) (random-between 150 200)))
-    (define s (strategy "goto" (obj #f #f (posvel #f
-                                                  (+ (posvel-x (obj-posvel ship)) (* r (cos t)))
-                                                  (+ (posvel-y (obj-posvel ship)) (* r (sin t)))
-                                                  0 #f #f #f))))
-    (set! changes (list (new-strat (ob-id ship) s))))
+  (define strats (ship-ai-strategy ship))
+  (define strat (ship-strategy ship))
+  (cond
+    ((not strat)
+     (when ne
+       (define ns (strategy "attack" (ob-id ne)))
+       (set! changes (list (new-strat (ob-id ship) (list ns))))))
+    ((equal? "retreat" (strategy-name strat))
+     (cond
+       ((not ne)
+        (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
+       ((and ne (or ((distance ship ne) . > . (* 10 (hit-distance ship ne)))
+                    ((angle-diff (posvel-r (obj-posvel ship)) (theta ship ne)) . > . (* 5/6 pi))))
+        (define ns (strategy "attack" (ob-id ne)))
+        (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats))))))))
+    ((equal? "attack" (strategy-name strat))
+     (cond
+       ((not ne)
+        (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
+       ((and ne ((distance ship ne) . < . (* 5 (hit-distance ship ne))))
+        (define ns (strategy "retreat" (ob-id ne)))
+        (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats)))))))))
+  (when (not (null? changes))
+    (printf "new strat: ~v\n" (car changes)))
+;  (when (and ne
+;             (or ((distance ship (strategy-args strat)) . < . AI_GOTO_DIST)
+;                 ((abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship ne))) . > . (* 4/5 pi))))
+;    ; pick a new destination on the far side of ne
+;    (define t (angle-add (theta ship ne) (random-between (- (* 1/6 pi)) (* 1/6 pi))))
+;    (define r (+ (distance ship ne) (random-between 150 200)))
+;    (define s (strategy "goto" (obj #f #f (posvel #f
+;                                                  (+ (posvel-x (obj-posvel ship)) (* r (cos t)))
+;                                                  (+ (posvel-y (obj-posvel ship)) (* r (sin t)))
+;                                                  0 #f #f #f))))
+;    (set! changes (list (new-strat (ob-id ship) s))))
   changes)
 
 
@@ -103,11 +134,13 @@
     (define maxfit 0.0)
     (define curfit 1.0)
     
-    (define predict-secs (inexact->exact (round (/ 10 (/ (stats-thrust (ship-stats ownship)) 20)))))
+    (define predict-secs (inexact->exact (round (/ 150 (stats-thrust (ship-stats ownship))))))
     (for ((i predict-secs))
       (for ((s ships)) (physics! (obj-posvel s) 1.0))
-      (update-physics! space ownship 0.5)
-      (update-physics! space ownship 0.5)
+      (update-physics! space ownship 0.25)
+      (update-physics! space ownship 0.25)
+      (update-physics! space ownship 0.25)
+      (update-physics! space ownship 0.25)
       (define f (pilot-fitness space ownship))
       (set! maxfit (max maxfit (* curfit (expt f (- predict-secs i)) (expt 0.9 (- predict-secs i)))))
       (set! curfit (* curfit f)))
@@ -125,7 +158,7 @@
   (set-pod-role! (ship-helm ownship) origp)
   
   (when (not (equal? origp p))
-    (printf "~a new pilot ~v\n" (ship-name ownship) p)
+    ;(printf "~a new pilot ~v\n" (ship-name ownship) p)
     (set! changes (list p)))
   
   changes)
@@ -233,11 +266,13 @@
     (define maxfit 0.0)
     (define curfit 1.0)
     
-    (define predict-secs (inexact->exact (round (/ 10 (/ (stats-thrust (ship-stats ship)) 20)))))
+    (define predict-secs (inexact->exact (round (/ 150 (stats-thrust (ship-stats ship))))))
     (for ((i predict-secs))
       (define-values (oldx oldy) (recenter center ship))
-      (update-physics! space ship 0.5)
-      (update-physics! space ship 0.5)
+      (update-physics! space ship 0.25)
+      (update-physics! space ship 0.25)
+      (update-physics! space ship 0.25)
+      (update-physics! space ship 0.25)
       (define f (pilot-fitness space ship))
       (set! maxfit (max maxfit (* curfit (expt f (- predict-secs i)) (expt 0.9 (- predict-secs i)))))
       (set! curfit (* curfit f))
@@ -249,36 +284,18 @@
     (set-obj-posvel! ship (struct-copy posvel origpv)))
   
   (set-pod-role! (ship-helm ship) origp)
-    
-;    (for ((s ships)) (physics! (obj-posvel s) -1.0))
-;    (set-obj-posvel! ownship origpv)
-;    
-;    
-;    (define p (ship-pilot ship))
-;    (define origp (struct-copy pilot p))
-;    (set-pilot-course! p (+ (pilot-course p) (degrees->radians course-change)))
-;    (set-pilot-fore! p engine-on)
-;    (define pvp (struct-copy posvel (obj-posvel ship)))
-;    (pilot-predict! space ship)
-;    (define futurepv (obj-posvel ship))
-;    (set-obj-posvel! ship pvp)
-;    (set-pod-role! (ship-helm ship) origp)
-;    (send dc set-pen "greenyellow" 2.0 'solid)
-;    (send dc set-brush nocolor 'transparent)
-;    (define-values (fx fy) (recenter ship (obj #f #f futurepv)))
-;    (send dc draw-ellipse (- fx 3) (- fy 3) 6 6))
   
-;  (define pvp (struct-copy posvel (obj-posvel ship)))
-;  (pilot-predict! space ship predict-secs)
-;  (define futurepv (obj-posvel ship))
-;  (set-obj-posvel! ship pvp)
-;  (send dc set-pen "green" 2.0 'solid)
-;  (send dc set-brush nocolor 'transparent)
-;  (define-values (fx fy) (recenter ship (obj #f #f futurepv)))
-;  (send dc draw-ellipse (- fx 3) (- fy 3) 6 6)
   
-  (send dc set-pen "green" 2.0 'solid)
-  (send dc set-brush nocolor 'transparent)
-  (define-values (x y) (recenter ship (strategy-args (ship-ai-strategy ship))))
-  (send dc draw-ellipse (- x AI_GOTO_DIST) (- y AI_GOTO_DIST)
-        (* AI_GOTO_DIST 2) (* AI_GOTO_DIST 2)))
+  (define strats (ship-ai-strategy ship))
+  (when (not (null? strats))
+    (define strat (car strats))
+    (send dc set-pen "green" 2.0 'solid)
+    (send dc set-brush nocolor 'transparent)
+    (case (strategy-name strat)
+      (("retreat" "attack")
+       (define ne (findf (lambda (o) (= (ob-id o) (strategy-arg strat)))
+                         (space-objects space)))
+       (when ne
+         (define-values (x y) (recenter ship ne))
+         (send dc draw-ellipse (- x AI_GOTO_DIST) (- y AI_GOTO_DIST)
+               (* AI_GOTO_DIST 2) (* AI_GOTO_DIST 2)))))))
