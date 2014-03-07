@@ -147,7 +147,6 @@
   
   (define my-canvas
     (class canvas%
-      (super-new)
       (define/override (on-event event)
         (when (send event button-down? 'left)
           (click this event)))
@@ -163,7 +162,7 @@
       ;           (when (pilot? role)
       ;             (send-command (struct-copy pilot role (fore (not (pilot-fore role)))))))
       ;          ))
-      ))
+      (super-new)))
   
   (define canvas
     (new my-canvas

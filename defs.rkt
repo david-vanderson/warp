@@ -77,10 +77,11 @@
 
 (struct helm pod () #:mutable #:prefab)
 
-(struct pilot role (course fore launch) #:mutable #:prefab)
+(struct pilot role (course fore launch dock) #:mutable #:prefab)
 ; course is angle pilot wants to point at
 ; if fore is #t, main thrusters are firing
 ; launch is #t if pilot wants to launch from a hangar
+; dock is #t if the pilot wants to dock with the next ship they hits
 
 (struct weapon pod () #:mutable #:prefab)
 ; angle is with respect to the ship/pod we are one

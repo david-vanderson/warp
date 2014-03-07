@@ -270,8 +270,7 @@
                              (- (space-time ownspace) (posvel-t (obj-posvel o2)))))))
   (when (not (null? objs))
     (define oldest (- (space-time ownspace) (posvel-t (obj-posvel (car objs)))))
-    (when (and (oldest . > . 1000)
-               (oldest . < . 10000))
+    (when (and (oldest . > . 1000))
       (printf "server oldest posvel is ~a\n" oldest)))
   (define pvupdates
     (for/list ((o objs) (i 10))
