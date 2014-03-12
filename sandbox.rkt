@@ -15,6 +15,10 @@
 ;               #:in-hangar (list
 ;                            (make-ship "blue-fighter" "Blue 1" "Rebel" #:npc? #t #:posvel? #f)))
     
+;    (make-ship "blue-frigate" "R1" "Rebel" #:npc? #t #:x -200 #:y 0 #:r 0.5)
+;    (make-ship "blue-frigate" "E1" "Empire" #:npc? #t #:x -200 #:y 50 #:r -0.5)
+
+    
     (make-ship "blue-fighter" "RF 1" "Rebel" #:npc? #t #:x -300 #:y 50)
     (make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:x -200 #:y 0)
     (make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:x -200 #:y 100)

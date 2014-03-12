@@ -133,7 +133,7 @@
 (struct space (time width height objects) #:mutable #:prefab)
 ; time is msec since the scenario started
 
-(struct strategy (name arg) #:mutable #:prefab)
+(struct strategy (t name arg) #:mutable #:prefab)
 ; name is the state we are in, arg is the parameter(s) for that state
 
 

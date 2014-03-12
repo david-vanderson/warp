@@ -20,9 +20,9 @@
        (ship-flying? (cadr ships))))
 
 
-; return [0,1] representing how good ship's position is
+; return a number representing how good ship's position is
 (define (pilot-fitness space ship)
-  (define f 1.0)
+  (define f 0.0)
   (define strat (ship-strategy ship))
   
   ; reduce fitness for hitting ships
@@ -30,11 +30,15 @@
     (when (and (ship? o)
                (not (= (ob-id ship) (ob-id o))))
       (define d (distance ship o))
-      (define mind (* 1.5 (hit-distance ship o)))
+      (define mind (* 1.1 (hit-distance ship o)))
+      (define ad (abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship o))))
       (cond ((d . < . mind)
-             (set! f (* f 0.00000001)))
-            ((d . < . (* 1.5 mind))
-             (set! f (* f (/ (- d (- mind 1)) (* 1.5 mind))))))))
+             (set! f (+ f -100.0))
+             (set! f (+ f (* 5.0 (min 0.8 (/ ad pi))))))
+            ((d . < . (* 2 mind))
+             (set! f (+ f (* -100.0 (- 1.0 (/ (- d mind) mind)))))
+             (set! f (+ f (* 5.0 (min 0.8 (/ ad pi))))))
+            )))
   
   
   (case (and strat (strategy-name strat))
@@ -42,21 +46,22 @@
      (define ne (findf (lambda (o) (= (ob-id o) (strategy-arg strat))) (space-objects space)))
      (when ne
        (define d (distance ship ne))
-       (set! f (* f (min 1.0 (/ d 1000.0))))
+       (set! f (+ f (* 25.0 (min 1.0 (/ d 1000.0)))))
        (define ad (abs (angle-diff (posvel-r (obj-posvel ship))
                                    (theta ship ne))))
-       (set! f (* f (+ 0.99 (* 0.01 (/ ad pi)))))
+       (set! f (+ f (* 5.0 (min 0.8 (/ ad pi)))))
        ))
     (("attack")
      ; trying to go to the far side of ne
      (define ne (findf (lambda (o) (= (ob-id o) (strategy-arg strat))) (space-objects space)))
      (when ne
        (define d (distance ship ne))
-       (set! f (* f (- 1.0 (min 1.0 (/ d 1000.0)))))
+       (set! f (+ f (* 25.0 (- 1.0 (min 1.0 (/ d 1000.0))))))
        
        (define ad (abs (angle-diff (posvel-r (obj-posvel ship))
                                    (theta ship ne))))
-       (set! f (* f (- 1.0 (* 0.01 (/ ad pi))))))))
+       (set! f (+ f (* 5.0 (- 1.0 (max 0.2 (/ ad pi))))))
+       )))
      
   f)
 
@@ -75,7 +80,7 @@
   (cond
     ((not strat)
      (when ne
-       (define ns (strategy "attack" (ob-id ne)))
+       (define ns (strategy (space-time space) "attack" (ob-id ne)))
        (set! changes (list (new-strat (ob-id ship) (list ns))))))
     ((equal? "retreat" (strategy-name strat))
      (cond
@@ -83,21 +88,22 @@
         (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
        ((and ne (or (not (equal? (ob-id ne) (strategy-arg strat)))
                     ((distance ship ne) . > . (* 10 (hit-distance ship ne)))
-                    ((angle-diff (posvel-r (obj-posvel ship)) (theta ship ne)) . > . (* 5/6 pi))))
-        (define ns (strategy "attack" (ob-id ne)))
+                    (and ((abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship ne))) . > . (* 5/6 pi))
+                         ((strategy-age space strat) . > . 10000))))
+        (define ns (strategy (space-time space) "attack" (ob-id ne)))
         (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats))))))))
     ((equal? "attack" (strategy-name strat))
      (cond
        ((not ne)
         (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
        ((and ne (not (equal? (ob-id ne) (strategy-arg strat))))
-        (define ns (strategy "attack" (ob-id ne)))
+        (define ns (strategy (space-time space) "attack" (ob-id ne)))
         (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats))))))
        ((and ne ((distance ship ne) . < . (* 5 (hit-distance ship ne))))
-        (define ns (strategy "retreat" (ob-id ne)))
+        (define ns (strategy (space-time space) "retreat" (ob-id ne)))
         (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats)))))))))
-;  (when (not (null? changes))
-;    (printf "new strat: ~v\n" (car changes)))
+  (when (not (null? changes))
+    (printf "new strat: ~v\n" (car changes)))
 ;  (when (and ne
 ;             (or ((distance ship (strategy-args strat)) . < . AI_GOTO_DIST)
 ;                 ((abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship ne))) . > . (* 4/5 pi))))
@@ -129,32 +135,31 @@
   ; search space around our original inputs
   (define bestp (copy-role p))
   (define bestfit #f)
-  (for ((newce '((#f 0) (#f -90) (#f 90) (#t 0)
-                        (#t -170) (#t -44) (#t -5)
-                        (#t 3) (#t 42) (#t 120))))
+  (for* ((f '(#f #t))
+         (c '(0 -10 10 -40 40 180)))
     (define origpv (struct-copy posvel (obj-posvel ownship)))
-    (set-pilot-fore! p (car newce))
-    (set-pilot-course! p (angle-add (posvel-r origpv) (degrees->radians (cadr newce))))
-    (define maxfit 0.0)
-    (define curfit 1.0)
+    (set-pilot-fore! p f)
+    (set-pilot-course! p (angle-add (pilot-course origp) (degrees->radians c)))
+    (define maxfit -inf.0)
+    (define curfit 0.0)
     
     (define predict-secs (inexact->exact (round (/ 150 (stats-thrust (ship-stats ownship))))))
     (for ((i predict-secs))
       (for ((s ships)) (physics! (obj-posvel s) 1.0))
-      (update-physics! space ownship 0.25)
-      (update-physics! space ownship 0.25)
-      (update-physics! space ownship 0.25)
-      (update-physics! space ownship 0.25)
+      (update-physics! space ownship 0.5)
+      (update-physics! space ownship 0.5)
       (define f (pilot-fitness space ownship))
-      (set! maxfit (max maxfit (* curfit (expt f (- predict-secs i)) (expt 0.99 (- predict-secs i)))))
-      (set! curfit (* curfit f)))
+      (set! curfit (+ curfit f))
+      (set! maxfit (max maxfit (/ curfit (add1 i)))))
     
     (for ((s ships)) (physics! (obj-posvel s) (- predict-secs)))
     (set-obj-posvel! ownship origpv)
     
+    ;(printf "fit ~a ~a ~a\n" maxfit f c)
+    
     (when (or (not bestfit)  ; first pass
-              (maxfit . > . bestfit))
-      ;(printf "better fit ~a ~v\n" maxfit newce)
+              (maxfit . > . (* 1.01 bestfit)))
+      ;(printf "better fit ~a ~a ~a\n" maxfit f c)
       (set! bestfit maxfit)
       (set! bestp (copy-role p))))
   
@@ -162,7 +167,7 @@
   (set-pod-role! (ship-helm ownship) origp)
   
   (when (not (equal? origp p))
-    ;(printf "~a new pilot ~v\n" (ship-name ownship) p)
+    (printf "~a new pilot ~v\n" (ship-name ownship) p)
     (set! changes (list p)))
   
   changes)
@@ -261,27 +266,25 @@
   (send dc set-brush nocolor 'transparent)
   (define p (ship-pilot ship))
   (define origp (struct-copy pilot p))
-  (for ((newce '((#f 0) (#f -90) (#f 90) (#t 0)
-                        (#t -270) (#t -45) (#t -15)
-                        (#t 15) (#t 45) (#t 270))))
+  (for* ((f '(#f #t))
+         (c '(0 -10 10 -40 40 180)))
     (define origpv (struct-copy posvel (obj-posvel ship)))
-    (set-pilot-fore! p (car newce))
-    (set-pilot-course! p (angle-add (posvel-r origpv) (degrees->radians (cadr newce))))
-    (define maxfit 0.0)
-    (define curfit 1.0)
+    (set-pilot-fore! p f)
+    (set-pilot-course! p (angle-add (pilot-course origp) (degrees->radians c)))
+    (define curfit 0.0)
     
     (define predict-secs (inexact->exact (round (/ 150 (stats-thrust (ship-stats ship))))))
     (for ((i predict-secs))
       (define-values (oldx oldy) (recenter center ship))
-      (update-physics! space ship 0.25)
-      (update-physics! space ship 0.25)
-      (update-physics! space ship 0.25)
-      (update-physics! space ship 0.25)
+      (update-physics! space ship 0.5)
+      (update-physics! space ship 0.5)
       (define f (pilot-fitness space ship))
-      (set! maxfit (max maxfit (* curfit (expt f (- predict-secs i)) (expt 0.99 (- predict-secs i)))))
-      (set! curfit (* curfit f))
+      (set! curfit (+ curfit f))
+      (define normfit (/ curfit (add1 i)))
       (define-values (newx newy) (recenter center ship))
-      (define cc (linear-color "blue" "red" maxfit 1.0))
+      (define cc (if (normfit . > . 0)
+                     (linear-color "blue" "green" (sigmoid normfit) 1.0)
+                     (linear-color "blue" "red" (- (sigmoid normfit)) 1.0)))
       (send dc set-pen cc 2.0 'solid)
       (send dc draw-line oldx oldy newx newy))
     

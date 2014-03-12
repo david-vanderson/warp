@@ -11,6 +11,9 @@
 (define (obj-age space o)
   (- (space-time space) (obj-start-time o)))
 
+(define (strategy-age space s)
+  (- (space-time space) (strategy-t s)))
+
 ; age, life, death are ms since object start time
 (define (linear-fade age life death)
   (cond ((age . < . life) 1.0)

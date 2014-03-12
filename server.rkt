@@ -196,10 +196,11 @@
           (lambda (s1 s2) (< (role-npc? (get-role s1))
                              (role-npc? (get-role s2))))))
   
-  (for ((s (in-value (car sorted-stacks))))
-    (set-role-npc?! (get-role s) (space-time space))
-    (set! commands (append commands (pilot-ai-strategy! space s)))
-    (set! commands (append commands (pilot-ai! space s))))
+  (when (not (null? sorted-stacks))
+    (for ((s (in-value (car sorted-stacks))))
+      (set-role-npc?! (get-role s) (space-time space))
+      (set! commands (append commands (pilot-ai-strategy! space s)))
+      (set! commands (append commands (pilot-ai! space s)))))
   
   commands)
 
