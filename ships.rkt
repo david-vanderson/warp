@@ -20,7 +20,9 @@
   (hash-set! ships type b))
 
 (load-ship "blue-frigate")
+(load-ship "red-frigate")
 (load-ship "blue-fighter")
+(load-ship "red-fighter")
 
 
 (define (make-ship type name faction
@@ -41,7 +43,7 @@
                   '()))
   
   (case type
-    (("blue-frigate")
+    (("blue-frigate" "red-frigate")
      (set-ship-stats! s (stats (next-id) type name faction 10 100 18 100 20 0.3))
      (set-ship-pods!
       s (list
@@ -52,7 +54,7 @@
                  (degrees->radians 21.8) 21.5 0 (* 0.8 pi) 0)
          (tactical (next-id) (tactics (next-id) #f (and npc? npc-tactical?) #f)
                    (degrees->radians -21.8) 21.5 0 (* 0.8 pi) 0))))
-    (("blue-fighter")
+    (("blue-fighter" "red-fighter")
      (set-ship-stats! s (stats (next-id) type name faction 10 100 6 10 40 1))
      (set-ship-pods!
       s (list
