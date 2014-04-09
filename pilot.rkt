@@ -34,7 +34,8 @@
   ; reduce fitness for hitting ships
   (for ((o (space-objects space)))
     (when (and (ship? o)
-               (not (= (ob-id ship) (ob-id o))))
+               (not (= (ob-id ship) (ob-id o)))
+               (not (will-dock? o ship)))
       (define d (distance ship o))
       (define mind (* 1.1 (hit-distance ship o)))
       (define ad (abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship o))))
