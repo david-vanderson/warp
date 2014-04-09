@@ -20,6 +20,12 @@
        (ship-flying? (cadr ships))))
 
 
+(define (will-dock? s1 s2)
+  (and (pilot-dock (ship-pilot s1))
+       (equal? (ship-faction s1) (ship-faction s2))
+       (findf hangarpod? (ship-pods s2))))
+
+
 ; return a number representing how good ship's position is
 (define (pilot-fitness space ship)
   (define f 0.0)
@@ -184,9 +190,12 @@
      (define parent (cadr ships))
      (define hangar (get-hangar parent))
      (define r (angle-add (posvel-r (obj-posvel parent)) pi))
+     (define dist (+ (stats-radius (ship-stats ship))
+                     (stats-radius (ship-stats parent))
+                     10))
      (define pv (posvel 0
-                        (+ (posvel-x (obj-posvel parent)) (* 20 (cos r)))
-                        (+ (posvel-y (obj-posvel parent)) (* 20 (sin r)))
+                        (+ (posvel-x (obj-posvel parent)) (* dist (cos r)))
+                        (+ (posvel-y (obj-posvel parent)) (* dist (sin r)))
                         r
                         (- (posvel-dx (obj-posvel parent)))
                         (- (posvel-dy (obj-posvel parent)))
@@ -199,6 +208,7 @@
      (define role (get-role stack))
      (set-pilot-course! role (pilot-course p))
      (set-pilot-fore! role (pilot-fore p))
+     (set-pilot-dock! role (pilot-dock p))
      '())))
 
 
@@ -213,7 +223,9 @@
        (("fore")
         (struct-copy pilot role (fore (not (pilot-fore role)))))
        (("launch")
-        (struct-copy pilot role (launch #t)))))
+        (struct-copy pilot role (launch #t)))
+       (("dock")
+        (struct-copy pilot role (dock (not (pilot-dock role)))))))
     (else
      ;(printf "~a: pilot course change\n" (player-name me))
      (define course (atan y x))
@@ -222,17 +234,33 @@
      (struct-copy pilot role (course course)))))
 
 
+(define (draw-docking dc space stack)
+  (define center (get-center stack))
+  (define ship (get-ship stack))
+  (for ((s (space-objects space)))
+    (when (and (ship? s)
+               (not (= (ob-id ship) (ob-id s)))
+               (will-dock? ship s))
+      (define-values (x y) (recenter center s))
+      (send dc set-brush nocolor 'transparent)
+      (send dc set-pen "hotpink" 2.0 'solid)
+      (send dc draw-ellipse (- x 10) (- y 10) 20 20))))
+
+
 (define (draw-pilot dc space stack)
   (define role (get-role stack))
   (define ship (get-ship stack))
   
   (draw-view dc (get-center stack) space)
+  (when (and (ship-flying? ship) (pilot-dock role))
+    (draw-docking dc space stack))
   (draw-hud dc ship (get-pod stack))
   
   (define buttons (list leave-button))
   (when (can-launch? stack)
     (set! buttons (cons (button -200 -300 70 30 5 5 "launch" "Launch") buttons)))
   (when (ship-flying? ship)
+    (set! buttons (cons (button -100 -300 70 30 5 5 "dock" (if (pilot-dock role) "Docking..." "Dock")) buttons))
     (set! buttons (cons (button 0 -300 60 30 5 5 "fore" (if (pilot-fore role) "Stop" "Go")) buttons)))
   buttons)
 

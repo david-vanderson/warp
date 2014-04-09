@@ -70,6 +70,57 @@
      (+ m1 m2)))
 
 
+(define (ship-collide! s1 s2)
+  (define m1 (stats-mass (ship-stats s1)))
+  (define m2 (stats-mass (ship-stats s2)))
+  (define phi (theta s1 s2))
+  (define perpv1 (perpv s1 m1 s2 m2))
+  (define perpv2 (- (perpv s2 m2 s1 m1)))
+  ;(printf "perpv1 ~a perpv2 ~a\n" perpv1 perpv2)
+  
+  (set-posvel-dx! (obj-posvel s1)
+                  (+ (* perpv1 (cos phi))
+                     (* (dmag s1) (sin (- (dtheta s1) phi)) (cos (+ phi pi/2)))))
+  (set-posvel-dy! (obj-posvel s1)
+                  (+ (* perpv1 (sin phi))
+                     (* (dmag s1) (sin (- (dtheta s1) phi)) (sin (+ phi pi/2)))))
+  
+  
+  (set-posvel-dx! (obj-posvel s2)
+                  (+ (* perpv2 (cos phi))
+                     (* (dmag s2) (sin (- (dtheta s2) phi)) (cos (+ phi pi/2)))))
+  (set-posvel-dy! (obj-posvel s2)
+                  (+ (* perpv2 (sin phi))
+                     (* (dmag s2) (sin (- (dtheta s2) phi)) (sin (+ phi pi/2)))))
+  
+  ; push the ships out along their new velocities until they aren't colliding
+  
+  (define dv (abs (- (* (dmag s1) (cos (- (dtheta s1) phi)))
+                     (* (dmag s2) (cos (- (dtheta s2) phi))))))
+  
+  (define dt (/ (- (+ (stats-radius (ship-stats s1))
+                      (stats-radius (ship-stats s2)))
+                   (distance s1 s2))
+                dv))
+  
+  (when (dt . > . (/ TICK 1000.0))
+    ;(printf "dv ~a dt ~a\n" dv (- dt (/ TICK 1000.0)))
+    (physics! (obj-posvel s1) (- dt (/ TICK 1000.0)))
+    (physics! (obj-posvel s2) (- dt (/ TICK 1000.0))))
+  
+  ; make sure we send the new posvels right away
+  (set-posvel-t! (obj-posvel s1) 0)
+  (set-posvel-t! (obj-posvel s2) 0))
+
+
+; return a list of changes
+(define (dock! s1 s2)
+  (define hangar (get-hangar s2))
+  (define pilot (copy-role (ship-pilot s1)))
+  (set-pilot-dock! pilot #f)
+  (list (chmov (ob-id s1) #f (ob-id hangar) #f) pilot))
+
+
 (define (ship-hit-ship! space ship s)
   (define changes '())
   (when (and (not ((ship-containment ship) . <= . 0))
@@ -79,48 +130,13 @@
 ;    (printf "ship ~a (vx ~a) hit ship ~a (vx ~a)\n"
 ;            (ship-name ship) (posvel-dx (obj-posvel ship))
 ;            (ship-name s) (posvel-dx (obj-posvel s)))
-    (define o1 ship)
-    (define m1 (stats-mass (ship-stats o1)))
-    (define o2 s)
-    (define m2 (stats-mass (ship-stats o2)))
-    (define phi (theta o1 o2))
-    (define perpv1 (perpv o1 m1 o2 m2))
-    (define perpv2 (- (perpv o2 m2 o1 m1)))
-    ;(printf "perpv1 ~a perpv2 ~a\n" perpv1 perpv2)
-    
-    (set-posvel-dx! (obj-posvel o1)
-                    (+ (* perpv1 (cos phi))
-                       (* (dmag o1) (sin (- (dtheta o1) phi)) (cos (+ phi pi/2)))))
-    (set-posvel-dy! (obj-posvel o1)
-                    (+ (* perpv1 (sin phi))
-                       (* (dmag o1) (sin (- (dtheta o1) phi)) (sin (+ phi pi/2)))))
-    
-    
-    (set-posvel-dx! (obj-posvel o2)
-                    (+ (* perpv2 (cos phi))
-                       (* (dmag o2) (sin (- (dtheta o2) phi)) (cos (+ phi pi/2)))))
-    (set-posvel-dy! (obj-posvel o2)
-                    (+ (* perpv2 (sin phi))
-                       (* (dmag o2) (sin (- (dtheta o2) phi)) (sin (+ phi pi/2)))))
-    
-    ; push the ships out along their new velocities until they aren't colliding
-    
-    (define dv (abs (- (* (dmag o1) (cos (- (dtheta o1) phi)))
-                       (* (dmag o2) (cos (- (dtheta o2) phi))))))
-    
-    (define dt (/ (- (+ (stats-radius (ship-stats ship))
-                        (stats-radius (ship-stats s)))
-                     (distance ship s))
-                  dv))
-    
-    (when (dt . > . (/ TICK 1000.0))
-      ;(printf "dv ~a dt ~a\n" dv (- dt (/ TICK 1000.0)))
-      (physics! (obj-posvel o1) (- dt (/ TICK 1000.0)))
-      (physics! (obj-posvel o2) (- dt (/ TICK 1000.0))))
-    
-    (set-posvel-t! (obj-posvel o1) 0)
-    (set-posvel-t! (obj-posvel o2) 0)
-    )
+    (cond
+      ((will-dock? ship s)
+       (set! changes (append changes (dock! ship s))))
+      ((will-dock? s ship)
+       (set! changes (append changes (dock! s ship))))
+      (else
+       (ship-collide! ship s))))
   changes)
 
 ; return a list of final changes
