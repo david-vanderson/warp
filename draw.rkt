@@ -173,10 +173,10 @@
 (define (draw-hud dc ship pod)
   (when (ship-flying? ship)
     (define con (inexact->exact (round (ship-containment ship))))
-    (draw-hud-status-text dc 1 (format "Con ~a" con)))
+    (draw-hud-status-text dc 1 (format "Ship Hull ~a" con)))
   (when pod
     (define e (inexact->exact (round (pod-energy pod))))
-    (draw-hud-status-text dc 3 (format "Bat ~a" e))))
+    (draw-hud-status-text dc 4 (format "Pod Bat ~a" e))))
 
 
 (define (draw-buttons dc buttons)

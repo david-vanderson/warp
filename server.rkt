@@ -123,8 +123,9 @@
 
 (define (ship-hit-ship! space ship s)
   (define changes '())
-  (when (and (not ((ship-containment ship) . <= . 0))
-             (not ((ship-containment s) . <= . 0))
+  (when (and (not ((ship-containment ship) . <= . 0))  ; could have died
+             (not ((ship-containment s) . <= . 0))  ; could have died
+             (obj-posvel ship) (obj-posvel s)  ; could have docked
              ((distance ship s) . < . (+ (stats-radius (ship-stats ship))
                                          (stats-radius (ship-stats s)))))
 ;    (printf "ship ~a (vx ~a) hit ship ~a (vx ~a)\n"
