@@ -117,7 +117,7 @@
                (draw-crewer canvas dc ownspace my-stack))
               ((observer? role)
                (define bs (draw-observer dc ownspace my-stack))
-               (draw-pilot-fitness dc ownspace (get-ship my-stack))
+               ;(draw-pilot-fitness dc ownspace (get-ship my-stack))
                bs)
               ((weapons? role)
                (draw-weapons dc my-stack))

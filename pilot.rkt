@@ -109,19 +109,8 @@
        ((and ne ((distance ship ne) . < . (* 5 (hit-distance ship ne))))
         (define ns (strategy (space-time space) "retreat" (ob-id ne)))
         (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats)))))))))
-  (when (not (null? changes))
-    (printf "new strat: ~v\n" (car changes)))
-;  (when (and ne
-;             (or ((distance ship (strategy-args strat)) . < . AI_GOTO_DIST)
-;                 ((abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship ne))) . > . (* 4/5 pi))))
-;    ; pick a new destination on the far side of ne
-;    (define t (angle-add (theta ship ne) (random-between (- (* 1/6 pi)) (* 1/6 pi))))
-;    (define r (+ (distance ship ne) (random-between 150 200)))
-;    (define s (strategy "goto" (obj #f #f (posvel #f
-;                                                  (+ (posvel-x (obj-posvel ship)) (* r (cos t)))
-;                                                  (+ (posvel-y (obj-posvel ship)) (* r (sin t)))
-;                                                  0 #f #f #f))))
-;    (set! changes (list (new-strat (ob-id ship) s))))
+;  (when (not (null? changes))
+;    (printf "new strat: ~v\n" (car changes)))
   changes)
 
 
@@ -174,7 +163,7 @@
   (set-pod-role! (ship-helm ownship) origp)
   
   (when (not (equal? origp p))
-    (printf "~a new pilot ~v\n" (ship-name ownship) p)
+    ;(printf "~a new pilot ~v\n" (ship-name ownship) p)
     (set! changes (list p)))
   
   changes)
