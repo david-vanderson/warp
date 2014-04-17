@@ -134,18 +134,22 @@
     (for ((o (space-objects space)))
       (draw-object dc o center space)))
   
+  (define buttons (list leave-button))
+  
   (define start-stacks
     (search space (lambda (o) (and (multipod? o)
                                    (multipod-start? o))) #t))
   
   (set! start-stacks (filter (lambda (s) (obj-posvel (get-ship s))) start-stacks))
   
-  (for/list ((s start-stacks)
-              (i (in-naturals)))
-     (define mp (car s))
-     (button (+ LEFT 100 (* i 200)) (+ BOTTOM 60) 150 30 5 5 (ob-id mp)
-             (format "~a on ~a" (role-name (pod-role mp))
-                     (ship-name (get-ship s))))))
+  (for ((s start-stacks)
+        (i (in-naturals)))
+    (define mp (car s))
+    (define b (button (+ LEFT 100 (* i 200)) (+ BOTTOM 60) 150 30 5 5 (ob-id mp)
+                      (format "~a on ~a" (role-name (pod-role mp))
+                              (ship-name (get-ship s)))))
+    (set! buttons (append buttons (list b))))
+  buttons)
 
 
 (define (draw-observer dc space stack)

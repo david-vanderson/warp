@@ -19,26 +19,21 @@
   (when new-eventspace?
     (current-eventspace (make-eventspace)))
   
+  (define server-in-port #f)
+  (define server-out-port #f)
+  (define me #f)  ; player? or #f
   (define ownspace #f)
+  
   (define my-stack #f)
   (define buttons #f)
   (define frames '())  ; list of last few frame times
   (define last-update-time #f)
-  
-  ; connect to server
-  (define-values (server-in-port server-out-port)
-    (tcp-connect ip port))
   
   (define (send-command cmd)
     (printf "send-command ~v\n" cmd)
     (when cmd
       (write cmd server-out-port)
       (flush-output server-out-port)))
-  
-  
-  ; read a player struct that has our unique id
-  (define me (read server-in-port))
-  (set-player-name! me name)
   
   
   (define (click-button? buttons x y)
@@ -60,6 +55,14 @@
     (cond
       ((and button (equal? button "leave"))
        (cond
+         ((not role)
+          (when server-in-port
+            (close-input-port server-in-port)
+            (close-output-port server-out-port))
+          (set! server-in-port #f)
+          (set! server-out-port #f)
+          (set! me #f)
+          (set! ownspace #f))
          ((and (crewer? role) (not (hangar? role)))
           (define ships (get-ships my-stack))
           (cond (((length ships) . > . 1)
@@ -188,7 +191,18 @@
   
   (define (client-loop)
     (define current-time (current-milliseconds))
-;    (printf "client current-time ~a\n" current-time)
+    
+    (when (not server-in-port)
+      ; connect to server
+      (define-values (in out)
+        (tcp-connect ip port))
+      
+      (set! server-in-port in)
+      (set! server-out-port out)
+      
+      ; read a player struct that has our unique id
+      (set! me (read server-in-port))
+      (set-player-name! me name))
     
     ; get new world
     (define n 0)
@@ -201,7 +215,7 @@
              (set! start-space-time (space-time ownspace))
              (set! start-time current-time)
              (set! last-update-time start-space-time))
-            ((update? input)
+            ((and ownspace (update? input))
              (when (not (= (update-time input) (+ last-update-time TICK)))
                (error "UPDATE TIMES DID NOT MATCH\n"))
              (set! last-update-time (update-time input))
@@ -217,11 +231,12 @@
              (for ((pvu (update-pvs input)))
                (update-posvel! ownspace pvu (update-time input)))))
       
-      ; If the first space is delayed, then our own clock got started late
-      (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))
-      (when (dt . < . 0)
-        (printf "started too late ~a\n" dt)
-        (set! start-time (- start-time 10))))
+      (when ownspace
+        ; If the first space is delayed, then our own clock got started late
+        (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))
+        (when (dt . < . 0)
+          (printf "started too late ~a\n" dt)
+          (set! start-time (- start-time 10)))))
     
     ;(printf "client got updates ~a\n" n)
     
@@ -241,8 +256,11 @@
     (send canvas refresh-now)
           
     ; sleep so we don't hog the whole racket vm
-    (define sleep-time (- (calc-dt (current-milliseconds) start-time
-                                   (+ (space-time ownspace) TICK) start-space-time)))
+    (define sleep-time
+      (if ownspace
+          (- (calc-dt (current-milliseconds) start-time
+                      (+ (space-time ownspace) TICK) start-space-time))
+          (- (+ current-time TICK) (current-milliseconds))))
     
     (define sleep-secs (/ (add1 sleep-time) 1000.0))
     (cond
@@ -250,7 +268,7 @@
        (sleep/yield sleep-secs))
       (else
        (printf "client skipping sleep ~a\n" sleep-time)
-       (yield)))
+       (sleep/yield .001)))
     (client-loop))
   
   (queue-callback client-loop #f))

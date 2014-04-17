@@ -16,9 +16,10 @@
 
 (provide start-server)
 
+(struct client (id in out) #:prefab)
+
 (define server-listener #f)
-(define client-in-ports '())
-(define client-out-ports '())
+(define clients '())
 (define ownspace #f)
 
 
@@ -237,17 +238,11 @@
   (when (tcp-accept-ready? server-listener)
     (printf "server accept-ready\n")
     (define-values (in out) (tcp-accept server-listener))
-    
-    ; need to assign an id to the new player
-    (write (player (next-id) "New Player") out)
+    (define id (next-id))
+    (write (player id "New Player") out)  ; assign an id
+    (write ownspace out)  ; send full state
     (flush-output out)
-    
-    (set! client-in-ports (cons in client-in-ports))
-    (set! client-out-ports (cons out client-out-ports))
-    
-    ; send full state to new client
-    (write ownspace out)
-    (flush-output out))
+    (set! clients (append clients (list (client id in out)))))
   
   (define updates '())
   
@@ -271,14 +266,20 @@
   
   
   ; process commands
-  (for ((p client-in-ports))
-    (while (byte-ready? p)
-      (define x (read p))
-      ;(printf "server applying command ~v\n" x)
-      (define commands (list x))
-      (define command-changes
-        (apply-all-changes! ownspace commands (space-time ownspace) "server"))
-      (set! updates (append updates command-changes))))
+  (for ((c clients))
+    (while (and (not (port-closed? (client-in c)))
+                (byte-ready? (client-in c)))
+      (define x (read (client-in c)))
+      (cond
+        ((eof-object? x)
+         (close-input-port (client-in c))
+         (printf "lost client ~a\n" (client-id c))
+         (set! clients (remove c clients (lambda (x y) (= (client-id x) (client-id y))))))
+        (else
+         (define commands (list x))
+         (define command-changes
+           (apply-all-changes! ownspace commands (space-time ownspace) "server"))
+         (set! updates (append updates command-changes))))))
   
   
   ; find least-recently sent posvels
@@ -299,10 +300,10 @@
   
   ; send out updates
   (define u (update (space-time ownspace) updates pvupdates))
-  (for ((p client-out-ports))
+  (for ((c clients))
     ;(printf "server sending ~v\n" u)
-    (write u p)
-    (flush-output p))
+    (write u (client-out c))
+    (flush-output (client-out c)))
   
   ; sleep so we don't hog the whole racket vm
   (define sleep-time (- (+ previous-physics-time TICK 1)
