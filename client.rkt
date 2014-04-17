@@ -243,17 +243,15 @@
     ; sleep so we don't hog the whole racket vm
     (define sleep-time (- (calc-dt (current-milliseconds) start-time
                                    (+ (space-time ownspace) TICK) start-space-time)))
+    
+    (define sleep-secs (/ (add1 sleep-time) 1000.0))
     (cond
-      ((sleep-time . > . 0)
-       ;(printf "client sleeping ~a\n" sleep-time)
-       (new timer%
-            (notify-callback (lambda () (queue-callback client-loop #f)))
-            (interval (+ 1 (inexact->exact (floor sleep-time))))
-            (just-once? #t)))
+      ((sleep-secs . > . 0)
+       (sleep/yield sleep-secs))
       (else
-       (begin
-         (printf "client skipping sleep ~a\n" sleep-time)
-         (queue-callback client-loop #f)))))
+       (printf "client skipping sleep ~a\n" sleep-time)
+       (yield)))
+    (client-loop))
   
   (queue-callback client-loop #f))
 

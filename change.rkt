@@ -90,6 +90,8 @@
      ; find our role
      (define stack (find-stack space (ob-id c)))
      (cond
+       ((not stack)  ; ship died as role message was on wire?
+        (printf "~a discarding message ~v\n" who c))
        ((weapons? c) (change-weapons c space stack))
        ((tactics? c) (change-tactics c space stack))
        ((pilot? c) (change-pilot c space stack))))
