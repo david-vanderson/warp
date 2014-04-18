@@ -209,23 +209,46 @@
       x))
   
   
-  
   (define (client-loop)
-    (define current-time (current-milliseconds))
+    (define start-loop-time (current-milliseconds))
     
     (when (not server-in-port)
-      ; connect to server
-      (define-values (in out)
-        (tcp-connect ip port))
+      (define newname
+        (get-text-from-user "Player Name"
+                            "Player Name"
+                            #f
+                            (or name "")))
       
-      (set! server-in-port in)
-      (set! server-out-port out)
+      (when newname (set! name newname))
       
-      ; read a player struct that has our unique id
-      (define newme (read-from-server))
-      (when (not (eof-object? newme))
-        (set! me newme)
-        (set-player-name! me name)))
+      ; ask the user for address
+      (define newip
+        (get-text-from-user "IP of server"
+                            "IP address of the Server"
+                            #f
+                            (or ip "")))
+      
+      (when newip
+        (set! ip newip)
+        
+        ; connect to server
+        (define-values (in out)
+          (with-handlers ((exn:fail:network?
+                           (lambda (exn)
+                             ((error-display-handler) (exn-message exn) exn)
+                             (values #f #f))))
+            (printf "trying to connect to ~a:~a\n" ip port)
+            (tcp-connect ip port)))
+        
+        (set! server-in-port in)
+        (set! server-out-port out)
+        
+        (when server-in-port
+          ; read a player struct that has our unique id
+          (define newme (read-from-server))
+          (when (not (eof-object? newme))
+            (set! me newme)
+            (set-player-name! me name)))))
     
     ; get new world
     (while (and server-in-port (byte-ready? server-in-port))
@@ -234,7 +257,7 @@
       (cond ((space? input)
              (set! ownspace input)
              (set! start-space-time (space-time ownspace))
-             (set! start-time current-time)
+             (set! start-time (current-milliseconds))
              (set! last-update-time start-space-time))
             ((and ownspace (update? input))
              (when (not (= (update-time input) (+ last-update-time TICK)))
@@ -268,17 +291,18 @@
       (set! my-stack (find-stack ownspace (ob-id me)))
       
       ; physics prediction
-      (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))
-      (when (dt . > . TICK)
+      (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))
+      (while (dt . > . TICK)
         ;(printf "client ticking forward for prediction ~a\n" dt)
-        (tick-space! ownspace))
+        (tick-space! ownspace)
+        (set! dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time)))
       
       ;(printf "client is ahead by ~a\n" (- (space-time ownspace) last-update-time))
       )
     
     ;rendering
     ;(printf "client render\n")
-    (set! frames (add-frame-time current-time frames))
+    (set! frames (add-frame-time (current-milliseconds) frames))
     (send canvas refresh-now)
           
     ; sleep so we don't hog the whole racket vm
@@ -287,7 +311,7 @@
        (if ownspace
            (- (calc-dt (current-milliseconds) start-time
                        (+ (space-time ownspace) TICK) start-space-time))
-           (- (+ current-time TICK) (current-milliseconds)))))
+           (- (+ start-loop-time TICK) (current-milliseconds)))))
     
     (define sleep-secs (/ sleep-time 1000.0))
     (cond

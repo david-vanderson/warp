@@ -37,8 +37,7 @@
     (else #f)))
 
 
-(define (leave-role! space roleid p)
-  (define stack (find-stack space roleid))
+(define (leave-role! space stack p)
   (define role (car stack))  ; will always be a role?
   (define mp (cadr stack))  ; could be multipod?
   ;(printf "player ~v leaving role ~v\n" p r)
@@ -47,8 +46,8 @@
      (define seen #f)  ; always remove the first instance of player
      (set-multipod-roles!
       mp (filter (lambda (xr) (or (not (equal? (ob-id (role-player xr)) (ob-id p)))
-                                   (begin0 seen (set! seen #t))))
-                  (multipod-roles mp))))
+                                  (begin0 seen (set! seen #t))))
+                 (multipod-roles mp))))
     (else (set-role-player! role #f))))
 
 
@@ -83,7 +82,11 @@
     ((role-change? c)
      (define p (role-change-player c))
      (cond ((join-role! space (role-change-to c) p)
-            (when (role-change-from c) (leave-role! space (role-change-from c) p))
+            (define stack (find-stack space (role-change-from c)))
+            (when stack
+              ; might not find the leaving role if it died
+              ; while the message was on the wire
+              (leave-role! space stack p))
             '())
            (else (printf "~a didn't apply change ~v\n" who c))))
     ((role? c)
@@ -112,24 +115,28 @@
             '())))
     ((chmov? c)
      (define o (find-id space (chmov-id c)))
-     (set-obj-posvel! o (chmov-pv c))
-     (define from (find-id space (chmov-from c)))
-     (cond
-       (from
-        (set-hangarpod-ships! from
-                              (remove o (hangarpod-ships from)
-                                      (lambda (a b) (equal? (ob-id a) (ob-id b))))))
-       (else
-        (set-space-objects! space (remove o (space-objects space)
-                                          (lambda (a b) (equal? (ob-id a) (ob-id b)))))))
-     
-     (define to (find-id space (chmov-to c)))
-     (cond
-       (to
-        (set-hangarpod-ships! to (cons o (hangarpod-ships to))))
-       (else
-        (set-space-objects! space (cons o (space-objects space)))))
-     '())
+     (cond (o
+            (set-obj-posvel! o (chmov-pv c))
+            (define from (find-id space (chmov-from c)))
+            (cond
+              (from
+               (set-hangarpod-ships! from
+                                     (remove o (hangarpod-ships from)
+                                             (lambda (a b) (equal? (ob-id a) (ob-id b))))))
+              (else
+               (set-space-objects! space (remove o (space-objects space)
+                                                 (lambda (a b) (equal? (ob-id a) (ob-id b)))))))
+            
+            (define to (find-id space (chmov-to c)))
+            (cond
+              (to
+               (set-hangarpod-ships! to (cons o (hangarpod-ships to))))
+              (else
+               (set-space-objects! space (cons o (space-objects space)))))
+            '())
+           (else
+            (printf "~a chmov - couldn't find obj id ~a\n" who (chmov-id c))
+            '())))
     ((cherg? c)
      (define o (find-id space (cherg-id c)))
      (cond (o

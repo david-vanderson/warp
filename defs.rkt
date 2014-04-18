@@ -141,7 +141,9 @@
 ;; Most changes are just role? structs, but here are the exceptions
 
 (struct role-change (player from to) #:mutable #:prefab)
-; from and to are a role? id, multipod? id, or #f to go to choosing starting multipod
+; from and to are:
+; - role? id or multipod? id
+; - #f means we are choosing a starting role
 
 (struct update (time changes pvs) #:mutable #:prefab)
 ; time is ms since scenario started

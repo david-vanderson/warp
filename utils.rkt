@@ -200,7 +200,7 @@
 ;; ai utils
 
 (define (nearest-enemy space ownship)
-  (define agro-dist 600)  ; ignore ships farther away than this
+  (define agro-dist 1000)  ; ignore ships farther away than this
   
   (define enemies (filter (lambda (o)
                             (and (ship? o)

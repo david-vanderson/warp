@@ -224,18 +224,33 @@
   commands)
 
 
+(define updates '())
+
 (define (remove-client c msg)
-  (printf "removing client ~a ~a\n" (client-id c) msg)
+  (define s (find-stack ownspace (client-id c)))
+  (define p (if s (car s) #f))
+  (define r (if s (get-role s) #f))
+  (printf "removing client ~a ~a ~a\n" (client-id c) (if p (player-name p) "Unknown") msg)
+  (when s
+    (define changes
+      (apply-all-changes! ownspace
+                          (list (role-change p (ob-id r) #f))
+                          (space-time ownspace) "server"))
+    (set! updates (append updates changes)))
   (set! clients (remove c clients (lambda (x y) (= (client-id x) (client-id y))))))
 
 
 (define (send-to-client c msg)
   (with-handlers ((exn:fail:network? (lambda (exn) (remove-client c "send-to-client"))))
     (define bstr (with-output-to-bytes (lambda () (write msg))))
-    (define r (write-bytes-avail* bstr (client-out c)))
-    (when (or (not r) (= r 0))
-      (remove-client c "write-bytes-avail*"))
-    ))
+    (define start-time (current-milliseconds))
+    (let loop ((bytes-written 0))
+      (cond
+        (((- (current-milliseconds) start-time) . > . (* 3 TICK))
+         (remove-client c "write-bytes-avail*"))
+        ((not (= bytes-written (bytes-length bstr)))
+         (define r (write-bytes-avail* bstr (client-out c) bytes-written))
+         (loop (+ bytes-written r)))))))
 
 (define (read-from-client c)
   (with-handlers ((exn:fail:network? (lambda (exn)
@@ -263,8 +278,6 @@
     (set! clients (append clients (list c)))
     (send-to-client c (player (client-id c) "New Player"))  ; assign an id
     (send-to-client c ownspace))  ; send full state
-  
-  (define updates '())
   
   ; physics
   (when (TICK . < . (- current-time previous-physics-time))
@@ -316,9 +329,13 @@
       (set-posvel-t! pv (space-time ownspace))
       (pvupdate (ob-id o) pv)))
   
-  
-  ; send out updates
+  ; make total update message
   (define u (update (space-time ownspace) updates pvupdates))
+  
+  ; reset this before trying to send, so we can accumulate
+  ; client-disconnect updates if there's an error
+  (set! updates '())
+  
   (for ((c clients))
     ;(printf "server sending ~v\n" u)
     (send-to-client c u))
