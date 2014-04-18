@@ -189,6 +189,7 @@
       (when (ship? o) (update-energy! (/ TICK 1000.0) o 0.0))
       (add-backeffects! space o TICK)))
   
+  
   (define (client-loop)
     (define current-time (current-milliseconds))
     
@@ -205,9 +206,7 @@
       (set-player-name! me name))
     
     ; get new world
-    (define n 0)
     (while (byte-ready? server-in-port)
-      (set! n (add1 n))
       (define input (read server-in-port))
       ;(printf "client input: ~v\n" input)
       (cond ((space? input)
@@ -223,7 +222,7 @@
              ;(printf "client update space-time ~a update-time ~a\n" (space-time ownspace) (update-time input))
              
              (when ((space-time ownspace) . < . (update-time input))
-               ;(printf "ticking ownspace forward for input\n")
+               ;(printf "client ticking ownspace forward for input\n")
                (tick-space! ownspace))
              (for ((c (update-changes input)))
                ;(printf "client applying change ~v\n" c)
@@ -232,11 +231,14 @@
                (update-posvel! ownspace pvu (update-time input)))))
       
       (when ownspace
-        ; If the first space is delayed, then our own clock got started late
-        (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))
+        ; If the first space is delayed, then our own clock got started late.
+        ; Need to use (current-milliseconds) here in case we hiccupped
+        ; since the start of the loop
+        (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))
         (when (dt . < . 0)
           (printf "started too late ~a\n" dt)
-          (set! start-time (- start-time 10)))))
+          (set! start-time (- start-time (- dt)))))
+      )
     
     ;(printf "client got updates ~a\n" n)
     
@@ -245,10 +247,12 @@
       
       ; physics prediction
       (define dt (calc-dt current-time start-time (space-time ownspace) start-space-time))
-      (while (dt . > . TICK)
+      (when (dt . > . TICK)
         ;(printf "client ticking forward for prediction ~a\n" dt)
-        (tick-space! ownspace)
-        (set! dt (calc-dt current-time start-time (space-time ownspace) start-space-time))))
+        (tick-space! ownspace))
+      
+      ;(printf "client is ahead by ~a\n" (- (space-time ownspace) last-update-time))
+      )
     
     ;rendering
     ;(printf "client render\n")
@@ -257,14 +261,16 @@
           
     ; sleep so we don't hog the whole racket vm
     (define sleep-time
-      (if ownspace
-          (- (calc-dt (current-milliseconds) start-time
-                      (+ (space-time ownspace) TICK) start-space-time))
-          (- (+ current-time TICK) (current-milliseconds))))
+      (add1
+       (if ownspace
+           (- (calc-dt (current-milliseconds) start-time
+                       (+ (space-time ownspace) TICK) start-space-time))
+           (- (+ current-time TICK) (current-milliseconds)))))
     
-    (define sleep-secs (/ (add1 sleep-time) 1000.0))
+    (define sleep-secs (/ sleep-time 1000.0))
     (cond
       ((sleep-secs . > . 0)
+       ;(printf "client sleeping ~a\n" sleep-time)
        (sleep/yield sleep-secs))
       (else
        (printf "client skipping sleep ~a\n" sleep-time)

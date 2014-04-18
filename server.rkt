@@ -223,6 +223,23 @@
   commands)
 
 
+(define (remove-client c msg)
+  (printf "removing client ~a ~a\n" (client-id c) msg)
+  (set! clients (remove c clients (lambda (x y) (= (client-id x) (client-id y))))))
+
+
+(define (send-to-client c msg)
+  (with-handlers ((exn:fail:network? (lambda (exn) (remove-client c "send-to-client"))))
+    (write msg (client-out c))
+    (flush-output (client-out c))))
+
+(define (read-from-client c)
+  (with-handlers ((exn:fail:network? (lambda (exn)
+                                       (remove-client c "read-from-client")
+                                       eof)))
+    (read (client-in c))))
+
+
 (define previous-physics-time #f)
 (define previous-ai-time #f)
 (define previous-pilot-ai-time #f)
@@ -238,11 +255,10 @@
   (when (tcp-accept-ready? server-listener)
     (printf "server accept-ready\n")
     (define-values (in out) (tcp-accept server-listener))
-    (define id (next-id))
-    (write (player id "New Player") out)  ; assign an id
-    (write ownspace out)  ; send full state
-    (flush-output out)
-    (set! clients (append clients (list (client id in out)))))
+    (define c (client (next-id) in out))
+    (set! clients (append clients (list c)))
+    (send-to-client c (player (client-id c) "New Player"))  ; assign an id
+    (send-to-client c ownspace))  ; send full state
   
   (define updates '())
   
@@ -269,12 +285,11 @@
   (for ((c clients))
     (while (and (not (port-closed? (client-in c)))
                 (byte-ready? (client-in c)))
-      (define x (read (client-in c)))
+      (define x (read-from-client c))
       (cond
         ((eof-object? x)
          (close-input-port (client-in c))
-         (printf "lost client ~a\n" (client-id c))
-         (set! clients (remove c clients (lambda (x y) (= (client-id x) (client-id y))))))
+         (remove-client c "eof"))
         (else
          (define commands (list x))
          (define command-changes
@@ -302,8 +317,7 @@
   (define u (update (space-time ownspace) updates pvupdates))
   (for ((c clients))
     ;(printf "server sending ~v\n" u)
-    (write u (client-out c))
-    (flush-output (client-out c)))
+    (send-to-client c u))
   
   ; sleep so we don't hog the whole racket vm
   (define sleep-time (- (+ previous-physics-time TICK 1)
