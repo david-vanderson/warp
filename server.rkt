@@ -1,7 +1,8 @@
 #lang racket/base
 
 (require racket/tcp
-         racket/math)
+         racket/math
+         racket/port)
 
 (require "defs.rkt"
          "utils.rkt"
@@ -230,8 +231,11 @@
 
 (define (send-to-client c msg)
   (with-handlers ((exn:fail:network? (lambda (exn) (remove-client c "send-to-client"))))
-    (write msg (client-out c))
-    (flush-output (client-out c))))
+    (define bstr (with-output-to-bytes (lambda () (write msg))))
+    (define r (write-bytes-avail* bstr (client-out c)))
+    (when (or (not r) (= r 0))
+      (remove-client c "write-bytes-avail*"))
+    ))
 
 (define (read-from-client c)
   (with-handlers ((exn:fail:network? (lambda (exn)

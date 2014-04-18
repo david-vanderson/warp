@@ -29,12 +29,6 @@
   (define frames '())  ; list of last few frame times
   (define last-update-time #f)
   
-  (define (send-command cmd)
-    (printf "send-command ~v\n" cmd)
-    (when cmd
-      (write cmd server-out-port)
-      (flush-output server-out-port)))
-  
   
   (define (click-button? buttons x y)
     (if (not buttons)
@@ -56,13 +50,7 @@
       ((and button (equal? button "leave"))
        (cond
          ((not role)
-          (when server-in-port
-            (close-input-port server-in-port)
-            (close-output-port server-out-port))
-          (set! server-in-port #f)
-          (set! server-out-port #f)
-          (set! me #f)
-          (set! ownspace #f))
+          (drop-connection "clicked leave"))
          ((and (crewer? role) (not (hangar? role)))
           (define ships (get-ships my-stack))
           (cond (((length ships) . > . 1)
@@ -190,6 +178,38 @@
       (add-backeffects! space o TICK)))
   
   
+  
+  (define (drop-connection msg)
+    (printf "drop server ~a\n" msg)
+    (when server-in-port
+      (close-input-port server-in-port)
+      (close-output-port server-out-port))
+    (set! server-in-port #f)
+    (set! server-out-port #f)
+    (set! me #f)
+    (set! ownspace #f))
+  
+  
+  (define (send-command cmd)
+    (printf "send-command ~v\n" cmd)
+    (when cmd
+      (with-handlers ((exn:fail:network? (lambda (exn)
+                                           (drop-connection "send-command"))))
+        (write cmd server-out-port)
+        (flush-output server-out-port))))
+  
+  
+  (define (read-from-server)
+    (with-handlers ((exn:fail:network? (lambda (exn)
+                                         (drop-connection "read-from-server")
+                                         eof)))
+      (define x (read server-in-port))
+      (when (eof-object? x)
+        (drop-connection "read got eof"))
+      x))
+  
+  
+  
   (define (client-loop)
     (define current-time (current-milliseconds))
     
@@ -202,12 +222,14 @@
       (set! server-out-port out)
       
       ; read a player struct that has our unique id
-      (set! me (read server-in-port))
-      (set-player-name! me name))
+      (define newme (read-from-server))
+      (when (not (eof-object? newme))
+        (set! me newme)
+        (set-player-name! me name)))
     
     ; get new world
-    (while (byte-ready? server-in-port)
-      (define input (read server-in-port))
+    (while (and server-in-port (byte-ready? server-in-port))
+      (define input (read-from-server))
       ;(printf "client input: ~v\n" input)
       (cond ((space? input)
              (set! ownspace input)
