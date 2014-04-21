@@ -67,6 +67,19 @@
      (draw-effect dc space center o))))
 
 
+(define (draw-server-objects dc center space)
+  (send dc set-pen "hotpink" 1 'solid)
+  (send dc set-brush nocolor 'transparent)
+  (for ((o (space-objects space)))
+    (keep-transform dc
+      (define-values (x y) (recenter center o))
+      (send dc translate x y)
+      (send dc draw-ellipse -2 -2 4 4)
+      (when (ship? o)
+        (define r (stats-radius (ship-stats o)))
+        (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))))))
+
+
 (define (draw-view dc center space)
   (draw-background dc space center background-bitmap 3 0.5)
   (draw-background dc space center stars1-bitmap 8 1)
@@ -152,8 +165,9 @@
   buttons)
 
 
-(define (draw-observer dc space stack)
+(define (draw-observer dc space stack serverspace)
   (draw-view dc (get-center stack) space)
+  (when serverspace (draw-server-objects dc (get-center stack) serverspace))
   (draw-hud dc (get-ship stack) #f)
   (for ((p (ship-pods (get-ship stack)))
         (i (in-naturals)))

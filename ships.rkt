@@ -48,7 +48,7 @@
      (set-ship-pods!
       s (list
          (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) r helm-fore? #f #f) 0 0 #f #f 100)
-         (multipod (next-id) (observer (next-id) #f #f) 0 10 #f #f 0 #t '())
+         (multipod (next-id) (observer (next-id) #f #f) 0 10 #f #f 0 #f '())
          (hangarpod (next-id) (hangar (next-id) #f #f) 0 -10 #f #f 0 #f '() in-hangar)
          (weapon (next-id) (weapons (next-id) #f (and npc? npc-weapons?) #f)
                  (degrees->radians 21.8) 21.5 0 (* 0.8 pi) 0)
@@ -59,7 +59,7 @@
      (set-ship-pods!
       s (list
          (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) r helm-fore? #f #f) 0 0 #f #f 0)
-         (multipod (next-id) (observer (next-id) #f #f) 0 3 #f #f 0 #t '())
+         (multipod (next-id) (observer (next-id) #f #f) 0 3 #f #f 0 #f '())
          (weapon (next-id) (weapons (next-id) #f (and npc? npc-weapons?) #f)
                  0 6.5 0 (* 0.8 pi) 0)))))
   s)

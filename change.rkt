@@ -18,37 +18,65 @@
       (update-physics! space o (/ TICK 1000.0))
       (set! pvutime (+ pvutime TICK))))
   (when (not o)
-    (printf "pvu - couldn't find obj id ~a\n" (pvupdate-id pvu))))
+    ;(printf "pvu - couldn't find obj id ~a\n" (pvupdate-id pvu))
+    (void)
+    ))
 
 
-(define (join-role! space roleid p)
+(define (join-role! space roleid p test?)
   (define r (find-id space roleid))
   ;(printf "player ~v joining role ~v\n" p r)
   (cond
-    ((not r) #t)  ; can always join no-role
+    ((not roleid) #t)  ; can always join no-role
+    ((not r) #f)  ; tried to join a role that no longer exists
     ((multipod? r)
-     (define new-role (copy-role (pod-role r)))
-     (set-role-player! new-role p)
-     (set-multipod-roles! r (cons new-role (multipod-roles r)))
-     #t)
+     ; might have double-clicked, so only join if we're not already there
+     (define already-in?
+       (findf (lambda (xr) (= (ob-id p) (ob-id (role-player xr))))
+              (multipod-roles r)))
+     (cond
+       (already-in? #f)
+       (else
+        (when (not test?)
+          (define new-role (copy-role (pod-role r)))
+          (set-role-player! new-role p)
+          (set-multipod-roles! r (cons new-role (multipod-roles r))))
+        #t)))
     ((and (role? r) (not (role-player r)))
-     (set-role-player! r p)
+     (when (not test?)
+       (set-role-player! r p))
      #t)
     (else #f)))
 
 
-(define (leave-role! space stack p)
-  (define role (car stack))  ; will always be a role?
-  (define mp (cadr stack))  ; could be multipod?
+(define (leave-role! space roleid p test?)
   ;(printf "player ~v leaving role ~v\n" p r)
+  (define stack (find-stack space roleid))
   (cond
-    ((multipod? mp)
-     (define seen #f)  ; always remove the first instance of player
-     (set-multipod-roles!
-      mp (filter (lambda (xr) (or (not (equal? (ob-id (role-player xr)) (ob-id p)))
-                                  (begin0 seen (set! seen #t))))
-                 (multipod-roles mp))))
-    (else (set-role-player! role #f))))
+    ; picking an initial role
+    ((not roleid)
+     (define existing-player (find-id space (ob-id p)))
+     (cond ((not existing-player) #t)
+           (else #f)))  ; can't join if already joined
+    
+    ; tried to leave a role that no longer exists
+    ((not stack) #f)
+    
+    ; player wasn't in the role they're trying to leave
+    ((or (not (role-player (car stack)))
+         (not (= (ob-id p) (ob-id (role-player (car stack)))))) #f)
+    (else
+     (define role (car stack))  ; will always be a role?
+     (define mp (cadr stack))  ; could be multipod?
+     (cond
+       ((multipod? mp)
+        (when (not test?)
+          (set-multipod-roles! mp (remove role (multipod-roles mp))))
+        #t)
+       (else
+        (when (not test?)
+          (set-role-player! role #f))
+        #t)))))
 
 
 ; make the change in space, and return a list of additional changes
@@ -69,7 +97,7 @@
 ;
 ; on the server, you could get conflicting commands
 ; (two players trying to take the same open role)
-; return #f if we didn't apply the change (should be reported)
+; (or even the same player clicking a button twice before the server sees it)
 ;
 ; ctime is the scenario time of the change or #f
 ; - needed when the client has moved space forward and is now picking up old changes
@@ -81,20 +109,22 @@
   (cond
     ((role-change? c)
      (define p (role-change-player c))
-     (cond ((join-role! space (role-change-to c) p)
-            (define stack (find-stack space (role-change-from c)))
-            (when stack
-              ; might not find the leaving role if it died
-              ; while the message was on the wire
-              (leave-role! space stack p))
-            '())
-           (else (printf "~a didn't apply change ~v\n" who c))))
+     (cond
+       ((and (join-role! space (role-change-to c) p #t)
+             (leave-role! space (role-change-from c) p #t))
+        (join-role! space (role-change-to c) p #f)
+        (leave-role! space (role-change-from c) p #f)
+        '())
+       (else
+        (printf "~a didn't apply role-change ~v\n" who c)
+        '())))
     ((role? c)
      ; find our role
      (define stack (find-stack space (ob-id c)))
      (cond
        ((not stack)  ; ship died as role message was on wire?
-        (printf "~a discarding message ~v\n" who c))
+        (printf "~a discarding message ~v\n" who c)
+        '())
        ((weapons? c) (change-weapons c space stack))
        ((tactics? c) (change-tactics c space stack))
        ((pilot? c) (change-pilot c space stack))))

@@ -30,7 +30,7 @@
   (when (and (not ((ship-containment ship) . <= . 0))
              (not (plasma-dead? space p)))
     (when (and (not (equal? (plasma-ownship-id p) (ob-id ship)))
-               ((distance ship p) . < . (+ 10 (plasma-radius space p))))
+               ((distance ship p) . < . (+ (stats-radius (ship-stats ship)) (plasma-radius space p))))
       ;(printf "plasma hit ship ~a (~a ~a)\n" (ship-name ship) (plasma-ownship-id p) (obj-id ship))
       (define damage (plasma-energy space p))
       (define e (effect (next-id) (space-time space)
@@ -246,7 +246,7 @@
     (define start-time (current-milliseconds))
     (let loop ((bytes-written 0))
       (cond
-        (((- (current-milliseconds) start-time) . > . (* 3 TICK))
+        (((- (current-milliseconds) start-time) . > . 500)
          (remove-client c "write-bytes-avail*"))
         ((not (= bytes-written (bytes-length bstr)))
          (define r (write-bytes-avail* bstr (client-out c) bytes-written))

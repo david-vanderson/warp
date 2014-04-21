@@ -89,13 +89,14 @@
     (else #f)))
         
 
-(define (draw-weapons dc stack)
+(define (draw-weapons dc stack serverspace)
   (define ship (get-ship stack))
   (define spv (obj-posvel ship))
   (define space (get-space stack))
   (define w (get-pod stack))
   
   (draw-view dc (get-center stack) space)
+  (when serverspace (draw-server-objects dc (get-center stack) serverspace))
   (draw-hud dc ship w)
   
   (when (ship-flying? ship)

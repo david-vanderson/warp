@@ -15,7 +15,11 @@
 
 (provide start-client)
 
-(define (start-client ip port name new-eventspace?)
+(define serverspace #f)
+
+(define (start-client ip port name new-eventspace? space)
+  (when space
+    (set! serverspace space))
   (when new-eventspace?
     (current-eventspace (make-eventspace)))
   
@@ -107,11 +111,11 @@
               ((crewer? role)
                (draw-crewer canvas dc ownspace my-stack))
               ((observer? role)
-               (define bs (draw-observer dc ownspace my-stack))
+               (define bs (draw-observer dc ownspace my-stack serverspace))
                ;(draw-pilot-fitness dc ownspace (get-ship my-stack))
                bs)
               ((weapons? role)
-               (draw-weapons dc my-stack))
+               (draw-weapons dc my-stack serverspace))
               ((tactics? role)
                (draw-tactics dc my-stack))
               (else
@@ -269,6 +273,8 @@
              (when ((space-time ownspace) . < . (update-time input))
                ;(printf "client ticking ownspace forward for input\n")
                (tick-space! ownspace))
+             (when ((space-time ownspace) . < . (update-time input))
+               (error "client ownspace still behind update time\n"))
              (for ((c (update-changes input)))
                ;(printf "client applying change ~v\n" c)
                (apply-change! ownspace c (update-time input) "client"))
@@ -319,11 +325,11 @@
        ;(printf "client sleeping ~a\n" sleep-time)
        (sleep/yield sleep-secs))
       (else
-       (printf "client skipping sleep ~a\n" sleep-time)
+       ;(printf "client skipping sleep ~a\n" sleep-time)
        (sleep/yield .001)))
     (client-loop))
   
   (queue-callback client-loop #f))
 
 (module+ main
-  (start-client "127.0.0.1" PORT "Dave" #f))
+  (start-client "127.0.0.1" PORT "Dave" #f #f))
