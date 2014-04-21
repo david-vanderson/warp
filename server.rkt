@@ -2,7 +2,8 @@
 
 (require racket/tcp
          racket/math
-         racket/port)
+         racket/port
+         ffi/unsafe)
 
 (require "defs.rkt"
          "utils.rkt"
@@ -22,6 +23,40 @@
 (define server-listener #f)
 (define clients '())
 (define ownspace #f)
+
+
+
+(define IPPROTO_TCP 6)
+(define TCP_NODELAY 1)
+
+(define setsockopt_tcp_nodelay
+  (get-ffi-obj "setsockopt" #f
+               (_fun (socket enabled?) ::
+                     (socket : _int)
+                     (_int = IPPROTO_TCP)
+                     (_int = TCP_NODELAY)
+                     (enabled-ptr : (_ptr i _int)
+                                  = (if enabled? 1 0))
+                     (_int = (compiler-sizeof 'int))
+                     -> (result : _int)
+                     -> (if (zero? result)
+                            (void)
+                            (error 'set-tcp-nodelay! "failed")))))
+
+(define scheme_get_port_socket
+  (get-ffi-obj "scheme_get_port_socket" #f
+               (_fun (port) ::
+                     (port : _racket)
+                     (socket : (_ptr o _intptr))
+                     -> (result : _int)
+                     -> (and (positive? result) socket))))
+
+; set-tcp-nodelay! : tcp-port boolean -> void
+(define (set-tcp-nodelay! port enabled?)
+  (let ([socket (scheme_get_port_socket port)])
+    (setsockopt_tcp_nodelay socket enabled?)))
+
+
 
 
 ; return a list of changes
@@ -130,9 +165,9 @@
              (obj-posvel ship) (obj-posvel s)  ; could have docked
              ((distance ship s) . < . (+ (stats-radius (ship-stats ship))
                                          (stats-radius (ship-stats s)))))
-;    (printf "ship ~a (vx ~a) hit ship ~a (vx ~a)\n"
-;            (ship-name ship) (posvel-dx (obj-posvel ship))
-;            (ship-name s) (posvel-dx (obj-posvel s)))
+    ;    (printf "ship ~a (vx ~a) hit ship ~a (vx ~a)\n"
+    ;            (ship-name ship) (posvel-dx (obj-posvel ship))
+    ;            (ship-name s) (posvel-dx (obj-posvel s)))
     (cond
       ((will-dock? ship s)
        (set! changes (append changes (dock! ship s))))
@@ -250,7 +285,10 @@
          (remove-client c "write-bytes-avail*"))
         ((not (= bytes-written (bytes-length bstr)))
          (define r (write-bytes-avail* bstr (client-out c) bytes-written))
-         (loop (+ bytes-written r)))))))
+         (loop (+ bytes-written r)))
+        (else
+         (flush-output (client-out c)))))))
+
 
 (define (read-from-client c)
   (with-handlers ((exn:fail:network? (lambda (exn)
@@ -274,6 +312,7 @@
   (when (tcp-accept-ready? server-listener)
     (printf "server accept-ready\n")
     (define-values (in out) (tcp-accept server-listener))
+    (set-tcp-nodelay! out #t)
     (define c (client (next-id) in out))
     (set! clients (append clients (list c)))
     (send-to-client c (player (client-id c) "New Player"))  ; assign an id
@@ -316,13 +355,15 @@
   
   ; find least-recently sent posvels
   (define objs
-    (sort (space-objects ownspace)
+    (sort (filter ship? (space-objects ownspace))
           (lambda (o1 o2) (> (- (space-time ownspace) (posvel-t (obj-posvel o1)))
                              (- (space-time ownspace) (posvel-t (obj-posvel o2)))))))
   (when (not (null? objs))
     (define oldest (- (space-time ownspace) (posvel-t (obj-posvel (car objs)))))
-    (when (and (oldest . > . 1000))
-      (printf "server oldest posvel is ~a\n" oldest)))
+    (when (and (oldest . > . 500))
+      (printf "server oldest posvel is ~a\n" oldest)
+      )
+    )
   (define pvupdates
     (for/list ((o objs) (i 10))
       (define pv (obj-posvel o))
@@ -357,24 +398,37 @@
 
 
 
-;(module+ main
-;  
-;  (define ownspace
-;    (space
-;     0 4000 4000
-;     (list
-;      (make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:start-ship? #t)
-;      (make-ship "blue-frigate" "Empire1" "Empire" #:npc? #t #:start-ship? #t #:x 200 #:y 300 #:r pi)
-;      (make-ship "blue-frigate" "Empire2" "Empire" #:npc? #t #:start-ship? #t #:x 300 #:y 200 #:r pi)
-;      #;(make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:start-ship? #t)
-;      #;(make-ship "blue-fighter" "RF 1" "Rebel" #:npc? #t #:x 0 #:y 80)
-;      #;(make-ship "blue-fighter" "RF 2" "Rebel" #:npc? #t #:x 0 #:y -30)
-;      #;(make-ship "blue-fighter" "EF 1" "Empire" #:npc? #t #:x 100 #:y 0)
-;      #;(make-ship "blue-fighter" "EF 2" "Empire" #:npc? #t #:x 100 #:y 50)
-;      #;(make-ship "blue-fighter" "EF 3" "Empire" #:npc? #t #:x 100 #:y -50)
-;      #;(make-ship "blue-fighter" "Red 5" "Rebel" #:start-ship? #t #:npc? #t
-;                   #:x 100 #:y 20 #:r pi #:dx -20)
-;      #;(big-ship "Empire1" "Empire" 400 0 pi/2 #f #t #f #t #t #t)
-;      #;(big-ship "Empire2" "Empire" 600 0 (- pi/2) #f #t #f #t #t #t))))
-;  
-;  (start-server PORT ownspace))
+(module+ main
+  
+  (define ownspace
+    (space
+     0 4000 4000
+     (list
+      
+      (make-ship "red-frigate" "Empire1" "Empire" #:npc? #t #:x 500 #:y 0 #:r pi)
+      (make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:x 500 #:y 100 #:r pi)
+      (make-ship "red-fighter" "Red 2" "Empire" #:npc? #t #:x 500 #:y -100 #:r pi)
+      
+      (make-ship "blue-fighter" "Blue 5" "Rebel" #:start-ship? #t #:npc? #t #:x -400 #:y 100)
+      (make-ship "blue-fighter" "Blue 6" "Rebel" #:start-ship? #t #:npc? #t #:x -400 #:y -100)
+      (make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:x -400 #:y 0 #:start-ship? #t
+                 #:in-hangar (list
+                              (make-ship "blue-fighter" "Blue 1" "Rebel" #:npc? #t #:posvel? #f)
+                              (make-ship "blue-fighter" "Blue 2" "Rebel" #:npc? #t #:posvel? #f)))
+      
+      
+      ;    (make-ship "blue-fighter" "RF 1" "Rebel" #:npc? #t #:x -300 #:y 50 #:start-ship? #t)
+      ;    (make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:x -200 #:y 100)
+      ;    (make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:x -200 #:y 200)
+      ;    (make-ship "red-frigate" "Empire1" "Empire" #:npc? #t #:x 200 #:y 100 #:r pi)
+      ;    (make-ship "red-frigate" "Empire1" "Empire" #:npc? #t #:x 200 #:y 300 #:r pi)
+      ;    (make-ship "blue-fighter" "RF 2" "Rebel" #:npc? #t #:x -300 #:y 150)
+      ;    (make-ship "red-fighter" "EF 1" "Empire" #:npc? #t #:x 300 #:y 50 #:r pi)
+      ;    (make-ship "red-fighter" "EF 2" "Empire" #:npc? #t #:x 200 #:y 150 #:r pi)
+      ;    (make-ship "blue-fighter" "EF 3" "Empire" #:npc? #t #:x 200 #:y 75)
+      ;(make-ship "blue-fighter" "Red 5" "Rebel" #:start-ship? #t #:npc? #t #:x 100 #:y 20 #:r pi #:dx -20)
+      ;(big-ship "Empire1" "Empire" 400 0 pi/2 #f #t #f #t #t #t)
+      ;(big-ship "Empire2" "Empire" 600 0 (- pi/2) #f #t #f #t #t #t)
+      )))
+  
+  (start-server PORT ownspace))

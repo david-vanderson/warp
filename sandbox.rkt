@@ -33,7 +33,7 @@
 ;    (make-ship "red-fighter" "EF 1" "Empire" #:npc? #t #:x 300 #:y 50 #:r pi)
 ;    (make-ship "red-fighter" "EF 2" "Empire" #:npc? #t #:x 200 #:y 150 #:r pi)
 ;    (make-ship "blue-fighter" "EF 3" "Empire" #:npc? #t #:x 200 #:y 75)
-    (make-ship "blue-fighter" "Red 5" "Rebel" #:start-ship? #t #:npc? #t #:x 100 #:y 20 #:r pi #:dx -20)
+;    (make-ship "blue-fighter" "Red 5" "Rebel" #:start-ship? #t #:npc? #t #:x 0 #:y 20 #:r pi #:dx -20)
     ;(big-ship "Empire1" "Empire" 400 0 pi/2 #f #t #f #t #t #t)
     ;(big-ship "Empire2" "Empire" 600 0 (- pi/2) #f #t #f #t #t #t)
     )))

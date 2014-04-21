@@ -195,7 +195,7 @@
   
   
   (define (send-command cmd)
-    (printf "send-command ~v\n" cmd)
+    ;(printf "send-command ~v\n" cmd)
     (when cmd
       (with-handlers ((exn:fail:network? (lambda (exn)
                                            (drop-connection "send-command"))))
@@ -271,7 +271,7 @@
              ;(printf "client update space-time ~a update-time ~a\n" (space-time ownspace) (update-time input))
              
              (when ((space-time ownspace) . < . (update-time input))
-               ;(printf "client ticking ownspace forward for input\n")
+               ;(printf "client ticking ownspace forward for input ~a\n" (update-time input))
                (tick-space! ownspace))
              (when ((space-time ownspace) . < . (update-time input))
                (error "client ownspace still behind update time\n"))
@@ -286,6 +286,7 @@
         ; Need to use (current-milliseconds) here in case we hiccupped
         ; since the start of the loop
         (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))
+        ;(printf "calc-dt ~a ~a ~a ~a ~a\n" (current-milliseconds) start-time (space-time ownspace) start-space-time dt)
         (when (dt . < . 0)
           (printf "started too late ~a\n" dt)
           (set! start-time (- start-time (- dt)))))
@@ -298,7 +299,7 @@
       
       ; physics prediction
       (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))
-      (while (dt . > . TICK)
+      (when (dt . > . TICK)
         ;(printf "client ticking forward for prediction ~a\n" dt)
         (tick-space! ownspace)
         (set! dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time)))
