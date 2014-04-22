@@ -333,4 +333,10 @@
   (queue-callback client-loop #f))
 
 (module+ main
-  (start-client "127.0.0.1" PORT "Dave" #f #f))
+  ;(require profile)
+  ;(profile #:threads #t
+  ;  (begin
+    (start-client "127.0.0.1" PORT "Dave" #t #f)
+    (semaphore-wait (make-semaphore))
+    ;))
+  )

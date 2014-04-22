@@ -1,15 +1,21 @@
 #lang racket/base
 
-(require racket/class)
+(require racket/class
+         racket/draw)
 
 (require "defs.rkt"
-         "utils.rkt")
+         "utils.rkt"
+         "draw-utils.rkt")
 
 (provide (all-defined-out))
 
 
 (define PLASMA_LIFE 5000)  ; ms after which plasma starts fading
 (define PLASMA_DEATH 8000)  ; ms after which plasma is dead
+
+(define plasma-bitmap (make-bitmap 1 1))
+(send plasma-bitmap load-file (string-append "images/" "plasma" ".png") 'png/alpha)
+
 
 
 (define (plasma-energy space p)
@@ -34,14 +40,28 @@
 
 (define (draw-plasma dc p center space)
   (define-values (x y) (recenter center p))
-  (send dc set-pen "red" 3 'solid)
-  (define rad (plasma-radius space p))
-  (define cycle 2000.0)
-  (define t (modulo (obj-age space p) cycle))
-  (define rot (* 2pi (/ t cycle)))
-  (define num 5)
-  (for ((i num))
-    (define r (+ rot (/ (* i 2pi) num)))
-    (send dc draw-line x y
-          (+ x (* rad (cos r))) (+ y (* rad (sin r))))))
+  (keep-transform dc
+    (send dc translate x y)
+    (send dc scale
+          (/ (plasma-radius space p) (send plasma-bitmap get-width) 0.5)
+          (/ (plasma-radius space p) (send plasma-bitmap get-height) 0.5))
+    (define cycle 1000.0)
+    (define t (modulo (obj-age space p) cycle))
+    (define rot (* 2pi (/ t cycle)))
+    (send dc rotate rot)
+    (send dc draw-bitmap
+          plasma-bitmap
+          (- (/ (send plasma-bitmap get-width) 2))
+          (- (/ (send plasma-bitmap get-height) 2)))))
+  
+;  (send dc set-pen "red" 3 'solid)
+;  (define rad (plasma-radius space p))
+;  (define cycle 2000.0)
+;  (define t (modulo (obj-age space p) cycle))
+;  (define rot (* 2pi (/ t cycle)))
+;  (define num 5)
+;  (for ((i num))
+;    (define r (+ rot (/ (* i 2pi) num)))
+;    (send dc draw-line x y
+;          (+ x (* rad (cos r))) (+ y (* rad (sin r))))))
 

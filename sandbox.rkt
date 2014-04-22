@@ -43,7 +43,7 @@
 (start-server PORT ownspace)
 ))
 
-(thread (lambda () (start-client "127.0.0.1" PORT "Dave" #t ownspace)))
+(thread (lambda () (start-client "127.0.0.1" PORT "Dave" #t #f)))
 ;(thread (lambda () (start-client "127.0.0.1" PORT "Andrea" #t)))
 
 (semaphore-wait (make-semaphore))
