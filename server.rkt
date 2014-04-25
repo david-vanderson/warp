@@ -353,6 +353,12 @@
          (set! updates (append updates command-changes))))))
   
   
+  ; scenario hook
+  (set! updates (append updates (apply-all-changes! ownspace
+                                                    (scenario-hook ownspace)
+                                                    (space-time ownspace) "server")))
+  
+  
   ; find least-recently sent posvels
   (define objs
     (sort (filter ship? (space-objects ownspace))
@@ -390,31 +396,63 @@
   
   (server-loop))
 
+
 (define (start-server port new-space)
   (set! ownspace new-space)
   (set! server-listener (tcp-listen port 4 #t))
   (server-loop))
 
 
+; return a list of changes
+(define (scenario-hook space)
+  (define commands '())
+  
+  (define types (map ship-type (filter ship? (space-objects space))))
+  ;(printf "types ~v\n" types)
+  (define (count-type type)
+    (length (filter (lambda (t) (equal? t type)) types)))
+  
+  (define theta (random-between 0 2pi))
+  (define x (* 500 (cos theta)))
+  (define y (* 500 (sin theta)))
+  
+  (cond
+    (((count-type "blue-frigate") . < . 1)
+     (define s (make-ship "blue-frigate" "Blue Frigate" "Rebel" #:npc? #t #:x x #:y y #:r (angle-add theta pi) #:start-ship? #t
+                 #:in-hangar (list
+                              (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:npc? #t #:posvel? #f)
+                              (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:npc? #t #:posvel? #f))))
+     (set! commands (append commands (list (chadd s)))))
+    (((count-type "red-frigate") . < . 1)
+     (define s (make-ship "red-frigate" "Red Frigate" "Empire" #:npc? #t #:x x #:y y #:r (angle-add theta pi)))
+     (set! commands (append commands (list (chadd s)))))
+    (((count-type "blue-fighter") . < . 2)
+     (define s (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:start-ship? #t #:npc? #t #:x x #:y y #:r (angle-add theta pi)))
+     (set! commands (append commands (list (chadd s)))))
+    (((count-type "red-fighter") . < . 2)
+     (define s (make-ship "red-fighter" "Red Fighter" "Empire" #:npc? #t #:x x #:y y #:r (angle-add theta pi)))
+     (set! commands (append commands (list (chadd s))))))
+  
+  commands)
 
 
 (module+ main
   
   (define ownspace
     (space
-     0 4000 4000
+     0 2000 2000
      (list
       
-      (make-ship "red-frigate" "Empire1" "Empire" #:npc? #t #:x 500 #:y 0 #:r pi)
-      (make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:x 500 #:y 100 #:r pi)
-      (make-ship "red-fighter" "Red 2" "Empire" #:npc? #t #:x 500 #:y -100 #:r pi)
-      
-      (make-ship "blue-fighter" "Blue 5" "Rebel" #:start-ship? #t #:npc? #t #:x -400 #:y 100)
-      (make-ship "blue-fighter" "Blue 6" "Rebel" #:start-ship? #t #:npc? #t #:x -400 #:y -100)
-      (make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:x -400 #:y 0 #:start-ship? #t
-                 #:in-hangar (list
-                              (make-ship "blue-fighter" "Blue 1" "Rebel" #:npc? #t #:posvel? #f)
-                              (make-ship "blue-fighter" "Blue 2" "Rebel" #:npc? #t #:posvel? #f)))
+;      (make-ship "red-frigate" "Empire1" "Empire" #:npc? #t #:x 500 #:y 0 #:r pi)
+;      (make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:x 500 #:y 100 #:r pi)
+;      (make-ship "red-fighter" "Red 2" "Empire" #:npc? #t #:x 500 #:y -100 #:r pi)
+;      
+;      (make-ship "blue-fighter" "Blue 5" "Rebel" #:start-ship? #t #:npc? #t #:x -400 #:y 100)
+;      (make-ship "blue-fighter" "Blue 6" "Rebel" #:start-ship? #t #:npc? #t #:x -400 #:y -100)
+;      (make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:x -400 #:y 0 #:start-ship? #t
+;                 #:in-hangar (list
+;                              (make-ship "blue-fighter" "Blue 1" "Rebel" #:npc? #t #:posvel? #f)
+;                              (make-ship "blue-fighter" "Blue 2" "Rebel" #:npc? #t #:posvel? #f)))
       
       
       ;    (make-ship "blue-fighter" "RF 1" "Rebel" #:npc? #t #:x -300 #:y 50 #:start-ship? #t)

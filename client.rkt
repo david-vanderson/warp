@@ -93,6 +93,7 @@
       (send dc translate (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
       (define scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
       (send dc scale scale (- scale))
+      (send dc set-clipping-rect (- (/ WIDTH 2)) (- (/ HEIGHT 2)) (* 1 WIDTH) (* 1 HEIGHT))
       
       ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
       
