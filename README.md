@@ -5,6 +5,7 @@ Coop Networked Game in Racket
 
 
 Start a server: racket server.rkt
+
 Start each client: racket client.rkt
 
 
