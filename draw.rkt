@@ -35,24 +35,38 @@
       (send dc draw-text (format "~a" (truncate (/ (- (length frames) 1) span))) 0 0))))
 
 
-(define (draw-background dc space center bitmap scale parallax)
+(define (draw-background dc space center bitmap scale parallax width height)
   (define repeatx (* scale (send bitmap get-width)))
   (define repeaty (* scale (send bitmap get-height)))
-  (define x (remain (+ (* parallax (posvel-x (obj-posvel center)))
-                       (/ (space-width space) 2)) repeatx))
-  (define y (remain (+ (* parallax (posvel-y (obj-posvel center)))
-                       (/ (space-height space) 2)) repeaty))
-  (for* ((i (in-range (- (ceiling (/ (- (/ WIDTH 2) x) repeatx)))
-                      (ceiling (/ (+ (/ WIDTH 2) x) repeatx))))
-         (k (in-range (- (ceiling (/ (- (/ HEIGHT 2) y) repeaty)))
-                      (ceiling (/ (+ (/ HEIGHT 2) y) repeaty)))))
-    
-    (define xstart (- (* i repeatx) x))
-    (define ystart (- (* k repeaty) y))
+  (define x (remain (* parallax (posvel-x (obj-posvel center))) repeatx))
+  (define y (remain (* parallax (posvel-y (obj-posvel center))) repeaty))
+  
+;  (set! width (/ width 2))
+;  (set! height (/ height 2))
+  
+  (define istart (- (ceiling (- (/ (- (/ width 2) x) repeatx) 0.5))))
+  (define iend (add1 (ceiling (- (/ (+ (/ width 2) x) repeatx) 0.5))))
+  (define kstart (- (ceiling (- (/ (- (/ height 2) y) repeaty) 0.5))))
+  (define kend (add1 (ceiling (- (/ (+ (/ height 2) y) repeaty) 0.5))))
+;  (printf "i from ~a to ~a\n" istart iend)
+;  (printf "k from ~a to ~a\n" kstart kend)
+  
+  (for* ((i (in-range istart iend))
+         (k (in-range kstart kend)))
+    (define xx (- x (* i repeatx)))
+    (define yy (- y (* k repeaty)))
     (keep-transform dc
-      (send dc translate xstart ystart)
+      (send dc translate (- xx) (- yy))
       (send dc scale scale scale)
-      (send dc draw-bitmap bitmap 0 0))))
+      (send dc translate (- (/ (send bitmap get-width) 2)) (/ (send bitmap get-height) 2))
+      (send dc scale 1 -1)
+      (send dc draw-bitmap bitmap 0 0)))
+  
+;  (send dc set-pen "white" 10 'solid)
+;  (send dc set-brush nocolor 'transparent)
+;  (send dc draw-rectangle (- (/ width 2)) (- (/ height 2)) width height)
+  
+  )
 
 
 (define (draw-object dc o center space)
@@ -81,8 +95,8 @@
 
 
 (define (draw-view dc center space)
-  (draw-background dc space center background-bitmap 3 0.5)
-  (draw-background dc space center stars1-bitmap 8 1)
+  (draw-background dc space center background-bitmap 4 1 WIDTH HEIGHT)
+  ;(draw-background dc space center stars1-bitmap 8 2 WIDTH HEIGHT)
   (define objects (space-objects space))
   (define ships (filter ship? objects))
   (define effects (filter effect? objects))
@@ -142,8 +156,8 @@
     (define scale (min (/ WIDTH max-x) (/ HEIGHT max-y)))
     (send dc scale scale scale)
     (define center (obj #f #f (posvel 0 0 0 0 0 0 0)))
-    (draw-background dc space center background-bitmap 3 0.5)
-    (draw-background dc space center stars1-bitmap 8 1)
+    (draw-background dc space center background-bitmap 4 1 max-x max-y)
+    ;(draw-background dc space center stars1-bitmap 8 2 max-x max-y)
     (for ((o (space-objects space)))
       (draw-object dc o center space)))
   
@@ -158,7 +172,7 @@
   (for ((s start-stacks)
         (i (in-naturals)))
     (define mp (car s))
-    (define b (button (+ LEFT 100 (* i 200)) (+ BOTTOM 60) 150 30 5 5 (ob-id mp)
+    (define b (button (+ LEFT 100 (* i 250)) (+ BOTTOM 60) 200 30 5 5 (ob-id mp)
                       (format "~a on ~a" (role-name (pod-role mp))
                               (ship-name (get-ship s)))))
     (set! buttons (append buttons (list b))))
