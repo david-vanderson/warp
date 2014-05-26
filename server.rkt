@@ -413,8 +413,9 @@
     (length (filter (lambda (t) (equal? t type)) types)))
   
   (define theta (random-between 0 2pi))
-  (define x (* 500 (cos theta)))
-  (define y (* 500 (sin theta)))
+  (define r (random-between 0 500))
+  (define x (* r (cos theta)))
+  (define y (* r (sin theta)))
   
   (cond
     (((count-type "blue-frigate") . < . 1)
