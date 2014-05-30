@@ -16,7 +16,7 @@
 (define AI_GOTO_DIST 50)  ; if you are this close you've hit it
 (define bgcolor "black")
 (define fgcolor "white")
-(define nocolor "whitesmoke")  ; used with a transparent pen/brush
+(define nocolor "hotpink")  ; used with a transparent pen/brush
 
 (define PLASMA_SPEED 60)
 (define SHIELD_SPEED 40)
@@ -154,6 +154,9 @@
 (struct chadd (o) #:mutable #:prefab)
 ; o is the new object to add to space-objects
 
+(struct chrm (id) #:mutable #:prefab)
+; id is of the object to remove
+
 (struct chmov (id from to pv) #:mutable #:prefab)
 ; id is of the object to move
 ; from/to are ids of objects, #f means space-objects
@@ -191,17 +194,6 @@
 
 
 ;; Utilities
-
-
-(define (copy-role r)
-  (cond
-    ((observer? r) (struct-copy observer r))
-    ((hangar? r) (struct-copy hangar r))
-    ((crewer? r) (struct-copy crewer r))
-    ((pilot? r) (struct-copy pilot r))
-    ((weapons? r) (struct-copy weapons r))
-    ((tactics? r) (struct-copy tactics r))
-    (else (error "copy-role hit ELSE clause, role:\n" r))))
 
 
 (define (role-name role)

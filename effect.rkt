@@ -12,6 +12,7 @@
 
 (define (add-backeffects! space o dt)
   (when (and (ship? o)
+             (ship-helm o)
              (pilot-fore (ship-pilot o))
              (or (<= 1 (modulo (obj-age space o) 800) dt)
                  (and (<= 401 (modulo (obj-age space o) 800) (+ 400 dt))

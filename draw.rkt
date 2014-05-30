@@ -119,6 +119,7 @@
       (send dc set-pen fgcolor 1 'solid)
       (send dc set-brush nocolor 'transparent)
       (define ship-bitmap (get-ship-bitmap s))
+      (send dc scale 1 -1)
       (send dc draw-bitmap
               ship-bitmap
               (- (/ (send ship-bitmap get-width) 2))

@@ -1,12 +1,16 @@
 #lang racket/base
 
 (require racket/function
-         racket/math)
+         racket/math
+         racket/port)
 
 (require "defs.rkt")
 
 (provide (all-defined-out))
 
+
+(define (copy s)
+  (read (open-input-string (with-output-to-string (lambda () (write s))))))
 
 (define (obj-age space o)
   (- (space-time space) (obj-start-time o)))
@@ -82,7 +86,8 @@
 
 
 (define (ship-helm s)
-  (car (memf helm? (ship-pods s))))
+  (define helmcar (memf helm? (ship-pods s)))
+  (if helmcar (car helmcar) #f))
 
 (define (ship-pilot s)
   (pod-role (ship-helm s)))
@@ -204,6 +209,7 @@
   
   (define enemies (filter (lambda (o)
                             (and (ship? o)
+                                 ((ship-containment o) . > . 0)
                                  (not (equal? (ship-faction o) (ship-faction ownship)))))
                           (space-objects space)))
   (define ne #f)

@@ -62,6 +62,8 @@
                  (send-command (role-change me (ob-id role) (ob-id h))))
                 (else
                  (send-command (role-change me (ob-id role) #f)))))
+         ((equal? "space-suit" (ship-type (get-ship my-stack)))
+          (send-command (role-change me (ob-id role) #f)))
          (else
           (define crew (ship-crew (get-ship my-stack)))
           (send-command (role-change me (ob-id role) (ob-id crew))))))

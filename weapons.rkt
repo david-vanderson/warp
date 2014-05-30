@@ -20,7 +20,7 @@
   (define ownship (get-ship stack))
   (when (and (ship-flying? ownship) ((pod-energy (get-pod stack)) . > . PLASMA_COST))
     (define w (get-role stack))
-    (define neww (copy-role w))
+    (define neww (copy w))
     (define ne (nearest-enemy space ownship))
   
     (when ne

@@ -19,6 +19,8 @@
   (send b load-file (string-append "images/" type ".png") 'png/alpha)
   (hash-set! ships type b))
 
+(load-ship "space-suit")
+
 (load-ship "blue-frigate")
 (load-ship "red-frigate")
 (load-ship "blue-fighter")
@@ -43,6 +45,11 @@
                   '()))
   
   (case type
+    (("space-suit")
+     (set-ship-stats! s (stats (next-id) type name faction 0 0 7 1 0 0))
+     (set-ship-pods!
+      s (list
+         (multipod (next-id) (observer (next-id) #f #f) 0 0 #f #f 0 #f '()))))
     (("blue-frigate" "red-frigate")
      (set-ship-stats! s (stats (next-id) type name faction 10 100 18 100 20 0.3))
      (set-ship-pods!

@@ -120,7 +120,7 @@
   
   (define ownship (get-ship stack))
   (define p (get-role stack))
-  (define origp (copy-role p))
+  (define origp (copy p))
   
   ; only worry about ships
   (define ships (filter (lambda (o)
@@ -129,7 +129,7 @@
                         (space-objects space)))
   
   ; search space around our original inputs
-  (define bestp (copy-role p))
+  (define bestp (copy p))
   (define bestfit #f)
   (for* ((f '(#f #t))
          (c '(0 -10 10 -40 40 180)))
@@ -157,9 +157,9 @@
               (maxfit . > . (* 1.01 bestfit)))
       ;(printf "better fit ~a ~a ~a\n" maxfit f c)
       (set! bestfit maxfit)
-      (set! bestp (copy-role p))))
+      (set! bestp (copy p))))
   
-  (set! p (copy-role bestp))
+  (set! p (copy bestp))
   (set-pod-role! (ship-helm ownship) origp)
   
   (when (not (equal? origp p))
@@ -190,7 +190,7 @@
                         (- (posvel-dx (obj-posvel parent)))
                         (- (posvel-dy (obj-posvel parent)))
                         0))
-     (define pilot (copy-role (ship-pilot ship)))
+     (define pilot (copy (ship-pilot ship)))
      (set-pilot-course! pilot r)
      (set-pilot-fore! pilot #t)
      (list (chmov (ob-id ship) (ob-id hangar) #f pv) pilot))

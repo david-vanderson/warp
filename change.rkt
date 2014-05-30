@@ -1,5 +1,7 @@
 #lang racket/base
 
+(require racket/list)
+
 (require "defs.rkt"
          "utils.rkt"
          "pilot.rkt"
@@ -25,7 +27,7 @@
 
 (define (join-role! space roleid p test?)
   (define r (find-id space roleid))
-  ;(printf "player ~v joining role ~v\n" p r)
+  ;(printf "player ~v joining role ~v\n" p roleid)
   (cond
     ((not roleid) #t)  ; can always join no-role
     ((not r) #f)  ; tried to join a role that no longer exists
@@ -38,7 +40,7 @@
        (already-in? #f)
        (else
         (when (not test?)
-          (define new-role (copy-role (pod-role r)))
+          (define new-role (copy (pod-role r)))
           (set-role-player! new-role p)
           (set-multipod-roles! r (cons new-role (multipod-roles r))))
         #t)))
@@ -50,7 +52,7 @@
 
 
 (define (leave-role! space roleid p test?)
-  ;(printf "player ~v leaving role ~v\n" p r)
+  ;(printf "player ~v leaving role ~v\n" p roleid)
   (define stack (find-stack space roleid))
   (cond
     ; picking an initial role
@@ -108,13 +110,23 @@
   ;(printf "~a applying change ~v\n" who c)
   (cond
     ((role-change? c)
+     (define changes '())
      (define p (role-change-player c))
      (cond
        ((and (join-role! space (role-change-to c) p #t)
              (leave-role! space (role-change-from c) p #t))
+        
+        (when (and (role-change-from c)
+                   (equal? "space-suit"
+                           (ship-type (get-ship (find-stack space (role-change-from c))))))
+          ; leaving a space suit, remove the suit
+          (define suitrm (chrm (ob-id (get-ship (find-stack space (role-change-from c))))))
+          (set! changes (append changes (list suitrm))))
+        
         (join-role! space (role-change-to c) p #f)
         (leave-role! space (role-change-from c) p #f)
-        '())
+        
+        changes)
        (else
         (printf "~a didn't apply role-change ~v\n" who c)
         '())))
@@ -135,6 +147,12 @@
        (update-physics! space (chadd-o c) (/ TICK 1000.0))
        (set! ctime (+ ctime TICK)))
      (set-space-objects! space (cons (chadd-o c) (space-objects space)))
+     '())
+    ((chrm? c)
+     ;(printf "~a removing ~v\n" who (find-id space (chrm-id c)))
+     (set-space-objects! space
+                         (filter-not (lambda (o) (equal? (ob-id o) (chrm-id c)))
+                                     (space-objects space)))
      '())
     ((chdam? c)
      (define o (find-id space (chdam-id c)))
@@ -192,5 +210,5 @@
       '()
       (apply append
              (for/list ((c changes))
-               (define new-changes (apply-change! space c ctime who))
+               (define new-changes (apply-change! space (copy c) ctime who))
                (cons c (apply-all-changes! space new-changes ctime who))))))

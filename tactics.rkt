@@ -21,7 +21,7 @@
   (define ownship (get-ship stack))
   (when (and (ship-flying? ownship) ((pod-energy (get-pod stack)) . > . SHIELD_COST))
     (define role (get-role stack))
-    (define newrole (copy-role role))
+    (define newrole (copy role))
     (define np (nearest-incoming-plasma space ownship))
     (when np
       (define me (pod-obj (get-pod stack) ownship))

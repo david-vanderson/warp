@@ -6,7 +6,8 @@
          "utils.rkt"
          "plasma.rkt"
          "shield.rkt"
-         "effect.rkt")
+         "effect.rkt"
+         "ships.rkt")
 
 (provide (all-defined-out))
 
@@ -64,7 +65,7 @@
 (define (update-physics! space o dt)
   (cond
     ((ship? o)
-     (define acc? (steer! o dt))
+     (define acc? (if (ship-helm o) (steer! o dt) #f))
      (physics! (obj-posvel o) dt 0.4 acc?))
     ((plasma? o)
      (physics! (obj-posvel o) dt)
@@ -96,6 +97,18 @@
     (define pv (obj-posvel ship))
     (define e (effect (next-id) (space-time space) (struct-copy posvel pv) 45 1000))
     (set! changes (append changes (list (chadd e))))
+    
+    (for ((ps (search ship player? #t)))
+      (define p (car ps))
+      (define ss (make-ship "space-suit"
+                            (player-name p)
+                            (ship-faction ship)
+                            #:x (posvel-x pv) #:y (posvel-y pv)
+                            #:dx (+ (posvel-dx pv) (random-between -50 50))
+                            #:dy (+ (posvel-dx pv) (random-between -50 50))))
+      (define rc (role-change p #f (ob-id (car (ship-pods ss)))))
+      (set! changes (append changes (list (chadd ss) rc))))
+    
     (for ((i 41))
       (define t (random-between 0 2pi))
       (define s (random-between 80 120))
@@ -113,7 +126,7 @@
   
   ; remove energy for stateful things
   (define h (ship-helm ship))
-  (when ((pod-energy h) . > . 0)
+  (when (and h ((pod-energy h) . > . 0))
     (when (pilot-fore (pod-role h))
       (set-pod-energy! h (- (pod-energy h) (* 3.0 dt))))
     (when (not (= (pilot-course (pod-role h))
