@@ -106,7 +106,7 @@
                             #:x (posvel-x pv) #:y (posvel-y pv)
                             #:dx (+ (posvel-dx pv) (random-between -50 50))
                             #:dy (+ (posvel-dx pv) (random-between -50 50))))
-      (define rc (role-change p #f (ob-id (car (ship-pods ss)))))
+      (define rc (role-change p #f (ob-id (car (ship-pods ss))) (next-id)))
       (set! changes (append changes (list (chadd ss) rc))))
     
     (for ((i 41))

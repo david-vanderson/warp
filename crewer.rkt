@@ -16,7 +16,7 @@
 ; client
 (define (click-crewer x y button stack)
   (cond (button
-         (role-change (car stack) (ob-id (get-role stack)) button))
+         (role-change (car stack) (ob-id (get-role stack)) button -1))
         (else #f)))
   
 

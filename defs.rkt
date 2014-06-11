@@ -142,10 +142,11 @@
 ;; Changes
 ;; Most changes are just role? structs, but here are the exceptions
 
-(struct role-change (player from to) #:mutable #:prefab)
+(struct role-change (player from to newid) #:mutable #:prefab)
 ; from and to are:
 ; - role? id or multipod? id
 ; - #f means we are choosing a starting role
+; - newid is set by server, used if changing to a multipod for the id for the new role
 
 (struct update (time changes pvs) #:mutable #:prefab)
 ; time is ms since scenario started

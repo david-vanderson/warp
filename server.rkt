@@ -174,12 +174,12 @@
       ((equal? "space-suit" (ship-type ship))
        (when (equal? (ship-faction ship) (ship-faction s))
          (define role (car (multipod-roles (car (ship-pods ship)))))
-         (define rc (role-change (role-player role) (ob-id role) (ob-id (ship-crew s))))
+         (define rc (role-change (role-player role) (ob-id role) (ob-id (ship-crew s)) (next-id)))
          (set! changes (append changes (list rc)))))
       ((equal? "space-suit" (ship-type s))
        (when (equal? (ship-faction ship) (ship-faction s))
          (define role (car (multipod-roles (car (ship-pods s)))))
-         (define rc (role-change (role-player role) (ob-id role) (ob-id (ship-crew ship))))
+         (define rc (role-change (role-player role) (ob-id role) (ob-id (ship-crew ship)) (next-id)))
          (set! changes (append changes (list rc)))))
       ((will-dock? ship s)
        (set! changes (append changes (dock! ship s))))
@@ -281,7 +281,7 @@
   (when s
     (define changes
       (apply-all-changes! ownspace
-                          (list (role-change p (ob-id r) #f))
+                          (list (role-change p (ob-id r) #f -1))
                           (space-time ownspace) "server"))
     (set! updates (append updates changes)))
   (set! clients (remove c clients (lambda (x y) (= (client-id x) (client-id y))))))
@@ -359,6 +359,7 @@
          (close-input-port (client-in c))
          (remove-client c "eof"))
         (else
+         (change-ids! cmds)
          (define command-changes
            (apply-all-changes! ownspace cmds (space-time ownspace) "server"))
          (set! updates (append updates command-changes))))))

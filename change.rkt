@@ -25,7 +25,14 @@
     ))
 
 
-(define (join-role! space roleid p test?)
+(define (add-player-to-multipod! p mp newid)
+  (define new-role (copy (pod-role mp)))
+  (set-ob-id! new-role newid)
+  (set-role-player! new-role p)
+  (set-multipod-roles! mp (cons new-role (multipod-roles mp))))
+
+
+(define (join-role! space roleid p test? newid)
   (define r (find-id space roleid))
   ;(printf "player ~v joining role ~v\n" p roleid)
   (cond
@@ -40,9 +47,7 @@
        (already-in? #f)
        (else
         (when (not test?)
-          (define new-role (copy (pod-role r)))
-          (set-role-player! new-role p)
-          (set-multipod-roles! r (cons new-role (multipod-roles r))))
+          (add-player-to-multipod! p r newid))
         #t)))
     ((and (role? r) (not (role-player r)))
      (when (not test?)
@@ -115,7 +120,7 @@
      (define changes '())
      (define p (role-change-player c))
      (cond
-       ((and (join-role! space (role-change-to c) p #t)
+       ((and (join-role! space (role-change-to c) p #t (role-change-newid c))
              (leave-role! space (role-change-from c) p #t))
         
         (when (and (role-change-from c)
@@ -125,7 +130,7 @@
           (define suitrm (chrm (ob-id (get-ship (find-stack space (role-change-from c))))))
           (set! changes (append changes (list suitrm))))
         
-        (join-role! space (role-change-to c) p #f)
+        (join-role! space (role-change-to c) p #f (role-change-newid c))
         (leave-role! space (role-change-from c) p #f)
         
         changes)
@@ -214,3 +219,24 @@
              (for/list ((c changes))
                (define new-changes (apply-change! space (copy c) ctime who))
                (cons c (apply-all-changes! space new-changes ctime who))))))
+
+
+(define (change-all-ids! structs)
+  (for ((s structs))
+    (when (and (ob? s) (not (player? s)))
+      (set-ob-id! s (next-id)))
+    (when (struct? s)
+      (define fields (rest (vector->list (struct->vector s))))
+      (change-all-ids! (flatten fields)))))
+
+(define (change-ids! changes)
+  (for ((c changes))
+    (cond
+      ((chadd? c)
+       ;(printf "rewriting ~v\n" c)
+       (change-all-ids! (list (chadd-o c)))
+       ;(printf "to        ~v\n" c)
+       )
+      ((role-change? c)
+       (set-role-change-newid! c (next-id)))
+       )))
