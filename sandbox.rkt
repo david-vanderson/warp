@@ -13,10 +13,10 @@
    (list
     
     ;(make-ship "space-suit" "Dave" "Empire" #:start-ship? #t)
-    (make-ship "blue-frigate" "Blue Fighter" "Rebel" #:start-ship? #t #:x 200 #:helm-fore? #t)
-    (make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:npc-helm? #f #:x 0 #:y 0)
-    (make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:npc-helm? #f #:x 0 #:y 50)
-    (make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:npc-helm? #f #:x 0 #:y -50)
+    (make-ship "blue-frigate" "Blue Frigate" "Rebel" #:start-ship? #t #:x 200 #:helm-fore? #f)
+    ;(make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:npc-helm? #f #:x 0 #:y 0)
+    ;(make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:npc-helm? #f #:x 0 #:y 50)
+    ;(make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:npc-helm? #f #:x 0 #:y -50)
     
 ;    (make-ship "red-frigate" "Empire1" "Empire" #:npc? #t #:x 500 #:y 0 #:r pi)
 ;    (make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:x 500 #:y 100 #:r pi)
@@ -50,7 +50,7 @@
 ))
 
 (thread (lambda () (start-client "127.0.0.1" PORT "Dave" #t #f)))
-;(thread (lambda () (start-client "127.0.0.1" PORT "Andrea" #t)))
+(thread (lambda () (start-client "127.0.0.1" PORT "Andrea" #t #f)))
 
 (semaphore-wait (make-semaphore))
 

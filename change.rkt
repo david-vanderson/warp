@@ -66,7 +66,9 @@
     
     ; player wasn't in the role they're trying to leave
     ((or (not (role-player (car stack)))
-         (not (= (ob-id p) (ob-id (role-player (car stack)))))) #f)
+         (not (= (ob-id p) (ob-id (role-player (car stack))))))
+     #f)
+    
     (else
      (define role (car stack))  ; will always be a role?
      (define mp (cadr stack))  ; could be multipod?

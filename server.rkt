@@ -166,9 +166,7 @@
                  (equal? "space-suit" (ship-type s)))
              (obj-posvel ship) (obj-posvel s)  ; could have docked
              ((distance ship s) . < . (hit-distance ship s)))
-    ;    (printf "ship ~a (vx ~a) hit ship ~a (vx ~a)\n"
-    ;            (ship-name ship) (posvel-dx (obj-posvel ship))
-    ;            (ship-name s) (posvel-dx (obj-posvel s)))
+        ;(printf "ship ~a hit ship ~a\n" (ship-name ship) (ship-name s))
     (cond
       ((and (equal? "space-suit" (ship-type ship))
             (equal? "space-suit" (ship-type s)))
@@ -177,12 +175,12 @@
        (when (equal? (ship-faction ship) (ship-faction s))
          (define role (car (multipod-roles (car (ship-pods ship)))))
          (define rc (role-change (role-player role) (ob-id role) (ob-id (ship-crew s))))
-         (set! changes (append changes (list rc (chrm (ob-id ship)))))))
+         (set! changes (append changes (list rc)))))
       ((equal? "space-suit" (ship-type s))
        (when (equal? (ship-faction ship) (ship-faction s))
          (define role (car (multipod-roles (car (ship-pods s)))))
          (define rc (role-change (role-player role) (ob-id role) (ob-id (ship-crew ship))))
-         (set! changes (append changes (list rc (chrm (ob-id s)))))))
+         (set! changes (append changes (list rc)))))
       ((will-dock? ship s)
        (set! changes (append changes (dock! ship s))))
       ((will-dock? s ship)
