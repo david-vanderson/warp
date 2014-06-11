@@ -124,8 +124,7 @@
              (leave-role! space (role-change-from c) p #t))
         
         (when (and (role-change-from c)
-                   (equal? "space-suit"
-                           (ship-type (get-ship (find-stack space (role-change-from c))))))
+                   (spacesuit? (get-ship (find-stack space (role-change-from c)))))
           ; leaving a space suit, remove the suit
           (define suitrm (chrm (ob-id (get-ship (find-stack space (role-change-from c))))))
           (set! changes (append changes (list suitrm))))

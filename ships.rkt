@@ -38,15 +38,16 @@
                    #:npc-weapons? (npc-weapons? #t)
                    #:npc-tactical? (npc-tactical? #t)
                    #:in-hangar (in-hangar '()))
-  (define s (ship (next-id) 0 (if posvel? (posvel 0 x y r dx dy dr) #f)
-                  #f
-                  (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f 0 start-ship? '())
-                  '()
-                  '()))
+  (define s ((if (equal? "space-suit" type) spacesuit spaceship)
+             (next-id) 0 (if posvel? (posvel 0 x y r dx dy dr) #f)
+             #f
+             (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f 0 start-ship? '())
+             '()
+             '()))
   
   (case type
     (("space-suit")
-     (set-ship-stats! s (stats (next-id) type name faction 0 0 7 1 0 0))
+     (set-ship-stats! s (stats (next-id) type name faction 0 1 7 1 0 0))
      (set-ship-pods!
       s (list
          (multipod (next-id) (observer (next-id) #f #f) 0 0 #f #f 0 #f '()))))

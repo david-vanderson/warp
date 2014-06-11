@@ -78,8 +78,8 @@
                  (set-posvel-y! (obj-posvel ss) (+ (posvel-y pv) (* r (sin t))))
                  (add-player-to-multipod! me (car (ship-pods ss)) -1)
                  (define rc (role-change me (ob-id role) #f -1))
-                 (send-commands rc (chadd ss)))))
-         ((equal? "space-suit" (ship-type (get-ship my-stack)))
+                 (send-commands (list rc (chadd ss))))))
+         ((spacesuit? (get-ship my-stack))
           (send-commands (role-change me (ob-id role) #f -1)))
          (else
           (define crew (ship-crew (get-ship my-stack)))
@@ -214,9 +214,10 @@
     (set! ownspace #f))
   
   
-  (define (send-commands . cmds)
-    ;(printf "send-command ~v\n" cmd)
-    (when cmds
+  (define (send-commands cmds)
+    (when (not (list? cmds)) (set! cmds (list cmds)))
+    (when ((length cmds) . > . 0)
+      ;(printf "send-commands ~v\n" cmds)
       (with-handlers ((exn:fail:network? (lambda (exn)
                                            (drop-connection "send-command"))))
         (write cmds server-out-port)

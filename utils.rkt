@@ -209,7 +209,7 @@
   (define agro-dist 1000)  ; ignore ships farther away than this
   
   (define enemies (filter (lambda (o)
-                            (and (ship? o)
+                            (and (spaceship? o)
                                  ((ship-containment o) . > . 0)
                                  (not (equal? (ship-faction o) (ship-faction ownship)))))
                           (space-objects space)))

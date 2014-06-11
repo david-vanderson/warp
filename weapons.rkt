@@ -85,8 +85,8 @@
      (define offset (angle-diff podangle fangle))
      (if ((abs offset) . < . (/ (pod-spread pod) 2))
        (struct-copy weapons (get-role stack) (fire fangle))
-       #f))
-    (else #f)))
+       '()))
+    (else '())))
         
 
 (define (draw-weapons dc stack serverspace)

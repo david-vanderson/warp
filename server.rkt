@@ -160,23 +160,20 @@
 
 (define (ship-hit-ship! space ship s)
   (define changes '())
-  (when (and (or (not ((ship-containment ship) . <= . 0))  ; could have died
-                 (equal? "space-suit" (ship-type ship)))
-             (or (not ((ship-containment s) . <= . 0))  ; could have died
-                 (equal? "space-suit" (ship-type s)))
+  (when (and ((ship-containment ship) . > . 0)  ; could have died
+             ((ship-containment s) . > . 0)  ; could have died
              (obj-posvel ship) (obj-posvel s)  ; could have docked
              ((distance ship s) . < . (hit-distance ship s)))
         ;(printf "ship ~a hit ship ~a\n" (ship-name ship) (ship-name s))
     (cond
-      ((and (equal? "space-suit" (ship-type ship))
-            (equal? "space-suit" (ship-type s)))
+      ((and (spacesuit? ship) (spacesuit? s))
        #f)
-      ((equal? "space-suit" (ship-type ship))
+      ((spacesuit? ship)
        (when (equal? (ship-faction ship) (ship-faction s))
          (define role (car (multipod-roles (car (ship-pods ship)))))
          (define rc (role-change (role-player role) (ob-id role) (ob-id (ship-crew s)) (next-id)))
          (set! changes (append changes (list rc)))))
-      ((equal? "space-suit" (ship-type s))
+      ((spacesuit? s)
        (when (equal? (ship-faction ship) (ship-faction s))
          (define role (car (multipod-roles (car (ship-pods s)))))
          (define rc (role-change (role-player role) (ob-id role) (ob-id (ship-crew ship)) (next-id)))
@@ -195,6 +192,9 @@
   (define objects (space-objects space))
   (define ships (filter ship? objects))
   
+  (define spaceships (filter spaceship? ships))
+  (define spacesuits (filter spacesuit? ships))
+  
   (define plasmas (filter plasma? objects))
   (define shields (filter shield? objects))
   
@@ -203,7 +203,7 @@
       (define cs (apply-all-changes!
                   space (plasma-hit-shield! space shield p) (space-time space) "server"))
       (set! changes (append changes cs)))
-    (for ((ship ships))
+    (for ((ship spaceships))
       (define cs (apply-all-changes!
                   space (plasma-hit-ship! space ship p) (space-time space) "server"))
       (set! changes (append changes cs))))

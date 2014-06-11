@@ -87,8 +87,8 @@
      (define offset (angle-diff podangle fangle))
      (if ((abs offset) . < . (/ (pod-spread pod) 2))
        (struct-copy tactics (get-role stack) (shield fangle))
-       #f))
-    (else #f)))
+       '()))
+    (else '())))
 
 
 (define (draw-tactics dc stack)

@@ -119,6 +119,9 @@
 (define (ship-containment s) (stats-containment (ship-stats s)))
 (define (ship-strategy s) (if (null? (ship-ai-strategy s)) #f (car (ship-ai-strategy s))))
 
+(struct spacesuit ship () #:mutable #:prefab)
+(struct spaceship ship () #:mutable #:prefab)
+
 (struct plasma obj (e ownship-id) #:mutable #:prefab)
 ; e is base energy uncorrected for age
 ; ownship is id of the ship that fired it, or #f if it belongs to no ship
