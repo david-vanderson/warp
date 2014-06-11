@@ -33,7 +33,7 @@
   
   ; reduce fitness for hitting ships
   (for ((o (space-objects space)))
-    (when (and (ship? o)
+    (when (and (ship? o) (not (equal? "space-suit" (ship-type o)))
                (not (= (ob-id ship) (ob-id o)))
                (not (will-dock? o ship)))
       (define d (distance ship o))
@@ -124,7 +124,7 @@
   
   ; only worry about ships
   (define ships (filter (lambda (o)
-                          (and (ship? o)
+                          (and (ship? o) (not (equal? "space-suit" (ship-type o)))
                                (not (= (ob-id ownship) (ob-id o)))))
                         (space-objects space)))
   
@@ -228,7 +228,7 @@
   (define center (get-center stack))
   (define ship (get-ship stack))
   (for ((s (space-objects space)))
-    (when (and (ship? s)
+    (when (and (ship? s) (not (equal? "space-suit" (ship-type s)))
                (not (= (ob-id ship) (ob-id s)))
                (will-dock? ship s))
       (define-values (x y) (recenter center s))
@@ -277,7 +277,7 @@
   
   
   (define ships (filter (lambda (o)
-                             (and (ship? o)
+                             (and (ship? o) (not (equal? "space-suit" (ship-type o)))
                                   (not (= (ob-id ship) (ob-id o)))))
                            (space-objects space)))
   
