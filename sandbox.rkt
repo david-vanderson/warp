@@ -13,7 +13,7 @@
    (list
     
     ;(make-ship "space-suit" "Dave" "Empire" #:start-ship? #t)
-    (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:start-ship? #t #:x 200)
+    (make-ship "blue-frigate" "Blue Fighter" "Rebel" #:start-ship? #t #:x 200 #:helm-fore? #t)
     (make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:npc-helm? #f #:x 0 #:y 0)
     (make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:npc-helm? #f #:x 0 #:y 50)
     (make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:npc-helm? #f #:x 0 #:y -50)

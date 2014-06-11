@@ -77,7 +77,7 @@
     ((and (ship-flying? (get-ship stack))
           ((pod-energy (get-pod stack)) . > . PLASMA_COST))
      ; we are firing
-     (define fangle (angle-norm (atan y x)))
+     (define fangle (angle-norm (atan0 y x)))
      
      (define ship (get-ship stack))
      (define pod (get-pod stack))

@@ -115,6 +115,7 @@
 (define (ship-name s) (stats-name (ship-stats s)))
 (define (ship-type s) (stats-type (ship-stats s)))
 (define (ship-faction s) (stats-faction (ship-stats s)))
+(define (ship-radius s) (stats-radius (ship-stats s)))
 (define (ship-containment s) (stats-containment (ship-stats s)))
 (define (ship-strategy s) (if (null? (ship-ai-strategy s)) #f (car (ship-ai-strategy s))))
 

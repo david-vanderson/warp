@@ -166,20 +166,21 @@
   (define dy (- (posvel-y (obj-posvel o1)) (posvel-y (obj-posvel o2))))
   (sqrt (+ (* dx dx) (* dy dy))))
 
+
+(define (atan0 y x)
+  (if (= 0 x y) 0 (atan y x)))
+
+
 (define (theta from to)
   (define dx (- (posvel-x (obj-posvel to)) (posvel-x (obj-posvel from))))
   (define dy (- (posvel-y (obj-posvel to)) (posvel-y (obj-posvel from))))
   ;(printf "dx ~a, dy ~a\n" dx dy)
-  (if (= 0 dx dy)
-      0
-      (atan dy dx)))
+  (atan0 dy dx))
 
 (define (dtheta o)
   (define dx (posvel-dx (obj-posvel o)))
   (define dy (posvel-dy (obj-posvel o)))
-  (if (= 0 dx dy)
-      0
-      (atan dy dx)))
+  (atan0 dy dx))
 
 (define (dmag o)
   (define pv (obj-posvel o))
@@ -187,8 +188,8 @@
            (* (posvel-dy pv) (posvel-dy pv)))))
 
 (define (hit-distance ship1 ship2)
-  (+ (stats-radius (ship-stats ship1))
-     (stats-radius (ship-stats ship2))))
+  (+ (ship-radius ship1)
+     (ship-radius ship2)))
 
 (define (pod-xyr pod ship)
   (define ps (obj-posvel ship))

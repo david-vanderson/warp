@@ -11,7 +11,8 @@
          "crewer.rkt"
          "weapons.rkt"
          "tactics.rkt"
-         "effect.rkt")
+         "effect.rkt"
+         "ships.rkt")
 
 (provide start-client)
 
@@ -59,26 +60,41 @@
           (define ships (get-ships my-stack))
           (cond (((length ships) . > . 1)
                  (define h (car (filter hangarpod? (ship-pods (cadr ships)))))
-                 (send-command (role-change me (ob-id role) (ob-id h))))
+                 (send-commands (role-change me (ob-id role) (ob-id h))))
                 (else
-                 (send-command (role-change me (ob-id role) #f)))))
+                 (define pv (obj-posvel (car ships)))
+                 (define dx (random-between -50 50))
+                 (define dy (random-between -50 50))
+                 (define ss (make-ship "space-suit"
+                                       (player-name me)
+                                       (ship-faction (car ships))
+                                       #:x 0
+                                       #:y 0
+                                       #:dx (+ (posvel-dx pv) dx)
+                                       #:dy (+ (posvel-dy pv) dy)))
+                 (define t (atan0 dy dx))
+                 (define r (+ 1 (hit-distance (car ships) ss)))
+                 (set-posvel-x! (obj-posvel ss) (+ (posvel-x pv) (* r (cos t))))
+                 (set-posvel-y! (obj-posvel ss) (+ (posvel-y pv) (* r (sin t))))
+                 (define rc (role-change me (ob-id role) (ob-id (car (ship-pods ss)))))
+                 (send-commands (chadd ss) rc))))
          ((equal? "space-suit" (ship-type (get-ship my-stack)))
-          (send-command (role-change me (ob-id role) #f)))
+          (send-commands (role-change me (ob-id role) #f)))
          (else
           (define crew (ship-crew (get-ship my-stack)))
-          (send-command (role-change me (ob-id role) (ob-id crew))))))
+          (send-commands (role-change me (ob-id role) (ob-id crew))))))
       ((crewer? role)
-       (send-command (click-crewer x y button my-stack)))
+       (send-commands (click-crewer x y button my-stack)))
       ((pilot? role)
-       (send-command (click-pilot x y button my-stack)))
+       (send-commands (click-pilot x y button my-stack)))
       ((weapons? role)
-       (send-command (click-weapons x y button my-stack)))
+       (send-commands (click-weapons x y button my-stack)))
       ((tactics? role)
-       (send-command (click-tactics x y button my-stack)))
+       (send-commands (click-tactics x y button my-stack)))
       (button
        ; player is choosing starting role
        (when role (error "choosing a starting role but already in pod ~v\n" my-stack))
-       (send-command (role-change me #f button)))
+       (send-commands (role-change me #f button)))
       (else
        (printf "click hit ELSE clause\n"))))
   
@@ -197,12 +213,12 @@
     (set! ownspace #f))
   
   
-  (define (send-command cmd)
+  (define (send-commands . cmds)
     ;(printf "send-command ~v\n" cmd)
-    (when cmd
+    (when cmds
       (with-handlers ((exn:fail:network? (lambda (exn)
                                            (drop-connection "send-command"))))
-        (write cmd server-out-port)
+        (write cmds server-out-port)
         (flush-output server-out-port))))
   
   

@@ -65,7 +65,7 @@
   (when (and (not ((ship-containment ship) . <= . 0))
              (not (plasma-dead? space p)))
     (when (and (not (equal? (plasma-ownship-id p) (ob-id ship)))
-               ((distance ship p) . < . (+ (stats-radius (ship-stats ship)) (plasma-radius space p))))
+               ((distance ship p) . < . (+ (ship-radius ship) (plasma-radius space p))))
       ;(printf "plasma hit ship ~a (~a ~a)\n" (ship-name ship) (plasma-ownship-id p) (obj-id ship))
       (define damage (plasma-energy space p))
       (define e (effect (next-id) (space-time space)
@@ -135,8 +135,8 @@
   (define dv (abs (- (* (dmag s1) (cos (- (dtheta s1) phi)))
                      (* (dmag s2) (cos (- (dtheta s2) phi))))))
   
-  (define dt (/ (- (+ (stats-radius (ship-stats s1))
-                      (stats-radius (ship-stats s2)))
+  (define dt (/ (- (+ (ship-radius s1)
+                      (ship-radius s2))
                    (distance s1 s2))
                 dv))
   
@@ -160,15 +160,29 @@
 
 (define (ship-hit-ship! space ship s)
   (define changes '())
-  (when (and (not ((ship-containment ship) . <= . 0))  ; could have died
-             (not ((ship-containment s) . <= . 0))  ; could have died
+  (when (and (or (not ((ship-containment ship) . <= . 0))  ; could have died
+                 (equal? "space-suit" (ship-type ship)))
+             (or (not ((ship-containment s) . <= . 0))  ; could have died
+                 (equal? "space-suit" (ship-type s)))
              (obj-posvel ship) (obj-posvel s)  ; could have docked
-             ((distance ship s) . < . (+ (stats-radius (ship-stats ship))
-                                         (stats-radius (ship-stats s)))))
+             ((distance ship s) . < . (hit-distance ship s)))
     ;    (printf "ship ~a (vx ~a) hit ship ~a (vx ~a)\n"
     ;            (ship-name ship) (posvel-dx (obj-posvel ship))
     ;            (ship-name s) (posvel-dx (obj-posvel s)))
     (cond
+      ((and (equal? "space-suit" (ship-type ship))
+            (equal? "space-suit" (ship-type s)))
+       #f)
+      ((equal? "space-suit" (ship-type ship))
+       (when (equal? (ship-faction ship) (ship-faction s))
+         (define role (car (multipod-roles (car (ship-pods ship)))))
+         (define rc (role-change (role-player role) (ob-id role) (ob-id (ship-crew s))))
+         (set! changes (append changes (list rc (chrm (ob-id ship)))))))
+      ((equal? "space-suit" (ship-type s))
+       (when (equal? (ship-faction ship) (ship-faction s))
+         (define role (car (multipod-roles (car (ship-pods s)))))
+         (define rc (role-change (role-player role) (ob-id role) (ob-id (ship-crew ship))))
+         (set! changes (append changes (list rc (chrm (ob-id s)))))))
       ((will-dock? ship s)
        (set! changes (append changes (dock! ship s))))
       ((will-dock? s ship)
@@ -341,15 +355,14 @@
   (for ((c clients))
     (while (and (not (port-closed? (client-in c)))
                 (byte-ready? (client-in c)))
-      (define x (read-from-client c))
+      (define cmds (read-from-client c))
       (cond
-        ((eof-object? x)
+        ((eof-object? cmds)
          (close-input-port (client-in c))
          (remove-client c "eof"))
         (else
-         (define commands (list x))
          (define command-changes
-           (apply-all-changes! ownspace commands (space-time ownspace) "server"))
+           (apply-all-changes! ownspace cmds (space-time ownspace) "server"))
          (set! updates (append updates command-changes))))))
   
   

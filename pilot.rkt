@@ -180,8 +180,8 @@
      (define parent (cadr ships))
      (define hangar (get-hangar parent))
      (define r (angle-add (posvel-r (obj-posvel parent)) pi))
-     (define dist (+ (stats-radius (ship-stats ship))
-                     (stats-radius (ship-stats parent))
+     (define dist (+ (ship-radius ship)
+                     (ship-radius parent)
                      10))
      (define pv (posvel 0
                         (+ (posvel-x (obj-posvel parent)) (* dist (cos r)))
@@ -218,7 +218,7 @@
         (struct-copy pilot role (dock (not (pilot-dock role)))))))
     (else
      ;(printf "~a: pilot course change\n" (player-name me))
-     (define course (atan y x))
+     (define course (atan0 y x))
      (when (course . < . 0)
        (set! course (+ course 2pi)))
      (struct-copy pilot role (course course)))))

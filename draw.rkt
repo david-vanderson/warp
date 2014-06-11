@@ -90,7 +90,7 @@
       (send dc translate x y)
       (send dc draw-ellipse -2 -2 4 4)
       (when (ship? o)
-        (define r (stats-radius (ship-stats o)))
+        (define r (ship-radius o))
         (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))))))
 
 
