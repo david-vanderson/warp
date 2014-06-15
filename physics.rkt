@@ -109,9 +109,9 @@
       (define rc (role-change p #f (ob-id (car (ship-pods ss))) (next-id)))
       (set! changes (append changes (list (chadd ss) rc))))
     
-    (for ((i 41))
+    (for ((i 21))
       (define t (random-between 0 2pi))
-      (define s (random-between 80 120))
+      (define s (random-between 10 50))
       (define p (plasma (next-id) (space-time space)
                         (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
                                 (+ (* s (cos t)) (posvel-dx pv))

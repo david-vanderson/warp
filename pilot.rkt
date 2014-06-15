@@ -21,7 +21,8 @@
 
 
 (define (will-dock? s1 s2)
-  (and (pilot-dock (ship-pilot s1))
+  (and (ship-helm s1)
+       (pilot-dock (ship-pilot s1))
        (equal? (ship-faction s1) (ship-faction s2))
        (findf hangarpod? (ship-pods s2))))
 

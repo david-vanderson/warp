@@ -12,6 +12,9 @@
    0 2000 2000
    (list
     
+    (make-ship "blue-station" "Base" "Rebel" #:npc? #t #:x 0 #:y 0 #:start-ship? #t)
+    ;(make-ship "blue-station" "Base" "Rebel" #:npc? #t #:x 0 #:y 0 #:start-ship? #t)
+    
     ;(make-ship "space-suit" "Dave" "Empire" #:start-ship? #t)
     ;(make-ship "blue-frigate" "Blue Frigate" "Rebel" #:start-ship? #t #:x 200 #:helm-fore? #f)
     ;(make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:npc-helm? #f #:x 0 #:y 0)
@@ -50,7 +53,7 @@
 ))
 
 (thread (lambda () (start-client "127.0.0.1" PORT "Dave" #t #f)))
-(thread (lambda () (start-client "127.0.0.1" PORT "Andrea" #t #f)))
+;(thread (lambda () (start-client "127.0.0.1" PORT "Andrea" #t #f)))
 
 (semaphore-wait (make-semaphore))
 

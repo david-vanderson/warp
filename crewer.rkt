@@ -29,8 +29,8 @@
   (define ship-bitmap (get-ship-bitmap ship))
   
   ; reversed because we are rotating by pi/2
-  (define scale (* 0.9 (min (/ HEIGHT (send ship-bitmap get-width))
-                            (/ WIDTH (send ship-bitmap get-height)))))
+  (define scale (* 0.75 (min (/ HEIGHT (send ship-bitmap get-width))
+                             (/ WIDTH (send ship-bitmap get-height)))))
   (keep-transform dc
     (send dc scale scale scale)
     (send dc rotate (- (/ pi 2)))

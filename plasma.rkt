@@ -10,8 +10,8 @@
 (provide (all-defined-out))
 
 
-(define PLASMA_LIFE 5000)  ; ms after which plasma starts fading
-(define PLASMA_DEATH 8000)  ; ms after which plasma is dead
+(define PLASMA_LIFE 3000)  ; ms after which plasma starts fading
+(define PLASMA_DEATH 5000)  ; ms after which plasma is dead
 
 (define plasma-bitmap (make-bitmap 1 1))
 (send plasma-bitmap load-file (string-append "images/" "plasma" ".png") 'png/alpha)
