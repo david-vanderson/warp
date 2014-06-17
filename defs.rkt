@@ -21,6 +21,7 @@
 (define PLASMA_SPEED 60)
 (define SHIELD_SPEED 40)
 (define MAX_POD_ENERGY 100)
+(define MSG_FADE_TIME 4000)
 
 (define next-id
   (let ((id 0))
@@ -183,6 +184,9 @@
 ; ship-id is the id of the ship
 ; strat is the list of new strategies
 
+(struct message obj (msg) #:mutable #:prefab)
+; msg is the text to display
+
 
 ;; UI
 
@@ -217,7 +221,8 @@
     ((or (player? o)
          (plasma? o)
          (shield? o)
-         (effect? o))
+         (effect? o)
+         (message? o))
      (list))
     ((space? o) (space-objects o))
     ((ship? o) (filter values (cons (ship-crew o) (ship-pods o))))

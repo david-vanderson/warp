@@ -152,7 +152,7 @@
        ;(printf "~a ticking forward ~v\n" who (chadd-o c))
        (update-physics! space (chadd-o c) (/ TICK 1000.0))
        (set! ctime (+ ctime TICK)))
-     (set-space-objects! space (cons (chadd-o c) (space-objects space)))
+     (set-space-objects! space (append (space-objects space) (list (chadd-o c))))
      '())
     ((chrm? c)
      ;(printf "~a removing ~v\n" who (find-id space (chrm-id c)))
@@ -186,7 +186,7 @@
               (to
                (set-hangarpod-ships! to (cons o (hangarpod-ships to))))
               (else
-               (set-space-objects! space (cons o (space-objects space)))))
+               (set-space-objects! space (append (space-objects space) (list o)))))
             '())
            (else
             (printf "~a chmov - couldn't find obj id ~a\n" who (chmov-id c))

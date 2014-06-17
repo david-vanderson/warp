@@ -191,7 +191,7 @@
   (list leave-button))
 
 
-(define (draw-overlay dc ownspace stack)
+(define (draw-overlay dc space stack)
   (when stack
     (define role (get-role stack))
     (define str (format "~a" (role-name role)))
@@ -200,7 +200,25 @@
     (keep-transform dc
       (send dc translate 0 (/ HEIGHT 2))
       (send dc scale 1 -1)
-      (send dc draw-text str 0 0))))
+      (send dc draw-text str 0 0)))
+  
+  (when space
+    (define max 8)
+    (define msgs (filter message? (space-objects space)))
+    (set! msgs (take (reverse msgs) (min 8 (length msgs))))
+    (for ((m msgs) (i max))
+      (keep-transform dc
+        (send dc translate (- (/ WIDTH 2)) (- (/ HEIGHT 2)))
+        (send dc translate 0 (* (+ max 6) 20))
+        (send dc translate 0 (* i -20))
+        (send dc scale 1 -1)
+        (define cc "white")
+        (when ((obj-age space m) . > . (/ MSG_FADE_TIME 2))
+          (define z (min 1.0 (/ (- (obj-age space m) (/ MSG_FADE_TIME 2)) (/ MSG_FADE_TIME 2))))
+          (set! cc (linear-color "white" "white" z (- 1.0 z))))
+        (send dc set-text-foreground cc)
+        (send dc draw-text (message-msg m) 0 0)))
+    (send dc set-text-foreground "white")))
 
 
 (define (draw-hud dc ship pod)

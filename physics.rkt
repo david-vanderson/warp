@@ -78,6 +78,9 @@
     ((effect? o)
      (physics! (obj-posvel o) dt)
      (when (effect-dead? space o)
+       (set-space-objects! space (remove o (space-objects space)))))
+    ((message? o)
+     (when ((obj-age space o) . > . MSG_FADE_TIME)
        (set-space-objects! space (remove o (space-objects space)))))))
 
 

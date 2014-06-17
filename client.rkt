@@ -106,6 +106,7 @@
     (send dc set-smoothing 'smoothed)
     (send dc set-background bgcolor)
     (send dc set-text-foreground fgcolor)
+    ;(send dc set-text-mode 'transparent)
     ;    (send dc set-font (send the-font-list find-or-create-font
     ;                          12 'default 'normal 'normal #f 'smoothed #f 'aligned))
     (keep-transform dc

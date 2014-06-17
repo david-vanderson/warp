@@ -423,9 +423,17 @@
   (server-loop))
 
 
+(define last-message-time -1)
+
 ; return a list of changes
 (define (scenario-hook space)
   (define commands '())
+  
+  (when ((space-time space) . > . (+ last-message-time 1500))
+    (define m (message (next-id) (space-time space) #f
+                       (format "Broadcast at time ~a" (space-time space))))
+    (set! commands (append commands (list (chadd m))))
+    (set! last-message-time (space-time space)))
   
   (define types (map ship-type (filter ship? (space-objects space))))
   ;(printf "types ~v\n" types)
