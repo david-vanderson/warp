@@ -207,6 +207,10 @@
            (else
             (printf "~a new-strat - couldn't find obj id ~a\n" who (new-strat-ship-id c))
             '())))
+    ((message? c)
+     (set-obj-start-time! c (space-time space))
+     (set-space-objects! space (append (space-objects space) (list c)))
+     '())
     (else
      (error "apply-change! hit ELSE clause" c))))
 

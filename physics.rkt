@@ -125,7 +125,7 @@
     
     (define msg (message (next-id) (space-time space) #f
                          (format "~a Destroyed" (ship-name ship))))
-    (set! changes (append changes (list (chadd msg)))))
+    (set! changes (append changes (list msg))))
   changes)
 
 
