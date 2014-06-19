@@ -121,7 +121,11 @@
                                 (+ (* s (sin t)) (posvel-dy pv))
                                 0)
                         10.0 #f))
-      (set! changes (append changes (list (chadd p))))))
+      (set! changes (append changes (list (chadd p)))))
+    
+    (define msg (message (next-id) (space-time space) #f
+                         (format "~a Destroyed" (ship-name ship))))
+    (set! changes (append changes (list (chadd msg)))))
   changes)
 
 

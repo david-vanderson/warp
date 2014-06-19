@@ -21,7 +21,7 @@
 (define PLASMA_SPEED 60)
 (define SHIELD_SPEED 40)
 (define MAX_POD_ENERGY 100)
-(define MSG_FADE_TIME 4000)
+(define MSG_FADE_TIME 10000)
 
 (define next-id
   (let ((id 0))

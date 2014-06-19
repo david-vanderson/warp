@@ -112,7 +112,7 @@
     ((and (= 0 (dmag s1)) (= 0 (dmag s2)))
      ; ships aren't moving, but somehow collided, just push them back apart
      (define t (theta s1 s2))
-     (define d (- (hit-distance s1 s2) (distance s1 s2)))
+     (define d (+ 1 (- (hit-distance s1 s2) (distance s1 s2))))
      (define pv1 (obj-posvel s1))
      (set-posvel-x! pv1 (- (posvel-x pv1) (* (/ d 2) (cos t))))
      (set-posvel-y! pv1 (- (posvel-y pv1) (* (/ d 2) (sin t))))
@@ -147,7 +147,7 @@
      (define dv (abs (- (* (dmag s1) (cos (- (dtheta s1) phi)))
                         (* (dmag s2) (cos (- (dtheta s2) phi))))))
      
-     (define dt (/ (- (hit-distance s1 s2) (distance s1 s2)) dv))
+     (define dt (/ (+ 1 (- (hit-distance s1 s2) (distance s1 s2))) dv))
   
      ;(printf "dv ~a dt ~a\n" dv (- dt (/ TICK 1000.0)))
      (physics! (obj-posvel s1) (- dt (/ TICK 1000.0)))
@@ -423,17 +423,9 @@
   (server-loop))
 
 
-(define last-message-time -1)
-
 ; return a list of changes
 (define (scenario-hook space)
   (define commands '())
-  
-  (when ((space-time space) . > . (+ last-message-time 1500))
-    (define m (message (next-id) (space-time space) #f
-                       (format "Broadcast at time ~a" (space-time space))))
-    (set! commands (append commands (list (chadd m))))
-    (set! last-message-time (space-time space)))
   
   (define types (map ship-type (filter ship? (space-objects space))))
   ;(printf "types ~v\n" types)
