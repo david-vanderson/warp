@@ -89,6 +89,10 @@
   (define helmcar (memf helm? (ship-pods s)))
   (if helmcar (car helmcar) #f))
 
+(define (ship-ships s)
+  (define hp (memf hangarpod? (ship-pods s)))
+  (if hp (hangarpod-ships (car hp)) (list)))
+
 (define (ship-pilot s)
   (pod-role (ship-helm s)))
 
@@ -210,7 +214,7 @@
   
   (define enemies (filter (lambda (o)
                             (and (spaceship? o)
-                                 ((ship-containment o) . > . 0)
+                                 ((ship-con o) . > . 0)
                                  (not (equal? (ship-faction o) (ship-faction ownship)))))
                           (space-objects space)))
   (define ne #f)

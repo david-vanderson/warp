@@ -12,7 +12,10 @@
    0 2000 2000
    (list
     
-    (make-ship "blue-station" "Base" "Rebel" #:npc? #t #:x 0 #:y 0 #:start-ship? #t)
+    (make-ship "blue-station" "Base" "Rebel" #:npc? #t #:x 0 #:y 0 #:start-ship? #t
+               #:in-hangar
+               (list (make-ship "blue-frigate" "Base2" "Rebel" #:npc? #t #:posvel? #f #:start-ship? #t)))
+                
     ;(make-ship "blue-station" "Base" "Rebel" #:npc? #t #:x 0 #:y 0 #:start-ship? #t)
     
     ;(make-ship "space-suit" "Dave" "Empire" #:start-ship? #t)

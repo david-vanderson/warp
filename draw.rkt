@@ -130,7 +130,7 @@
     
 ;    (define scale 0.5)
 ;    (send dc scale scale (- scale))
-;    (define text (~r (ship-containment s) #:precision 0))
+;    (define text (~r (ship-con s) #:precision 0))
 ;    (define-values (w h b v) (send dc get-text-extent text #f #t))
 ;    (send dc translate (* -0.5 w) (* -0.5 h))
 ;    (send dc set-pen nocolor 1 'transparent)
@@ -222,9 +222,8 @@
 
 
 (define (draw-hud dc ship pod)
-  (when (ship-flying? ship)
-    (define con (inexact->exact (round (ship-containment ship))))
-    (draw-hud-status-text dc 1 (format "Ship Hull ~a" con)))
+  (define con (inexact->exact (round (ship-con ship))))
+  (draw-hud-status-text dc 1 (format "Ship Hull ~a" con))
   (when pod
     (define e (inexact->exact (round (pod-energy pod))))
     (draw-hud-status-text dc 4 (format "Pod Bat ~a" e))))

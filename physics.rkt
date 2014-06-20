@@ -94,8 +94,8 @@
 ; return list of additional changes
 (define (reduce-ship! space ship damage)
   (define changes '())
-  (set-stats-containment! (ship-stats ship) (- (ship-containment ship) damage))
-  (when ((ship-containment ship) . <= . 0)
+  (set-stats-con! (ship-stats ship) (- (ship-con ship) damage))
+  (when ((ship-con ship) . <= . 0)
     (set-space-objects! space (remove ship (space-objects space)))
     (define pv (obj-posvel ship))
     (define e (effect (next-id) (space-time space) (struct-copy posvel pv) 45 1000))
@@ -133,7 +133,7 @@
   
   ; remove energy for stateful things
   (define h (ship-helm ship))
-  (when (and h ((pod-energy h) . > . 0))
+  (when (and h (ship-flying? ship) ((pod-energy h) . > . 0))
     (when (pilot-fore (pod-role h))
       (set-pod-energy! h (- (pod-energy h) (* 3.0 dt))))
     (when (not (= (pilot-course (pod-role h))
@@ -142,20 +142,41 @@
   
   ; distribute produced and extra energy
   (define pods (filter (lambda (p) (not (multipod? p))) (ship-pods ship)))
-  (set! pods (sort pods < #:key (lambda (p) (max 0.0 (- MAX_POD_ENERGY (pod-energy p))))))
-  (define e (+ 0.0 (* dt (stats-power (ship-stats ship))) extra))
-  (while (not (null? pods))
-    (define ef (/ e (length pods)))
-    (define p (car pods))
-    (define pod-empty (max 0.0 (- MAX_POD_ENERGY (max 0.0 (pod-energy p)))))
-    (cond
-      ((ef . <= . pod-empty)
-       (set-pod-energy! p (+ (pod-energy p) ef))
-       (set! e (- e ef)))
-      (else
-       (set! e (- e pod-empty))
-       (set-pod-energy! p (+ (pod-energy p) pod-empty))))
-    (set! pods (cdr pods)))
+  (define suckers (append pods (ship-ships ship)))
+  (define (pod-need s) (max 0.0 (- MAX_POD_ENERGY (max 0.0 (pod-energy s)))))
+  (define (ship-need s) (min (* 10.0 dt) (max 0.0 (- (ship-maxcon s) (ship-con s)))))
+  (set! suckers (sort suckers <
+                      #:key (lambda (s)
+                              (cond ((pod? s) (pod-need s))
+                                    ((ship? s) (ship-need s))))))
   
+  (define e (+ 0.0 (* dt (stats-power (ship-stats ship))) extra))
+  (while (not (null? suckers))
+    (define ef (/ e (length suckers)))
+    (define s (car suckers))
+    (cond ((pod? s)
+           (define need (pod-need s))
+           (cond ((ef . <= . need)
+                  (set-pod-energy! s (+ (pod-energy s) ef))
+                  (set! e (- e ef)))
+                 (else
+                  (set! e (- e need))
+                  (set-pod-energy! s (+ (pod-energy s) need)))))
+          ((ship? s)
+           (define need (ship-need s))
+           (define stats (ship-stats s))
+           (cond ((ef . <= . need)
+                  (set-stats-con! stats (+ (stats-con stats) (* 0.1 ef)))
+                  (set! e (- e ef)))
+                 (else
+                  (set! e (- e need))
+                  (set-stats-con! stats (+ (stats-con stats) (* 0.1 need)))))))
+    
+    (set! suckers (cdr suckers)))
+  
+  (for ((s (ship-ships ship)))
+    (set! e (update-energy! dt s e)))
+  
+  ; if a ship doesn't use all it's own energy, it still can't give any to its parent
   (min extra e))
 
