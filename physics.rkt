@@ -147,7 +147,7 @@
   (define (ship-need s) (min (* 10.0 dt) (max 0.0 (- (ship-maxcon s) (ship-con s)))))
   (set! suckers (sort suckers <
                       #:key (lambda (s)
-                              (cond ((pod? s) (pod-need s))
+                              (cond ((pod? s) (if (helm? s) -1 (pod-need s)))
                                     ((ship? s) (ship-need s))))))
   
   ; take out battery energy
@@ -156,34 +156,30 @@
   (set-stats-bat! (ship-stats ship) (- (ship-bat ship) bate))
   
   (define e (+ 0.0 (* dt (ship-power ship)) bate extra))
+  
+  ; give our docked ships first dibs
+  (for ((s (ship-ships ship)))
+    (set! e (update-energy! dt s e)))
+  
+  
   (while (not (null? suckers))
     (define ef (/ e (length suckers)))
     (define s (car suckers))
     (cond ((pod? s)
-           (define need (pod-need s))
-           (cond ((ef . <= . need)
-                  (set-pod-energy! s (+ (pod-energy s) ef))
-                  (set! e (- e ef)))
-                 (else
-                  (set! e (- e need))
-                  (set-pod-energy! s (+ (pod-energy s) need)))))
+           (define xfer (min ef (pod-need s)))
+           (when (helm? s) (set! xfer (min e (pod-need s))))
+           (set-pod-energy! s (+ (pod-energy s) xfer))
+           (set! e (- e xfer)))
           ((ship? s)
-           (define need (ship-need s))
+           (define xfer (min ef (ship-need s)))
            (define stats (ship-stats s))
-           (cond ((ef . <= . need)
-                  (set-stats-con! stats (+ (stats-con stats) (* 0.1 ef)))
-                  (set! e (- e ef)))
-                 (else
-                  (set! e (- e need))
-                  (set-stats-con! stats (+ (stats-con stats) (* 0.1 need)))))))
-    
+           (set-stats-con! stats (+ (stats-con stats) (* 0.1 xfer)))
+           (set! e (- e xfer))))
     (set! suckers (cdr suckers)))
   
-  (for ((s (ship-ships ship)))
-    (set! e (update-energy! dt s e)))
-  
   ; put back in battery energy we didn't use
-  (define batback (min e (+ bate (* 5.0 dt))))
+  (define batback (min e (+ bate (* 2 batpow))
+                       (- (stats-maxbat (ship-stats ship)) (ship-bat ship))))
   (set! e (- e batback))
   (set-stats-bat! (ship-stats ship) (+ (ship-bat ship) batback))
   
