@@ -97,7 +97,7 @@
 (struct tactics role (shield) #:mutable #:prefab)
 ; shield is an angle if we want to shoot a shield barrier (at that angle)
 
-(struct stats ob (type name faction power con maxcon radius mass thrust rthrust) #:mutable #:prefab)
+(struct stats ob (type name faction power bat maxbat con maxcon radius mass thrust rthrust) #:mutable #:prefab)
 ; carries all the stats for a ship
 ; name is the name of the ship
 ; faction is the name that this ship belongs to
@@ -120,6 +120,8 @@
 (define (ship-radius s) (stats-radius (ship-stats s)))
 (define (ship-con s) (stats-con (ship-stats s)))
 (define (ship-maxcon s) (stats-maxcon (ship-stats s)))
+(define (ship-bat s) (stats-bat (ship-stats s)))
+(define (ship-power s) (stats-power (ship-stats s)))
 (define (ship-strategy s) (if (null? (ship-ai-strategy s)) #f (car (ship-ai-strategy s))))
 
 (struct spacesuit ship () #:mutable #:prefab)

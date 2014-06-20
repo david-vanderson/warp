@@ -99,6 +99,10 @@
 (define (ship-flying? ship)
   (obj-posvel ship))
 
+(define (return-to-base? ship)
+  (and ((ship-power ship) . <= . 1)  ; no reactor to speak of
+       ((ship-bat ship) . < . 50)))  ; low batteries
+
 (define (recenter center o)
   (values (- (posvel-x (obj-posvel o)) (posvel-x (obj-posvel center)))
           (- (posvel-y (obj-posvel o)) (posvel-y (obj-posvel center)))))

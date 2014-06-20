@@ -150,7 +150,12 @@
                               (cond ((pod? s) (pod-need s))
                                     ((ship? s) (ship-need s))))))
   
-  (define e (+ 0.0 (* dt (stats-power (ship-stats ship))) extra))
+  ; take out battery energy
+  (define batpow (* 5.0 dt))
+  (define bate (min batpow (ship-bat ship)))
+  (set-stats-bat! (ship-stats ship) (- (ship-bat ship) bate))
+  
+  (define e (+ 0.0 (* dt (ship-power ship)) bate extra))
   (while (not (null? suckers))
     (define ef (/ e (length suckers)))
     (define s (car suckers))
@@ -176,6 +181,11 @@
   
   (for ((s (ship-ships ship)))
     (set! e (update-energy! dt s e)))
+  
+  ; put back in battery energy we didn't use
+  (define batback (min e (+ bate (* 5.0 dt))))
+  (set! e (- e batback))
+  (set-stats-bat! (ship-stats ship) (+ (ship-bat ship) batback))
   
   ; if a ship doesn't use all it's own energy, it still can't give any to its parent
   (min extra e))

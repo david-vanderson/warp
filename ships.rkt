@@ -48,13 +48,13 @@
   
   (case type
     (("space-suit")
-     ;(type name faction power con maxcon radius mass thrust rthrust)
-     (set-ship-stats! s (stats (next-id) type name faction 0 1 1 7 1 0 0))
+     ;(type name faction power bat maxbat con maxcon radius mass thrust rthrust)
+     (set-ship-stats! s (stats (next-id) type name faction 0 0 0 1 1 7 1 0 0))
      (set-ship-pods!
       s (list
          (multipod (next-id) (observer (next-id) #f #f) 0 0 #f #f 0 #f '()))))
     (("blue-station")
-     (set-ship-stats! s (stats (next-id) type name faction 10 1000 1000 26 1000 0 0))
+     (set-ship-stats! s (stats (next-id) type name faction 10 0 0 1000 1000 26 1000 0 0))
      (set-ship-pods!
       s `(,(multipod (next-id) (observer (next-id) #f #f) 0 0 #f #f 0 #f '())
           ,(hangarpod (next-id) (hangar (next-id) #f #f) 0 -13 #f #f 0 #f '() in-hangar)
@@ -65,7 +65,7 @@
               (tactical (next-id) (tactics (next-id) #f (and npc? npc-tactical?) #f)
                         (degrees->radians d) 28 (degrees->radians d) (* 0.8 pi) 0)))))
     (("blue-frigate" "red-frigate")
-     (set-ship-stats! s (stats (next-id) type name faction 10 100 100 18 100 20 0.3))
+     (set-ship-stats! s (stats (next-id) type name faction 10 50 100 100 100 18 100 20 0.3))
      (set-ship-pods!
       s (list
          (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) r helm-fore? #f #f) 0 0 #f #f 100)
@@ -76,7 +76,7 @@
          (tactical (next-id) (tactics (next-id) #f (and npc? npc-tactical?) #f)
                    (degrees->radians -21.8) 21.5 0 (* 0.8 pi) 0))))
     (("blue-fighter" "red-fighter")
-     (set-ship-stats! s (stats (next-id) type name faction 10 50 50 6 10 40 1))
+     (set-ship-stats! s (stats (next-id) type name faction 1 100 100 50 50 6 10 40 1))
      (set-ship-pods!
       s (list
          (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) r helm-fore? #f #f) 0 0 #f #f 0)
