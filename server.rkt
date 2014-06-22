@@ -435,6 +435,10 @@
 (define (scenario-hook space)
   (define commands '())
   
+;  (when (<= 1 (modulo (space-time space) 1800) TICK)
+;    (set! commands (append commands (list (message (next-id) (space-time space) #f
+;                                                   (format "Time ~a" (space-time space)))))))
+  
 ;  (define types (map ship-type (filter ship? (space-objects space))))
 ;  ;(printf "types ~v\n" types)
 ;  (define (count-type type)

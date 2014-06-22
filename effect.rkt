@@ -10,12 +10,12 @@
 (provide (all-defined-out))
 
 
-(define (add-backeffects! space o dt)
+(define (add-backeffects! space o)
   (when (and (ship? o)
              (ship-helm o)
              (pilot-fore (ship-pilot o))
-             (or (<= 1 (modulo (obj-age space o) 800) dt)
-                 (and (<= 401 (modulo (obj-age space o) 800) (+ 400 dt))
+             (or (<= 1 (modulo (obj-age space o) 800) TICK)
+                 (and (<= 401 (modulo (obj-age space o) 800) (+ 400 TICK))
                       ((pod-energy (ship-helm o)) . > . 1))))
     ;(printf "~a adding backeffect at ~a ~a\n" (ship-name o) (modulo (obj-age space o) 500) (obj-age space o))
     (define l (- (ship-radius o)))

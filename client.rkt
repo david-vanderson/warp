@@ -200,7 +200,7 @@
     (for ((o (space-objects space)))
       (update-physics! space o (/ TICK 1000.0))
       (when (ship? o) (update-energy! (/ TICK 1000.0) o 0.0))
-      (add-backeffects! space o TICK)))
+      (add-backeffects! space o)))
   
   
   
