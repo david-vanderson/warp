@@ -24,7 +24,7 @@
     (define neww (copy w))
     (define ne (nearest-enemy space ownship))
   
-    (when ne
+    (when (and ne ((distance ownship ne) . < . 500))
       (define me (pod-obj (get-pod stack) ownship))
       (define t (target-angle me me ne ne PLASMA_SPEED))
       (when t

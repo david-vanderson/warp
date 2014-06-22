@@ -97,16 +97,16 @@
   (cond
     ((ship-flying? ship)
      (define ne (nearest-enemy space ship))
-     (cond
-       ((not strat)
+     (case (and strat (strategy-name strat))
+       ((#f)
         (when ne
           (define ns (strategy (space-time space) "attack" (ob-id ne)))
           (set! changes (list (new-strat (ob-id ship) (list ns))))))
-       ((equal? "return" (strategy-name strat))
+       (("return")
         (when (and ne (not (return-to-base? ship)))
           (define ns (strategy (space-time space) "attack" (ob-id ne)))
           (set! changes (list (new-strat (ob-id ship) (cons ns strats))))))
-       ((equal? "retreat" (strategy-name strat))
+       (("retreat")
         (cond
           ((or (not ne) (and (return-to-base? ship)
                              (not (null? (cdr strats)))))
@@ -117,7 +117,7 @@
                             ((strategy-age space strat) . > . 10000))))
            (define ns (strategy (space-time space) "attack" (ob-id ne)))
            (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats))))))))
-       ((equal? "attack" (strategy-name strat))
+       (("attack")
 ;        (printf "attacking, return-to-base: ~a, next strat: ~v\n"
 ;                (return-to-base? ship)
 ;                (if (null? (cdr strats)) #f (cadr strats)))

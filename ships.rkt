@@ -43,8 +43,7 @@
              (next-id) 0 (if posvel? (posvel 0 x y r dx dy dr) #f)
              #f
              (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f 0 start-ship? '())
-             '()
-             '()))
+             '() '() '()))
   
   (for ((hangship in-hangar))
     (set-obj-posvel! hangship #f)

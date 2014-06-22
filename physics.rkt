@@ -95,6 +95,17 @@
 (define (reduce-ship! space ship damage)
   (define changes '())
   (set-stats-con! (ship-stats ship) (- (ship-con ship) damage))
+  
+  (when (damage . > . 0)
+    (define types '("translation"
+                    "shear"
+                    "rotation"
+                    "fade"
+                    "flicker"))
+    (define type (list-ref types (random (length types))))
+    (define d (dmgfx (next-id) (space-time space) #f type damage))
+    (set-ship-dmgfx! ship (append (ship-dmgfx ship) (list d))))
+  
   (when ((ship-con ship) . <= . 0)
     (set-space-objects! space (remove ship (space-objects space)))
     (define pv (obj-posvel ship))
@@ -125,7 +136,9 @@
     
     (define msg (message (next-id) (space-time space) #f
                          (format "~a Destroyed" (ship-name ship))))
-    (set! changes (append changes (list msg))))
+    (set-space-objects! space (append (space-objects space) (list msg)))
+    ;(set! changes (append changes (list msg)))
+    )
   changes)
 
 

@@ -119,6 +119,10 @@
 (define (get-ships stack)
   (filter ship? stack))
 
+(define (get-flying-ship stack)
+  (define flying (filter ship-flying? (get-ships stack)))
+  (if (null? flying) #f (car flying)))
+
 (define (get-hangar ship)
   (define a (filter hangarpod? (ship-pods ship)))
   (if (null? a)

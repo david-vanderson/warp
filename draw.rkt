@@ -241,3 +241,33 @@
       (send dc draw-text (button-label b) (button-left-inset b) (button-top-inset b)))))
 
 
+(define (draw-dmgfx dc space stack)
+  (define ship (get-flying-ship stack))
+  (define keep
+    (for/list ((d (ship-dmgfx ship)))
+      (case (dmgfx-type d)
+        (("translation")
+         (define t (* (dmgfx-size d) (linear-fade (obj-age space d) 0 1000)))
+         (send dc translate (random-between (- t) t) (random-between (- t) t))
+         (if (t . > . 0) d #f))
+        (("shear")
+         (define t (* (dmgfx-size d) 0.02 (linear-fade (obj-age space d) 0 500)))
+         (if ((random) . < . 0.5)
+             (send dc transform (vector 1 (random-between (- t) t) 0 1 0 0))
+             (send dc transform (vector 1 0 (random-between (- t) t) 1 0 0)))
+         (if (t . > . 0) d #f))
+        (("rotation")
+         (define t (* (dmgfx-size d) 0.02 (linear-fade (obj-age space d) 0 500)))
+         (send dc rotate (random-between (- t) t))
+         (if (t . > . 0) d #f))
+        (("fade")
+         (define t (linear-fade (obj-age space d) 0 (* 30 (dmgfx-size d))))
+         (send dc set-alpha (- 1.0 t))
+         (if (t . > . 0) d #f))
+        (("flicker")
+         (define t (linear-fade (obj-age space d) 0 (* 100 (dmgfx-size d))))
+         (send dc set-alpha (if ((random) . < . 0.3) 0 1))
+         (if (t . > . 0) d #f)))))
+  
+  (set-ship-dmgfx! ship (filter values keep)))
+

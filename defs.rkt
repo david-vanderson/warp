@@ -109,10 +109,11 @@
 ; thrust is how much force your main engines produce
 ; rthrust is how much force your turning engines produce
 
-(struct ship obj (stats crew pods ai-strategy) #:mutable #:prefab)
+(struct ship obj (stats crew pods ai-strategy dmgfx) #:mutable #:prefab)
 ; crew is a multipod for players choosing their next role
 ; pods is a list of all the pods on the ship
 ; ai-strategy is a list of strategies, do them in order
+; damages is a list of ship-level damage, plus temporary damage effects
 
 (define (ship-name s) (stats-name (ship-stats s)))
 (define (ship-type s) (stats-type (ship-stats s)))
@@ -146,6 +147,10 @@
 
 (struct strategy (t name arg) #:mutable #:prefab)
 ; name is the state we are in, arg is the parameter(s) for that state
+
+(struct dmgfx obj (type size) #:mutable #:prefab)
+; type is a string that tells us how to show this
+; size is an int that says how big to show this
 
 
 ;; Changes

@@ -114,12 +114,15 @@
       (define scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
       (send dc scale scale (- scale))
       (send dc set-clipping-rect (- (/ WIDTH 2)) (- (/ HEIGHT 2)) (* 1 WIDTH) (* 1 HEIGHT))
+      (send dc set-alpha 1.0)
       
       ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
       
       (send dc clear)
       
       (define role (if my-stack (get-role my-stack) #f))
+      
+      (when my-stack (draw-dmgfx dc ownspace my-stack))
       
       (set! buttons
             (cond
