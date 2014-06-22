@@ -121,6 +121,7 @@
 (define (ship-con s) (stats-con (ship-stats s)))
 (define (ship-maxcon s) (stats-maxcon (ship-stats s)))
 (define (ship-bat s) (stats-bat (ship-stats s)))
+(define (ship-maxbat s) (stats-maxbat (ship-stats s)))
 (define (ship-power s) (stats-power (ship-stats s)))
 (define (ship-strategy s) (if (null? (ship-ai-strategy s)) #f (car (ship-ai-strategy s))))
 
@@ -184,7 +185,7 @@
 ; id is the object we want to update
 ; pv is the new posvel
 
-(struct new-strat (ship-id strat) #:mutable #:prefab)
+(struct new-strat (ship-id strats) #:mutable #:prefab)
 ; ship-id is the id of the ship
 ; strat is the list of new strategies
 

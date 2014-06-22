@@ -101,7 +101,7 @@
 
 (define (return-to-base? ship)
   (and ((ship-power ship) . <= . 1)  ; no reactor to speak of
-       ((ship-bat ship) . < . 50)))  ; low batteries
+       ((ship-bat ship) . <= . 0)))  ; out of batteries
 
 (define (recenter center o)
   (values (- (posvel-x (obj-posvel o)) (posvel-x (obj-posvel center)))

@@ -130,6 +130,7 @@
 
 
 (define (update-energy! dt ship extra)
+  ;(printf "update-energy! ship ~a extra: ~a bat: ~a\n" (ship-name ship) extra (ship-bat ship))
   
   ; remove energy for stateful things
   (define h (ship-helm ship))
@@ -179,7 +180,7 @@
   
   ; put back in battery energy we didn't use
   (define batback (min e (+ bate (* 2 batpow))
-                       (- (stats-maxbat (ship-stats ship)) (ship-bat ship))))
+                       (- (ship-maxbat ship) (ship-bat ship))))
   (set! e (- e batback))
   (set-stats-bat! (ship-stats ship) (+ (ship-bat ship) batback))
   

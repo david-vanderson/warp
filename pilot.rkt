@@ -36,7 +36,8 @@
   (for ((o (space-objects space)))
     (when (and (spaceship? o)
                (not (= (ob-id ship) (ob-id o)))
-               (not (will-dock? o ship)))
+               (not (will-dock? o ship))
+               (not (will-dock? ship o)))
       (define d (distance ship o))
       (define mind (* 1.1 (hit-distance ship o)))
       (define ad (abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship o))))
@@ -60,7 +61,6 @@
        (set! f (+ f (* 5.0 (min 0.8 (/ ad pi)))))
        ))
     (("attack")
-     ; trying to go to the far side of ne
      (define ne (findf (lambda (o) (= (ob-id o) (strategy-arg strat))) (space-objects space)))
      (when ne
        (define d (distance ship ne))
@@ -68,6 +68,16 @@
        
        (define ad (abs (angle-diff (posvel-r (obj-posvel ship))
                                    (theta ship ne))))
+       (set! f (+ f (* 5.0 (- 1.0 (max 0.2 (/ ad pi))))))
+       ))
+    (("return")
+     (define mship (findf (lambda (o) (= (ob-id o) (strategy-arg strat))) (space-objects space)))
+     (when mship
+       (define d (distance ship mship))
+       (set! f (+ f (* 25.0 (- 1.0 (min 1.0 (/ d 1000.0))))))
+
+       (define ad (abs (angle-diff (posvel-r (obj-posvel ship))
+                                   (theta ship mship))))
        (set! f (+ f (* 5.0 (- 1.0 (max 0.2 (/ ad pi))))))
        )))
      
@@ -77,39 +87,74 @@
 ;; server
 
 
-; update strategy, return strategy if updated
-; pilot-ai! plans the route
+; return a list of changes
+; update strategy, pilot-ai! plans the route
 (define (pilot-ai-strategy! space stack)
   (define changes '())
   (define ship (get-ship stack))
-  (define ne (nearest-enemy space ship))
   (define strats (ship-ai-strategy ship))
   (define strat (ship-strategy ship))
   (cond
-    ((not strat)
-     (when ne
-       (define ns (strategy (space-time space) "attack" (ob-id ne)))
-       (set! changes (list (new-strat (ob-id ship) (list ns))))))
-    ((equal? "retreat" (strategy-name strat))
+    ((ship-flying? ship)
+     (define ne (nearest-enemy space ship))
      (cond
-       ((not ne)
-        (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
-       ((and ne (or (not (equal? (ob-id ne) (strategy-arg strat)))
-                    ((distance ship ne) . > . (* 10 (hit-distance ship ne)))
-                    (and ((abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship ne))) . > . (* 5/6 pi))
-                         ((strategy-age space strat) . > . 10000))))
-        (define ns (strategy (space-time space) "attack" (ob-id ne)))
-        (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats))))))))
-    ((equal? "attack" (strategy-name strat))
-     (cond
-       ((not ne)
-        (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
-       ((and ne (not (equal? (ob-id ne) (strategy-arg strat))))
-        (define ns (strategy (space-time space) "attack" (ob-id ne)))
-        (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats))))))
-       ((and ne ((distance ship ne) . < . (* 5 (hit-distance ship ne))))
-        (define ns (strategy (space-time space) "retreat" (ob-id ne)))
-        (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats)))))))))
+       ((not strat)
+        (when ne
+          (define ns (strategy (space-time space) "attack" (ob-id ne)))
+          (set! changes (list (new-strat (ob-id ship) (list ns))))))
+       ((equal? "return" (strategy-name strat))
+        (when (and ne (not (return-to-base? ship)))
+          (define ns (strategy (space-time space) "attack" (ob-id ne)))
+          (set! changes (list (new-strat (ob-id ship) (cons ns strats))))))
+       ((equal? "retreat" (strategy-name strat))
+        (cond
+          ((or (not ne) (and (return-to-base? ship)
+                             (not (null? (cdr strats)))))
+           (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
+          ((and ne (or (not (equal? (ob-id ne) (strategy-arg strat)))
+                       ((distance ship ne) . > . (* 10 (hit-distance ship ne)))
+                       (and ((abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship ne))) . > . (* 5/6 pi))
+                            ((strategy-age space strat) . > . 10000))))
+           (define ns (strategy (space-time space) "attack" (ob-id ne)))
+           (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats))))))))
+       ((equal? "attack" (strategy-name strat))
+;        (printf "attacking, return-to-base: ~a, next strat: ~v\n"
+;                (return-to-base? ship)
+;                (if (null? (cdr strats)) #f (cadr strats)))
+        (cond
+          ((or (not ne) (and (return-to-base? ship)
+                             (not (null? (cdr strats)))))
+           (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
+          ((and ne (not (equal? (ob-id ne) (strategy-arg strat))))
+           (define ns (strategy (space-time space) "attack" (ob-id ne)))
+           (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats))))))
+          ((and ne ((distance ship ne) . < . (* 5 (hit-distance ship ne))))
+           (define ns (strategy (space-time space) "retreat" (ob-id ne)))
+           (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats))))))))))
+    (else
+     (define mothership (cadr (get-ships stack)))
+     (when (and (ship-flying? mothership)
+                strat (equal? "return" (strategy-name strat)))
+       (define real-motherid (strategy-arg strat))
+       (cond
+         ((not (= (ob-id mothership) real-motherid))
+          ; we accidentally docked with not our real ship, launch again
+          ; XXX need to check if there's space to launch
+          (define p (copy (get-role stack)))
+          (set-pilot-fore! p #t)
+          (set-pilot-launch! p #t)
+          (set! changes (list p)))
+         (else
+          (define ne (nearest-enemy space mothership))
+          (when (and ne (= (ship-bat ship) (ship-maxbat ship)))
+            ; there's an enemy and we're ready to go - launch and attack
+            ; XXX need to check if there's space to launch
+            (define p (copy (get-role stack)))
+            (set-pilot-fore! p #t)
+            (set-pilot-launch! p #t)
+            (define ns (strategy (space-time space) "attack" (ob-id ne)))
+            (set! changes (list p (new-strat (ob-id ship) (cons ns strats))))))))))
+     
 ;  (when (not (null? changes))
 ;    (printf "new strat: ~v\n" (car changes)))
   changes)
@@ -121,6 +166,24 @@
   
   (define ownship (get-ship stack))
   (define p (get-role stack))
+  
+  ; check if we need to change pilot-dock
+  (let ()
+    (define strat (ship-strategy ownship))
+    (when (and strat
+               (equal? "return" (strategy-name strat))
+               (not (pilot-dock p)))
+      (define newp (copy p))
+      (set-pilot-dock! newp #t)
+      (set! changes (append changes (list newp))))
+    (when (and strat
+               (not (equal? "return" (strategy-name strat)))
+               (pilot-dock p))
+      (define newp (copy p))
+      (set-pilot-dock! newp #f)
+      (set! changes (append changes (list newp)))))
+  
+  
   (define origp (copy p))
   
   ; only worry about ships
@@ -165,7 +228,7 @@
   
   (when (not (equal? origp p))
     ;(printf "~a new pilot ~v\n" (ship-name ownship) p)
-    (set! changes (list p)))
+    (set! changes (append changes (list p))))
   
   changes)
 
