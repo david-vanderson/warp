@@ -138,17 +138,18 @@
        (define real-motherid (strategy-arg strat))
        (cond
          ((not (= (ob-id mothership) real-motherid))
-          ; we accidentally docked with not our real ship, launch again
-          ; XXX need to check if there's space to launch
-          (define p (copy (get-role stack)))
-          (set-pilot-fore! p #t)
-          (set-pilot-launch! p #t)
-          (set! changes (list p)))
+          (when (not (ship-behind? space mothership))
+            ; we accidentally docked with not our real mothership, launch again
+            (define p (copy (get-role stack)))
+            (set-pilot-fore! p #t)
+            (set-pilot-launch! p #t)
+            (set! changes (list p))))
          (else
           (define ne (nearest-enemy space mothership))
-          (when (and ne (= (ship-bat ship) (ship-maxbat ship)))
+          (when (and ne
+                     (= (ship-bat ship) (ship-maxbat ship))
+                     (not (ship-behind? space mothership)))
             ; there's an enemy and we're ready to go - launch and attack
-            ; XXX need to check if there's space to launch
             (define p (copy (get-role stack)))
             (set-pilot-fore! p #t)
             (set-pilot-launch! p #t)
@@ -166,6 +167,7 @@
   
   (define ownship (get-ship stack))
   (define p (get-role stack))
+  (define origp (copy p))
   
   ; check if we need to change pilot-dock
   (let ()
@@ -173,18 +175,11 @@
     (when (and strat
                (equal? "return" (strategy-name strat))
                (not (pilot-dock p)))
-      (define newp (copy p))
-      (set-pilot-dock! newp #t)
-      (set! changes (append changes (list newp))))
+      (set-pilot-dock! p #t))
     (when (and strat
                (not (equal? "return" (strategy-name strat)))
                (pilot-dock p))
-      (define newp (copy p))
-      (set-pilot-dock! newp #f)
-      (set! changes (append changes (list newp)))))
-  
-  
-  (define origp (copy p))
+      (set-pilot-dock! p #f)))
   
   ; only worry about ships
   (define ships (filter (lambda (o)

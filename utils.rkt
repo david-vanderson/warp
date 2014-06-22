@@ -232,6 +232,22 @@
   ne)
 
 
+(define (ship-behind? space ship)
+  (define max-dist 75)
+  (define max-ang pi/2)
+  (define ships (filter (lambda (o)
+                          (and (spaceship? o)
+                               ((ship-con o) . > . 0)
+                               ((distance ship o) . < . max-dist)))
+                        (space-objects space)))
+  (define ns #f)
+  (for ((s ships))
+    (define a (angle-diff (angle-add pi (posvel-r (obj-posvel ship))) (theta ship s)))
+    (when ((abs a) . < . max-ang)
+      (set! ns s)))
+  ns)
+
+
 (define (target-angle source-pos source-vel target-pos target-vel shot-speed)
   ; relative velocity
   (define vx (- (if target-vel (posvel-dx (obj-posvel target-vel)) 0)
