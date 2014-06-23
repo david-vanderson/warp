@@ -72,7 +72,7 @@
                         (struct-copy posvel (obj-posvel p)
                                      (dx (posvel-dx (obj-posvel ship)))
                                      (dy (posvel-dy (obj-posvel ship))))
-                        6 300))
+                        (plasma-radius space p) 300))
       (set! changes (append changes (list (chdam (ob-id p) damage)
                                           (chdam (ob-id ship) damage)
                                           (chadd e))))))
@@ -439,26 +439,29 @@
 ;    (set! commands (append commands (list (message (next-id) (space-time space) #f
 ;                                                   (format "Time ~a" (space-time space)))))))
   
-;  (define types (map ship-type (filter ship? (space-objects space))))
-;  ;(printf "types ~v\n" types)
-;  (define (count-type type)
-;    (length (filter (lambda (t) (equal? t type)) types)))
-;  
-;  (define theta (random-between 0 2pi))
-;  (define r (random-between 0 500))
-;  (define x (* r (cos theta)))
-;  (define y (* r (sin theta)))
-;  
-;  (cond
-;    (((count-type "blue-frigate") . < . 1)
-;     (define s (make-ship "blue-frigate" "Blue Frigate" "Rebel" #:npc? #t #:x x #:y y #:r (angle-add theta pi) #:start-ship? #t
-;                 #:in-hangar (list
-;                              (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:npc? #t #:posvel? #f)
-;                              (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:npc? #t #:posvel? #f))))
-;     (set! commands (append commands (list (chadd s)))))
-;    (((count-type "red-frigate") . < . 1)
-;     (define s (make-ship "red-frigate" "Red Frigate" "Empire" #:npc? #t #:x x #:y y #:r (angle-add theta pi)))
-;     (set! commands (append commands (list (chadd s)))))
+  (define types (map ship-type (filter ship? (space-objects space))))
+  ;(printf "types ~v\n" types)
+  (define (count-type type)
+    (length (filter (lambda (t) (equal? t type)) types)))
+  
+  (define theta (random-between 0 2pi))
+  (define r (random-between 0 500))
+  (define x (* r (cos theta)))
+  (define y (* r (sin theta)))
+  
+  (cond
+    (((count-type "blue-frigate") . < . 1)
+     (define s (make-ship "blue-frigate" "Blue Frigate" "Rebel" #:npc? #t #:x x #:y y #:r (angle-add theta pi) #:start-ship? #t
+                 #:in-hangar (list
+                              (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:npc? #t #:start-ship? #t)
+                              (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:npc? #t #:start-ship? #t))))
+     (set! commands (append commands (list (chadd s)))))
+    (((count-type "red-frigate") . < . 1)
+     (define s (make-ship "red-frigate" "Red Frigate" "Empire" #:npc? #t #:x x #:y y #:r (angle-add theta pi) #:start-ship? #t
+                 #:in-hangar (list
+                              (make-ship "red-fighter" "Red Fighter" "Empire" #:npc? #t #:start-ship? #t)
+                              (make-ship "red-fighter" "Red Fighter" "Empire" #:npc? #t #:start-ship? #t))))
+     (set! commands (append commands (list (chadd s))))))
 ;    (((count-type "blue-fighter") . < . 2)
 ;     (define s (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:start-ship? #t #:npc? #t #:x x #:y y #:r (angle-add theta pi)))
 ;     (set! commands (append commands (list (chadd s)))))

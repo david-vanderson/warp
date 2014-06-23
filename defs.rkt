@@ -69,7 +69,6 @@
 (struct hangar crewer () #:mutable #:prefab)
 ; special role used when players are in the hangar of a ship choosing their next role
 
-
 (struct hangarpod multipod (ships) #:mutable #:prefab)
 ; ships is a list of the ships inside the hangar
 
@@ -77,23 +76,18 @@
 ; role where you don't do anything but you see the "captain's view"
 
 (struct helm pod () #:mutable #:prefab)
-
 (struct pilot role (course fore launch dock) #:mutable #:prefab)
 ; course is angle pilot wants to point at
 ; if fore is #t, main thrusters are firing
 ; launch is #t if pilot wants to launch from a hangar
 ; dock is #t if the pilot wants to dock with the next ship they hits
 
-(struct weapon pod () #:mutable #:prefab)
-; angle is with respect to the ship/pod we are one
-; spread is the angle within which we can shoot (centered on angle)
-
+(struct weapon pod (plasma-size) #:mutable #:prefab)
+; plasma-size is how much we fire each time
 (struct weapons role (fire) #:mutable #:prefab)
 ; fire is an angle if we want to shoot a plasma (at that angle)
 
 (struct tactical pod () #:mutable #:prefab)
-; angle is with respect to the ship/pod we are one
-
 (struct tactics role (shield) #:mutable #:prefab)
 ; shield is an angle if we want to shoot a shield barrier (at that angle)
 

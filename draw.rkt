@@ -241,8 +241,9 @@
       (send dc draw-text (button-label b) (button-left-inset b) (button-top-inset b)))))
 
 
-(define (draw-dmgfx dc space stack)
-  (define ship (get-flying-ship stack))
+(define (draw-dmgfx dc stack)
+  (define space (get-space stack))
+  (define ship (get-ship (reverse stack)))
   (define keep
     (for/list ((d (ship-dmgfx ship)))
       (case (dmgfx-type d)

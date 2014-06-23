@@ -10,8 +10,6 @@
 
 (provide (all-defined-out))
 
-(define PLASMA_COST 10.0)
-
 ;; server
 
 ; return a list of changes
@@ -19,7 +17,7 @@
   (define changes '())
   (define ownship (get-ship stack))
   (when (and (ship-flying? ownship)
-             ((pod-energy (get-pod stack)) . > . PLASMA_COST))
+             ((pod-energy (get-pod stack)) . > . (weapon-plasma-size (get-pod stack))))
     (define w (get-role stack))
     (define neww (copy w))
     (define ne (nearest-enemy space ownship))
@@ -65,8 +63,8 @@
                                (+ (* PLASMA_SPEED (cos a)) (posvel-dx ps) rvx)
                                (+ (* PLASMA_SPEED (sin a)) (posvel-dy ps) rvy)
                                0)
-                       10.0 (ob-id ship)))
-     (list (chadd p) (cherg (ob-id pod) (- PLASMA_COST))))
+                       (weapon-plasma-size pod) (ob-id ship)))
+     (list (chadd p) (cherg (ob-id pod) (- (weapon-plasma-size pod)))))
     (else
      (error "command-weapons hit ELSE clause"))))
 
@@ -76,7 +74,7 @@
 (define (click-weapons x y button stack)
   (cond
     ((and (ship-flying? (get-ship stack))
-          ((pod-energy (get-pod stack)) . > . PLASMA_COST))
+          ((pod-energy (get-pod stack)) . > . (weapon-plasma-size (get-pod stack))))
      ; we are firing
      (define fangle (angle-norm (atan0 y x)))
      

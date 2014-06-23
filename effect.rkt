@@ -43,11 +43,10 @@
          (draw-backeffect dc space center e))
         (else
          (define-values (x y) (recenter center e))
-         (define agep (min 1.0 (/ (obj-age space e) (effect-duration e))))
-         (define rad (* 2 agep (effect-size e)))
-         (define c (send the-color-database find-color "yellow"))
-         (define cc (make-color (send c red) (send c green) (send c blue) (- 1.0 agep)))
-         (send dc set-pen cc (* (- 1.0 agep) (* 1 (effect-size e))) 'solid)
+         (define agep (linear-fade (obj-age space e) 0 (effect-duration e)))
+         (define cc (linear-color "yellow" "yellow" 0 agep))
+         (define rad (* (+ 0.5 (- 1.0 agep)) (effect-size e)))
+         (send dc set-pen cc rad 'solid)
          (send dc set-brush nocolor 'transparent)
          (send dc draw-ellipse (- x rad) (- y rad) (* 2 rad) (* 2 rad)))))
 

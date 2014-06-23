@@ -122,7 +122,7 @@
       
       (define role (if my-stack (get-role my-stack) #f))
       
-      (when my-stack (draw-dmgfx dc ownspace my-stack))
+      (when my-stack (draw-dmgfx dc my-stack))
       
       (set! buttons
             (cond

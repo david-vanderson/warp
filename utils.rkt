@@ -119,10 +119,6 @@
 (define (get-ships stack)
   (filter ship? stack))
 
-(define (get-flying-ship stack)
-  (define flying (filter ship-flying? (get-ships stack)))
-  (if (null? flying) #f (car flying)))
-
 (define (get-hangar ship)
   (define a (filter hangarpod? (ship-pods ship)))
   (if (null? a)
@@ -135,8 +131,7 @@
   
   (define ship (get-ship stack))
   (cond
-    ((and (equal? (ob-id ship) (ob-id center))
-          (pod-facing (get-pod stack)))
+    ((equal? (ob-id ship) (ob-id center))
      (define pod (get-pod stack))
      (obj #f #f (posvel
                  0
@@ -147,7 +142,6 @@
 
 (define (get-space stack)
   (car (reverse stack)))
-
 
 
 (define (angle-norm r)
