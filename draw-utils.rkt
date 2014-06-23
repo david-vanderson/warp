@@ -35,6 +35,11 @@
   (screen->canon canvas sx sy))
 
 
+(define (dc-point-size dc)
+  (define m (send dc get-initial-matrix))
+  (min (abs (vector-ref m 0)) (abs (vector-ref m 3))))
+
+
 (define (draw-hud-status-text dc linenum str)
   (keep-transform dc
     (send dc translate (- (/ WIDTH 2)) (/ HEIGHT 2))

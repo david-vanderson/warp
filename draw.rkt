@@ -69,16 +69,25 @@
   )
 
 
-(define (draw-object dc o center space)
+(define (draw-object dc o center space (map #f))
   (cond
     ((ship? o)
-     (draw-ship dc o center))
+     (if map
+         (draw-ship dc o center)
+         (draw-ship dc o center)))
     ((plasma? o)
-     (draw-plasma dc o center space))
+     (if map
+         (let ()
+           (define-values (x y) (recenter center o))
+           (send dc set-pen "red" (/ 2 (dc-point-size dc)) 'solid)
+           (send dc draw-point x y))
+         (draw-plasma dc o center space)))
     ((shield? o)
      (draw-shield dc space center o))
     ((effect? o)
-     (draw-effect dc space center o))))
+     (if map
+         (void)
+         (draw-effect dc space center o)))))
 
 
 (define (draw-server-objects dc center space)
@@ -156,11 +165,25 @@
     (define max-y (space-height space))
     (define scale (min (/ WIDTH max-x) (/ HEIGHT max-y)))
     (send dc scale scale scale)
+    (printf "dc-point-size: ~a\n" (dc-point-size dc))
     (define center (obj #f #f (posvel 0 0 0 0 0 0 0)))
-    (draw-background dc space center background-bitmap 4 1 max-x max-y)
+    ;(draw-background dc space center background-bitmap 4 1 max-x max-y)
     ;(draw-background dc space center stars1-bitmap 8 2 max-x max-y)
+    (define cc (linear-color "blue" "blue" 1.0 0.25))
+    (send dc set-pen cc (/ 2 (dc-point-size dc)) 'solid)
+    (define sw 500)
+    (for ((i (inexact->exact (round (/ max-x sw)))))
+      (send dc draw-line (* sw i) (- (/ max-y 2)) (* sw i) (/ max-y 2)))
+    (for ((i (inexact->exact (round (/ (- max-x sw) sw)))))
+      (send dc draw-line (- (* sw i)) (- (/ max-y 2)) (- (* sw i)) (/ max-y 2)))
+    
+    (for ((i (inexact->exact (round (/ max-y sw)))))
+      (send dc draw-line (- (/ max-x 2)) (* sw i) (/ max-x 2) (* sw i)))
+    (for ((i (inexact->exact (round (/ (- max-y sw) sw)))))
+      (send dc draw-line (- (/ max-x 2)) (- (* sw i)) (/ max-x 2) (- (* sw i))))
+    
     (for ((o (space-objects space)))
-      (draw-object dc o center space)))
+      (draw-object dc o center space #t)))
   
   (define buttons (list leave-button))
   
