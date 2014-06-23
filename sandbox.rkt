@@ -42,7 +42,11 @@
             (make-ship "blue-frigate" "Rebel Frigate" "Rebel"
               #:in-hangar
               (list (make-ship "blue-fighter" "Rebel Fighter" "Rebel")
-                    (make-ship "blue-fighter" "Rebel Fighter" "Rebel")))))
+                    (make-ship "blue-fighter" "Rebel Fighter" "Rebel")))
+            (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:npc? #t)
+            (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:npc? #t)
+            (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:npc? #t)
+            (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:npc? #t)))
     
     enemy-base
     )))
@@ -52,7 +56,7 @@
 (start-server PORT ownspace)
 ))
 
-(thread (lambda () (start-client "127.0.0.1" PORT "Dave" #t #f)))
+;(thread (lambda () (start-client "127.0.0.1" PORT "Dave" #t #f)))
 ;(thread (lambda () (start-client "127.0.0.1" PORT "Andrea" #t #f)))
 
 (semaphore-wait (make-semaphore))
