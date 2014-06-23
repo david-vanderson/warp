@@ -51,7 +51,3 @@
               (inexact->exact (floor (+ (* nz (send a green)) (* z (send b green)))))
               (inexact->exact (floor (+ (* nz (send a blue))  (* z (send b blue)))))
               alpha))
-
-
-(define (sigmoid x)
-  (- (/ 2.0 (+ 1.0 (exp (- (/ x 20))))) 1.0))

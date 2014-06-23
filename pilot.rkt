@@ -360,8 +360,8 @@
       (define normfit (/ curfit (add1 i)))
       (define-values (newx newy) (recenter center ship))
       (define cc (if (normfit . > . 0)
-                     (linear-color "blue" "green" (sigmoid normfit) 1.0)
-                     (linear-color "blue" "red" (- (sigmoid normfit)) 1.0)))
+                     (linear-color "blue" "green" (sigmoid normfit 20) 1.0)
+                     (linear-color "blue" "red" (- (sigmoid normfit 20)) 1.0)))
       (send dc set-pen cc 2.0 'solid)
       (send dc draw-line oldx oldy newx newy))
     

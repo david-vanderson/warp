@@ -109,7 +109,8 @@
   (when ((ship-con ship) . <= . 0)
     (set-space-objects! space (remove ship (space-objects space)))
     (define pv (obj-posvel ship))
-    (define e (effect (next-id) (space-time space) (struct-copy posvel pv) 45 1000))
+    (define energy (ship-mass ship))
+    (define e (effect (next-id) (space-time space) (struct-copy posvel pv) (sqrt energy) 1000))
     (set! changes (append changes (list (chadd e))))
     
     (for ((ps (search ship player? #t)))
@@ -123,7 +124,10 @@
       (define rc (role-change p #f (ob-id (car (ship-pods ss))) (next-id)))
       (set! changes (append changes (list (chadd ss) rc))))
     
-    (for ((i 21))
+    (define energy-left energy)
+    (while (energy-left . > . 1)
+      (define e (random-between 5 (sqrt energy)))
+      (set! energy-left (- energy-left e))
       (define t (random-between 0 2pi))
       (define s (random-between 10 50))
       (define p (plasma (next-id) (space-time space)
@@ -131,7 +135,7 @@
                                 (+ (* s (cos t)) (posvel-dx pv))
                                 (+ (* s (sin t)) (posvel-dy pv))
                                 0)
-                        10.0 #f))
+                        e #f))
       (set! changes (append changes (list (chadd p)))))
     
     (define msg (message (next-id) (space-time space) #f

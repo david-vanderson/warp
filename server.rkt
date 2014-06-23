@@ -453,14 +453,14 @@
     (((count-type "blue-frigate") . < . 1)
      (define s (make-ship "blue-frigate" "Blue Frigate" "Rebel" #:npc? #t #:x x #:y y #:r (angle-add theta pi) #:start-ship? #t
                  #:in-hangar (list
-                              (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:npc? #t #:start-ship? #t)
-                              (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:npc? #t #:start-ship? #t))))
+                              (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:npc? #t)
+                              (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:npc? #t))))
      (set! commands (append commands (list (chadd s)))))
     (((count-type "red-frigate") . < . 1)
      (define s (make-ship "red-frigate" "Red Frigate" "Empire" #:npc? #t #:x x #:y y #:r (angle-add theta pi) #:start-ship? #t
                  #:in-hangar (list
-                              (make-ship "red-fighter" "Red Fighter" "Empire" #:npc? #t #:start-ship? #t)
-                              (make-ship "red-fighter" "Red Fighter" "Empire" #:npc? #t #:start-ship? #t))))
+                              (make-ship "red-fighter" "Red Fighter" "Empire" #:npc? #t)
+                              (make-ship "red-fighter" "Red Fighter" "Empire" #:npc? #t))))
      (set! commands (append commands (list (chadd s))))))
 ;    (((count-type "blue-fighter") . < . 2)
 ;     (define s (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:start-ship? #t #:npc? #t #:x x #:y y #:r (angle-add theta pi)))
