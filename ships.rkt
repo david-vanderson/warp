@@ -22,6 +22,7 @@
 (load-ship "space-suit")
 
 (load-ship "blue-station")
+(load-ship "red-station")
 (load-ship "blue-frigate")
 (load-ship "red-frigate")
 (load-ship "blue-fighter")
@@ -57,9 +58,9 @@
      (set-ship-pods!
       s (list
          (multipod (next-id) (observer (next-id) #f #f) 0 0 #f #f 0 #f '()))))
-    (("blue-station")
+    (("blue-station" "red-station")
      (define mb 0)
-     (set-ship-stats! s (stats (next-id) type name faction 10 mb mb 100 1000 26 1000 0 0))
+     (set-ship-stats! s (stats (next-id) type name faction 10 mb mb 1000 1000 26 1000 0 0))
      (set-ship-pods!
       s `(,(multipod (next-id) (observer (next-id) #f #f) 0 0 #f #f 0 #f '())
           ,(hangarpod (next-id) (hangar (next-id) #f #f) pi 13 #f #f 0 #f '() in-hangar)
@@ -70,8 +71,8 @@
               (tactical (next-id) (tactics (next-id) #f (and npc? npc-tactical?) #f)
                         (degrees->radians d) 28 (degrees->radians d) (* 0.8 pi) MAX_POD_ENERGY)))))
     (("blue-frigate" "red-frigate")
-     (define mb 100)
-     (set-ship-stats! s (stats (next-id) type name faction 10 mb mb 100 100 18 100 20 0.3))
+     (define mb 200)
+     (set-ship-stats! s (stats (next-id) type name faction 10 mb mb 200 200 18 100 20 0.3))
      (set-ship-pods!
       s (list
          (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) r helm-fore? #f #f) 0 0 #f #f MAX_POD_ENERGY)
@@ -79,6 +80,8 @@
          (hangarpod (next-id) (hangar (next-id) #f #f) pi 10 #f #f 0 #f '() in-hangar)
          (weapon (next-id) (weapons (next-id) #f (and npc? npc-weapons?) #f)
                  (degrees->radians 21.8) 21.5 0 (* 0.8 pi) MAX_POD_ENERGY 10)
+         (weapon (next-id) (weapons (next-id) #f (and npc? npc-weapons?) #f)
+                 (degrees->radians 196) 21.5 (degrees->radians 180) (* 0.8 pi) MAX_POD_ENERGY 5)
          (tactical (next-id) (tactics (next-id) #f (and npc? npc-tactical?) #f)
                    (degrees->radians -21.8) 21.5 0 (* 0.8 pi) MAX_POD_ENERGY))))
     (("blue-fighter" "red-fighter")

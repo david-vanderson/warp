@@ -7,56 +7,44 @@
          "server.rkt"
          "ships.rkt")
 
+(define enemy-base
+  (make-ship "red-station" "Empire Base" "Empire" #:npc? #t #:x 1000 #:y 100
+      #:in-hangar
+      (list (make-ship "red-fighter" "Empire Fighter" "Empire" #:npc? #t)
+            (make-ship "red-fighter" "Empire Fighter" "Empire" #:npc? #t)
+            (make-ship "red-fighter" "Empire Fighter" "Empire" #:npc? #t)
+            (make-ship "red-fighter" "Empire Fighter" "Empire" #:npc? #t))))
+
+(set-stats-con! (ship-stats enemy-base) 200)
+
+(define f (make-ship "red-fighter" "Empire1" "Empire" #:npc? #t #:start-ship? #t #:x 300 #:y 10))
+(set-ship-ai-strategy! f (list (strategy 0 "return" (ob-id enemy-base))))
+
 (define ownspace
   (space
    0 2000 2000
    (list
     
-    ;(make-ship "red-frigate" "Empire1" "Empire" #:npc? #t #:start-ship? #t #:x 300 #:y 0)
+    ;f
     
     ;(make-ship "blue-fighter" "Blue 6" "Rebel" #:npc? #t #:x 400 #:y 0)
     
-    (make-ship "blue-station" "Base" "Rebel" #:npc? #t #:x 0 #:y 0 #:start-ship? #t)
-;               #:in-hangar
-;               (list (make-ship "blue-fighter" "Blue 5" "Rebel" #:npc? #t #:start-ship? #t)
-;                     (make-ship "blue-fighter" "Blue 6" "Rebel" #:npc? #t)
-;                     (make-ship "blue-fighter" "Blue 7" "Rebel" #:npc? #t)
-;                     (make-ship "blue-fighter" "Blue 8" "Rebel" #:npc? #t)))
+    (make-ship "blue-station" "Rebel Base" "Rebel" #:npc? #t #:x 0 #:y 0 #:start-ship? #t
+      #:in-hangar
+      (list (make-ship "blue-frigate" "Rebel Frigate" "Rebel"
+              #:in-hangar
+              (list (make-ship "blue-fighter" "Rebel Fighter" "Rebel")
+                    (make-ship "blue-fighter" "Rebel Fighter" "Rebel")))
+            (make-ship "blue-frigate" "Rebel Frigate" "Rebel"
+              #:in-hangar
+              (list (make-ship "blue-fighter" "Rebel Fighter" "Rebel")
+                    (make-ship "blue-fighter" "Rebel Fighter" "Rebel")))
+            (make-ship "blue-frigate" "Rebel Frigate" "Rebel"
+              #:in-hangar
+              (list (make-ship "blue-fighter" "Rebel Fighter" "Rebel")
+                    (make-ship "blue-fighter" "Rebel Fighter" "Rebel")))))
     
-    ;(make-ship "blue-station" "Base 2" "Rebel" #:npc? #f #:x 200 #:y 0 #:start-ship? #t)
-                
-    ;(make-ship "blue-station" "Base" "Rebel" #:npc? #t #:x 0 #:y 0 #:start-ship? #t)
-    
-    ;(make-ship "space-suit" "Dave" "Empire" #:start-ship? #t)
-    ;(make-ship "blue-frigate" "Blue Frigate" "Rebel" #:start-ship? #t #:x 200 #:helm-fore? #f)
-    ;(make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:npc-helm? #f #:x 0 #:y 0)
-    ;(make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:npc-helm? #f #:x 0 #:y 50)
-    ;(make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:npc-helm? #f #:x 0 #:y -50)
-    
-;    (make-ship "red-frigate" "Empire1" "Empire" #:npc? #t #:x 500 #:y 0 #:r pi)
-;    (make-ship "red-fighter" "Red 1" "Empire" #:npc? #t #:x 500 #:y 100 #:r pi)
-;    (make-ship "red-fighter" "Red 2" "Empire" #:npc? #t #:x 500 #:y -100 #:r pi)
-    
-    ;(make-ship "blue-fighter" "Blue 5" "Rebel" #:start-ship? #t #:npc? #t #:x 0 #:y 0)
-;    (make-ship "blue-fighter" "Blue 6" "Rebel" #:start-ship? #t #:npc? #t #:x -400 #:y -100)
-;    (make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:x -400 #:y 0 #:start-ship? #t
-;               #:in-hangar (list
-;                            (make-ship "blue-fighter" "Blue 1" "Rebel" #:npc? #t #:posvel? #f)
-;                            (make-ship "blue-fighter" "Blue 2" "Rebel" #:npc? #t #:posvel? #f)))
-    
-    
-;    (make-ship "blue-fighter" "RF 1" "Rebel" #:npc? #t #:x -300 #:y 50 #:start-ship? #t)
-;    (make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:x -200 #:y 100)
-;    (make-ship "blue-frigate" "Rebel1" "Rebel" #:npc? #t #:x -200 #:y 200)
-;    (make-ship "red-frigate" "Empire1" "Empire" #:npc? #t #:x 200 #:y 100 #:r pi)
-;    (make-ship "red-frigate" "Empire1" "Empire" #:npc? #t #:x 200 #:y 300 #:r pi)
-;    (make-ship "blue-fighter" "RF 2" "Rebel" #:npc? #t #:x -300 #:y 150)
-;    (make-ship "red-fighter" "EF 1" "Empire" #:npc? #t #:x 300 #:y 50 #:r pi)
-;    (make-ship "red-fighter" "EF 2" "Empire" #:npc? #t #:x 200 #:y 150 #:r pi)
-;    (make-ship "blue-fighter" "EF 3" "Empire" #:npc? #t #:x 200 #:y 75)
-;    (make-ship "blue-fighter" "Red 5" "Rebel" #:start-ship? #t #:npc? #t #:x 0 #:y 20 #:r pi #:dx -20)
-    ;(big-ship "Empire1" "Empire" 400 0 pi/2 #f #t #f #t #t #t)
-    ;(big-ship "Empire2" "Empire" 600 0 (- pi/2) #f #t #f #t #t #t)
+    enemy-base
     )))
 
 

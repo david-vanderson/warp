@@ -104,7 +104,11 @@
 
 (define (return-to-base? ship)
   (and ((ship-power ship) . <= . 1)  ; no reactor to speak of
-       ((ship-bat ship) . <= . 0)))  ; out of batteries
+       ((ship-bat ship) . <= . 0)    ; out of batteries
+       ; we have a return strategy somewhere
+       (not (null? (filter (lambda (s) (equal? "return" (strategy-name s)))
+                           (ship-ai-strategy ship))))))
+  
 
 (define (recenter center o)
   (values (- (posvel-x (obj-posvel o)) (posvel-x (obj-posvel center)))
@@ -215,7 +219,7 @@
 ;; ai utils
 
 (define (nearest-enemy space ownship)
-  (define agro-dist 1000)  ; ignore ships farther away than this
+  (define agro-dist 500)  ; ignore ships farther away than this
   
   (define enemies (filter (lambda (o)
                             (and (spaceship? o)
@@ -238,6 +242,7 @@
   (define max-ang pi/2)
   (define ships (filter (lambda (o)
                           (and (spaceship? o)
+                               (not (= (ob-id ship) (ob-id o)))
                                ((ship-con o) . > . 0)
                                ((distance ship o) . < . max-dist)))
                         (space-objects space)))

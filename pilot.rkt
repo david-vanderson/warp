@@ -55,7 +55,7 @@
      (define ne (findf (lambda (o) (= (ob-id o) (strategy-arg strat))) (space-objects space)))
      (when ne
        (define d (distance ship ne))
-       (set! f (+ f (* 25.0 (min 1.0 (/ d 1000.0)))))
+       (set! f (+ f (* 100.0 (sigmoid d 500))))
        (define ad (abs (angle-diff (posvel-r (obj-posvel ship))
                                    (theta ship ne))))
        (set! f (+ f (* 5.0 (min 0.8 (/ ad pi)))))
@@ -64,7 +64,7 @@
      (define ne (findf (lambda (o) (= (ob-id o) (strategy-arg strat))) (space-objects space)))
      (when ne
        (define d (distance ship ne))
-       (set! f (+ f (* 25.0 (- 1.0 (min 1.0 (/ d 1000.0))))))
+       (set! f (+ f (* 100.0 (- 1.0 (sigmoid d 500)))))
        
        (define ad (abs (angle-diff (posvel-r (obj-posvel ship))
                                    (theta ship ne))))
@@ -74,12 +74,11 @@
      (define mship (findf (lambda (o) (= (ob-id o) (strategy-arg strat))) (space-objects space)))
      (when mship
        (define d (distance ship mship))
-       (set! f (+ f (* 25.0 (- 1.0 (min 1.0 (/ d 1000.0))))))
+       (set! f (+ f (* 100.0 (- 1.0 (sigmoid d 500)))))
 
        (define ad (abs (angle-diff (posvel-r (obj-posvel ship))
                                    (theta ship mship))))
-       (set! f (+ f (* 5.0 (- 1.0 (max 0.2 (/ ad pi))))))
-       )))
+       (set! f (+ f (* 5.0 (- 1.0 (max 0.2 (/ ad pi)))))))))
      
   f)
 
@@ -93,6 +92,7 @@
   (define changes '())
   (define ship (get-ship stack))
   (define strats (ship-ai-strategy ship))
+  ;(printf "pilot-ai-strategy! ~v\n" strats)
   (define strat (ship-strategy ship))
   (cond
     ((ship-flying? ship)
@@ -103,34 +103,47 @@
           (define ns (strategy (space-time space) "attack" (ob-id ne)))
           (set! changes (list (new-strat (ob-id ship) (list ns))))))
        (("return")
-        (when (and ne (not (return-to-base? ship)))
-          (define ns (strategy (space-time space) "attack" (ob-id ne)))
-          (set! changes (list (new-strat (ob-id ship) (cons ns strats))))))
+        (define mothership (find-id space (strategy-arg strat)))
+        (cond
+          ((not mothership)
+           ; our mothership is dead
+           (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
+          ((and ne (not (return-to-base? ship)))
+           (define ns (strategy (space-time space) "attack" (ob-id ne)))
+           (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))))
        (("retreat")
+        (define e (find-id space (strategy-arg strat)))
         (cond
-          ((or (not ne) (and (return-to-base? ship)
-                             (not (null? (cdr strats)))))
+          ((or (not e) (return-to-base? ship))
+           ; abort
            (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
-          ((and ne (or (not (equal? (ob-id ne) (strategy-arg strat)))
-                       ((distance ship ne) . > . (* 10 (hit-distance ship ne)))
-                       (and ((abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship ne))) . > . (* 5/6 pi))
-                            ((strategy-age space strat) . > . 10000))))
+          ((and ne (not (equal? (ob-id ne) (ob-id e))))
+           ; new enemy, attack
+           ;(printf "new enemy\n")
            (define ns (strategy (space-time space) "attack" (ob-id ne)))
-           (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats))))))))
+           (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))
+          ((or ((distance ship e) . > . (* 10 (hit-distance ship e)))
+               (and ((abs (angle-diff (posvel-r (obj-posvel ship)) (theta ship e))) . > . (* 5/6 pi))
+                    ((strategy-age space strat) . > . 10000)))
+           ; done retreating
+           ;(printf "done retreating\n")
+           (set! changes (list (new-strat (ob-id ship) (cdr strats)))))))
        (("attack")
-;        (printf "attacking, return-to-base: ~a, next strat: ~v\n"
-;                (return-to-base? ship)
-;                (if (null? (cdr strats)) #f (cadr strats)))
+        (define e (find-id space (strategy-arg strat)))
         (cond
-          ((or (not ne) (and (return-to-base? ship)
-                             (not (null? (cdr strats)))))
+          ((or (not e) (return-to-base? ship))
+           ; abort
            (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
-          ((and ne (not (equal? (ob-id ne) (strategy-arg strat))))
+          ((and ne (not (equal? (ob-id ne) (ob-id e))))
+           ; new enemy, attack
+           ;(printf "new enemy\n")
            (define ns (strategy (space-time space) "attack" (ob-id ne)))
-           (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats))))))
-          ((and ne ((distance ship ne) . < . (* 5 (hit-distance ship ne))))
-           (define ns (strategy (space-time space) "retreat" (ob-id ne)))
-           (set! changes (list (new-strat (ob-id ship) (cons ns (cdr strats))))))))))
+           (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))
+          (((distance ship e) . < . (* 5 (hit-distance ship e)))
+           ; too close, retreat
+           ;(printf "too close\n")
+           (define ns (strategy (space-time space) "retreat" (ob-id e)))
+           (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))))))
     (else
      (define mothership (cadr (get-ships stack)))
      (when (and (ship-flying? mothership)

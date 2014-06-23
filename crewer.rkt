@@ -104,5 +104,7 @@
                  (send dc draw-text (player-name (role-player r)) 0 35))
                 (else
                  (set! buttons (cons deploy buttons)))))))))))
+  
+  (draw-hud dc ship #f)
   buttons)
 
