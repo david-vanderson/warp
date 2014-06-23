@@ -52,7 +52,7 @@
   
   (case (and strat (strategy-name strat))
     (("retreat")
-     (define ne (findf (lambda (o) (= (ob-id o) (strategy-arg strat))) (space-objects space)))
+     (define ne (find-top-id space (strategy-arg strat)))
      (when ne
        (define d (distance ship ne))
        (set! f (+ f (* 100.0 (sigmoid d 500))))
@@ -61,7 +61,7 @@
        (set! f (+ f (* 5.0 (min 0.8 (/ ad pi)))))
        ))
     (("attack")
-     (define ne (findf (lambda (o) (= (ob-id o) (strategy-arg strat))) (space-objects space)))
+     (define ne (find-top-id space (strategy-arg strat)))
      (when ne
        (define d (distance ship ne))
        (set! f (+ f (* 100.0 (- 1.0 (sigmoid d 500)))))
@@ -71,7 +71,7 @@
        (set! f (+ f (* 5.0 (- 1.0 (max 0.2 (/ ad pi))))))
        ))
     (("return")
-     (define mship (findf (lambda (o) (= (ob-id o) (strategy-arg strat))) (space-objects space)))
+     (define mship (find-top-id space (strategy-arg strat)))
      (when mship
        (define d (distance ship mship))
        (set! f (+ f (* 100.0 (- 1.0 (sigmoid d 500)))))
@@ -103,7 +103,7 @@
           (define ns (strategy (space-time space) "attack" (ob-id ne)))
           (set! changes (list (new-strat (ob-id ship) (list ns))))))
        (("return")
-        (define mothership (find-id space (strategy-arg strat)))
+        (define mothership (find-top-id space (strategy-arg strat)))
         (cond
           ((not mothership)
            ; our mothership is dead
@@ -112,7 +112,7 @@
            (define ns (strategy (space-time space) "attack" (ob-id ne)))
            (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))))
        (("retreat")
-        (define e (find-id space (strategy-arg strat)))
+        (define e (find-top-id space (strategy-arg strat)))
         (cond
           ((or (not e) (return-to-base? ship))
            ; abort
@@ -129,7 +129,7 @@
            ;(printf "done retreating\n")
            (set! changes (list (new-strat (ob-id ship) (cdr strats)))))))
        (("attack")
-        (define e (find-id space (strategy-arg strat)))
+        (define e (find-top-id space (strategy-arg strat)))
         (cond
           ((or (not e) (return-to-base? ship))
            ; abort

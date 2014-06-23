@@ -18,6 +18,11 @@
   (* (linear-fade (obj-age space s) SHIELD_LIFE SHIELD_DEATH)
      (shield-e s)))
 
+(define (shield-sigmoid space s)
+  (sigmoid (shield-energy space s) 12))
+
+(define (shield-length space s)
+  (* 30.0 (shield-sigmoid space s)))
 
 (define (shield-dead? space s)
   (or ((obj-age space s) . > . SHIELD_DEATH)
@@ -30,18 +35,11 @@
     (set-space-objects! space (remove s (space-objects space)))))
 
 
-(define (shield-color space s)
-  (define b (send the-color-database find-color "blue"))
-  (make-color (send b red)
-              (send b green) 
-              (send b blue)
-              (/ (shield-energy space s) 20.0)))
-
-
 (define (draw-shield dc space center s)
   (define-values (x y) (recenter center s))
-  (send dc set-pen (shield-color space s) 3 'solid)
-  (define len (shield-length s))
+  (define cc (linear-color "blue" "blue" 1.0 (linear-fade (obj-age space s) SHIELD_LIFE SHIELD_DEATH)))
+  (send dc set-pen cc (* 6.0 (shield-sigmoid space s)) 'solid)
+  (define len (shield-length space s))
   (keep-transform dc
     (send dc translate x y)
     (send dc rotate (- (posvel-r (obj-posvel s))))

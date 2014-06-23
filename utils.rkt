@@ -87,6 +87,8 @@
   (define r (find-stack o id))
   (if r (car r) #f))
 
+(define (find-top-id space id)
+  (findf (lambda (o) (= (ob-id o) id)) (space-objects space)))
 
 (define (ship-helm s)
   (define helmcar (memf helm? (ship-pods s)))

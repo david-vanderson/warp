@@ -19,7 +19,7 @@
 (define nocolor "hotpink")  ; used with a transparent pen/brush
 
 (define PLASMA_SPEED 60)
-(define SHIELD_SPEED 40)
+(define SHIELD_SPEED 60)
 (define MAX_POD_ENERGY 100)
 (define MSG_FADE_TIME 10000)
 
@@ -87,7 +87,7 @@
 (struct weapons role (fire) #:mutable #:prefab)
 ; fire is an angle if we want to shoot a plasma (at that angle)
 
-(struct tactical pod () #:mutable #:prefab)
+(struct tactical pod (shield-size) #:mutable #:prefab)
 (struct tactics role (shield) #:mutable #:prefab)
 ; shield is an angle if we want to shoot a shield barrier (at that angle)
 
@@ -133,9 +133,8 @@
 (struct backeffect effect () #:mutable #:prefab)
 ; effect where we want to render it behind everything else (like engine output)
 
-(struct shield obj (e length) #:mutable #:prefab)
+(struct shield obj (e) #:mutable #:prefab)
 ; e is base energy uncorrected for age
-; length is the size of the shield
 
 (struct space (time width height objects) #:mutable #:prefab)
 ; time is msec since the scenario started

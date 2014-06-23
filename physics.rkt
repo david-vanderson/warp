@@ -72,7 +72,7 @@
      (when (plasma-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))
     ((shield? o)
-     (physics! (obj-posvel o) dt 0.5)
+     (physics! (obj-posvel o) dt 0.4)
      (when (shield-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))
     ((effect? o)

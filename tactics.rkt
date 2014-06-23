@@ -11,15 +11,13 @@
 
 (provide (all-defined-out))
 
-(define SHIELD_COST 10.0)
-
 ;; server
 
 ; return a list of changes
 (define (tactics-ai! space dt stack)
   (define changes '())
   (define ownship (get-ship stack))
-  (when (and (ship-flying? ownship) ((pod-energy (get-pod stack)) . > . SHIELD_COST))
+  (when (and (ship-flying? ownship) ((pod-energy (get-pod stack)) . > . (tactical-shield-size (get-pod stack))))
     (define role (get-role stack))
     (define newrole (copy role))
     (define np (nearest-incoming-plasma space ownship))
@@ -66,8 +64,8 @@
                                (+ (* SHIELD_SPEED (cos a)) (posvel-dx ps) rvx)
                                (+ (* SHIELD_SPEED (sin a)) (posvel-dy ps) rvy)
                                0)
-                       20.0 15.0))
-     (list (chadd s) (cherg (ob-id pod) (- SHIELD_COST))))
+                       (tactical-shield-size (get-pod stack))))
+     (list (chadd s) (cherg (ob-id pod) (- (tactical-shield-size (get-pod stack))))))
     (else
      (error "update-tactics hit ELSE clause"))))
 
@@ -77,7 +75,7 @@
 (define (click-tactics x y button stack)
   (cond
     ((and (ship-flying? (get-ship stack))
-          ((pod-energy (get-pod stack)) . > . SHIELD_COST))
+          ((pod-energy (get-pod stack)) . > . (tactical-shield-size (get-pod stack))))
      ; we are firing
      (define fangle (angle-norm (atan0 y x)))
      

@@ -91,10 +91,10 @@
     ; x,y are now the position of the plasma in the coord space of the shield
     ; shield is along the y axis
     (define rad (plasma-radius space p))
-    (define l (shield-length shield))
+    (define l (shield-length space shield))
     (when (and (< (- rad) x rad)
                (< (- (- (/ l 2)) rad) y (+ (/ l 2) rad)))
-      (define damage (plasma-energy space p))
+      (define damage (min (plasma-energy space p) (shield-energy space shield)))
       (set! changes (append changes (list (chdam (ob-id p) damage)
                                           (chdam (ob-id shield) damage))))))
   changes)
