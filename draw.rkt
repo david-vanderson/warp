@@ -165,7 +165,7 @@
     (define max-y (space-height space))
     (define scale (min (/ WIDTH max-x) (/ HEIGHT max-y)))
     (send dc scale scale scale)
-    (printf "dc-point-size: ~a\n" (dc-point-size dc))
+    ;(printf "dc-point-size: ~a\n" (dc-point-size dc))
     (define center (obj #f #f (posvel 0 0 0 0 0 0 0)))
     ;(draw-background dc space center background-bitmap 4 1 max-x max-y)
     ;(draw-background dc space center stars1-bitmap 8 2 max-x max-y)
