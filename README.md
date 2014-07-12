@@ -15,7 +15,7 @@ This is a coop game!  It is very difficult to play with just a single person.  Y
 status
 ----
 
-Still in development, but playable.  Try to launch a Rebel Frigate off the Rebel Base and destroy the Empire Base (off to the right).  Your frigates don't have any AI.  Every few minutes some more enemy frigates will appear and attack your base.
+Still in development, but playable.  Try to launch a Rebel Frigate off the Rebel Base and destroy the Empire Base (off to the right).  Every few minutes some more enemy frigates will appear and attack your base.
 
 There is no win/loss screen.  A message will be displayed whenever a ship (or base) is destroyed, but the game keeps going forever.
 

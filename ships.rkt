@@ -34,7 +34,7 @@
                    #:x (x 0) #:y (y 0) #:r (r pi/2)
                    #:dx (dx 0) #:dy (dy 0) #:dr (dr 0)
                    #:start-ship? (start-ship? #f)
-                   #:npc? (npc? #f)
+                   #:npc? (npc? #t)
                    #:npc-helm? (npc-helm? #t)
                    #:helm-fore? (helm-fore? #f)
                    #:npc-weapons? (npc-weapons? #t)

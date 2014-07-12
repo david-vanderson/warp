@@ -184,7 +184,7 @@
             (define to (find-id space (chmov-to c)))
             (cond
               (to
-               (set-hangarpod-ships! to (cons o (hangarpod-ships to))))
+               (set-hangarpod-ships! to (append (hangarpod-ships to) (list o))))
               (else
                (set-space-objects! space (append (space-objects space) (list o)))))
             '())

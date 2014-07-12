@@ -466,10 +466,10 @@
       (define a (random-between pi/2 (* 3/2 pi)))
       (define r (random-between 1000 1500))
       (define ns
-        (make-ship "red-frigate" "Empire Frigate" "Empire" #:npc? #t #:x (* r (cos a)) #:y (* r (sin a))
+        (make-ship "red-frigate" "Empire Frigate" "Empire" #:x (* r (cos a)) #:y (* r (sin a))
                    #:in-hangar
-                   (list (make-ship "red-fighter" "Empire Fighter" "Empire" #:npc? #t)
-                         #;(make-ship "red-fighter" "Empire Fighter" "Empire" #:npc? #t))))
+                   (list (make-ship "red-fighter" "Empire Fighter" "Empire")
+                         #;(make-ship "red-fighter" "Empire Fighter" "Empire"))))
       (set-ship-ai-strategy! ns (list (strategy (space-time space) "attack" (ob-id hb))))
       (set! commands (append commands (list (chadd ns)))))
     (define m (message (next-id) (space-time space) #f (format "~a new enemy ships detected!" next-enemy-count)))
@@ -487,24 +487,24 @@
 ;  
 ;  (cond
 ;    (((count-type "blue-frigate") . < . 1)
-;     (define s (make-ship "blue-frigate" "Blue Frigate" "Rebel" #:npc? #t #:x x #:y y #:r (angle-add theta pi) #:start-ship? #t
+;     (define s (make-ship "blue-frigate" "Blue Frigate" "Rebel" #:x x #:y y #:r (angle-add theta pi) #:start-ship? #t
 ;                 #:in-hangar (list
-;                              (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:npc? #t)
-;                              (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:npc? #t))))
+;                              (make-ship "blue-fighter" "Blue Fighter" "Rebel")
+;                              (make-ship "blue-fighter" "Blue Fighter" "Rebel"))))
 ;     (set! commands (append commands (list (chadd s)))))
 ;    (((count-type "red-frigate") . < . 1)
-;     (define s (make-ship "red-frigate" "Red Frigate" "Empire" #:npc? #t #:x x #:y y #:r (angle-add theta pi) #:start-ship? #t
+;     (define s (make-ship "red-frigate" "Red Frigate" "Empire" #:x x #:y y #:r (angle-add theta pi) #:start-ship? #t
 ;                 #:in-hangar (list
-;                              (make-ship "red-fighter" "Red Fighter" "Empire" #:npc? #t)
-;                              (make-ship "red-fighter" "Red Fighter" "Empire" #:npc? #t))))
+;                              (make-ship "red-fighter" "Red Fighter" "Empire")
+;                              (make-ship "red-fighter" "Red Fighter" "Empire"))))
 ;     (set! commands (append commands (list (chadd s))))))
   
   
 ;    (((count-type "blue-fighter") . < . 2)
-;     (define s (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:start-ship? #t #:npc? #t #:x x #:y y #:r (angle-add theta pi)))
+;     (define s (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:start-ship? #t #t #:x x #:y y #:r (angle-add theta pi)))
 ;     (set! commands (append commands (list (chadd s)))))
 ;    (((count-type "red-fighter") . < . 2)
-;     (define s (make-ship "red-fighter" "Red Fighter" "Empire" #:npc? #t #:x x #:y y #:r (angle-add theta pi)))
+;     (define s (make-ship "red-fighter" "Red Fighter" "Empire" #t #:x x #:y y #:r (angle-add theta pi)))
 ;     (set! commands (append commands (list (chadd s))))))
   
   commands)
