@@ -93,6 +93,65 @@
   )
 
 
+(define (draw-background-stars dc space center parallax width height)
+  (define repeatx 1000)
+  (define repeaty 1000)
+  (define x (remain (* parallax (posvel-x (obj-posvel center))) repeatx))
+  (define y (remain (* parallax (posvel-y (obj-posvel center))) repeaty))
+  
+  ;(set! width (/ width 2))
+  ;(set! height (/ height 2))
+  (define w/2 (/ width 2))
+  (define h/2 (/ height 2))
+  
+  (define istart (- (ceiling (- (/ (- w/2 x) repeatx) 0.5))))
+  (define iend (add1 (ceiling (- (/ (+ w/2 x) repeatx) 0.5))))
+  (define kstart (- (ceiling (- (/ (- h/2 y) repeaty) 0.5))))
+  (define kend (add1 (ceiling (- (/ (+ h/2 y) repeaty) 0.5))))
+  
+  (send dc set-pen "white" 1 'solid)
+  
+  (define stars '(
+    (-232 . 26) (119 . -256) (-160 . 406) (104 . 15) (-494 . 107)
+    (105 . -158) (403 . 127) (233 . 365) (137 . 492) (-465 . -351)
+    (422 . 52) (-129 . 30) (-96 . -187) (-149 . -423) (-98 . 414)
+    (-205 . -1) (-405 . 265) (119 . 65) (-343 . 330) (-427 . 198)
+    (-433 . -93) (1 . -216) (5 . -228) (152 . 196) (125 . 166)
+    (367 . 138) (-100 . -406) (53 . 385) (434 . 198) (-20 . -398)
+    (220 . -268) (320 . 413) (-82 . 44) (-182 . 243) (85 . -178)
+    (101 . 276) (-253 . -146) (-315 . 279) (-371 . -159) (-277 . 379)
+    (-409 . -410) (-202 . -61) (-121 . 122) (-338 . -67) (-334 . -106)
+    (315 . -12) (-120 . 192) (351 . -179) (431 . -360) (206 . 484)
+    (-455 . 119) (-246 . -474) (-195 . 384) (318 . 50) (-88 . -466)
+    (402 . 214) (67 . 166) (-309 . -397) (465 . 460) (-126 . 397)
+    (-181 . 418) (98 . 369) (-423 . -287) (-476 . -108) (-446 . 232)
+    (-226 . -225) (-127 . 74) (-347 . -268) (27 . 153) (385 . -152)
+    (-75 . -99) (353 . -245) (450 . 209) (-138 . 305) (82 . 220)
+    (-336 . -40) (484 . 159) (-206 . -148) (259 . -298) (129 . 147)
+    (424 . 15) (394 . 101) (148 . 376) (250 . -446) (89 . -257) (-231 . 426)
+    (135 . 195) (-432 . -373) (-96 . 0) (81 . -453) (-211 . -347) (366 . -106)
+    (314 . -242) (324 . 15) (-403 . -427) (219 . 95) (159 . 308) (-265 . 234)
+    (357 . -57) (387 . 272)))
+  
+  (for* ((i (in-range istart iend))
+         (k (in-range kstart kend)))
+    (define xx (- x (* i repeatx)))
+    (define yy (- y (* k repeaty)))
+    
+    (for ((s stars))
+      (define sx (- (car s) xx))
+      (define sy (- (cdr s) yy))
+      (when (and (< (- w/2) sx w/2)
+                 (< (- h/2) sy h/2))
+        (send dc draw-point sx sy))))
+  
+;  (send dc set-pen "white" 1 'solid)
+;  (send dc set-brush nocolor 'transparent)
+;  (send dc draw-rectangle (- (/ width 2)) (- (/ height 2)) width height)
+  
+  )
+
+
 (define (draw-object dc o center space (map #f))
   (cond
     ((ship? o)
@@ -128,7 +187,8 @@
 
 
 (define (draw-view dc center space)
-  (draw-background dc space center background-bitmap 4 1 WIDTH HEIGHT)
+  ;(draw-background dc space center background-bitmap 4 1 WIDTH HEIGHT)
+  (draw-background-stars dc space center 1 WIDTH HEIGHT)
   ;(draw-background dc space center stars1-bitmap 8 2 WIDTH HEIGHT)
   (define objects (space-objects space))
   (define ships (filter ship? objects))
