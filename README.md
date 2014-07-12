@@ -21,4 +21,5 @@ Still in development, but playable.  Try to launch a Rebel Frigate off the Rebel
 
 There is no win/loss screen.  A message will be displayed whenever a ship (or base) is destroyed, but the game keeps going forever.
 
+There's no clean way to shut down the game yet, just ctrl-c the process.
 
