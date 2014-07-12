@@ -32,7 +32,7 @@
       (define start (list-ref frames (- (length frames) 1)))
       (define end (first frames))
       (define span (/ (- end start) 1000))
-      (send dc draw-text (format "~a" (truncate (/ (- (length frames) 1) span))) 0 0))))
+      (send dc draw-text (format "FPS: ~a" (truncate (/ (- (length frames) 1) span))) 0 0))))
 
 
 (define (draw-background dc space center bitmap scale parallax width height)
