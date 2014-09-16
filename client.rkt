@@ -345,11 +345,10 @@
                        (+ (space-time ownspace) TICK) start-space-time))
            (- (+ start-loop-time TICK) (current-milliseconds)))))
     
-    (define sleep-secs (/ sleep-time 1000.0))
     (cond
-      ((sleep-secs . > . 0)
+      ((sleep-time . > . 0)
        ;(printf "client sleeping ~a\n" sleep-time)
-       (sleep/yield sleep-secs))
+       (sleep/yield (/ sleep-time 1000.0)))
       (else
        ;(printf "client skipping sleep ~a\n" sleep-time)
        (sleep/yield .001)))
