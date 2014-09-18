@@ -55,7 +55,8 @@
       ((and button (equal? button "leave"))
        (cond
          ((not role)
-          (drop-connection "clicked leave"))
+          (drop-connection "clicked leave")
+          (exit 0))
          ((and (crewer? role) (not (hangar? role)))
           (define ships (get-ships my-stack))
           (cond (((length ships) . > . 1)
@@ -248,6 +249,7 @@
                             #f
                             (or name "")))
       
+      (when (not newname) (exit 0))
       (when newname (set! name newname))
       
       ; ask the user for address
@@ -257,6 +259,7 @@
                             #f
                             (or ip "")))
       
+      (when (not newip) (exit 0))
       (when newip
         (set! ip newip)
         
