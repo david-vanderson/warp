@@ -19,6 +19,7 @@
 (define serverspace #f)
 
 (define (start-client ip port name new-eventspace? space)
+  (server? #f)
   (when space
     (set! serverspace space))
   (when new-eventspace?
@@ -305,7 +306,10 @@
                (error "client ownspace still behind update time\n"))
              (for ((c (update-changes input)))
                ;(printf "client applying change ~v\n" c)
-               (apply-change! ownspace c (update-time input) "client"))
+               (define useless-changes (apply-change! ownspace c (update-time input) "client"))
+               (when (not (null? useless-changes))
+                 (printf "client produced useless changes:\n  ~v\n" useless-changes))
+               )
              (for ((pvu (update-pvs input)))
                (update-posvel! ownspace pvu (update-time input)))))
       
@@ -355,6 +359,8 @@
       (else
        ;(printf "client skipping sleep ~a\n" sleep-time)
        (sleep/yield .001)))
+    
+    (flush-output)
     (client-loop))
   
   (queue-callback client-loop #f))

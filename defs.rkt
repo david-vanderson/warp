@@ -29,6 +29,8 @@
       (set! id (add1 id))
       id)))
 
+(define server? (make-parameter #t))
+
 ;; Game State
 
 (struct ob (id) #:mutable #:prefab)

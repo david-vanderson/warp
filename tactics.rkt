@@ -45,6 +45,7 @@
   (define pod (get-pod stack))
   (define ship (get-ship stack))
   (cond
+    ((not (server?)) '())
     ((tactics-shield c)
      ; we are firing
      (define ps (obj-posvel ship))

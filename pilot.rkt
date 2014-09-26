@@ -245,7 +245,8 @@
 
 (define (change-pilot p space stack)
   (cond
-    ((pilot-launch p)  ; server only
+    ((and (pilot-launch p) (not (server?))) '())
+    ((pilot-launch p)
      ; launch this ship off of it's parent
      (define ships (get-ships stack))
      (define ship (car ships))

@@ -459,7 +459,7 @@
     (set! commands (append commands (list m)))
     (set! last-enemy-base-con (ship-con eb)))
   
-  (when (and hb (>= (space-time space) (+ 30000 (* 5 60000 next-enemy-count))))
+  (when (and hb (>= (space-time space) (+ 10000 (* 5 60000 next-enemy-count))))
   ;(when (and hb (<= 5001 (space-time space) (+ 5000 TICK)))
     (set! next-enemy-count (+ 1 next-enemy-count))
     (for ((i next-enemy-count))

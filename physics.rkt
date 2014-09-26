@@ -108,39 +108,40 @@
   
   (when ((ship-con ship) . <= . 0)
     (set-space-objects! space (remove ship (space-objects space)))
-    (define pv (obj-posvel ship))
-    (define energy (ship-mass ship))
-    (define e (effect (next-id) (space-time space) (struct-copy posvel pv) (sqrt energy) 1000))
-    (set! changes (append changes (list (chadd e))))
-    
-    (for ((ps (search ship player? #t)))
-      (define p (car ps))
-      (define ss (make-ship "space-suit"
-                            (player-name p)
-                            (ship-faction ship)
-                            #:x (posvel-x pv) #:y (posvel-y pv)
-                            #:dx (+ (posvel-dx pv) (random-between -50 50))
-                            #:dy (+ (posvel-dx pv) (random-between -50 50))))
-      (define rc (role-change p #f (ob-id (car (ship-pods ss))) (next-id)))
-      (set! changes (append changes (list (chadd ss) rc))))
-    
-    (define energy-left energy)
-    (while (energy-left . > . 1)
-      (define e (random-between 5 (sqrt energy)))
-      (set! energy-left (- energy-left e))
-      (define t (random-between 0 2pi))
-      (define s (random-between 10 50))
-      (define p (plasma (next-id) (space-time space)
-                        (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
-                                (+ (* s (cos t)) (posvel-dx pv))
-                                (+ (* s (sin t)) (posvel-dy pv))
-                                0)
-                        e #f))
-      (set! changes (append changes (list (chadd p)))))
-    
-    (define msg (message (next-id) (space-time space) #f
-                         (format "~a Destroyed" (ship-name ship))))
-    (set! changes (append changes (list msg))))
+    (when (server?)
+      (define pv (obj-posvel ship))
+      (define energy (ship-mass ship))
+      (define e (effect (next-id) (space-time space) (struct-copy posvel pv) (sqrt energy) 1000))
+      (set! changes (append changes (list (chadd e))))
+      
+      (for ((ps (search ship player? #t)))
+        (define p (car ps))
+        (define ss (make-ship "space-suit"
+                              (player-name p)
+                              (ship-faction ship)
+                              #:x (posvel-x pv) #:y (posvel-y pv)
+                              #:dx (+ (posvel-dx pv) (random-between -50 50))
+                              #:dy (+ (posvel-dx pv) (random-between -50 50))))
+        (define rc (role-change p #f (ob-id (car (ship-pods ss))) (next-id)))
+        (set! changes (append changes (list (chadd ss) rc))))
+      
+      (define energy-left energy)
+      (while (energy-left . > . 1)
+        (define e (random-between 5 (sqrt energy)))
+        (set! energy-left (- energy-left e))
+        (define t (random-between 0 2pi))
+        (define s (random-between 10 50))
+        (define p (plasma (next-id) (space-time space)
+                          (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
+                                  (+ (* s (cos t)) (posvel-dx pv))
+                                  (+ (* s (sin t)) (posvel-dy pv))
+                                  0)
+                          e #f))
+        (set! changes (append changes (list (chadd p)))))
+      
+      (define msg (message (next-id) (space-time space) #f
+                           (format "~a Destroyed" (ship-name ship))))
+      (set! changes (append changes (list msg)))))
   changes)
 
 
