@@ -88,21 +88,32 @@
         #t)))))
 
 
-; make the change in space, and return a list of additional changes
+; make the change in space
+; return 2 values:
+; first is a boolean of whether we should forward a copy of this change on
+; second is a list of additional changes caused by the first change
+; - the server should apply them recursively
+;
+; If the server should forward the incoming change on, copy it to make
+; sure that it doesn't get mutated before being sent.  Example is chadd
+; a new ship, before that message is passed on the ai changes it.
 ;
 ; Each change does one or both of:
-; - affect space
-; - produce other additional changes
+; - affect space (so return a copy as first value)
+; - produce additional changes (returned as second value)
 ; 
 ; the additional changes do NOT include descriptions of the effect made on space
 ;
 ; examples:
 ; 1) change is weapons clicked
-;    - no effect, additional changes are the new plasma
+;    - no effect
+;    - additional changes (the new plasma)
 ; 2) change is add ship
-;    - effect is new ship, no additional changes
+;    - effect is new ship
+;    - no additional changes
 ; 3) change is damage ship
-;    - effect is damage ship, possible additional changes if the ship explodes
+;    - effect is damage ship
+;    - additional changes if the ship explodes
 ;
 ; on the server, you could get conflicting commands
 ; (two players trying to take the same open role)
@@ -133,10 +144,10 @@
         (join-role! space (role-change-to c) p #f (role-change-newid c))
         (leave-role! space (role-change-from c) p #f)
         
-        changes)
+        (values #t changes))
        (else
         (printf "~a didn't apply role-change ~v\n" who c)
-        '())))
+        (values #f '()))))
     ((role? c)
      ; find our role
      (define stack (find-stack space (ob-id c)))
@@ -154,20 +165,20 @@
        (update-physics! space (chadd-o c) (/ TICK 1000.0))
        (set! ctime (+ ctime TICK)))
      (set-space-objects! space (append (space-objects space) (list (chadd-o c))))
-     '())
+     (values #t '()))
     ((chrm? c)
      ;(printf "~a removing ~v\n" who (find-id space (chrm-id c)))
      (set-space-objects! space
                          (filter-not (lambda (o) (equal? (ob-id o) (chrm-id c)))
                                      (space-objects space)))
-     '())
+     (values #t '()))
     ((chdam? c)
      (define o (find-id space (chdam-id c)))
      (cond (o
-            (damage-object! space o (chdam-damage c)))
+            (values #t (damage-object! space o (chdam-damage c))))
            (else
             (printf "~a chdam - couldn't find obj id ~a\n" who (chdam-id c))
-            '())))
+            (values #t '()))))
     ((chmov? c)
      (define o (find-id space (chmov-id c)))
      (cond (o
@@ -188,30 +199,30 @@
                (set-hangarpod-ships! to (append (hangarpod-ships to) (list o))))
               (else
                (set-space-objects! space (append (space-objects space) (list o)))))
-            '())
+            (values #t '()))
            (else
             (printf "~a chmov - couldn't find obj id ~a\n" who (chmov-id c))
-            '())))
+            (values #t '()))))
     ((cherg? c)
      (define o (find-id space (cherg-id c)))
      (cond (o
             (set-pod-energy! o (+ (pod-energy o) (cherg-e c)))
-            '())
+            (values #t '()))
            (else
             (printf "~a cherg - couldn't find obj id ~a\n" who (cherg-id c))
-            '())))
+            (values #t '()))))
     ((new-strat? c)
      (define o (find-id space (new-strat-ship-id c)))
      (cond (o
             (set-ship-ai-strategy! o (new-strat-strats c))
-            '())
+            (values #t '()))
            (else
             (printf "~a new-strat - couldn't find obj id ~a\n" who (new-strat-ship-id c))
-            '())))
+            (values #t '()))))
     ((message? c)
      (set-obj-start-time! c (space-time space))
      (set-space-objects! space (append (space-objects space) (list c)))
-     '())
+     (values #t '()))
     (else
      (error "apply-change! hit ELSE clause" c))))
 
@@ -221,8 +232,9 @@
       '()
       (apply append
              (for/list ((c changes))
-               (define new-changes (apply-change! space (copy c) ctime who))
-               (cons c (apply-all-changes! space new-changes ctime who))))))
+               (define-values (forward? new-changes) (apply-change! space c ctime who))
+               (append (if forward? (list (copy c)) '())
+                       (apply-all-changes! space new-changes ctime who))))))
 
 
 (define (change-all-ids! structs)

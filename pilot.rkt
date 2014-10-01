@@ -245,7 +245,6 @@
 
 (define (change-pilot p space stack)
   (cond
-    ((and (pilot-launch p) (not (server?))) '())
     ((pilot-launch p)
      ; launch this ship off of it's parent
      (define ships (get-ships stack))
@@ -266,13 +265,13 @@
      (define pilot (copy (ship-pilot ship)))
      (set-pilot-course! pilot r)
      (set-pilot-fore! pilot #t)
-     (list (chmov (ob-id ship) (ob-id hangar) #f pv) pilot))
+     (values #f (list (chmov (ob-id ship) (ob-id hangar) #f pv) pilot)))
     (else
      (define role (get-role stack))
      (set-pilot-course! role (pilot-course p))
      (set-pilot-fore! role (pilot-fore p))
      (set-pilot-dock! role (pilot-dock p))
-     '())))
+     (values #t '()))))
 
 
 ;; client

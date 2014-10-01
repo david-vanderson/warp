@@ -46,7 +46,6 @@
   (define pod (get-pod stack))
   (define ship (get-ship stack))
   (cond
-    ((not (server?)) '())
     ((weapons-fire cmd)
      ; we are firing
      (define ps (obj-posvel ship))
@@ -65,7 +64,7 @@
                                (+ (* PLASMA_SPEED (sin a)) (posvel-dy ps) rvy)
                                0)
                        (weapon-plasma-size pod) (ob-id ship)))
-     (list (chadd p) (cherg (ob-id pod) (- (weapon-plasma-size pod)))))
+     (values #f (list (chadd p) (cherg (ob-id pod) (- (weapon-plasma-size pod))))))
     (else
      (error "command-weapons hit ELSE clause"))))
 

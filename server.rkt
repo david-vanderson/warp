@@ -335,6 +335,7 @@
     (send-to-client c (player (client-id c) "New Player"))  ; assign an id
     (send-to-client c ownspace))  ; send full state
   
+  
   ; physics
   (when (TICK . < . (- current-time previous-physics-time))
     (set! previous-physics-time (+ previous-physics-time TICK))
@@ -346,6 +347,14 @@
     ; update-effects! returns already-applied changes
     (set! updates (append updates (update-effects! ownspace))))
   
+  
+  ; scenario hook
+  (set! updates (append updates (apply-all-changes! ownspace
+                                                    (scenario-hook ownspace)
+                                                    (space-time ownspace) "server")))
+  
+  
+  ; ai
   (when (AI_TICK . < . (- current-time previous-ai-time))
     (set! previous-ai-time (+ previous-ai-time AI_TICK))
     (define commands (run-ai! ownspace (/ AI_TICK 1000.0)))
@@ -378,12 +387,6 @@
          (define command-changes
            (apply-all-changes! ownspace cmds (space-time ownspace) "server"))
          (set! updates (append updates command-changes))))))
-  
-  
-  ; scenario hook
-  (set! updates (append updates (apply-all-changes! ownspace
-                                                    (scenario-hook ownspace)
-                                                    (space-time ownspace) "server")))
   
   
   ; find least-recently sent posvels

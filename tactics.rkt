@@ -45,7 +45,6 @@
   (define pod (get-pod stack))
   (define ship (get-ship stack))
   (cond
-    ((not (server?)) '())
     ((tactics-shield c)
      ; we are firing
      (define ps (obj-posvel ship))
@@ -66,7 +65,7 @@
                                (+ (* SHIELD_SPEED (sin a)) (posvel-dy ps) rvy)
                                0)
                        (tactical-shield-size (get-pod stack))))
-     (list (chadd s) (cherg (ob-id pod) (- (tactical-shield-size (get-pod stack))))))
+     (values #f (list (chadd s) (cherg (ob-id pod) (- (tactical-shield-size (get-pod stack)))))))
     (else
      (error "update-tactics hit ELSE clause"))))
 
