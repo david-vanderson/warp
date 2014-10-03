@@ -310,7 +310,7 @@
 (define (read-from-client c)
   (with-handlers ((exn:fail:network? (lambda (exn)
                                        (remove-client c "read-from-client")
-                                       eof)))
+                                       #f)))
     (read (client-in c))))
 
 
@@ -379,6 +379,7 @@
                 (byte-ready? (client-in c)))
       (define cmds (read-from-client c))
       (cond
+        ((not cmds) #f)  ; if read-from-client fails, it returns #f
         ((eof-object? cmds)
          (close-input-port (client-in c))
          (remove-client c "eof"))
