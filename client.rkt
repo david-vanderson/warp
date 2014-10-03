@@ -105,22 +105,28 @@
   (define (draw-screen canvas dc)
 ;    (when (and serverspace ownspace)
 ;      (printf "serverspace time ~a\n   ownspace time ~a\n" (space-time serverspace) (space-time ownspace)))
+    
     (send dc set-smoothing 'smoothed)
     (send dc set-background bgcolor)
-    (send dc set-text-foreground fgcolor)
+    
     ;(send dc set-text-mode 'transparent)
     ;    (send dc set-font (send the-font-list find-or-create-font
     ;                          12 'default 'normal 'normal #f 'smoothed #f 'aligned))
+    
     (keep-transform dc
+      
+      (send dc set-clipping-rect 0 0 (send canvas get-width) (send canvas get-height))
+      (send dc clear)
+      
       (send dc translate (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
       (define scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
       (send dc scale scale (- scale))
-      (send dc set-clipping-rect (- (/ WIDTH 2)) (- (/ HEIGHT 2)) (* 1 WIDTH) (* 1 HEIGHT))
-      (send dc set-alpha 1.0)
-      
       ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
       
-      (send dc clear)
+      (send dc set-clipping-rect (- (/ WIDTH 2)) (- (/ HEIGHT 2)) (* 1 WIDTH) (* 1 HEIGHT))
+      
+      ; reset alpha in case a damage effect changed it last frame
+      (send dc set-alpha 1.0)
       
       (define role (if my-stack (get-role my-stack) #f))
       
@@ -166,27 +172,21 @@
                      ;                     (style '(hide-menu-bar no-caption no-resize-border))
                      ))
   
-  (define my-canvas
+  (define my-canvas%
     (class canvas%
+      (super-new)
       (define/override (on-event event)
         (when (send event button-down? 'left)
           (click this event)))
-      ;      (define/override (on-char event)
-      ;        ;(displayln (~v (send event get-key-code)))
-      ;        (case (send event get-key-code)
-      ;          ((#\f)
-      ;           (define role (get-role my-stack))
-      ;           (when (pilot? role)
-      ;             (send-command (struct-copy pilot role (aft #t)))))
-      ;          ((#\w)
-      ;           (define role (get-role my-stack))
-      ;           (when (pilot? role)
-      ;             (send-command (struct-copy pilot role (fore (not (pilot-fore role)))))))
-      ;          ))
-      (super-new)))
+;      (define/override (on-char event)
+;        ;(displayln (~v (send event get-key-code)))
+;        (case (send event get-key-code)
+;          ((#\h)
+;           (printf "hello\n"))))
+      ))
   
   (define canvas
-    (new my-canvas
+    (new my-canvas%
          (parent frame)
          (paint-callback draw-screen)
          (style '(no-autoclear))))
@@ -325,8 +325,6 @@
           (set! start-time (- start-time (- dt)))))
       )
     
-    ;(printf "client got updates ~a\n" n)
-    
     (when ownspace
       (set! my-stack (find-stack ownspace (ob-id me)))
       
@@ -341,9 +339,10 @@
       )
     
     ;rendering
-    ;(printf "client render\n")
+    ;(printf "client render ~a" (current-milliseconds))
     (set! frames (add-frame-time (current-milliseconds) frames))
     (send canvas refresh-now)
+    ;(printf "  ~a\n" (current-milliseconds))
           
     ; sleep so we don't hog the whole racket vm
     (define sleep-time
