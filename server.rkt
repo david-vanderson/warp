@@ -289,6 +289,9 @@
                           (list (role-change p (ob-id r) #f -1))
                           (space-time ownspace) "server"))
     (set! updates (append updates changes)))
+  
+  (close-input-port (client-in c))
+  (close-output-port (client-out c))
   (set! clients (remove c clients (lambda (x y) (= (client-id x) (client-id y))))))
 
 
@@ -381,7 +384,6 @@
       (cond
         ((not cmds) #f)  ; if read-from-client fails, it returns #f
         ((eof-object? cmds)
-         (close-input-port (client-in c))
          (remove-client c "eof"))
         (else
          (change-ids! cmds)
