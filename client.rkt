@@ -18,17 +18,46 @@
 
 (define serverspace #f)
 
-(define (start-client ip port name new-eventspace? space)
+(define (start-client ip port name new-eventspace? sspace)
   (server? #f)
-  (when space
-    (set! serverspace space))
+  (when sspace
+    (set! serverspace sspace))
   (when new-eventspace?
     (current-eventspace (make-eventspace)))
   
   (define server-in-port #f)
   (define server-out-port #f)
   (define me #f)  ; player? or #f
+  
+  
   (define ownspace #f)
+  (define testing #f)
+  (when testing
+    (set! ownspace (space 0 2000.0 2000.0 (list)))
+    (for ((i 10))
+      (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel"
+                           #:x (random-between -1000.0 1000.0)
+                           #:y (random-between -1000.0 1000.0)))
+      (define f (make-ship "blue-frigate" "Rebel Frigate" "Rebel"
+                           #:x (random-between -1000.0 1000.0)
+                           #:y (random-between -1000.0 1000.0)
+                           #:in-hangar
+                           (list (make-ship "blue-fighter" "Rebel Fighter" "Rebel")
+                                 (make-ship "blue-fighter" "Rebel Fighter" "Rebel"))))
+      (define a (random-between 0 2pi))
+      (define p (plasma (next-id) (space-time ownspace)
+                        (posvel (space-time ownspace) (random-between -1000.0 1000.0) (random-between -1000.0 1000.0) 0.0
+                                (+ (* PLASMA_SPEED (cos a)))
+                                (+ (* PLASMA_SPEED (sin a)))
+                                0.0)
+                        10.0 #f))
+      (set-space-objects! ownspace (append (space-objects ownspace) (list f))))
+    
+    
+    (for ((i 10))
+      (define m (message (next-id) (space-time ownspace) #f (format "message ~a" i)))
+      (set-space-objects! ownspace (append (space-objects ownspace) (list m)))))
+  
   
   (define my-stack #f)
   (define buttons #f)
@@ -155,7 +184,9 @@
       
       (draw-buttons dc buttons)
       (draw-overlay dc ownspace my-stack)
-      (draw-framerate dc frames)))
+      (draw-framerate dc frames)
+      )
+    )
   
   
   (define-values (left-inset top-inset) (get-display-left-top-inset))
@@ -163,8 +194,8 @@
   
   (define frame (new frame%
                      (label "Warp")
-                     (width WIDTH)
-                     (height HEIGHT)
+                     (width (inexact->exact WIDTH))
+                     (height (inexact->exact HEIGHT))
                      ;                     (x (- left-inset))
                      ;                     (y (- top-inset))
                      ;                     (width screen-w)
@@ -243,7 +274,7 @@
   (define (client-loop)
     (define start-loop-time (current-milliseconds))
     
-    (when (not server-in-port)
+    (when (and (not testing) (not server-in-port))
       (define newname
         (get-text-from-user "Player Name"
                             "Player Name"
@@ -284,7 +315,7 @@
             (set-player-name! me name)))))
     
     ; get new world
-    (while (and server-in-port (byte-ready? server-in-port))
+    (while (and (not testing) server-in-port (byte-ready? server-in-port))
       (define input (read-from-server))
       ;(printf "client input: ~v\n" input)
       (cond ((space? input)
@@ -326,14 +357,16 @@
       )
     
     (when ownspace
-      (set! my-stack (find-stack ownspace (ob-id me)))
+      (when testing (tick-space! ownspace))
+      (when (not testing)
+        (set! my-stack (find-stack ownspace (ob-id me)))
       
-      ; physics prediction
-      (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))
-      (when (dt . > . TICK)
-        ;(printf "client ticking forward for prediction ~a\n" dt)
-        (tick-space! ownspace)
-        (set! dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time)))
+        ; physics prediction
+        (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))
+        (when (dt . > . TICK)
+          ;(printf "client ticking forward for prediction ~a\n" dt)
+          (tick-space! ownspace)
+          (set! dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))))
       
       ;(printf "client is ahead by ~a\n" (- (space-time ownspace) last-update-time))
       )
@@ -343,11 +376,13 @@
     (set! frames (add-frame-time (current-milliseconds) frames))
     (send canvas refresh-now)
     ;(printf "  ~a\n" (current-milliseconds))
+    
+    ;(printf "mem: ~a\n" (current-memory-use))
           
     ; sleep so we don't hog the whole racket vm
     (define sleep-time
       (add1
-       (if ownspace
+       (if (and (not testing) ownspace)
            (- (calc-dt (current-milliseconds) start-time
                        (+ (space-time ownspace) TICK) start-space-time))
            (- (+ start-loop-time TICK) (current-milliseconds)))))

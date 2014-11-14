@@ -7,21 +7,21 @@
 (define PORT 22381)
 (define TICK 33)  ; ms time slice for physics, also determines max client frame rate
 (define AI_TICK 100)  ; ms time slice for ai
-(define WIDTH 1024)  ; how many meters wide is the screen view
-(define HEIGHT 768)  ; how many meters tall is the screen view
+(define WIDTH 1024.0)  ; how many meters wide is the screen view
+(define HEIGHT 768.0)  ; how many meters tall is the screen view
 (define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view
 (define BOTTOM (/ (- HEIGHT) 2))  ; bottom edge of canonical view
 (define 2pi (* 2 pi))
 (define pi/2 (* 0.5 pi))
-(define AI_GOTO_DIST 50)  ; if you are this close you've hit it
+(define AI_GOTO_DIST 50.0)  ; if you are this close you've hit it
 (define bgcolor "black")
 (define fgcolor "white")
 (define nocolor "hotpink")  ; used with a transparent pen/brush
 
-(define PLASMA_SPEED 60)
-(define SHIELD_SPEED 60)
-(define MAX_POD_ENERGY 100)
-(define MSG_FADE_TIME 10000)
+(define PLASMA_SPEED 60.0)
+(define SHIELD_SPEED 60.0)
+(define MAX_POD_ENERGY 100.0)
+(define MSG_FADE_TIME 10000.0)
 
 (define next-id
   (let ((id 0))

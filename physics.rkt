@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require racket/math)
+(require data/heap)
 
 (require "defs.rkt"
          "utils.rkt"
@@ -19,33 +19,34 @@
 
 
 (define (steer! ownship dt)
-  (define posvel (obj-posvel ownship))
   (define h (ship-helm ownship))
-  
-  (define p (pod-role h))
-  (define course (pilot-course p))
-  (define r (posvel-r posvel))
-  
-  (define racc (stats-rthrust (ship-stats ownship)))
   (cond
-    (((abs (angle-diff r course)) . < . (* racc dt))
-     ;(printf "STOPPING\n")
-     (set-posvel-r! posvel course)
-     (set-posvel-dr! posvel 0))
-    (((pod-energy h) . > . 0)
-     (set-posvel-dr! posvel (if ((angle-diff r course) . > . 0) racc (- racc)))))
-  
-  (define acc? #f)
-  (when (pilot-fore (ship-pilot ownship))
-    (set! acc? #t)
-    (when ((pod-energy h) . > . 0)
-      (define xy_acc (stats-thrust (ship-stats ownship)))
-      (define ddx (* xy_acc (cos (posvel-r posvel))))
-      (define ddy (* xy_acc (sin (posvel-r posvel))))
-      (set-posvel-dx! posvel (+ (posvel-dx posvel) (* ddx dt)))
-      (set-posvel-dy! posvel (+ (posvel-dy posvel) (* ddy dt)))))
-  
-  acc?)
+    ((not h) #f)
+    (else
+     (define p (pod-role h))
+     (define course (pilot-course p))
+     (define posvel (obj-posvel ownship))
+     (define r (posvel-r posvel))
+     
+     (define racc (stats-rthrust (ship-stats ownship)))
+     (cond
+       (((abs (angle-diff r course)) . < . (* racc dt))
+        ;(printf "STOPPING\n")
+        (set-posvel-r! posvel course)
+        (set-posvel-dr! posvel 0.0))
+       (((pod-energy h) . > . 0.0)
+        (set-posvel-dr! posvel (if ((angle-diff r course) . > . 0.0) racc (- racc)))))
+     
+     (cond
+       ((pilot-fore (ship-pilot ownship))
+        (when ((pod-energy h) . > . 0.0)
+          (define xy_acc (stats-thrust (ship-stats ownship)))
+          (define ddx (* xy_acc (cos (posvel-r posvel))))
+          (define ddy (* xy_acc (sin (posvel-r posvel))))
+          (set-posvel-dx! posvel (+ (posvel-dx posvel) (* ddx dt)))
+          (set-posvel-dy! posvel (+ (posvel-dy posvel) (* ddy dt))))
+        #t)
+       (else #f)))))
 
 
 (define (drag dv dt coef epsilon)
@@ -65,8 +66,7 @@
 (define (update-physics! space o dt)
   (cond
     ((ship? o)
-     (define acc? (if (ship-helm o) (steer! o dt) #f))
-     (physics! (obj-posvel o) dt 0.4 acc?))
+     (physics! (obj-posvel o) dt 0.4 (steer! o dt)))
     ((plasma? o)
      (physics! (obj-posvel o) dt)
      (when (plasma-dead? space o)
@@ -145,54 +145,63 @@
   changes)
 
 
+(define (pod-need p) (max 0.0 (- MAX_POD_ENERGY (max 0.0 (pod-energy p)))))
+(define (ship-need s) (max 0.0 (- (ship-maxcon s) (ship-con s))))
+
+
 (define (update-energy! dt ship extra)
   ;(printf "update-energy! ship ~a extra: ~a bat: ~a\n" (ship-name ship) extra (ship-bat ship))
   
   ; remove energy for stateful things
   (define h (ship-helm ship))
-  (when (and h (ship-flying? ship) ((pod-energy h) . > . 0))
+  (when (and h (ship-flying? ship) ((pod-energy h) . > . 0.0))
     (when (pilot-fore (pod-role h))
       (set-pod-energy! h (- (pod-energy h) (* 3.0 dt))))
     (when (not (= (pilot-course (pod-role h))
                   (posvel-r (obj-posvel ship))))
       (set-pod-energy! h (- (pod-energy h) (* 2.0 dt)))))
   
-  ; distribute produced and extra energy
-  (define pods (filter (lambda (p) (not (multipod? p))) (ship-pods ship)))
-  (define suckers (append pods (ship-ships ship)))
-  (define (pod-need s) (max 0.0 (- MAX_POD_ENERGY (max 0.0 (pod-energy s)))))
-  (define (ship-need s) (min (* 10.0 dt) (max 0.0 (- (ship-maxcon s) (ship-con s)))))
-  (set! suckers (sort suckers <
-                      #:key (lambda (s)
-                              (cond ((pod? s) (if (helm? s) -1 (pod-need s)))
-                                    ((ship? s) (ship-need s))))))
-  
   ; take out battery energy
   (define batpow (* 5.0 dt))
   (define bate (min batpow (ship-bat ship)))
   (set-stats-bat! (ship-stats ship) (- (ship-bat ship) bate))
   
-  (define e (+ 0.0 (* dt (ship-power ship)) bate extra))
+  ; total energy we have to give
+  (define e (+ (* dt (ship-power ship)) bate extra))
   
-  ; give our docked ships first dibs
+  ; first dibs is our own pods
+  ; figure out how much total power is requested (limited by e)
+  ; distribute power proportionally
+  (define maxreq 0.0001)
+  (define espent 0.0)
+  (for ((p (ship-pods ship)) #:when (not (multipod? p)))
+    (set! maxreq (+ maxreq (min e (pod-need p)))))
+  (for ((p (ship-pods ship)) #:when (not (multipod? p)))
+    (define xfer (min (pod-need p) (* e (/ (min e (pod-need p)) maxreq))))
+    ;(printf "xfer: ~a, ~a, ~a\n" (pod-need p) maxreq xfer)
+    (set-pod-energy! p (+ (pod-energy p) xfer))
+    (set! espent (+ espent xfer)))
+  
+  ;(printf "update-energy: ~a, ~a\n" e espent)
+  (set! e (- e espent))
+  
+  ; give our docked ships second dibs
   (for ((s (ship-ships ship)))
     (set! e (update-energy! dt s e)))
   
+  ; third dibs is repairing docked ships
+  (set! maxreq 0.0001)
+  (set! espent 0.0)
+  (for ((s (ship-ships ship)))
+    (set! maxreq (+ maxreq (min e (* 10.0 dt) (ship-need s)))))
+  (for ((s (ship-ships ship)))
+    (define xfer (min (* 10.0 dt) (ship-need s) (* e (/ (min e (* 10.0 dt) (ship-need s)) maxreq))))
+    (define stats (ship-stats s))
+    (set-stats-con! stats (+ (stats-con stats) (* 0.1 xfer)))
+    (set! espent (+ espent xfer)))
   
-  (while (not (null? suckers))
-    (define ef (/ e (length suckers)))
-    (define s (car suckers))
-    (cond ((pod? s)
-           (define xfer (min ef (pod-need s)))
-           (when (helm? s) (set! xfer (min e (pod-need s))))
-           (set-pod-energy! s (+ (pod-energy s) xfer))
-           (set! e (- e xfer)))
-          ((ship? s)
-           (define xfer (min ef (ship-need s)))
-           (define stats (ship-stats s))
-           (set-stats-con! stats (+ (stats-con stats) (* 0.1 xfer)))
-           (set! e (- e xfer))))
-    (set! suckers (cdr suckers)))
+  ;(printf "update-energy: ~a, ~a\n" e espent)
+  (set! e (- e espent))
   
   ; put back in battery energy we didn't use
   (define batback (min e (+ bate (* 2 batpow))

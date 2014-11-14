@@ -154,7 +154,7 @@
      (cond
        ((not stack)  ; ship died as role message was on wire?
         (printf "~a discarding message ~v\n" who c)
-        '())
+        (values #f '()))
        ((weapons? c) (change-weapons c space stack))
        ((tactics? c) (change-tactics c space stack))
        ((pilot? c) (change-pilot c space stack))))

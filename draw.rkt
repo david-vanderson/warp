@@ -26,13 +26,14 @@
 
 (define (draw-framerate dc frames)
   (when ((length frames) . > . 1)
+    (send dc set-text-foreground "white")
     (keep-transform dc
       (send dc translate (- (/ WIDTH 2)) (/ HEIGHT 2))
       (send dc scale 1 -1)
       (define start (list-ref frames (- (length frames) 1)))
       (define end (first frames))
       (define span (/ (- end start) 1000))
-      (send dc draw-text (format "FPS: ~a" (truncate (/ (- (length frames) 1) span))) 0 0))))
+      (draw-text dc (format "FPS: ~a" (truncate (/ (- (length frames) 1) span))) 0 0))))
 
 
 (define (draw-background dc space center bitmap scale parallax width height)
@@ -266,8 +267,9 @@
     (for ((i (inexact->exact (round (/ (- max-y sw) sw)))))
       (send dc draw-line (- (/ max-x 2)) (- (* sw i)) (/ max-x 2) (- (* sw i))))
     
-    (for ((o (space-objects space)))
-      (draw-object dc o center space #t)))
+    (for ((o (in-list (space-objects space))))
+      (draw-object dc o center space #t))
+    )
   
   (define buttons (list leave-button))
   
@@ -299,6 +301,7 @@
 
 
 (define (draw-overlay dc space stack)
+  (send dc set-text-foreground "white")
   (when stack
     (define role (get-role stack))
     (define str (format "~a" (role-name role)))
@@ -307,7 +310,7 @@
     (keep-transform dc
       (send dc translate 0 (/ HEIGHT 2))
       (send dc scale 1 -1)
-      (send dc draw-text str 0 0)))
+      (draw-text dc str 0 0)))
   
   (when space
     (define max 8)
@@ -322,11 +325,11 @@
         (define z (linear-fade (obj-age space m) (/ MSG_FADE_TIME 2) MSG_FADE_TIME))
         (define cc (linear-color "white" "white" z z))
         (send dc set-text-foreground cc)
-        (send dc draw-text (message-msg m) 0 0)))
-    (send dc set-text-foreground "white")))
+        (draw-text dc (message-msg m) 0 0)))))
 
 
 (define (draw-hud dc ship pod)
+  (send dc set-text-foreground "white")
   (draw-hud-status-text dc 1 (format "Ship Hull ~a" (inexact->exact (round (ship-con ship)))))
   (draw-hud-status-text dc 2 (format "Reactor   ~a" (inexact->exact (round (ship-power ship)))))
   (draw-hud-status-text dc 3 (format "Reserve   ~a" (inexact->exact (round (ship-bat ship)))))
@@ -345,7 +348,7 @@
       (send dc draw-rectangle x y w h)
       (send dc translate x (+ y h))
       (send dc scale 1 -1)
-      (send dc draw-text (button-label b) (button-left-inset b) (button-top-inset b)))))
+      (draw-text dc (button-label b) (button-left-inset b) (button-top-inset b)))))
 
 
 (define (draw-dmgfx dc stack)

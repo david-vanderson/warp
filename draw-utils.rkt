@@ -40,12 +40,16 @@
   (min (abs (vector-ref m 0)) (abs (vector-ref m 3))))
 
 
+(define (draw-text dc str x y)
+  (send dc draw-text str x y))
+
+
 (define (draw-hud-status-text dc linenum str)
   (keep-transform dc
     (send dc translate (- (/ WIDTH 2)) (/ HEIGHT 2))
     (send dc translate 0 (* linenum -20))
     (send dc scale 1 -1)
-    (send dc draw-text str 0 0)))
+    (draw-text dc str 0 0)))
 
 
 (define (linear-color color1 color2 z alpha)

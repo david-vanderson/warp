@@ -91,12 +91,11 @@
   (findf (lambda (o) (= (ob-id o) id)) (space-objects space)))
 
 (define (ship-helm s)
-  (define helmcar (memf helm? (ship-pods s)))
-  (if helmcar (car helmcar) #f))
+  (for/first ((p (ship-pods s)) #:when (helm? p)) p))
 
 (define (ship-ships s)
-  (define hp (memf hangarpod? (ship-pods s)))
-  (if hp (hangarpod-ships (car hp)) (list)))
+  (define hp (for/first ((p (ship-pods s)) #:when (hangarpod? p)) p))
+  (if hp (hangarpod-ships hp) (list)))
 
 (define (ship-pilot s)
   (pod-role (ship-helm s)))
@@ -183,7 +182,7 @@
 
 
 (define (atan0 y x)
-  (if (= 0 x y) 0 (atan y x)))
+  (if (= 0.0 x y) 0.0 (atan y x)))
 
 
 (define (theta from to)
