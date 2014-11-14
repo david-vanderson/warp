@@ -164,7 +164,7 @@
        ;(printf "~a ticking forward ~v\n" who (chadd-o c))
        (update-physics! space (chadd-o c) (/ TICK 1000.0))
        (set! ctime (+ ctime TICK)))
-     (set-space-objects! space (append (space-objects space) (list (chadd-o c))))
+     (set-space-objects! space (cons (chadd-o c) (space-objects space)))
      (values #t '()))
     ((chrm? c)
      ;(printf "~a removing ~v\n" who (find-id space (chrm-id c)))
@@ -221,7 +221,7 @@
             (values #t '()))))
     ((message? c)
      (set-obj-start-time! c (space-time space))
-     (set-space-objects! space (append (space-objects space) (list c)))
+     (set-space-objects! space (cons c (space-objects space)))
      (values #t '()))
     (else
      (error "apply-change! hit ELSE clause" c))))

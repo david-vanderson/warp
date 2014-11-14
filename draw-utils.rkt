@@ -7,6 +7,7 @@
 
 (provide (all-defined-out))
 
+
 (define-syntax-rule (keep-transform dc e ...)
   (begin
     (define t (send dc get-transformation))
@@ -45,11 +46,7 @@
 
 
 (define (draw-hud-status-text dc linenum str)
-  (keep-transform dc
-    (send dc translate (- (/ WIDTH 2)) (/ HEIGHT 2))
-    (send dc translate 0 (* linenum -20))
-    (send dc scale 1 -1)
-    (draw-text dc str 0 0)))
+  (draw-text dc str (- (/ WIDTH 2)) (+ (/ (- HEIGHT) 2) (* linenum 20))))
 
 
 (define (linear-color color1 color2 z alpha)

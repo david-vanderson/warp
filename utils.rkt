@@ -15,6 +15,9 @@
 (define (obj-age space o)
   (- (space-time space) (obj-start-time o)))
 
+(define (time-for age repeat (offset 0))
+  (<= (+ 1 offset) (modulo age repeat) (+ offset TICK)))
+
 (define (strategy-age space s)
   (- (space-time space) (strategy-t s)))
 

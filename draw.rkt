@@ -14,12 +14,6 @@
 
 (provide (all-defined-out))
 
-(define stars1-bitmap (make-bitmap 1 1))
-(send stars1-bitmap load-file "images/stars.png" 'png/alpha)
-
-(define background-bitmap (make-bitmap 1 1))
-(send background-bitmap load-file "images/background.jpg")
-
 
 (define (add-frame-time current-time frames)
   (cons current-time (take frames (min 10 (length frames)))))
@@ -28,77 +22,18 @@
   (when ((length frames) . > . 1)
     (send dc set-text-foreground "white")
     (keep-transform dc
-      (send dc translate (- (/ WIDTH 2)) (/ HEIGHT 2))
-      (send dc scale 1 -1)
+      (send dc translate (- (/ WIDTH 2)) (/ (- HEIGHT) 2))
       (define start (list-ref frames (- (length frames) 1)))
       (define end (first frames))
       (define span (/ (- end start) 1000))
       (draw-text dc (format "FPS: ~a" (truncate (/ (- (length frames) 1) span))) 0 0))))
 
 
-(define (draw-background dc space center bitmap scale parallax width height)
-  (define repeatx (* scale (send bitmap get-width)))
-  (define repeaty (* scale (send bitmap get-height)))
-  (define x (remain (* parallax (posvel-x (obj-posvel center))) repeatx))
-  (define y (remain (* parallax (posvel-y (obj-posvel center))) repeaty))
-  
-  ;(set! width (- width 20))
-  ;(set! height (- height 20))
-  (define w/2 (/ width 2))
-  (define h/2 (/ height 2))
-  
-  (define istart (- (ceiling (- (/ (- w/2 x) repeatx) 0.5))))
-  (define iend (add1 (ceiling (- (/ (+ w/2 x) repeatx) 0.5))))
-  (define kstart (- (ceiling (- (/ (- h/2 y) repeaty) 0.5))))
-  (define kend (add1 (ceiling (- (/ (+ h/2 y) repeaty) 0.5))))
-  ;(printf "i from ~a to ~a\n" istart iend)
-  ;(printf "k from ~a to ~a\n" kstart kend)
-  
-  (for* ((i (in-range istart iend))
-         (k (in-range kstart kend)))
-    (define xx (- x (* i repeatx)))
-    (define yy (- y (* k repeaty)))
-    (keep-transform dc
-      
-;      (send dc translate (- xx) (- yy))
-;      (send dc scale scale scale)
-;      (send dc translate (- (/ (send bitmap get-width) 2)) (/ (send bitmap get-height) 2))
-;      (send dc scale 1 -1)
-;      (send dc draw-bitmap bitmap 0 0)
-      
-      (define xorig (- 0 xx (/ repeatx 2)))
-      (define yorig (- 0 (- yy) (/ repeaty 2)))
-      (define xscreen (if (xorig . < . (- w/2))
-                          (+ (- w/2) (- scale) (remain (- xorig (- w/2)) scale))
-                          xorig))
-      (define yscreen (if (yorig . < . (- h/2))
-                          (+ (- h/2) (- scale) (remain (- yorig (- h/2)) scale))
-                          yorig))
-      (define xbitmap (max 0 (- xscreen xorig)))
-      (define ybitmap (max 0 (- yscreen yorig)))
-      (define xbitmapsize (- w/2 xscreen))
-      (define ybitmapsize (- h/2 yscreen))
-      ;(printf "xorig ~a yorig ~a xscreen ~a yscreen ~a xbitmap ~a ybitmap ~a\n" xorig yorig xscreen yscreen xbitmap ybitmap)
-      
-      (send dc scale scale scale)
-      (send dc scale 1 -1)
-      (send dc draw-bitmap-section bitmap (/ xscreen scale) (/ yscreen scale)
-            (/ xbitmap scale) (/ ybitmap scale) (/ xbitmapsize scale) (/ ybitmapsize scale))
-      
-      ))
-  
-;  (send dc set-pen "white" 1 'solid)
-;  (send dc set-brush nocolor 'transparent)
-;  (send dc draw-rectangle (- (/ width 2)) (- (/ height 2)) width height)
-  
-  )
-
-
 (define (draw-background-stars dc space center parallax width height)
   (define repeatx 1000)
   (define repeaty 1000)
   (define x (remain (* parallax (posvel-x (obj-posvel center))) repeatx))
-  (define y (remain (* parallax (posvel-y (obj-posvel center))) repeaty))
+  (define y (remain (* parallax (- (posvel-y (obj-posvel center)))) repeaty))
   
   ;(set! width (/ width 2))
   ;(set! height (/ height 2))
@@ -206,33 +141,15 @@
 (define (draw-ship dc s center)
   (keep-transform dc
     (define-values (x y) (recenter center s))
-    (send dc translate x y)
-    
-    (keep-transform dc
-      (send dc rotate (- (posvel-r (obj-posvel s))))
-      (send dc set-pen fgcolor 1 'solid)
-      (send dc set-brush nocolor 'transparent)
-      (define ship-bitmap (get-ship-bitmap s))
-      (send dc scale 1 -1)
-      (send dc draw-bitmap
-              ship-bitmap
-              (- (/ (send ship-bitmap get-width) 2))
-              (- (/ (send ship-bitmap get-height) 2)))
-      
-;      (for ((pod (ship-pods s)))
-;        (draw-pod dc pod)))
-    
-;    (define scale 0.5)
-;    (send dc scale scale (- scale))
-;    (define text (~r (ship-con s) #:precision 0))
-;    (define-values (w h b v) (send dc get-text-extent text #f #t))
-;    (send dc translate (* -0.5 w) (* -0.5 h))
-;    (send dc set-pen nocolor 1 'transparent)
-;    (send dc set-brush fgcolor 'solid)
-;    (let ((p (new dc-path%)))
-;      (send p text-outline (send dc get-font) text 0 0)
-;      (send dc draw-path p 0 0))
-    )))
+    (send dc translate x (- y))
+    (send dc rotate (posvel-r (obj-posvel s)))
+    (send dc set-pen fgcolor 1 'solid)
+    (send dc set-brush nocolor 'transparent)
+    (define ship-bitmap (get-ship-bitmap s))
+    (send dc draw-bitmap
+          ship-bitmap
+          (- (/ (send ship-bitmap get-width) 2))
+          (- (/ (send ship-bitmap get-height) 2)))))
 
 
 ; assuming dc is already centered on middle of ship and rotated for the ship
@@ -252,8 +169,6 @@
     (send dc scale scale scale)
     ;(printf "dc-point-size: ~a\n" (dc-point-size dc))
     (define center (obj #f #f (posvel 0 0 0 0 0 0 0)))
-    ;(draw-background dc space center background-bitmap 4 1 max-x max-y)
-    ;(draw-background dc space center stars1-bitmap 8 2 max-x max-y)
     (define cc (linear-color "blue" "blue" 1.0 0.25))
     (send dc set-pen cc (/ 2 (dc-point-size dc)) 'solid)
     (define sw 500)
@@ -277,7 +192,7 @@
     (search space (lambda (o) (and (multipod? o)
                                    (multipod-start? o))) #t))
   
-  (set! start-stacks (filter (lambda (s) (obj-posvel (get-ship s))) start-stacks))
+  (set! start-stacks (filter (lambda (s) (ship-flying? (get-ship s))) start-stacks))
   
   (for ((s start-stacks)
         (i (in-naturals)))
@@ -308,24 +223,24 @@
     (for ((s (get-ships stack)))
       (set! str (format "~a on ~a" str (ship-name s))))
     (keep-transform dc
-      (send dc translate 0 (/ HEIGHT 2))
-      (send dc scale 1 -1)
+      (send dc translate 0 (/ (- HEIGHT) 2))
       (draw-text dc str 0 0)))
   
   (when space
-    (define max 8)
-    (define msgs (filter message? (space-objects space)))
-    (set! msgs (take (reverse msgs) (min 8 (length msgs))))
-    (for ((m msgs) (i max))
-      (keep-transform dc
-        (send dc translate (- (/ WIDTH 2)) (- (/ HEIGHT 2)))
-        (send dc translate 0 (* (+ max 6) 20))
-        (send dc translate 0 (* i -20))
-        (send dc scale 1 -1)
-        (define z (linear-fade (obj-age space m) (/ MSG_FADE_TIME 2) MSG_FADE_TIME))
-        (define cc (linear-color "white" "white" z z))
-        (send dc set-text-foreground cc)
-        (draw-text dc (message-msg m) 0 0)))))
+    (define max 6)
+    (define num 0)
+    (let loop ((l (space-objects space)))
+      (when (and (not (null? l)) (num . < . max))
+        (when (message? (car l))
+          (define m (car l))
+          (set! num (+ num 1))
+          (keep-transform dc
+            (send dc translate (- (/ WIDTH 2)) (+ (/ HEIGHT 2) (* (+ max 7) -20) (* num 20)))
+            (define z (linear-fade (obj-age space m) (/ MSG_FADE_TIME 2) MSG_FADE_TIME))
+            (define cc (linear-color "white" "white" z z))
+            (send dc set-text-foreground cc)
+            (draw-text dc (message-msg m) 0 0)))
+        (loop (cdr l))))))
 
 
 (define (draw-hud dc ship pod)
@@ -339,15 +254,15 @@
 
 
 (define (draw-buttons dc buttons)
+  (send dc set-brush "darkgray" 'solid)
+  (send dc set-pen fgcolor 1 'solid)
   (for ((b buttons))
     (keep-transform dc
       (define-values (x y w h) (values (button-x b) (button-y b)
                                        (button-width b) (button-height b)))
-      (send dc set-brush "darkgray" 'solid)
-      (send dc set-pen fgcolor 1 'solid)
+      (set! y (- 0.0 y h))
       (send dc draw-rectangle x y w h)
-      (send dc translate x (+ y h))
-      (send dc scale 1 -1)
+      (send dc translate x y)
       (draw-text dc (button-label b) (button-left-inset b) (button-top-inset b)))))
 
 

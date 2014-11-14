@@ -51,12 +51,12 @@
                                 (+ (* PLASMA_SPEED (sin a)))
                                 0.0)
                         10.0 #f))
-      (set-space-objects! ownspace (append (space-objects ownspace) (list f))))
+      (set-space-objects! ownspace (cons f (space-objects ownspace))))
     
     
     (for ((i 10))
       (define m (message (next-id) (space-time ownspace) #f (format "message ~a" i)))
-      (set-space-objects! ownspace (append (space-objects ownspace) (list m)))))
+      (set-space-objects! ownspace (cons m (space-objects ownspace)))))
   
   
   (define my-stack #f)
@@ -149,8 +149,8 @@
       
       (send dc translate (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
       (define scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
-      (send dc scale scale (- scale))
-      ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
+      (send dc scale scale scale)
+      ; transformation is (center of screen, y down, WIDTHxHEIGHT logical units, rotation clockwise)
       
       (send dc set-clipping-rect (- (/ WIDTH 2)) (- (/ HEIGHT 2)) (* 1 WIDTH) (* 1 HEIGHT))
       
@@ -377,7 +377,8 @@
     (send canvas refresh-now)
     ;(printf "  ~a\n" (current-milliseconds))
     
-    ;(printf "mem: ~a\n" (current-memory-use))
+;    (when (time-for (current-milliseconds) 1000)
+;      (displayln (~a "mem: " (~r (/ (current-memory-use) (* 1024.0 1024.0)) #:precision 2))))
           
     ; sleep so we don't hog the whole racket vm
     (define sleep-time

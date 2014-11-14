@@ -41,7 +41,7 @@
   (send dc set-pen cc (* 6.0 (shield-sigmoid space s)) 'solid)
   (define len (shield-length space s))
   (keep-transform dc
-    (send dc translate x y)
-    (send dc rotate (- (posvel-r (obj-posvel s))))
+    (send dc translate x (- y))
+    (send dc rotate (posvel-r (obj-posvel s)))
     (send dc draw-line 0 (* -0.5 len) 0 (* 0.5 len))))
 

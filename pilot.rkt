@@ -306,7 +306,7 @@
       (define-values (x y) (recenter center s))
       (send dc set-brush nocolor 'transparent)
       (send dc set-pen "hotpink" 2.0 'solid)
-      (send dc draw-ellipse (- x 10) (- y 10) 20 20))))
+      (send dc draw-ellipse (- x 10) (- (- y) 10) 20 20))))
 
 
 (define (draw-pilot dc space stack)

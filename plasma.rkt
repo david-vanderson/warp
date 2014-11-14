@@ -41,7 +41,7 @@
 (define (draw-plasma dc p center space)
   (define-values (x y) (recenter center p))
   (keep-transform dc
-    (send dc translate x y)
+    (send dc translate x (- y))
     (send dc scale
           (/ (plasma-radius space p) (send plasma-bitmap get-width) 0.5)
           (/ (plasma-radius space p) (send plasma-bitmap get-height) 0.5))

@@ -100,7 +100,7 @@
   
   (when (ship-flying? ship)
     (keep-transform dc
-      (send dc rotate (- (posvel-r spv)))
+      (send dc rotate (posvel-r spv))
       (define line-size 50)
       (send dc set-pen "red" 1 'solid)
       (for ((a (list (+ (pod-facing w) (/ (pod-spread w) 2))
