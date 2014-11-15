@@ -46,7 +46,7 @@
              (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f 0 start-ship? '())
              '() '() '()))
   
-  (for ((hangship in-hangar))
+  (for ((hangship (in-list in-hangar)))
     (set-obj-posvel! hangship #f)
     (define new-strat (strategy 0 "return" (ob-id s)))
     (set-ship-ai-strategy! hangship (list new-strat)))
@@ -64,10 +64,10 @@
      (set-ship-pods!
       s `(,(multipod (next-id) (observer (next-id) #f #f) 0.0 0.0 #f #f 0.0 #f '())
           ,(hangarpod (next-id) (hangar (next-id) #f #f) pi 13.0 #f #f 0.0 #f '() in-hangar)
-          ,@(for/list ((d (list 0 90 180 270)))
+          ,@(for/list ((d (in-list (list 0 90 180 270))))
               (weapon (next-id) (weapons (next-id) #f (and npc? npc-weapons?) #f)
                       (degrees->radians d) 26.0 (degrees->radians d) (* 0.8 pi) MAX_POD_ENERGY 15.0))
-          ,@(for/list ((d (list 45 135 225 315)))
+          ,@(for/list ((d (in-list (list 45 135 225 315))))
               (tactical (next-id) (tactics (next-id) #f (and npc? npc-tactical?) #f)
                         (degrees->radians d) 28.0 (degrees->radians d) (* 0.8 pi) MAX_POD_ENERGY 25.0)))))
     (("blue-frigate" "red-frigate")

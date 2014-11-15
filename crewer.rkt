@@ -54,7 +54,7 @@
        ; draw all the ships in the hangar
        (define shipmax 54)
        (define pod (get-pod stack))
-       (for ((s (hangarpod-ships pod))
+       (for ((s (in-list (hangarpod-ships pod)))
              (i (in-naturals)))
          (keep-transform dc
            (send dc translate (+ (* -0.5 size) 10 (/ shipmax 2)) (+ (* -0.5 size) 10 (* i 100) (/ shipmax 2)))
@@ -70,7 +70,7 @@
            (send dc draw-text (format "~a" (ship-name s)) 0 5)
            (define-values (x y) (dc->canon canvas dc 0 60))
            (set! buttons (cons (button x y 65 30 5 5 (ob-id (ship-crew s)) "Board") buttons))
-           (for ((p (find-all s player?))
+           (for ((p (in-list (find-all s player?)))
                  (i (in-naturals)))
              (send dc draw-text (player-name p) 0 (+ 70 (* i 20))))
            )))
@@ -79,7 +79,7 @@
        (send dc set-pen fgcolor 1.0 'solid)
        (send dc set-brush nocolor 'transparent)
        
-       (for ((p (ship-pods ship)))
+       (for ((p (in-list (ship-pods ship))))
          (keep-transform dc
            (define r (angle-add (/ pi 2) (pod-angle p)))
            (send dc translate (* scale (pod-dist p) (cos r)) (- (* scale (pod-dist p) (sin r))))
@@ -91,7 +91,7 @@
            (cond
              ((multipod? p)
               (set! buttons (cons deploy buttons))
-              (for ((r (multipod-roles p))
+              (for ((r (in-list (multipod-roles p)))
                     (i (in-naturals)))
                 (send dc draw-text (player-name (role-player r)) 0 (+ 70 (* i 20)))))
              (else

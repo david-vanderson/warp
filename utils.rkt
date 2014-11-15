@@ -70,7 +70,7 @@
        (list (cons o stack)))
       (else
        (define results
-         (for/list ((c (get-children o)))
+         (for/list ((c (in-list (get-children o))))
            (define r (search c id multiple? (cons o stack)))
            (if (and (not multiple?)
                     (not (null? r)))
@@ -94,10 +94,10 @@
   (findf (lambda (o) (= (ob-id o) id)) (space-objects space)))
 
 (define (ship-helm s)
-  (for/first ((p (ship-pods s)) #:when (helm? p)) p))
+  (for/first ((p (in-list (ship-pods s))) #:when (helm? p)) p))
 
 (define (ship-ships s)
-  (define hp (for/first ((p (ship-pods s)) #:when (hangarpod? p)) p))
+  (define hp (for/first ((p (in-list (ship-pods s))) #:when (hangarpod? p)) p))
   (if hp (hangarpod-ships hp) (list)))
 
 (define (ship-pilot s)
@@ -232,7 +232,7 @@
                           (space-objects space)))
   (define ne #f)
   (define ne-dist #f)
-  (for ((e enemies))
+  (for ((e (in-list enemies)))
     (define d (distance ownship e))
     (when (and (d . < . agro-dist)
                (or (not ne) (d . < . ne-dist)))
@@ -251,7 +251,7 @@
                                ((distance ship o) . < . max-dist)))
                         (space-objects space)))
   (define ns #f)
-  (for ((s ships))
+  (for ((s (in-list ships)))
     (define a (angle-diff (angle-add pi (posvel-r (obj-posvel ship))) (theta ship s)))
     (when ((abs a) . < . max-ang)
       (set! ns s)))
@@ -285,7 +285,7 @@
   (define plasmas (filter plasma? (space-objects space)))
   (define np #f)
   (define np-dist #f)
-  (for ((p plasmas))
+  (for ((p (in-list plasmas)))
     (define d (distance ownship p))
     (when (d . < . agro-dist)
       (define t (target-angle p #f ownship ownship PLASMA_SPEED))

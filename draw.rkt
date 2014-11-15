@@ -29,25 +29,7 @@
       (draw-text dc (format "FPS: ~a" (truncate (/ (- (length frames) 1) span))) 0 0))))
 
 
-(define (draw-background-stars dc space center parallax width height)
-  (define repeatx 1000)
-  (define repeaty 1000)
-  (define x (remain (* parallax (posvel-x (obj-posvel center))) repeatx))
-  (define y (remain (* parallax (- (posvel-y (obj-posvel center)))) repeaty))
-  
-  ;(set! width (/ width 2))
-  ;(set! height (/ height 2))
-  (define w/2 (/ width 2))
-  (define h/2 (/ height 2))
-  
-  (define istart (- (ceiling (- (/ (- w/2 x) repeatx) 0.5))))
-  (define iend (add1 (ceiling (- (/ (+ w/2 x) repeatx) 0.5))))
-  (define kstart (- (ceiling (- (/ (- h/2 y) repeaty) 0.5))))
-  (define kend (add1 (ceiling (- (/ (+ h/2 y) repeaty) 0.5))))
-  
-  (send dc set-pen "white" 1 'solid)
-  
-  (define stars '(
+(define stars '(
     (-232 . 26) (119 . -256) (-160 . 406) (104 . 15) (-494 . 107)
     (105 . -158) (403 . 127) (233 . 365) (137 . 492) (-465 . -351)
     (422 . 52) (-129 . 30) (-96 . -187) (-149 . -423) (-98 . 414)
@@ -68,13 +50,31 @@
     (135 . 195) (-432 . -373) (-96 . 0) (81 . -453) (-211 . -347) (366 . -106)
     (314 . -242) (324 . 15) (-403 . -427) (219 . 95) (159 . 308) (-265 . 234)
     (357 . -57) (387 . 272)))
+
+(define (draw-background-stars dc space center parallax width height)
+  (define repeatx 1000)
+  (define repeaty 1000)
+  (define x (remain (* parallax (posvel-x (obj-posvel center))) repeatx))
+  (define y (remain (* parallax (- (posvel-y (obj-posvel center)))) repeaty))
+  
+  ;(set! width (/ width 2))
+  ;(set! height (/ height 2))
+  (define w/2 (/ width 2))
+  (define h/2 (/ height 2))
+  
+  (define istart (- (ceiling (- (/ (- w/2 x) repeatx) 0.5))))
+  (define iend (add1 (ceiling (- (/ (+ w/2 x) repeatx) 0.5))))
+  (define kstart (- (ceiling (- (/ (- h/2 y) repeaty) 0.5))))
+  (define kend (add1 (ceiling (- (/ (+ h/2 y) repeaty) 0.5))))
+  
+  (send dc set-pen "white" 1 'solid)
   
   (for* ((i (in-range istart iend))
          (k (in-range kstart kend)))
     (define xx (- x (* i repeatx)))
     (define yy (- y (* k repeaty)))
     
-    (for ((s stars))
+    (for ((s (in-list stars)))
       (define sx (- (car s) xx))
       (define sy (- (cdr s) yy))
       (when (and (< (- w/2) sx w/2)
@@ -99,7 +99,7 @@
          (let ()
            (define-values (x y) (recenter center o))
            (send dc set-pen "red" (/ 2 (dc-point-size dc)) 'solid)
-           (send dc draw-point x y))
+           (send dc draw-point x (- y)))
          (draw-plasma dc o center space)))
     ((shield? o)
      (draw-shield dc space center o))
@@ -112,7 +112,7 @@
 (define (draw-server-objects dc center space)
   (send dc set-pen "hotpink" 1 'solid)
   (send dc set-brush nocolor 'transparent)
-  (for ((o (space-objects space)))
+  (for ((o (in-list (space-objects space))))
     (keep-transform dc
       (define-values (x y) (recenter center o))
       (send dc translate x y)
@@ -134,7 +134,7 @@
   (define backeffects (filter backeffect? effects))
   (set! effects (remove* backeffects effects))
   
-  (for ((o (append backeffects ships other effects)))
+  (for ((o (in-list (append backeffects ships other effects))))
     (draw-object dc o center space)))
 
 
@@ -172,14 +172,14 @@
     (define cc (linear-color "blue" "blue" 1.0 0.25))
     (send dc set-pen cc (/ 2 (dc-point-size dc)) 'solid)
     (define sw 500)
-    (for ((i (inexact->exact (round (/ max-x sw)))))
+    (for ((i (in-range (inexact->exact (round (/ max-x sw))))))
       (send dc draw-line (* sw i) (- (/ max-y 2)) (* sw i) (/ max-y 2)))
-    (for ((i (inexact->exact (round (/ (- max-x sw) sw)))))
+    (for ((i (in-range (inexact->exact (round (/ (- max-x sw) sw))))))
       (send dc draw-line (- (* sw i)) (- (/ max-y 2)) (- (* sw i)) (/ max-y 2)))
     
-    (for ((i (inexact->exact (round (/ max-y sw)))))
+    (for ((i (in-range (inexact->exact (round (/ max-y sw))))))
       (send dc draw-line (- (/ max-x 2)) (* sw i) (/ max-x 2) (* sw i)))
-    (for ((i (inexact->exact (round (/ (- max-y sw) sw)))))
+    (for ((i (in-range (inexact->exact (round (/ (- max-y sw) sw))))))
       (send dc draw-line (- (/ max-x 2)) (- (* sw i)) (/ max-x 2) (- (* sw i))))
     
     (for ((o (in-list (space-objects space))))
@@ -194,7 +194,7 @@
   
   (set! start-stacks (filter (lambda (s) (ship-flying? (get-ship s))) start-stacks))
   
-  (for ((s start-stacks)
+  (for ((s (in-list start-stacks))
         (i (in-naturals)))
     (define mp (car s))
     (define b (button (+ LEFT 100 (* i 250)) (+ BOTTOM 60) 200 30 5 5 (ob-id mp)
@@ -208,7 +208,7 @@
   (draw-view dc (get-center stack) space)
   (when serverspace (draw-server-objects dc (get-center stack) serverspace))
   (draw-hud dc (get-ship stack) #f)
-  (for ((p (ship-pods (get-ship stack)))
+  (for ((p (in-list (ship-pods (get-ship stack))))
         (i (in-naturals)))
     (define e (inexact->exact (round (pod-energy p))))
     (draw-hud-status-text dc (+ 10 i) (format "~a ~a" (role-name (pod-role p)) e)))
@@ -220,7 +220,7 @@
   (when stack
     (define role (get-role stack))
     (define str (format "~a" (role-name role)))
-    (for ((s (get-ships stack)))
+    (for ((s (in-list (get-ships stack))))
       (set! str (format "~a on ~a" str (ship-name s))))
     (keep-transform dc
       (send dc translate 0 (/ (- HEIGHT) 2))
@@ -256,7 +256,7 @@
 (define (draw-buttons dc buttons)
   (send dc set-brush "darkgray" 'solid)
   (send dc set-pen fgcolor 1 'solid)
-  (for ((b buttons))
+  (for ((b (in-list buttons)))
     (keep-transform dc
       (define-values (x y w h) (values (button-x b) (button-y b)
                                        (button-width b) (button-height b)))
@@ -270,7 +270,7 @@
   (define space (get-space stack))
   (define ship (get-ship (reverse stack)))
   (define keep
-    (for/list ((d (ship-dmgfx ship)))
+    (for/list ((d (in-list (ship-dmgfx ship))))
       (case (dmgfx-type d)
         (("translation")
          (define t (* (dmgfx-size d) (linear-fade (obj-age space d) 0 1000)))

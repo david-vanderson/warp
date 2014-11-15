@@ -103,8 +103,8 @@
       (send dc rotate (posvel-r spv))
       (define line-size 50)
       (send dc set-pen "red" 1 'solid)
-      (for ((a (list (+ (pod-facing w) (/ (pod-spread w) 2))
-                     (- (pod-facing w) (/ (pod-spread w) 2)))))
+      (for ((a (in-list (list (+ (pod-facing w) (/ (pod-spread w) 2))
+                              (- (pod-facing w) (/ (pod-spread w) 2))))))
         (send dc draw-line 0 0 (* line-size (cos a)) (* line-size (sin a))))))
   
   (list leave-button))

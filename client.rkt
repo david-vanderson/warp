@@ -233,7 +233,7 @@
   
   (define (tick-space! space)
     (set-space-time! space (+ (space-time space) TICK))
-    (for ((o (space-objects space)))
+    (for ((o (in-list (space-objects space))))
       (update-physics! space o (/ TICK 1000.0))
       (when (ship? o) (update-energy! (/ TICK 1000.0) o 0.0))
       (add-backeffects! space o)))
@@ -335,14 +335,14 @@
                (tick-space! ownspace))
              (when ((space-time ownspace) . < . (update-time input))
                (error "client ownspace still behind update time\n"))
-             (for ((c (update-changes input)))
+             (for ((c (in-list (update-changes input))))
                ;(printf "client applying change ~v\n" c)
                (define-values (forward? useless-changes)
                  (apply-change! ownspace c (update-time input) "client"))
                (when (not (null? useless-changes))
                  (printf "client produced useless changes:\n  ~v\n" useless-changes))
                )
-             (for ((pvu (update-pvs input)))
+             (for ((pvu (in-list (update-pvs input))))
                (update-posvel! ownspace pvu (update-time input)))))
       
       (when ownspace

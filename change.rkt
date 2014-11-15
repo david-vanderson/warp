@@ -231,14 +231,14 @@
   (if (null? changes)
       '()
       (apply append
-             (for/list ((c changes))
+             (for/list ((c (in-list changes)))
                (define-values (forward? new-changes) (apply-change! space c ctime who))
                (append (if forward? (list (copy c)) '())
                        (apply-all-changes! space new-changes ctime who))))))
 
 
 (define (change-all-ids! structs)
-  (for ((s structs))
+  (for ((s (in-list structs)))
     (when (and (ob? s) (not (player? s)))
       (set-ob-id! s (next-id)))
     (when (struct? s)
@@ -246,7 +246,7 @@
       (change-all-ids! (flatten fields)))))
 
 (define (change-ids! changes)
-  (for ((c changes))
+  (for ((c (in-list changes)))
     (cond
       ((chadd? c)
        ;(printf "rewriting ~v\n" c)

@@ -114,7 +114,7 @@
       (define e (effect (next-id) (space-time space) (struct-copy posvel pv) (sqrt energy) 1000))
       (set! changes (append changes (list (chadd e))))
       
-      (for ((ps (search ship player? #t)))
+      (for ((ps (in-list (search ship player? #t))))
         (define p (car ps))
         (define ss (make-ship "space-suit"
                               (player-name p)
@@ -174,9 +174,9 @@
   ; distribute power proportionally
   (define maxreq 0.0001)
   (define espent 0.0)
-  (for ((p (ship-pods ship)) #:when (not (multipod? p)))
+  (for ((p (in-list (ship-pods ship))) #:when (not (multipod? p)))
     (set! maxreq (+ maxreq (min e (pod-need p)))))
-  (for ((p (ship-pods ship)) #:when (not (multipod? p)))
+  (for ((p (in-list (ship-pods ship))) #:when (not (multipod? p)))
     (define xfer (min (pod-need p) (* e (/ (min e (pod-need p)) maxreq))))
     ;(printf "xfer: ~a, ~a, ~a\n" (pod-need p) maxreq xfer)
     (set-pod-energy! p (+ (pod-energy p) xfer))
@@ -186,15 +186,15 @@
   (set! e (- e espent))
   
   ; give our docked ships second dibs
-  (for ((s (ship-ships ship)))
+  (for ((s (in-list (ship-ships ship))))
     (set! e (update-energy! dt s e)))
   
   ; third dibs is repairing docked ships
   (set! maxreq 0.0001)
   (set! espent 0.0)
-  (for ((s (ship-ships ship)))
+  (for ((s (in-list (ship-ships ship))))
     (set! maxreq (+ maxreq (min e (* 10.0 dt) (ship-need s)))))
-  (for ((s (ship-ships ship)))
+  (for ((s (in-list (ship-ships ship))))
     (define xfer (min (* 10.0 dt) (ship-need s) (* e (/ (min e (* 10.0 dt) (ship-need s)) maxreq))))
     (define stats (ship-stats s))
     (set-stats-con! stats (+ (stats-con stats) (* 0.1 xfer)))
