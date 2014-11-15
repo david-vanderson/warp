@@ -392,23 +392,28 @@
          (set! updates (append updates command-changes))))))
   
   
-  ; find least-recently sent posvels
-  (define objs
-    (sort (filter ship? (space-objects ownspace))
-          (lambda (o1 o2) (> (- (space-time ownspace) (posvel-t (obj-posvel o1)))
-                             (- (space-time ownspace) (posvel-t (obj-posvel o2)))))))
-  (when (not (null? objs))
-    (define oldest (- (space-time ownspace) (posvel-t (obj-posvel (car objs)))))
-    (when (and (oldest . > . 500)
-               (not (oldest . > . 10000)))
-      (printf "server oldest posvel is ~a\n" oldest)
-      )
-    )
-  (define pvupdates
-    (for/list ((o objs) (i 10))
-      (define pv (obj-posvel o))
-      (set-posvel-t! pv (space-time ownspace))
-      (pvupdate (ob-id o) pv)))
+  ; send any 0-time posvels, or least-recently sent
+  (define oldest #f)
+  (define pvupdates '())
+  ;(printf "pvts (~a) :" (space-time ownspace))
+  (for ((o (space-objects ownspace))
+        #:when (ship? o))
+    (define pv (obj-posvel o))
+    ;(printf " ~a" (posvel-t pv))
+    (cond ((= 0 (posvel-t pv))
+           (set-posvel-t! pv (space-time ownspace))
+           (set! pvupdates (cons (pvupdate (ob-id o) pv) pvupdates)))
+          ((or (not oldest)
+               (< (- (space-time ownspace) (posvel-t (obj-posvel oldest)))
+                  (- (space-time ownspace) (posvel-t pv))))
+           (set! oldest o))))
+  ;(printf "\n")
+  
+  (when oldest
+    (when (< 500 (- (space-time ownspace) (posvel-t (obj-posvel oldest))) 10000)
+      (printf "server oldest posvel is ~a\n" (- (space-time ownspace) (posvel-t (obj-posvel oldest)))))
+    (set-posvel-t! (obj-posvel oldest) (space-time ownspace))
+    (set! pvupdates (cons (pvupdate (ob-id oldest) (obj-posvel oldest)) pvupdates)))
   
   ; make total update message
   (define u (update (space-time ownspace) updates pvupdates))
@@ -417,8 +422,8 @@
   ; client-disconnect updates if there's an error
   (set! updates '())
   
+  ;(printf "server sending ~v\n" u)
   (for ((c clients))
-    ;(printf "server sending ~v\n" u)
     (send-to-client c u))
   
   ; sleep so we don't hog the whole racket vm
@@ -465,7 +470,7 @@
     (set! commands (append commands (list m)))
     (set! last-enemy-base-con (ship-con eb)))
   
-  (when (and hb (>= (space-time space) (+ 10000 (* 5 60000 next-enemy-count))))
+  (when (and hb (>= (space-time space) (+ 1000 (* 5 60000 next-enemy-count))))
   ;(when (and hb (<= 5001 (space-time space) (+ 5000 TICK)))
     (set! next-enemy-count (+ 1 next-enemy-count))
     (for ((i next-enemy-count))
