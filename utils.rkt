@@ -61,22 +61,71 @@
 
 ; returns a list of stacks of all objects from ownspace
 ; to the object with the given id (found object first)
-(define (search o id (multiple? #f) (stack '()))
-  (let/ec found
-    (cond
-      ((and (not (space? o)) (integer? id) (= id (ob-id o)))
-       (list (cons o stack)))
-      ((and (not (space? o)) (procedure? id) (id o))
-       (list (cons o stack)))
-      (else
-       (define results
-         (for/list ((c (in-list (get-children o))))
-           (define r (search c id multiple? (cons o stack)))
-           (if (and (not multiple?)
-                    (not (null? r)))
-               (found r)
-               r)))
-       (filter (negate null?) (apply append results))))))
+(define search-escape #f)  ; escape cont
+(define search-return #f)  ; found stacks
+(define (search o id (multiple? #f))
+  (let/ec esc
+    (set! search-escape esc)
+    (set! search-return '())
+    (search-internal o id multiple?))
+  search-return)
+
+(define (search-internal o id multiple? (stack '()))
+  (cond
+    ((and (not (space? o))
+          (or (and (integer? id) (= id (ob-id o)))
+              (and (procedure? id) (id o))))
+     (set! search-return (cons (cons o stack) search-return))
+     (when (not multiple?) (search-escape)))
+    ((or (player? o)
+         (plasma? o)
+         (shield? o)
+         (effect? o)
+         (message? o))
+     (void))
+    ((space? o)
+     (for ((x (in-list (space-objects o))))
+       (search-internal x id multiple? (cons o stack))))
+    ((ship? o)
+     (search-internal (ship-crew o) id multiple? (cons o stack))
+     (for ((x (in-list (ship-pods o))))
+       (search-internal x id multiple? (cons o stack))))
+    ((hangarpod? o)
+     (for ((x (in-list (multipod-roles o))))
+       (search-internal x id multiple? (cons o stack)))
+     (for ((x (in-list (hangarpod-ships o))))
+       (search-internal x id multiple? (cons o stack))))
+    ((multipod? o)
+     (for ((x (in-list (multipod-roles o))))
+       (search-internal x id multiple? (cons o stack))))
+    ((pod? o)
+     (search-internal (pod-role o) id multiple? (cons o stack)))
+    ((role? o)
+     (when (role-player o)
+       (search-internal (role-player o) id multiple? (cons o stack))))
+    (else
+     (printf "search-internal hit ELSE clause, o ~v\n" o)
+     (error))))
+
+;(define (get-children o)
+;  ;(printf "get-children: ~v\n" o)
+;  (cond
+;    ((or (player? o)
+;         (plasma? o)
+;         (shield? o)
+;         (effect? o)
+;         (message? o))
+;     (list))
+;    ((space? o) (space-objects o))
+;    ((ship? o) (filter values (cons (ship-crew o) (ship-pods o))))
+;    ((hangarpod? o) (append (multipod-roles o) (hangarpod-ships o)))
+;    ((multipod? o) (multipod-roles o))
+;    ((pod? o) (list (pod-role o)))
+;    ((role? o) (filter values (list (role-player o))))
+;    (else
+;     (printf "get-children hit ELSE clause, o ~v\n" o)
+;     (error)
+;     (list))))
 
 
 (define (find-all o id)

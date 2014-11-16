@@ -12,17 +12,13 @@
 (provide (all-defined-out))
 
 (define (update-posvel! space pvu pvutime)
-  (define o (find-id space (pvupdate-id pvu)))
-  (when o
+  (for/first ((o (in-list (space-objects space)))
+              #:when (= (pvupdate-id pvu) (ob-id o)))
     (set-obj-posvel! o (pvupdate-pv pvu))
     (while (pvutime . < . (space-time space))
       ;(printf "client ticking forward pvu\n")
       (update-physics! space o (/ TICK 1000.0))
-      (set! pvutime (+ pvutime TICK))))
-  (when (not o)
-    ;(printf "pvu - couldn't find obj id ~a\n" (pvupdate-id pvu))
-    (void)
-    ))
+      (set! pvutime (+ pvutime TICK)))))
 
 
 (define (add-player-to-multipod! p mp newid)

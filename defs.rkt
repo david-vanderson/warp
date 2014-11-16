@@ -219,24 +219,3 @@
         ((weapons? role) "Weapons")
         ((tactics? role) "Tactics")
         (else "Unknown")))
-
-
-(define (get-children o)
-  ;(printf "get-children: ~v\n" o)
-  (cond
-    ((or (player? o)
-         (plasma? o)
-         (shield? o)
-         (effect? o)
-         (message? o))
-     (list))
-    ((space? o) (space-objects o))
-    ((ship? o) (filter values (cons (ship-crew o) (ship-pods o))))
-    ((hangarpod? o) (append (multipod-roles o) (hangarpod-ships o)))
-    ((multipod? o) (multipod-roles o))
-    ((pod? o) (list (pod-role o)))
-    ((role? o) (filter values (list (role-player o))))
-    (else
-     (printf "get-children hit ELSE clause, o ~v\n" o)
-     (error)
-     (list))))
