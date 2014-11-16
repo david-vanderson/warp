@@ -42,7 +42,7 @@
 
 
 (define (draw-text dc str x y)
-  ;(send dc draw-text str x y)
+  (send dc draw-text str x y)
   #t)
 
 
