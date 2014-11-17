@@ -40,32 +40,37 @@
 
 ;; client/server
 
-(define (change-tactics c space stack)
+(define (change-tactics c space stack who)
   (define role (get-role stack))
   (define pod (get-pod stack))
   (define ship (get-ship stack))
   (cond
     ((tactics-shield c)
      ; we are firing
-     (define ps (obj-posvel ship))
-     (define podangle (+ (posvel-r ps) (pod-angle pod)))
-     (define px (+ (posvel-x ps) (* (pod-dist pod) (cos podangle))))
-     (define py (+ (posvel-y ps) (* (pod-dist pod) (sin podangle))))
-     (define a (tactics-shield c))
-     (define x (+ px (* 5 (cos a))))
-     (define y (+ py (* 5 (sin a))))
-     
-     ; add rotational velocity of pod
-     (define rvx (* -1 (* (pod-dist pod) (posvel-dr ps)) (sin podangle)))
-     (define rvy (* 1 (* (pod-dist pod) (posvel-dr ps)) (cos podangle)))
-     
-     (define s (shield (next-id) (space-time space)
-                       (posvel (space-time space) x y a
-                               (+ (* SHIELD_SPEED (cos a)) (posvel-dx ps) rvx)
-                               (+ (* SHIELD_SPEED (sin a)) (posvel-dy ps) rvy)
-                               0)
-                       (tactical-shield-size (get-pod stack))))
-     (values #f (list (chadd s) (cherg (ob-id pod) (- (tactical-shield-size (get-pod stack)))))))
+     (cond
+       ((not (ship-flying? ship))
+        (printf "~a discarding message (not flying) ~v\n" who c)
+        (values #f '()))
+       (else
+        (define ps (obj-posvel ship))
+        (define podangle (+ (posvel-r ps) (pod-angle pod)))
+        (define px (+ (posvel-x ps) (* (pod-dist pod) (cos podangle))))
+        (define py (+ (posvel-y ps) (* (pod-dist pod) (sin podangle))))
+        (define a (tactics-shield c))
+        (define x (+ px (* 5 (cos a))))
+        (define y (+ py (* 5 (sin a))))
+        
+        ; add rotational velocity of pod
+        (define rvx (* -1 (* (pod-dist pod) (posvel-dr ps)) (sin podangle)))
+        (define rvy (* 1 (* (pod-dist pod) (posvel-dr ps)) (cos podangle)))
+        
+        (define s (shield (next-id) (space-time space)
+                          (posvel (space-time space) x y a
+                                  (+ (* SHIELD_SPEED (cos a)) (posvel-dx ps) rvx)
+                                  (+ (* SHIELD_SPEED (sin a)) (posvel-dy ps) rvy)
+                                  0)
+                          (tactical-shield-size (get-pod stack))))
+        (values #f (list (chadd s) (cherg (ob-id pod) (- (tactical-shield-size (get-pod stack)))))))))
     (else
      (error "update-tactics hit ELSE clause"))))
 

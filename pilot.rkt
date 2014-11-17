@@ -243,29 +243,34 @@
 
 ;; client/server
 
-(define (change-pilot p space stack)
+(define (change-pilot p space stack who)
   (cond
     ((pilot-launch p)
      ; launch this ship off of it's parent
-     (define ships (get-ships stack))
-     (define ship (car ships))
-     (define parent (cadr ships))
-     (define hangar (get-hangar parent))
-     (define r (angle-add (posvel-r (obj-posvel parent)) pi))
-     (define dist (+ (ship-radius ship)
-                     (ship-radius parent)
-                     10))
-     (define pv (posvel 0
-                        (+ (posvel-x (obj-posvel parent)) (* dist (cos r)))
-                        (+ (posvel-y (obj-posvel parent)) (* dist (sin r)))
-                        r
-                        (- (posvel-dx (obj-posvel parent)))
-                        (- (posvel-dy (obj-posvel parent)))
-                        0))
-     (define pilot (copy (ship-pilot ship)))
-     (set-pilot-course! pilot r)
-     (set-pilot-fore! pilot #t)
-     (values #f (list (chmov (ob-id ship) (ob-id hangar) #f pv) pilot)))
+     (cond
+       ((not (can-launch? stack))
+        (printf "~a discarding message (can't launch) ~v\n" who p)
+        (values #f '()))
+       (else
+        (define ships (get-ships stack))
+        (define ship (car ships))
+        (define parent (cadr ships))
+        (define hangar (get-hangar parent))
+        (define r (angle-add (posvel-r (obj-posvel parent)) pi))
+        (define dist (+ (ship-radius ship)
+                        (ship-radius parent)
+                        10))
+        (define pv (posvel 0
+                           (+ (posvel-x (obj-posvel parent)) (* dist (cos r)))
+                           (+ (posvel-y (obj-posvel parent)) (* dist (sin r)))
+                           r
+                           (- (posvel-dx (obj-posvel parent)))
+                           (- (posvel-dy (obj-posvel parent)))
+                           0))
+        (define pilot (copy (ship-pilot ship)))
+        (set-pilot-course! pilot r)
+        (set-pilot-fore! pilot #t)
+        (values #f (list (chmov (ob-id ship) (ob-id hangar) #f pv) pilot)))))
     (else
      (define role (get-role stack))
      (set-pilot-course! role (pilot-course p))

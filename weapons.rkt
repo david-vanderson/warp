@@ -41,30 +41,35 @@
 
 ;; client/server
 
-(define (change-weapons cmd space stack)
+(define (change-weapons cmd space stack who)
   (define role (get-role stack))
   (define pod (get-pod stack))
   (define ship (get-ship stack))
   (cond
     ((weapons-fire cmd)
      ; we are firing
-     (define ps (obj-posvel ship))
-     (define-values (px py podangle) (pod-xyr pod ship))
-     (define a (weapons-fire cmd))
-     (define x (+ px (* 5 (cos a))))
-     (define y (+ py (* 5 (sin a))))
-     
-     ; add rotational velocity of pod
-     (define rvx (* -1 (* (pod-dist pod) (posvel-dr ps)) (sin podangle)))
-     (define rvy (* 1 (* (pod-dist pod) (posvel-dr ps)) (cos podangle)))
-     
-     (define p (plasma (next-id) (space-time space)
-                       (posvel (space-time space) x y 0
-                               (+ (* PLASMA_SPEED (cos a)) (posvel-dx ps) rvx)
-                               (+ (* PLASMA_SPEED (sin a)) (posvel-dy ps) rvy)
-                               0)
-                       (weapon-plasma-size pod) (ob-id ship)))
-     (values #f (list (chadd p) (cherg (ob-id pod) (- (weapon-plasma-size pod))))))
+     (cond
+       ((not (ship-flying? ship))
+        (printf "~a discarding message (not flying) ~v\n" who cmd)
+        (values #f '()))
+       (else
+        (define ps (obj-posvel ship))
+        (define-values (px py podangle) (pod-xyr pod ship))
+        (define a (weapons-fire cmd))
+        (define x (+ px (* 5 (cos a))))
+        (define y (+ py (* 5 (sin a))))
+        
+        ; add rotational velocity of pod
+        (define rvx (* -1 (* (pod-dist pod) (posvel-dr ps)) (sin podangle)))
+        (define rvy (* 1 (* (pod-dist pod) (posvel-dr ps)) (cos podangle)))
+        
+        (define p (plasma (next-id) (space-time space)
+                          (posvel (space-time space) x y 0
+                                  (+ (* PLASMA_SPEED (cos a)) (posvel-dx ps) rvx)
+                                  (+ (* PLASMA_SPEED (sin a)) (posvel-dy ps) rvy)
+                                  0)
+                          (weapon-plasma-size pod) (ob-id ship)))
+        (values #f (list (chadd p) (cherg (ob-id pod) (- (weapon-plasma-size pod))))))))
     (else
      (error "command-weapons hit ELSE clause"))))
 
