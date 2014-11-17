@@ -51,6 +51,9 @@
        ((not (ship-flying? ship))
         (printf "~a discarding message (not flying) ~v\n" who c)
         (values #f '()))
+       ((not ((pod-energy pod) . > . (tactical-shield-size pod)))
+        (printf "~a discarding message (not enough energy) ~v\n" who c)
+        (values #f '()))
        (else
         (define ps (obj-posvel ship))
         (define podangle (+ (posvel-r ps) (pod-angle pod)))
@@ -110,7 +113,7 @@
       (send dc set-pen "red" 1 'solid)
       (for ((a (in-list (list (+ (pod-facing t) (/ (pod-spread t) 2))
                               (- (pod-facing t) (/ (pod-spread t) 2))))))
-        (send dc draw-line 0 0 (* line-size (cos a)) (* line-size (sin a))))))
+        (send dc draw-line 0 0 (* line-size (cos a)) (- (* line-size (sin a)))))))
   
   
   (list leave-button))

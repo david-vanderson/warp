@@ -52,6 +52,9 @@
        ((not (ship-flying? ship))
         (printf "~a discarding message (not flying) ~v\n" who cmd)
         (values #f '()))
+       ((not ((pod-energy pod) . > . (weapon-plasma-size pod)))
+        (printf "~a discarding message (not enough energy) ~v\n" who cmd)
+        (values #f '()))
        (else
         (define ps (obj-posvel ship))
         (define-values (px py podangle) (pod-xyr pod ship))
@@ -110,6 +113,6 @@
       (send dc set-pen "red" 1 'solid)
       (for ((a (in-list (list (+ (pod-facing w) (/ (pod-spread w) 2))
                               (- (pod-facing w) (/ (pod-spread w) 2))))))
-        (send dc draw-line 0 0 (* line-size (cos a)) (* line-size (sin a))))))
+        (send dc draw-line 0 0 (* line-size (cos a)) (- (* line-size (sin a)))))))
   
   (list leave-button))
