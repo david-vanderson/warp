@@ -18,7 +18,7 @@
 
 (provide start-server)
 
-(struct client (id in out) #:prefab)
+(struct client (id name in out) #:mutable #:prefab)
 
 (define server-listener #f)
 (define clients '())
@@ -279,20 +279,18 @@
 (define updates '())
 
 (define (remove-client c msg)
+  (printf "removing client ~a ~a ~a\n" (client-id c) (client-name c) msg)
   (define s (find-stack ownspace (client-id c)))
-  (define p (if s (car s) #f))
-  (define r (if s (get-role s) #f))
-  (printf "removing client ~a ~a ~a\n" (client-id c) (if p (player-name p) "Unknown") msg)
   (when s
     (define changes
       (apply-all-changes! ownspace
-                          (list (role-change p (ob-id r) #f -1))
+                          (list (role-change (car s) (ob-id (get-role s)) #f -1))
                           (space-time ownspace) "server"))
     (set! updates (append updates changes)))
   
   (close-input-port (client-in c))
   (close-output-port (client-out c))
-  (set! clients (remove c clients (lambda (x y) (= (client-id x) (client-id y))))))
+  (set! clients (remove c clients)))
 
 
 (define (send-to-client c msg)
@@ -333,9 +331,13 @@
     (printf "server accept-ready\n")
     (define-values (in out) (tcp-accept server-listener))
     (set-tcp-nodelay! out #t)
-    (define c (client (next-id) in out))
+    (define c (client (next-id) "New Player" in out))
     (set! clients (append clients (list c)))
-    (send-to-client c (player (client-id c) "New Player"))  ; assign an id
+    (define p (car (read-from-client c)))
+    (set-client-name! c (player-name p))
+    (define m (message (next-id) (space-time ownspace) #f (format "New Player: ~a" (player-name p))))
+    (set! updates (append updates (list m)))
+    (send-to-client c (player (client-id c) (player-name p)))  ; assign an id
     (send-to-client c ownspace))  ; send full state
   
   

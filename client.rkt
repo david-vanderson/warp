@@ -307,6 +307,10 @@
         (set! server-in-port in)
         (set! server-out-port out)
         
+        (when server-out-port
+          ; send our name to the server
+          (send-commands (player #f name)))
+        
         (when server-in-port
           ; read a player struct that has our unique id
           (define newme (read-from-server))
