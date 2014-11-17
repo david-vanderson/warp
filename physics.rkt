@@ -98,10 +98,11 @@
   
   (when (damage . > . 0)
     (define types '("translation"
-                    "shear"
-                    "rotation"
-                    "fade"
-                    "flicker"))
+                    ;"shear"
+                    ;"rotation"
+                    ;"fade"
+                    ;"flicker"
+                    ))
     (define type (list-ref types (random (length types))))
     (define d (dmgfx (next-id) (space-time space) #f type damage))
     (set-ship-dmgfx! ship (append (ship-dmgfx ship) (list d))))

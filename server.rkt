@@ -412,8 +412,8 @@
   ;(printf "\n")
   
   (when oldest
-    (when (< 500 (- (space-time ownspace) (posvel-t (obj-posvel oldest))) 10000)
-      (printf "server oldest posvel is ~a\n" (- (space-time ownspace) (posvel-t (obj-posvel oldest)))))
+;    (when (< 500 (- (space-time ownspace) (posvel-t (obj-posvel oldest))) 10000)
+;      (printf "server oldest posvel is ~a\n" (- (space-time ownspace) (posvel-t (obj-posvel oldest)))))
     (set-posvel-t! (obj-posvel oldest) (space-time ownspace))
     (set! pvupdates (cons (pvupdate (ob-id oldest) (obj-posvel oldest)) pvupdates)))
   
