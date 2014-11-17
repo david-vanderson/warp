@@ -169,35 +169,33 @@
   ; total energy we have to give
   (define e (+ (* dt (ship-power ship)) bate extra))
   
-  ; first dibs is our own pods
+  ; try to give half to docked ships
+  (define e-to-ships (/ e 2))
+  (set! e (- e e-to-ships))
+  (for ((s (in-list (ship-ships ship))))
+    (set! e-to-ships (update-energy! dt s e-to-ships)))
+  (set! e (+ e e-to-ships))
+  
+  ; split remaining half (plus whatever docked ships didn't use) between pods and repairing ships
   ; figure out how much total power is requested (limited by e)
   ; distribute power proportionally
   (define maxreq 0.0001)
   (define espent 0.0)
   (for ((p (in-list (ship-pods ship))) #:when (not (multipod? p)))
     (set! maxreq (+ maxreq (min e (pod-need p)))))
+  (for ((s (in-list (ship-ships ship))))
+    (set! maxreq (+ maxreq (min e (* 10.0 dt) (ship-need s)))))
+  
   (for ((p (in-list (ship-pods ship))) #:when (not (multipod? p)))
     (define xfer (min (pod-need p) (* e (/ (min e (pod-need p)) maxreq))))
     ;(printf "xfer: ~a, ~a, ~a\n" (pod-need p) maxreq xfer)
     (set-pod-energy! p (+ (pod-energy p) xfer))
     (set! espent (+ espent xfer)))
   
-  ;(printf "update-energy: ~a, ~a\n" e espent)
-  (set! e (- e espent))
-  
-  ; give our docked ships second dibs
-  (for ((s (in-list (ship-ships ship))))
-    (set! e (update-energy! dt s e)))
-  
-  ; third dibs is repairing docked ships
-  (set! maxreq 0.0001)
-  (set! espent 0.0)
-  (for ((s (in-list (ship-ships ship))))
-    (set! maxreq (+ maxreq (min e (* 10.0 dt) (ship-need s)))))
   (for ((s (in-list (ship-ships ship))))
     (define xfer (min (* 10.0 dt) (ship-need s) (* e (/ (min e (* 10.0 dt) (ship-need s)) maxreq))))
     (define stats (ship-stats s))
-    (set-stats-con! stats (+ (stats-con stats) (* 0.1 xfer)))
+    (set-stats-con! stats (+ (stats-con stats) (* 0.5 xfer)))
     (set! espent (+ espent xfer)))
   
   ;(printf "update-energy: ~a, ~a\n" e espent)

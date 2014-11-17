@@ -59,7 +59,7 @@
       s (list
          (multipod (next-id) (observer (next-id) #f #f) 0.0 0.0 #f #f 0.0 #f '()))))
     (("blue-station" "red-station")
-     (define mb 0.0)
+     (define mb 500.0)
      (set-ship-stats! s (stats (next-id) type name faction 10.0 mb mb 1000.0 1000.0 26.0 1000.0 0.0 0.0))
      (set-ship-pods!
       s `(,(multipod (next-id) (observer (next-id) #f #f) 0.0 0.0 #f #f 0.0 #f '())
@@ -71,8 +71,8 @@
               (tactical (next-id) (tactics (next-id) #f (and npc? npc-tactical?) #f)
                         (degrees->radians d) 28.0 (degrees->radians d) (* 0.8 pi) MAX_POD_ENERGY 25.0)))))
     (("blue-frigate" "red-frigate")
-     (define mb 200.0)
-     (set-ship-stats! s (stats (next-id) type name faction 10.0 mb mb 200.0 200.0 18.0 100.0 20.0 0.3))
+     (define mb 100.0)
+     (set-ship-stats! s (stats (next-id) type name faction 5.0 mb mb 200.0 200.0 18.0 100.0 20.0 0.3))
      (set-ship-pods!
       s (list
          (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) r helm-fore? #f #f) 0.0 0.0 #f #f MAX_POD_ENERGY)
