@@ -8,6 +8,8 @@
          "server.rkt"
          "ships.rkt")
 
+(define ai? #t)
+
 (define ownspace (space 0 5000 2000 '()))
 
 (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:start-ship? #t))
@@ -70,7 +72,6 @@
       (weapon (next-id) (weapons (next-id) #f #t #f)
               0.0 6.5 0.0 (* 0.1 pi) 50.0 50.0 5.0)))
   (set-obj-posvel! s #f)
-  (set-ship-ai-strategy! s (list (strategy 0 "return" (ob-id mothership))))
   s)
 
 (define (new-red-fighter mothership)
@@ -85,7 +86,6 @@
       (weapon (next-id) (weapons (next-id) #f #t #f)
               0.0 6.5 0.0 (* 0.1 pi) 50.0 50.0 5.0)))
   (set-obj-posvel! s #f)
-  (set-ship-ai-strategy! s (list (strategy 0 "return" (ob-id mothership))))
   s)
 
 
@@ -97,7 +97,7 @@
 (define (on-tick ownspace)
   (define commands '())
   
-  (when (time-for (space-time ownspace) 55000 20000)
+  (when (time-for (space-time ownspace) 5000);55000 20000)
     (define m (message (next-id) (space-time ownspace) #f "New Fighter at Outpost"))
     (define f (new-blue-fighter base))
     (set! commands (append commands (list (chadd f)
@@ -109,7 +109,7 @@
     (set! commands (append commands (list (chadd f)
                                           (chmov (ob-id f) #f (ob-id (get-hangar destroyer)) #f)))))
   
-  (when (time-for (space-time ownspace) 70000 30000)
+  (when (time-for (space-time ownspace) 30000);90000 30000)
     (define m (message (next-id) (space-time ownspace) #f "Empire Frigate Incoming"))
     (define x (+ (/ (space-width ownspace) 2) 100))
     (define y (random-between (- (/ (space-height ownspace) 2)) (/ (space-height ownspace) 2)))

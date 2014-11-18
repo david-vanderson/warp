@@ -85,6 +85,12 @@
 
 ;; server
 
+(define (return-to-base? ship)
+  (and ((ship-power ship) . <= . 1)  ; no reactor to speak of
+       ((ship-bat ship) . <= . 0)    ; out of reserves
+       ; we have a return strategy somewhere
+       (for/first ((s (ship-ai-strategy ship))
+                   #:when (equal? "return" (strategy-name s))) #t)))
 
 ; return a list of changes
 ; update strategy, pilot-ai! plans the route
@@ -99,9 +105,16 @@
      (define ne (nearest-enemy space ship))
      (case (and strat (strategy-name strat))
        ((#f)
-        (when ne
-          (define ns (strategy (space-time space) "attack" (ob-id ne)))
-          (set! changes (list (new-strat (ob-id ship) (list ns))))))
+        (cond
+          (ne
+           (define ns (strategy (space-time space) "attack" (ob-id ne)))
+           (set! changes (list (new-strat (ob-id ship) (list ns)))))
+          (else
+           ; we are just sitting in space with no strat, at least turn on docking so a ship can pick us up
+           (when (not (pilot-dock (get-role stack)))
+             (define p (copy (get-role stack)))
+             (set-pilot-dock! p #t)
+             (set! changes (list p))))))
        (("return")
         (define mothership (find-top-id space (strategy-arg strat)))
         (cond
@@ -146,17 +159,20 @@
            (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))))))
     (else
      (define mothership (cadr (get-ships stack)))
-     (when (and (ship-flying? mothership)
-                strat (equal? "return" (strategy-name strat)))
-       (define real-motherid (strategy-arg strat))
+     (when (ship-flying? mothership)
        (cond
-         ((not (= (ob-id mothership) real-motherid))
-          (when (not (ship-behind? space mothership))
-            ; we accidentally docked with not our real mothership, launch again
-            (define p (copy (get-role stack)))
-            (set-pilot-fore! p #t)
-            (set-pilot-launch! p #t)
-            (set! changes (list p))))
+         ((and strat (equal? "return" (strategy-name strat)))
+          (cond
+            ((not (= (ob-id mothership) (strategy-arg strat)))
+             (when (not (ship-behind? space mothership))
+               ; we accidentally docked with not our real mothership, launch again
+               (define p (copy (get-role stack)))
+               (set-pilot-fore! p #t)
+               (set-pilot-launch! p #t)
+               (set! changes (list p))))
+            (else
+             ; we successfully docked with our real mothership, remove the strat
+             (set! changes (list (new-strat (ob-id ship) (cdr strats)))))))
          (else
           (define ne (nearest-enemy space mothership))
           (when (and ne
@@ -166,8 +182,9 @@
             (define p (copy (get-role stack)))
             (set-pilot-fore! p #t)
             (set-pilot-launch! p #t)
-            (define ns (strategy (space-time space) "attack" (ob-id ne)))
-            (set! changes (list p (new-strat (ob-id ship) (cons ns strats))))))))))
+            (define returnstrat (strategy (space-time space) "return" (ob-id mothership)))
+            (define attackstrat (strategy (space-time space) "attack" (ob-id ne)))
+            (set! changes (list p (new-strat (ob-id ship) (cons attackstrat (cons returnstrat strats)))))))))))
      
 ;  (when (not (null? changes))
 ;    (printf "new strat: ~v\n" (car changes)))

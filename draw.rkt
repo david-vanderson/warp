@@ -67,7 +67,7 @@
   (define kstart (- (ceiling (- (/ (- h/2 y) repeaty) 0.5))))
   (define kend (add1 (ceiling (- (/ (+ h/2 y) repeaty) 0.5))))
   
-  (send dc set-pen "white" 1 'solid)
+  (send dc set-pen "white" 1.5 'solid)
   
   (for* ((i (in-range istart iend))
          (k (in-range kstart kend)))

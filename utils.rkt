@@ -129,13 +129,6 @@
 
 (define (ship-flying? ship)
   (obj-posvel ship))
-
-(define (return-to-base? ship)
-  (and ((ship-power ship) . <= . 1)  ; no reactor to speak of
-       ((ship-bat ship) . <= . 0)    ; out of batteries
-       ; we have a return strategy somewhere
-       (not (null? (filter (lambda (s) (equal? "return" (strategy-name s)))
-                           (ship-ai-strategy ship))))))
   
 
 (define (recenter center o)

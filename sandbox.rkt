@@ -19,7 +19,6 @@
 (set-stats-con! (ship-stats enemy-base) 200)
 
 (define f (make-ship "red-fighter" "Empire1" "Empire" #:start-ship? #t #:x 300 #:y 10))
-(set-ship-ai-strategy! f (list (strategy 0 "return" (ob-id enemy-base))))
 
 (define ownspace
   (space

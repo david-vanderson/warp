@@ -50,9 +50,7 @@
              '() '() '()))
   
   (for ((hangship (in-list in-hangar)))
-    (set-obj-posvel! hangship #f)
-    (define new-strat (strategy 0 "return" (ob-id s)))
-    (set-ship-ai-strategy! hangship (list new-strat)))
+    (set-obj-posvel! hangship #f))
   
   (case type
     (("space-suit")
