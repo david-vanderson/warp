@@ -439,9 +439,10 @@
   (server-loop))
 
 
-(define (start-server port new-space hook)
+(define (start-server port new-space on-tick on-destroy)
   (set! ownspace new-space)
-  (set! scenario-hook hook)
+  (set! scenario-hook on-tick)
+  (destroy-callback on-destroy)
   (set! server-listener (tcp-listen port 4 #t))
   (server-loop))
 

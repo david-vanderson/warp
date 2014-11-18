@@ -55,7 +55,7 @@
      (define ne (find-top-id space (strategy-arg strat)))
      (when ne
        (define d (distance ship ne))
-       (set! f (+ f (* 100.0 (sigmoid d 500))))
+       (set! f (+ f (* 100.0 (sigmoid d 1000))))
        (define ad (abs (angle-diff (posvel-r (obj-posvel ship))
                                    (theta ship ne))))
        (set! f (+ f (* 5.0 (min 0.8 (/ ad pi)))))
@@ -64,7 +64,7 @@
      (define ne (find-top-id space (strategy-arg strat)))
      (when ne
        (define d (distance ship ne))
-       (set! f (+ f (* 100.0 (- 1.0 (sigmoid d 500)))))
+       (set! f (+ f (* 100.0 (- 1.0 (sigmoid d 1000)))))
        
        (define ad (abs (angle-diff (posvel-r (obj-posvel ship))
                                    (theta ship ne))))
@@ -74,7 +74,7 @@
      (define mship (find-top-id space (strategy-arg strat)))
      (when mship
        (define d (distance ship mship))
-       (set! f (+ f (* 100.0 (- 1.0 (sigmoid d 500)))))
+       (set! f (+ f (* 100.0 (- 1.0 (sigmoid d 1000)))))
 
        (define ad (abs (angle-diff (posvel-r (obj-posvel ship))
                                    (theta ship mship))))

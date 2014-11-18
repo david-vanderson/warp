@@ -29,6 +29,7 @@
       id)))
 
 (define server? (make-parameter #t))
+(define destroy-callback (make-parameter (lambda (ship) '())))
 
 ;; Game State
 

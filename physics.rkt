@@ -63,20 +63,31 @@
     (set-posvel-dy! pv (drag (posvel-dy pv) dt drag_xy (if acc? 0 dt)))))
 
 
+(define EDGE_THRUST 100.0)
+
 (define (update-physics! space o dt)
+  (define pv (obj-posvel o))
   (cond
     ((ship? o)
-     (physics! (obj-posvel o) dt 0.4 (steer! o dt)))
+     (physics! pv dt 0.4 (steer! o dt))
+     (when ((posvel-x pv) . > . (/ (space-width space) 2))
+       (set-posvel-dx! pv (- (posvel-dx pv) (* EDGE_THRUST dt))))
+     (when ((posvel-x pv) . < . (- (/ (space-width space) 2)))
+       (set-posvel-dx! pv (+ (posvel-dx pv) (* EDGE_THRUST dt))))
+     (when ((posvel-y pv) . > . (/ (space-height space) 2))
+       (set-posvel-dy! pv (- (posvel-dy pv) (* EDGE_THRUST dt))))
+     (when ((posvel-y pv) . < . (- (/ (space-height space) 2)))
+       (set-posvel-dy! pv (+ (posvel-dy pv) (* EDGE_THRUST dt)))))
     ((plasma? o)
-     (physics! (obj-posvel o) dt)
+     (physics! pv dt)
      (when (plasma-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))
     ((shield? o)
-     (physics! (obj-posvel o) dt 0.4)
+     (physics! pv dt 0.4)
      (when (shield-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))
     ((effect? o)
-     (physics! (obj-posvel o) dt)
+     (physics! pv dt)
      (when (effect-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))
     ((message? o)
@@ -142,7 +153,7 @@
       
       (define msg (message (next-id) (space-time space) #f
                            (format "~a Destroyed" (ship-name ship))))
-      (set! changes (append changes (list msg)))))
+      (set! changes (append changes (list msg) ((destroy-callback) ship)))))
   changes)
 
 

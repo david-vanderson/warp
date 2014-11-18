@@ -12,8 +12,8 @@
 (provide (all-defined-out))
 
 (define (update-posvel! space pvu pvutime)
-  (for/first ((o (in-list (space-objects space)))
-              #:when (= (pvupdate-id pvu) (ob-id o)))
+  (define o (find-top-id space (pvupdate-id pvu)))
+  (when o
     (set-obj-posvel! o (pvupdate-pv pvu))
     (while (pvutime . < . (space-time space))
       ;(printf "client ticking forward pvu\n")
@@ -182,12 +182,9 @@
             (define from (find-id space (chmov-from c)))
             (cond
               (from
-               (set-hangarpod-ships! from
-                                     (remove o (hangarpod-ships from)
-                                             (lambda (a b) (equal? (ob-id a) (ob-id b))))))
+               (set-hangarpod-ships! from (remove o (hangarpod-ships from))))
               (else
-               (set-space-objects! space (remove o (space-objects space)
-                                                 (lambda (a b) (equal? (ob-id a) (ob-id b)))))))
+               (set-space-objects! space (remove o (space-objects space)))))
             
             (define to (find-id space (chmov-to c)))
             (cond

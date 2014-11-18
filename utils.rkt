@@ -104,28 +104,7 @@
      (when (role-player o)
        (search-internal (role-player o) id multiple? (cons o stack))))
     (else
-     (printf "search-internal hit ELSE clause, o ~v\n" o)
-     (error))))
-
-;(define (get-children o)
-;  ;(printf "get-children: ~v\n" o)
-;  (cond
-;    ((or (player? o)
-;         (plasma? o)
-;         (shield? o)
-;         (effect? o)
-;         (message? o))
-;     (list))
-;    ((space? o) (space-objects o))
-;    ((ship? o) (filter values (cons (ship-crew o) (ship-pods o))))
-;    ((hangarpod? o) (append (multipod-roles o) (hangarpod-ships o)))
-;    ((multipod? o) (multipod-roles o))
-;    ((pod? o) (list (pod-role o)))
-;    ((role? o) (filter values (list (role-player o))))
-;    (else
-;     (printf "get-children hit ELSE clause, o ~v\n" o)
-;     (error)
-;     (list))))
+     (error 'search-internal "hit ELSE clause for ~v" o))))
 
 
 (define (find-all o id)
@@ -140,14 +119,10 @@
   (if r (car r) #f))
 
 (define (find-top-id space id)
-  (findf (lambda (o) (= (ob-id o) id)) (space-objects space)))
+  (for/first ((o (in-list (space-objects space))) #:when (= (ob-id o) id)) o))
 
 (define (ship-helm s)
   (for/first ((p (in-list (ship-pods s))) #:when (helm? p)) p))
-
-(define (ship-ships s)
-  (define hp (for/first ((p (in-list (ship-pods s))) #:when (hangarpod? p)) p))
-  (if hp (hangarpod-ships hp) (list)))
 
 (define (ship-pilot s)
   (pod-role (ship-helm s)))
@@ -180,10 +155,11 @@
   (filter ship? stack))
 
 (define (get-hangar ship)
-  (define a (filter hangarpod? (ship-pods ship)))
-  (if (null? a)
-      #f
-      (car a)))
+  (for/first ((p (in-list (ship-pods ship))) #:when (hangarpod? p)) p))
+
+(define (ship-ships s)
+  (define hp (get-hangar s))
+  (if hp (hangarpod-ships hp) '()))
 
 (define (get-center stack)
   (define center (get-ship (reverse stack)))
