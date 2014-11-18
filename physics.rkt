@@ -146,7 +146,7 @@
   changes)
 
 
-(define (pod-need p) (max 0.0 (- MAX_POD_ENERGY (max 0.0 (pod-energy p)))))
+(define (pod-need p) (max 0.0 (- (pod-maxe p) (max 0.0 (pod-energy p)))))
 (define (ship-need s) (max 0.0 (- (ship-maxcon s) (ship-con s))))
 
 

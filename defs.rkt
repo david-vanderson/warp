@@ -20,7 +20,6 @@
 
 (define PLASMA_SPEED 60.0)
 (define SHIELD_SPEED 60.0)
-(define MAX_POD_ENERGY 100.0)
 (define MSG_FADE_TIME 10000.0)
 
 (define next-id
@@ -53,12 +52,13 @@
 ; player is #f if this role is unoccupied
 ; npc? is #t if this role is controlled by the computer when a player is absent
 
-(struct pod ob (role angle dist facing spread energy) #:mutable #:prefab)
+(struct pod ob (role angle dist facing spread energy maxe) #:mutable #:prefab)
 ; angle/dist is where this pod is with respect to the ship
 ; facing is where the pod is directed towards (with respect to the ship)
 ; - if #f, then ignore angle/dist when calculating the center of this pod's screen
 ; spread is angle within which we can shoot (centered on facing)
 ; energy is how much is in our batteries
+; maxe is the capacity of our batteries
 
 (struct multipod pod (start? roles) #:mutable #:prefab)
 ; a place for any number of players to sit, roles are created as needed from pod-role

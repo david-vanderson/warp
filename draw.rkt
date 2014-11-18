@@ -78,7 +78,9 @@
       (define sx (- (car s) xx))
       (define sy (- (cdr s) yy))
       (when (and (< (- w/2) sx w/2)
-                 (< (- h/2) sy h/2))
+                 (< (- h/2) sy h/2)
+                 (< (- (/ (space-width space) 2)) (+ (posvel-x (obj-posvel center)) sx) (/ (space-width space) 2))
+                 (< (- (/ (space-height space) 2)) (- (posvel-y (obj-posvel center)) sy) (/ (space-height space) 2)))
         (send dc draw-point sx sy))))
   
 ;  (send dc set-pen "white" 1 'solid)

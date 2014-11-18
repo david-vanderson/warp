@@ -8,49 +8,59 @@
          "server.rkt"
          "ships.rkt")
 
-(define enemy-base
-  (make-ship "red-station" "Empire Base" "Empire" #:x 1000 #:y 100
-      #:in-hangar
-      (list (make-ship "red-fighter" "Empire Fighter" "Empire")
-            (make-ship "red-fighter" "Empire Fighter" "Empire")
-            (make-ship "red-fighter" "Empire Fighter" "Empire")
-            (make-ship "red-fighter" "Empire Fighter" "Empire"))))
+(define ownspace (space 0 4000 2000 '()))
 
-(set-stats-con! (ship-stats enemy-base) 200)
+(define base (make-ship "blue-station" "a" "a" #:x -1500 #:y -100 #:start-ship? #t))
+(set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel" 10.0 200.0 200.0 1000.0 1000.0 26.0 1000.0 0.0 0.0))
+(set-ship-pods!
+ base
+ `(,(multipod (next-id) (observer (next-id) #f #f) 0.0 0.0 #f #f 0.0 0.0 #f '())
+   ,(hangarpod (next-id) (hangar (next-id) #f #f) pi 13.0 #f #f 0.0 0.0 #f '() '())
+   ,@(for/list ((d (in-list (list 0 90 180 270))))
+       (weapon (next-id) (weapons (next-id) #f #t #f)
+               (degrees->radians d) 26.0 (degrees->radians d) (* 0.8 pi) 50.0 50.0 5.0))
+   ,@(for/list ((d (in-list (list 45 135 225 315))))
+       (tactical (next-id) (tactics (next-id) #f #t #f)
+                 (degrees->radians d) 28.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0 10.0))))
 
-(define f (make-ship "red-fighter" "Empire1" "Empire" #:start-ship? #t #:x 300 #:y 10))
-(set-ship-ai-strategy! f (list (strategy 0 "return" (ob-id enemy-base))))
+(define destroyer
+  (make-ship "red-destroyer" "b" "b" #:x -1000 #:y 100 #:r pi #:start-ship? #t))
 
-(define ownspace
-  (space
-   0 2000 2000
-   (list
-    
-    ;f
-    
-    ;(make-ship "blue-fighter" "Blue 6" "Rebel" #:x 400 #:y 0)
-    
-    (make-ship "blue-station" "Rebel Base" "Rebel" #:x 0 #:y 0 #:start-ship? #t
-      #:in-hangar
-      (list (make-ship "blue-frigate" "Rebel Frigate" "Rebel"
-              #:in-hangar
-              (list (make-ship "blue-fighter" "Rebel Fighter" "Rebel")
-                    (make-ship "blue-fighter" "Rebel Fighter" "Rebel")))
-            (make-ship "blue-frigate" "Rebel Frigate" "Rebel"
-              #:in-hangar
-              (list (make-ship "blue-fighter" "Rebel Fighter" "Rebel")
-                    (make-ship "blue-fighter" "Rebel Fighter" "Rebel")))
-            (make-ship "blue-frigate" "Rebel Frigate" "Rebel"
-              #:in-hangar
-              (list (make-ship "blue-fighter" "Rebel Fighter" "Rebel")
-                    (make-ship "blue-fighter" "Rebel Fighter" "Rebel")))
-            (make-ship "blue-fighter" "Rebel Fighter" "Rebel")
-            (make-ship "blue-fighter" "Rebel Fighter" "Rebel")
-            (make-ship "blue-fighter" "Rebel Fighter" "Rebel")
-            (make-ship "blue-fighter" "Rebel Fighter" "Rebel")))
-    
-    enemy-base
-    )))
+(set-ship-stats! destroyer (stats (next-id)
+                                  ;type name faction
+                                  "red-destroyer" "Empire Destroyer" "Empire"
+                                  ;power bat maxbat con maxcon radius mass thrust rthrust
+                                  10.0 500.0 500.0 500.0 500.0 23.0 500.0 4.0 0.1))
+(set-ship-pods!
+ destroyer
+ `(,(helm (next-id) (pilot (next-id) #f #t pi #t #f #f) 0.0 0.0 #f #f 100.0 100.0)
+   ,(multipod (next-id) (observer (next-id) #f #f) 0.0 10.0 #f #f 0.0 0.0 #f '())
+   ,(hangarpod (next-id) (hangar (next-id) #f #f) pi 10.0 #f #f 0.0 0.0 #f '() '())
+   ,@(for/list ((d (in-list (list -10 10))))
+       (weapon (next-id) (weapons (next-id) #f #t #f)
+               ;angle dist facing spread energy maxe shot-size
+               (degrees->radians d) 23.0 0.0 (* 0.4 pi) 200.0 200.0 20.0))
+   ,@(for/list ((d (in-list (list -62 62))))
+       (weapon (next-id) (weapons (next-id) #f #t #f)
+               (degrees->radians d) 23.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0 10.0))
+   ,@(for/list ((d (in-list (list -130 130))))
+       (weapon (next-id) (weapons (next-id) #f #t #f)
+               (degrees->radians d) 21.0 (degrees->radians d) (* 0.8 pi) 50.0 50.0 5.0))
+   ,@(for/list ((d (in-list (list -35 35))))
+       (tactical (next-id) (tactics (next-id) #f #t #f)
+                 (degrees->radians d) 24.0 (degrees->radians d) (* 0.7 pi) 150.0 150.0 15.0))
+   ,@(for/list ((d (in-list (list -90 90))))
+       (tactical (next-id) (tactics (next-id) #f #t #f)
+                 (degrees->radians d) 21.0 (degrees->radians d) (* 0.9 pi) 50.0 50.0 5.0))))
+
+(set-ship-ai-strategy! destroyer
+                       (list (strategy (space-time ownspace) "attack" (ob-id base))))
+
+
+
+(set-space-objects! ownspace (list base destroyer))
+
+
 
 (define next-enemy-count 0)
 (define last-base-con 10000)

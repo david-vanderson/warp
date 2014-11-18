@@ -30,7 +30,7 @@
         (define podangle (angle-add (posvel-r (obj-posvel ownship)) (pod-facing pod)))
         (define offset (angle-diff podangle t))
         (when ((abs offset) . < . (/ (pod-spread pod) 2))
-          (define chance-per-sec (/ (pod-energy pod) MAX_POD_ENERGY))
+          (define chance-per-sec (/ (pod-energy pod) (pod-maxe pod)))
           (set! chance-per-sec (expt chance-per-sec 0.7))
           (define chance-per-tick (- 1.0 (expt (- 1.0 chance-per-sec) dt)))
           (when ((random) . < . chance-per-tick)
