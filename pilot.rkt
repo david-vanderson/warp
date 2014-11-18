@@ -281,8 +281,8 @@
                            (+ (posvel-x (obj-posvel parent)) (* dist (cos r)))
                            (+ (posvel-y (obj-posvel parent)) (* dist (sin r)))
                            r
-                           (- (posvel-dx (obj-posvel parent)))
-                           (- (posvel-dy (obj-posvel parent)))
+                           (- (posvel-dx (obj-posvel parent)) 2.0)
+                           (- (posvel-dy (obj-posvel parent)) 2.0)
                            0))
         (define pilot (copy (ship-pilot ship)))
         (set-pilot-course! pilot r)

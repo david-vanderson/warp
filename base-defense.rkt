@@ -12,6 +12,53 @@
 
 (define ownspace (space 0 5000 2000 '()))
 
+(define (new-blue-fighter)
+  (define s (make-ship "blue-fighter" "f" "f"))
+  (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
+                            1.0 100.0 100.0 50.0 50.0 6.0 20.0 50.0 1.5))
+  (set-ship-pods!
+   s (list
+      (helm (next-id) (pilot (next-id) #f #t 0.0 #f #f #f) 0.0 0.0 #f #f 100.0 100.0)
+      (multipod (next-id) (observer (next-id) #f #f) 0.0 3.0 #f #f 0.0 0.0 #f '())
+      (weapon (next-id) (weapons (next-id) #f #t #f)
+              0.0 6.5 0.0 (* 0.1 pi) 50.0 50.0 5.0)))
+  (set-obj-posvel! s #f)
+  s)
+
+(define (new-red-fighter)
+  (define s (make-ship "red-fighter" "f" "f"))
+  (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
+                            ;power bat maxbat con maxcon radius mass thrust rthrust
+                            1.0 100.0 100.0 50.0 50.0 6.0 20.0 50.0 1.5))
+  (set-ship-pods!
+   s (list
+      (helm (next-id) (pilot (next-id) #f #t 0.0 #f #f #f) 0.0 0.0 #f #f 100.0 100.0)
+      (multipod (next-id) (observer (next-id) #f #f) 0.0 3.0 #f #f 0.0 0.0 #f '())
+      (weapon (next-id) (weapons (next-id) #f #t #f)
+              0.0 6.5 0.0 (* 0.1 pi) 50.0 50.0 5.0)))
+  (set-obj-posvel! s #f)
+  s)
+
+
+(define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50 #:start-ship? #t))
+(set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
+                                ;power bat maxbat con maxcon radius mass thrust rthrust
+                                5.0 100.0 100.0 100.0 100.0 15.0 100.0 35.0 1.0))
+(set-ship-pods!
+ cruiser
+ `(,(helm (next-id) (pilot (next-id) #f #f pi/2 #f #f #f) 0.0 0.0 #f #f 100.0 100.0)
+   ,(multipod (next-id) (observer (next-id) #f #f) 0.0 8.0 #f #f 0.0 0.0 #f '())
+   ,(hangarpod (next-id) (hangar (next-id) #f #f) pi 5.0 #f #f 0.0 0.0 #f '() (list #;(new-blue-fighter)))
+   ,(weapon (next-id) (weapons (next-id) #f ai? #f)
+               (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.8 pi) 50.0 50.0 5.0)
+   ,(weapon (next-id) (weapons (next-id) #f ai? #f)
+               (degrees->radians 270.0) 10.0 (degrees->radians 285.0) (* 0.8 pi) 50.0 50.0 5.0)
+   ,(tactical (next-id) (tactics (next-id) #f ai? #f)
+                 (degrees->radians 0.0) 15.0 (degrees->radians 0.0) (* 0.8 pi) 50.0 50.0 5.0)
+   ,(tactical (next-id) (tactics (next-id) #f ai? #f)
+                 (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0 5.0)))
+
+
 (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:start-ship? #t))
 (set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel" 10.0 200.0 200.0 1000.0 1000.0 26.0 1000.0 0.0 0.0))
 (set-ship-pods!
@@ -60,33 +107,7 @@
 
 
 
-(set-space-objects! ownspace (list base destroyer))
-
-(define (new-blue-fighter mothership)
-  (define s (make-ship "blue-fighter" "f" "f"))
-  (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel" 1.0 100.0 100.0 50.0 50.0 6.0 20.0 50.0 2.0))
-  (set-ship-pods!
-   s (list
-      (helm (next-id) (pilot (next-id) #f #t 0.0 #f #f #f) 0.0 0.0 #f #f 100.0 100.0)
-      (multipod (next-id) (observer (next-id) #f #f) 0.0 3.0 #f #f 0.0 0.0 #f '())
-      (weapon (next-id) (weapons (next-id) #f #t #f)
-              0.0 6.5 0.0 (* 0.1 pi) 50.0 50.0 5.0)))
-  (set-obj-posvel! s #f)
-  s)
-
-(define (new-red-fighter mothership)
-  (define s (make-ship "red-fighter" "f" "f"))
-  (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
-                            ;power bat maxbat con maxcon radius mass thrust rthrust
-                            1.0 100.0 100.0 50.0 50.0 6.0 20.0 50.0 2.0))
-  (set-ship-pods!
-   s (list
-      (helm (next-id) (pilot (next-id) #f #t 0.0 #f #f #f) 0.0 0.0 #f #f 100.0 100.0)
-      (multipod (next-id) (observer (next-id) #f #f) 0.0 3.0 #f #f 0.0 0.0 #f '())
-      (weapon (next-id) (weapons (next-id) #f #t #f)
-              0.0 6.5 0.0 (* 0.1 pi) 50.0 50.0 5.0)))
-  (set-obj-posvel! s #f)
-  s)
+(set-space-objects! ownspace (list cruiser base destroyer))
 
 
 (define next-enemy-count 0)
@@ -99,13 +120,13 @@
   
   (when (time-for (space-time ownspace) 5000);55000 20000)
     (define m (message (next-id) (space-time ownspace) #f "New Fighter at Outpost"))
-    (define f (new-blue-fighter base))
+    (define f (new-blue-fighter))
     (set! commands (append commands (list (chadd f)
                                           (chmov (ob-id f) #f (ob-id (get-hangar base)) #f)
                                           m))))
   
   (when (time-for (space-time ownspace) 65000 20000)
-    (define f (new-red-fighter destroyer))
+    (define f (new-red-fighter))
     (set! commands (append commands (list (chadd f)
                                           (chmov (ob-id f) #f (ob-id (get-hangar destroyer)) #f)))))
   
