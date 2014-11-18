@@ -159,32 +159,38 @@
            (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))))))
     (else
      (define mothership (cadr (get-ships stack)))
-     (when (ship-flying? mothership)
-       (cond
-         ((and strat (equal? "return" (strategy-name strat)))
-          (cond
-            ((not (= (ob-id mothership) (strategy-arg strat)))
-             (when (not (ship-behind? space mothership))
-               ; we accidentally docked with not our real mothership, launch again
-               (define p (copy (get-role stack)))
-               (set-pilot-fore! p #t)
-               (set-pilot-launch! p #t)
-               (set! changes (list p))))
-            (else
-             ; we successfully docked with our real mothership, remove the strat
-             (set! changes (list (new-strat (ob-id ship) (cdr strats)))))))
-         (else
-          (define ne (nearest-enemy space mothership))
-          (when (and ne
-                     (= (ship-bat ship) (ship-maxbat ship))
-                     (not (ship-behind? space mothership)))
-            ; there's an enemy and we're ready to go - launch and attack
-            (define p (copy (get-role stack)))
-            (set-pilot-fore! p #t)
-            (set-pilot-launch! p #t)
-            (define returnstrat (strategy (space-time space) "return" (ob-id mothership)))
-            (define attackstrat (strategy (space-time space) "attack" (ob-id ne)))
-            (set! changes (list p (new-strat (ob-id ship) (cons attackstrat (cons returnstrat strats)))))))))))
+     (cond
+       ((and (ship-helm mothership) (not (role-npc? (ship-pilot mothership))))
+        ; we docked on a non-npc ship, so remove our ai
+        (define p (copy (get-role stack)))
+        (set-role-npc?! p #f)
+        (set! changes (list p (new-strat (ob-id ship) '()))))
+       ((ship-flying? mothership)
+        (cond
+          ((and strat (equal? "return" (strategy-name strat)))
+           (cond
+             ((not (= (ob-id mothership) (strategy-arg strat)))
+              (when (not (ship-behind? space mothership))
+                ; we accidentally docked with not our real mothership, launch again
+                (define p (copy (get-role stack)))
+                (set-pilot-fore! p #t)
+                (set-pilot-launch! p #t)
+                (set! changes (list p))))
+             (else
+              ; we successfully docked with our real mothership, remove the strat
+              (set! changes (list (new-strat (ob-id ship) (cdr strats)))))))
+          (else
+           (define ne (nearest-enemy space mothership))
+           (when (and ne
+                      (= (ship-bat ship) (ship-maxbat ship))
+                      (not (ship-behind? space mothership)))
+             ; there's an enemy and we're ready to go - launch and attack
+             (define p (copy (get-role stack)))
+             (set-pilot-fore! p #t)
+             (set-pilot-launch! p #t)
+             (define returnstrat (strategy (space-time space) "return" (ob-id mothership)))
+             (define attackstrat (strategy (space-time space) "attack" (ob-id ne)))
+             (set! changes (list p (new-strat (ob-id ship) (cons attackstrat (cons returnstrat strats))))))))))))
      
 ;  (when (not (null? changes))
 ;    (printf "new strat: ~v\n" (car changes)))
@@ -290,6 +296,7 @@
         (values #f (list (chmov (ob-id ship) (ob-id hangar) #f pv) pilot)))))
     (else
      (define role (get-role stack))
+     (set-role-npc?! role (role-npc? p))
      (set-pilot-course! role (pilot-course p))
      (set-pilot-fore! role (pilot-fore p))
      (set-pilot-dock! role (pilot-dock p))
