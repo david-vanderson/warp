@@ -174,9 +174,9 @@
 
 
 (define (angle-norm r)
-  (cond ((r . >= . 2pi) (- r 2pi))
-        ((r . < . 0) (+ r 2pi))
-        (else r)))
+  (while (r . >= . 2pi) (set! r (- r 2pi)))
+  (while (r . < . 0) (set! r (+ r 2pi)))
+  r)
 
 (define (angle-add r theta)
   (angle-norm (+ r theta)))
