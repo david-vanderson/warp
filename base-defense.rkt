@@ -15,6 +15,7 @@
 (define (new-blue-fighter)
   (define s (make-ship "blue-fighter" "a" "a"))
   (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
+                            ;power bat maxbat con maxcon radius mass thrust rthrust
                             1.0 100.0 100.0 50.0 50.0 6.0 20.0 50.0 1.5))
   (set-ship-pods!
    s (list

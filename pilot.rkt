@@ -377,20 +377,23 @@
         (struct-copy pilot role (dock (not (pilot-dock role)))))))
     (else
      (define a (angle-norm (atan0 y x)))
-     (define ship (get-ship stack))
      (define pod (get-pod stack))
-     (define podangle (angle-add (posvel-r (obj-posvel ship)) (pod-facing pod)))
-     (define offset (angle-diff podangle a))
-     (cond
-       ((and (helm-plasma-size pod) ((abs offset) . < . (/ (pod-spread pod) 2)))
-        (if (and (ship-flying? ship)
-                 ((pod-energy pod) . > . (helm-plasma-size pod)))
-            ; we are firing
-            (struct-copy pilot role (fire a))
-            '()))
-       (else
-        ;(printf "~a: pilot course change\n" (player-name me))
-        (struct-copy pilot role (course a)))))))
+     
+     (define firing? #f)
+     (when (helm-plasma-size pod)
+       (define ship (get-ship stack))
+       (define podangle (angle-add (posvel-r (obj-posvel ship)) (pod-facing pod)))
+       (define offset (angle-diff podangle a))
+       (when ((abs offset) . < . (/ (pod-spread pod) 2))
+         (set! firing? #t)
+         (if (and (ship-flying? ship)
+                  ((pod-energy pod) . > . (helm-plasma-size pod)))
+             ; we are firing
+             (struct-copy pilot role (fire a))
+             '())))
+     (when (not firing?)
+       ;(printf "~a: pilot course change\n" (player-name me))
+       (struct-copy pilot role (course a))))))
 
 
 (define (draw-docking dc space stack)

@@ -129,9 +129,14 @@
   
   commands)
 
+; return a list of changes
+(define (on-destroy ownspace)
+  (define commands '())
+  (printf "on-destroy\n")
+  commands)
 
 (thread (lambda ()
-(start-server PORT ownspace hook)
+(start-server PORT ownspace hook on-destroy)
 ))
 
 ;(thread (lambda () (start-client "127.0.0.1" PORT "Dave" #t #f)))
