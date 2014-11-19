@@ -78,12 +78,13 @@
 (struct observer role () #:mutable #:prefab)
 ; role where you don't do anything but you see the "captain's view"
 
-(struct helm pod () #:mutable #:prefab)
-(struct pilot role (course fore launch dock) #:mutable #:prefab)
+(struct helm pod (plasma-size) #:mutable #:prefab)
+(struct pilot role (course fore launch dock fire) #:mutable #:prefab)
 ; course is angle pilot wants to point at
 ; if fore is #t, main thrusters are firing
 ; launch is #t if pilot wants to launch from a hangar
 ; dock is #t if the pilot wants to dock with the next ship they hits
+; plasma-size and fire are like in weapons, or #f if this helm doesn't shoot
 
 (struct weapon pod (plasma-size) #:mutable #:prefab)
 ; plasma-size is how much we fire each time

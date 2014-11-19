@@ -198,7 +198,7 @@
 
 
 ; return a list of changes
-(define (pilot-ai! space stack)
+(define (pilot-ai-fly! space stack)
   (define changes '())
   
   (define ownship (get-ship stack))
@@ -264,9 +264,40 @@
   changes)
 
 
+; return a list of changes
+(define (pilot-ai! space dt stack)
+  (define changes '())
+  (define ownship (get-ship stack))
+  (when (and (ship-flying? ownship)
+             (helm-plasma-size (get-pod stack))  ; do we even have a gun?
+             ((pod-energy (get-pod stack)) . > . (helm-plasma-size (get-pod stack))))
+    (define p (get-role stack))
+    (define newp (copy p))
+    (define ne (nearest-enemy space ownship))
+  
+    (when (and ne ((distance ownship ne) . < . 500))
+      (define me (pod-obj (get-pod stack) ownship))
+      (define t (target-angle me me ne ne PLASMA_SPEED))
+      (when t
+        (define pod (get-pod stack))
+        (define podangle (angle-add (posvel-r (obj-posvel ownship)) (pod-facing pod)))
+        (define offset (angle-diff podangle t))
+        (when ((abs offset) . < . (/ (pod-spread pod) 2))
+          (define chance-per-sec (/ (pod-energy pod) (pod-maxe pod)))
+          (set! chance-per-sec (expt chance-per-sec 0.7))
+          (define chance-per-tick (- 1.0 (expt (- 1.0 chance-per-sec) dt)))
+          (when ((random) . < . chance-per-tick)
+            (set-pilot-fire! newp t)
+            (set! changes (list newp)))))))
+  changes)
+
+
 ;; client/server
 
 (define (change-pilot p space stack who)
+  (define role (get-role stack))
+  (define pod (get-pod stack))
+  (define ship (get-ship stack))
   (cond
     ((pilot-launch p)
      ; launch this ship off of it's parent
@@ -294,6 +325,33 @@
         (set-pilot-course! pilot r)
         (set-pilot-fore! pilot #t)
         (values #f (list (chmov (ob-id ship) (ob-id hangar) #f pv) pilot)))))
+    ((pilot-fire p)
+     ; we are firing
+     (cond
+       ((not (ship-flying? ship))
+        (printf "~a discarding message (not flying) ~v\n" who p)
+        (values #f '()))
+       ((not ((pod-energy pod) . > . (helm-plasma-size pod)))
+        (printf "~a discarding message (not enough energy) ~v\n" who p)
+        (values #f '()))
+       (else
+        (define ps (obj-posvel ship))
+        (define-values (px py podangle) (pod-xyr pod ship))
+        (define a (pilot-fire p))
+        (define x (+ px (* 5 (cos a))))
+        (define y (+ py (* 5 (sin a))))
+        
+        ; add rotational velocity of pod
+        (define rvx (* -1 (* (pod-dist pod) (posvel-dr ps)) (sin podangle)))
+        (define rvy (* 1 (* (pod-dist pod) (posvel-dr ps)) (cos podangle)))
+        
+        (define plas (plasma (next-id) (space-time space)
+                             (posvel (space-time space) x y 0
+                                     (+ (* PLASMA_SPEED (cos a)) (posvel-dx ps) rvx)
+                                     (+ (* PLASMA_SPEED (sin a)) (posvel-dy ps) rvy)
+                                     0)
+                             (helm-plasma-size pod) (ob-id ship)))
+        (values #f (list (chadd plas) (cherg (ob-id pod) (- (helm-plasma-size pod))))))))
     (else
      (define role (get-role stack))
      (set-role-npc?! role (role-npc? p))
@@ -318,11 +376,21 @@
        (("dock")
         (struct-copy pilot role (dock (not (pilot-dock role)))))))
     (else
-     ;(printf "~a: pilot course change\n" (player-name me))
-     (define course (atan0 y x))
-     (when (course . < . 0)
-       (set! course (+ course 2pi)))
-     (struct-copy pilot role (course course)))))
+     (define a (angle-norm (atan0 y x)))
+     (define ship (get-ship stack))
+     (define pod (get-pod stack))
+     (define podangle (angle-add (posvel-r (obj-posvel ship)) (pod-facing pod)))
+     (define offset (angle-diff podangle a))
+     (cond
+       ((and (helm-plasma-size pod) ((abs offset) . < . (/ (pod-spread pod) 2)))
+        (if (and (ship-flying? ship)
+                 ((pod-energy pod) . > . (helm-plasma-size pod)))
+            ; we are firing
+            (struct-copy pilot role (fire a))
+            '()))
+       (else
+        ;(printf "~a: pilot course change\n" (player-name me))
+        (struct-copy pilot role (course a)))))))
 
 
 (define (draw-docking dc space stack)
@@ -341,11 +409,21 @@
 (define (draw-pilot dc space stack)
   (define role (get-role stack))
   (define ship (get-ship stack))
+  (define pod (get-pod stack))
   
   (draw-view dc (get-center stack) space)
   (when (and (ship-flying? ship) (pilot-dock role))
     (draw-docking dc space stack))
   (draw-hud dc ship (get-pod stack))
+  
+  (when (and (helm-plasma-size pod) (ship-flying? ship))
+    (keep-transform dc
+      (send dc rotate (posvel-r (obj-posvel ship)))
+      (define line-size 50)
+      (send dc set-pen "red" 1 'solid)
+      (for ((a (in-list (list (+ (pod-facing pod) (/ (pod-spread pod) 2))
+                              (- (pod-facing pod) (/ (pod-spread pod) 2))))))
+        (send dc draw-line 0 0 (* line-size (cos a)) (- (* line-size (sin a)))))))
   
   (define buttons (list leave-button))
   (when (can-launch? stack)

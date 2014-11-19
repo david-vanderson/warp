@@ -77,7 +77,7 @@
                                5.0 50.0 50.0 100.0 100.0 18.0 100.0 20.0 0.3))
      (set-ship-pods!
       s (list
-         (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) r helm-fore? #f #f) 0.0 0.0 #f #f 100.0 100.0)
+         (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) r helm-fore? #f #f #f) 0.0 0.0 #f #f 100.0 100.0 #f)
          (multipod (next-id) (observer (next-id) #f #f) 0.0 10.0 #f #f 0.0 0.0 #f '())
          (hangarpod (next-id) (hangar (next-id) #f #f) pi 10.0 #f #f 0.0 0.0 #f '() in-hangar)
          (weapon (next-id) (weapons (next-id) #f (and npc? npc-weapons?) #f)
@@ -89,7 +89,7 @@
      (set-ship-stats! s (stats (next-id) type name faction 1.0 mb mb 50.0 50.0 6.0 20.0 40.0 1.0))
      (set-ship-pods!
       s (list
-         (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) r helm-fore? #f #f) 0.0 0.0 #f #f 100.0 100.0)
+         (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) r helm-fore? #f #f #f) 0.0 0.0 #f #f 100.0 100.0 #f)
          (multipod (next-id) (observer (next-id) #f #f) 0.0 3.0 #f #f 0.0 0.0 #f '())
          (weapon (next-id) (weapons (next-id) #f (and npc? npc-weapons?) #f)
                  0.0 6.5 0.0 (* 0.8 pi) 100.0 100.0 5.0)))))
