@@ -56,7 +56,7 @@
                  (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0 5.0)))
 
 
-(define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:start-ship? #t))
+(define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:start-ship? #f))
 (set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel" 10.0 200.0 200.0 1000.0 1000.0 26.0 1000.0 0.0 0.0))
 (set-ship-pods!
  base
@@ -69,9 +69,8 @@
        (tactical (next-id) (tactics (next-id) #f #t #f)
                  (degrees->radians d) 28.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0 10.0))))
 
-(define destroyer
-  (make-ship "red-destroyer" "b" "b" #:x 2400 #:y 100 #:r pi #:start-ship? #t))
 
+(define destroyer (make-ship "red-destroyer" "b" "b" #:x 2400 #:y 100 #:r pi #:start-ship? #f))
 (set-ship-stats! destroyer (stats (next-id)
                                   ;type name faction
                                   "red-destroyer" "Empire Destroyer" "Empire"
@@ -124,7 +123,7 @@
   (define eb (find-id ownspace (ob-id destroyer)))
   (when (and hb eb)
     
-    (when (time-for (space-time ownspace) 5000);55000 20000)
+    (when (time-for (space-time ownspace) 55000 20000)
       (define m (message (next-id) (space-time ownspace) #f "New Fighter at Outpost"))
       (define f (new-blue-fighter))
       (set! commands (append commands (list (chadd f)
@@ -136,7 +135,7 @@
       (set! commands (append commands (list (chadd f)
                                             (chmov (ob-id f) #f (ob-id (get-hangar destroyer)) #f)))))
     
-    (when (time-for (space-time ownspace) 30000);90000 30000)
+    (when (time-for (space-time ownspace) 90000 30000)
       (define m (message (next-id) (space-time ownspace) #f "Empire Frigate Incoming"))
       (define x (+ (/ (space-width ownspace) 2) 100))
       (define y (random-between (- (/ (space-height ownspace) 2)) (/ (space-height ownspace) 2)))
