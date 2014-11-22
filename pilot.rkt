@@ -380,20 +380,21 @@
      (define pod (get-pod stack))
      
      (define firing? #f)
+     (define ret '())
      (when (helm-plasma-size pod)
        (define ship (get-ship stack))
        (define podangle (angle-add (posvel-r (obj-posvel ship)) (pod-facing pod)))
        (define offset (angle-diff podangle a))
        (when ((abs offset) . < . (/ (pod-spread pod) 2))
          (set! firing? #t)
-         (if (and (ship-flying? ship)
-                  ((pod-energy pod) . > . (helm-plasma-size pod)))
-             ; we are firing
-             (struct-copy pilot role (fire a))
-             '())))
+         (when (and (ship-flying? ship)
+                    ((pod-energy pod) . > . (helm-plasma-size pod)))
+           (set! ret (struct-copy pilot role (fire a))))))
      (when (not firing?)
        ;(printf "~a: pilot course change\n" (player-name me))
-       (struct-copy pilot role (course a))))))
+       (set! ret (struct-copy pilot role (course a))))
+     
+     ret)))
 
 
 (define (draw-docking dc space stack)
@@ -414,26 +415,33 @@
   (define ship (get-ship stack))
   (define pod (get-pod stack))
   
-  (draw-view dc (get-center stack) space)
-  (when (and (ship-flying? ship) (pilot-dock role))
-    (draw-docking dc space stack))
-  (draw-hud dc ship (get-pod stack))
+  (define buttons (list leave-button (sector-button)))
   
-  (when (and (helm-plasma-size pod) (ship-flying? ship))
-    (keep-transform dc
-      (send dc rotate (posvel-r (obj-posvel ship)))
-      (define line-size 50)
-      (send dc set-pen "red" 1 'solid)
-      (for ((a (in-list (list (+ (pod-facing pod) (/ (pod-spread pod) 2))
-                              (- (pod-facing pod) (/ (pod-spread pod) 2))))))
-        (send dc draw-line 0 0 (* line-size (cos a)) (- (* line-size (sin a)))))))
+  (cond
+    ((unbox viewing-sector?)
+     (draw-sector dc space stack))
+    (else
+     (draw-view dc (get-center stack) space)
+     (when (and (ship-flying? ship) (pilot-dock role))
+       (draw-docking dc space stack))
+     (draw-hud dc ship (get-pod stack))
   
-  (define buttons (list leave-button))
-  (when (can-launch? stack)
-    (set! buttons (cons (button -200 -300 70 30 5 5 "launch" "Launch") buttons)))
-  (when (ship-flying? ship)
-    (set! buttons (cons (button -100 -300 70 30 5 5 "dock" (if (pilot-dock role) "Docking..." "Dock")) buttons))
-    (set! buttons (cons (button 0 -300 60 30 5 5 "fore" (if (pilot-fore role) "Stop" "Go")) buttons)))
+     (when (and (helm-plasma-size pod) (ship-flying? ship))
+       (keep-transform dc
+                       (send dc rotate (posvel-r (obj-posvel ship)))
+                       (define line-size 50)
+                       (send dc set-pen "red" 1 'solid)
+                       (for ((a (in-list (list (+ (pod-facing pod) (/ (pod-spread pod) 2))
+                                               (- (pod-facing pod) (/ (pod-spread pod) 2))))))
+                         (send dc draw-line 0 0 (* line-size (cos a)) (- (* line-size (sin a)))))))
+     
+     
+     (when (can-launch? stack)
+       (set! buttons (cons (button -200 -300 70 30 5 5 "launch" "Launch") buttons)))
+     (when (ship-flying? ship)
+       (set! buttons (cons (button -100 -300 70 30 5 5 "dock" (if (pilot-dock role) "Docking..." "Dock")) buttons))
+       (set! buttons (cons (button 0 -300 60 30 5 5 "fore" (if (pilot-fore role) "Stop" "Go")) buttons)))))
+  
   buttons)
 
 

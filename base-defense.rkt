@@ -6,9 +6,10 @@
          "utils.rkt"
          "client.rkt"
          "server.rkt"
-         "ships.rkt")
+         "ships.rkt"
+         "upgrade.rkt")
 
-(define ai? #t)
+(define ai? #f)
 
 (define ownspace (space 0 5000 2000 '()))
 
@@ -16,7 +17,7 @@
   (define s (make-ship "blue-fighter" "a" "a"))
   (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
                             ;power bat maxbat con maxcon radius mass thrust rthrust
-                            1.0 100.0 100.0 50.0 50.0 6.0 20.0 50.0 1.5))
+                            1.0 150.0 150.0 50.0 50.0 6.0 20.0 50.0 1.5))
   (set-ship-pods!
    s (list
       (helm (next-id) (pilot (next-id) #f #t 0.0 #f #f #f #f) 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0 5.0)
@@ -28,7 +29,7 @@
   (define s (make-ship "red-fighter" "a" "a"))
   (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
                             ;power bat maxbat con maxcon radius mass thrust rthrust
-                            1.0 100.0 100.0 50.0 50.0 6.0 20.0 50.0 1.5))
+                            1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5))
   (set-ship-pods!
    s (list
       (helm (next-id) (pilot (next-id) #f #t 0.0 #f #f #f #f) 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0 5.0)
@@ -40,24 +41,30 @@
 (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50 #:start-ship? #t))
 (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
                                 ;power bat maxbat con maxcon radius mass thrust rthrust
-                                5.0 100.0 100.0 100.0 100.0 15.0 100.0 35.0 1.0))
+                                5.0 150.0 150.0 100.0 100.0 15.0 100.0 30.0 1.0))
 (set-ship-pods!
  cruiser
  `(,(helm (next-id) (pilot (next-id) #f #f pi/2 #f #f #f #f) 0.0 0.0 #f #f 100.0 100.0 #f)
    ,(multipod (next-id) (observer (next-id) #f #f) 0.0 8.0 #f #f 0.0 0.0 #f '())
    ,(hangarpod (next-id) (hangar (next-id) #f #f) pi 5.0 #f #f 0.0 0.0 #f '() (list #;(new-blue-fighter)))
    ,(weapon (next-id) (weapons (next-id) #f ai? #f)
-               (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.8 pi) 50.0 50.0 5.0)
+               (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.8 pi) 60.0 60.0 5.0)
    ,(weapon (next-id) (weapons (next-id) #f ai? #f)
-               (degrees->radians 270.0) 10.0 (degrees->radians 285.0) (* 0.8 pi) 50.0 50.0 5.0)
+               (degrees->radians 45.0) 12.0 (degrees->radians 30.0) (* 0.4 pi) 40.0 40.0 20.0)
+   ,(weapon (next-id) (weapons (next-id) #f ai? #f)
+               (degrees->radians 270.0) 10.0 (degrees->radians 285.0) (* 0.8 pi) 60.0 60.0 5.0)
+   ,(weapon (next-id) (weapons (next-id) #f ai? #f)
+               (degrees->radians 315.0) 12.0 (degrees->radians 330.0) (* 0.4 pi) 40.0 40.0 20.0)
    ,(tactical (next-id) (tactics (next-id) #f ai? #f)
                  (degrees->radians 0.0) 15.0 (degrees->radians 0.0) (* 0.8 pi) 50.0 50.0 5.0)
    ,(tactical (next-id) (tactics (next-id) #f ai? #f)
                  (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0 5.0)))
 
 
-(define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:start-ship? #f))
-(set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel" 10.0 200.0 200.0 1000.0 1000.0 26.0 1000.0 0.0 0.0))
+(define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:start-ship? #t))
+(set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
+                             ;power bat maxbat con maxcon radius mass thrust rthrust
+                             10.0 500.0 500.0 1000.0 1000.0 26.0 1000.0 0.0 0.0))
 (set-ship-pods!
  base
  `(,(multipod (next-id) (observer (next-id) #f #f) 0.0 0.0 #f #f 0.0 0.0 #f '())
@@ -102,13 +109,20 @@
                        (list (strategy (space-time ownspace) "attack" (ob-id base))))
 
 
-;(define special (new-blue-fighter))
-;(set-obj-posvel! special (posvel 0 0.0 0.0 0.0 0.0 0.0 0.0))
+(define special (new-blue-fighter))
+(set-obj-posvel! special (posvel 0 -2100.0 -100.0 0.0 0.0 0.0 0.0))
+(set-ship-cargo! special (list (random-upgrade ownspace #f) (random-upgrade ownspace #f)))
 ;(define special2 (new-red-fighter))
 ;(set-obj-posvel! special2 (posvel 0 1000.0 0.0 0.0 0.0 0.0 0.0))
 
 
-(set-space-objects! ownspace (list cruiser base destroyer))
+(set-space-objects! ownspace (list cruiser base destroyer #;special))
+
+;(for ((i 10) (t (in-cycle '("power" "thrust" "bat" "con"))))
+;  (define u (upgrade (next-id) (space-time ownspace)
+;                     (posvel (space-time ownspace) -1700 (+ -250 (* i 50)) 0 0 0 0)
+;                     t))      
+;  (set-space-objects! ownspace (cons u (space-objects ownspace))))
 
 
 (define next-enemy-count 0)
@@ -123,7 +137,7 @@
   (define eb (find-id ownspace (ob-id destroyer)))
   (when (and hb eb)
     
-    (when (time-for (space-time ownspace) 55000 20000)
+    (when (time-for (space-time ownspace) 55000 0000)
       (define m (message (next-id) (space-time ownspace) #f "New Fighter at Outpost"))
       (define f (new-blue-fighter))
       (set! commands (append commands (list (chadd f)
@@ -139,9 +153,11 @@
       (define m (message (next-id) (space-time ownspace) #f "Empire Frigate Incoming"))
       (define x (+ (/ (space-width ownspace) 2) 100))
       (define y (random-between (- (/ (space-height ownspace) 2)) (/ (space-height ownspace) 2)))
-      (define fighters (for/list ((i (random 8)))
+      (define fighters (for/list ((i (random 3)))
                          (make-ship "red-fighter" "Empire Fighter" "Empire")))
-      (define f (make-ship "red-frigate" "Empire Frigate" "Empire" #:x x #:y y #:r pi #:in-hangar fighters #:start-ship? #t))
+      (define f (make-ship "red-frigate" "Empire Frigate" "Empire" #:x x #:y y #:r pi
+                           #:in-hangar fighters #:cargo (list (random-upgrade ownspace #f)
+                                                              (random-upgrade ownspace #f))))
       (set-ship-ai-strategy! f (list (strategy (space-time ownspace) "attack" (ob-id base))))
       (set! commands (append commands (list (chadd f) m))))
     

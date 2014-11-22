@@ -14,7 +14,8 @@
          "tactics.rkt"
          "plasma.rkt"
          "shield.rkt"
-         "ships.rkt")
+         "ships.rkt"
+         "upgrade.rkt")
 
 (provide start-server)
 
@@ -58,6 +59,25 @@
     (setsockopt_tcp_nodelay socket enabled?)))
 
 
+
+
+; return a list of changes
+(define (upgrade-hit-ship! space ship u)
+  (define changes '())
+  (when (and (not ((ship-con ship) . <= . 0))
+             ((distance ship u) . < . (+ (ship-radius ship) (upgrade-radius space u))))
+    ;(printf "upgrade hit ship ~a (~a)\n" (ship-name ship) (obj-id ship))
+    (define newstats (copy (ship-stats ship)))
+    (define which
+      (case (upgrade-type u)
+        (("power") (set-stats-power! newstats (* 1.1 (stats-power newstats))) "reactor")
+        (("thrust") (set-stats-thrust! newstats (* 1.1 (stats-thrust newstats))) "engines")
+        (("bat") (set-stats-maxbat! newstats (* 1.1 (stats-maxbat newstats))) "reserve")
+        (("con") (set-stats-maxcon! newstats (* 1.1 (stats-maxcon newstats))) "hull")))
+    (define m (message (next-id) (space-time space) #f (format "~a upgraded ~a" (ship-name ship) which)))
+    
+    (set! changes (append changes (list (chstats (ob-id ship) newstats) m (chrm (ob-id u))))))
+  changes)
 
 
 ; return a list of changes
@@ -206,6 +226,7 @@
   
   (define plasmas (filter plasma? objects))
   (define shields (filter shield? objects))
+  (define upgrades (filter upgrade? objects))
   
   (for ((p plasmas))
     (for ((shield shields))
@@ -216,6 +237,11 @@
       (define cs (apply-all-changes!
                   space (plasma-hit-ship! space ship p) (space-time space) "server"))
       (set! changes (append changes cs))))
+  
+  (for* ((u upgrades) (ship spaceships))
+    (define cs (apply-all-changes!
+                space (upgrade-hit-ship! space ship u) (space-time space) "server"))
+    (set! changes (append changes cs)))
   
   (let loop ((ships ships))
     (when (not (null? ships))

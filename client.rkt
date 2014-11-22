@@ -33,7 +33,7 @@
   (define ownspace #f)
   (define testing #f)
   (when testing
-    (set! ownspace (space 0 2000.0 2000.0 (list)))
+    (set! ownspace (space 0 5000 2000 (list)))
     (for ((i 10))
       (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel"
                            #:x (random-between -1000.0 1000.0)
@@ -83,6 +83,7 @@
     (define role (if my-stack (get-role my-stack) #f))
     (cond
       ((and button (equal? button "leave"))
+       (set-box! viewing-sector? #f)
        (cond
          ((not role)
           (drop-connection "clicked leave")
@@ -115,6 +116,10 @@
          (else
           (define crew (ship-crew (get-ship my-stack)))
           (send-commands (role-change me (ob-id role) (ob-id crew) -1)))))
+      ((and button (equal? button "sectorview"))
+       (set-box! viewing-sector? (not (unbox viewing-sector?))))
+      ((unbox viewing-sector?)
+       (printf "click dropped because viewing sector\n"))
       ((crewer? role)
        (send-commands (click-crewer x y button my-stack)))
       ((pilot? role)
@@ -166,7 +171,7 @@
               ((not ownspace)
                (draw-intro dc))
               ((not my-stack)
-               (draw-no-role dc ownspace))
+               (draw-sector dc ownspace #f))
               ((pilot? role)
                (draw-pilot dc ownspace my-stack))
               ((crewer? role)

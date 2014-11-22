@@ -10,7 +10,8 @@
          "plasma.rkt"
          "shield.rkt"
          "effect.rkt"
-         "ships.rkt")
+         "ships.rkt"
+         "upgrade.rkt")
 
 (provide (all-defined-out))
 
@@ -108,7 +109,11 @@
     ((effect? o)
      (if map
          (void)
-         (draw-effect dc space center o)))))
+         (draw-effect dc space center o)))
+    ((upgrade? o)
+     (if map
+         (draw-upgrade dc space center o)
+         (draw-upgrade dc space center o)))))
 
 
 (define (draw-server-objects dc center space)
@@ -163,26 +168,27 @@
 ;    (send dc draw-ellipse -5 -5 10 10)))
 
 
-(define (draw-no-role dc space)
+(define (draw-sector dc space stack)
   (keep-transform dc
-    (define max-x (space-width space))
-    (define max-y (space-height space))
-    (define scale (min (/ WIDTH max-x) (/ HEIGHT max-y)))
+    (define max-x (/ (space-width space) 2))
+    (define max-y (/ (space-height space) 2))
+    (define scale (min (/ WIDTH (space-width space)) (/ HEIGHT (space-height space))))
     (send dc scale scale scale)
     ;(printf "dc-point-size: ~a\n" (dc-point-size dc))
     (define center (obj #f #f (posvel 0 0 0 0 0 0 0)))
     (define cc (linear-color "blue" "blue" 1.0 0.25))
     (send dc set-pen cc (/ 2 (dc-point-size dc)) 'solid)
     (define sw 500)
-    (for ((i (in-range (inexact->exact (round (/ max-x sw))))))
-      (send dc draw-line (* sw i) (- (/ max-y 2)) (* sw i) (/ max-y 2)))
-    (for ((i (in-range (inexact->exact (round (/ (- max-x sw) sw))))))
-      (send dc draw-line (- (* sw i)) (- (/ max-y 2)) (- (* sw i)) (/ max-y 2)))
     
-    (for ((i (in-range (inexact->exact (round (/ max-y sw))))))
-      (send dc draw-line (- (/ max-x 2)) (* sw i) (/ max-x 2) (* sw i)))
-    (for ((i (in-range (inexact->exact (round (/ (- max-y sw) sw))))))
-      (send dc draw-line (- (/ max-x 2)) (- (* sw i)) (/ max-x 2) (- (* sw i))))
+    (send dc draw-line 0 (- max-y) 0 max-y)
+    (for ((i (in-range 1 (+ 1 (inexact->exact (floor (/ max-x sw)))))))
+      (send dc draw-line (* sw i) (- max-y) (* sw i) max-y)
+      (send dc draw-line (* sw (- i)) (- max-y) (* sw (- i)) max-y))
+    
+    (send dc draw-line (- max-x) 0 max-x 0)
+    (for ((i (in-range 1 (+ 1 (inexact->exact (floor (/ max-y sw)))))))
+      (send dc draw-line (- max-x) (* sw i) max-x (* sw i))
+      (send dc draw-line (- max-x) (* sw (- i)) max-x (* sw (- i))))
     
     (for ((o (in-list (space-objects space))))
       (draw-object dc o center space #t))
@@ -190,31 +196,46 @@
   
   (define buttons (list leave-button))
   
-  (define start-stacks
-    (search space (lambda (o) (and (multipod? o)
-                                   (multipod-start? o))) #t))
+  (cond 
+    ((not stack)
+     (define start-stacks
+       (search space (lambda (o) (and (multipod? o)
+                                      (multipod-start? o))) #t))
+     
+     (set! start-stacks (filter (lambda (s) (ship-flying? (get-ship s))) start-stacks))
+     
+     (for ((s (in-list start-stacks))
+           (i (in-naturals)))
+       (define mp (car s))
+       (define b (button (+ LEFT 100 (* i 250)) (+ BOTTOM 60) 200 30 5 5 (ob-id mp)
+                         (format "~a on ~a" (role-name (pod-role mp))
+                                 (ship-name (get-ship s)))))
+       (set! buttons (append buttons (list b)))))
+    (else
+     (set! buttons (append buttons (list (sector-button))))))
   
-  (set! start-stacks (filter (lambda (s) (ship-flying? (get-ship s))) start-stacks))
-  
-  (for ((s (in-list start-stacks))
-        (i (in-naturals)))
-    (define mp (car s))
-    (define b (button (+ LEFT 100 (* i 250)) (+ BOTTOM 60) 200 30 5 5 (ob-id mp)
-                      (format "~a on ~a" (role-name (pod-role mp))
-                              (ship-name (get-ship s)))))
-    (set! buttons (append buttons (list b))))
   buttons)
 
 
 (define (draw-observer dc space stack serverspace)
-  (draw-view dc (get-center stack) space)
-  (when serverspace (draw-server-objects dc (get-center stack) serverspace))
-  (draw-hud dc (get-ship stack) #f)
-  (for ((p (in-list (ship-pods (get-ship stack))))
-        (i (in-naturals)))
-    (define e (inexact->exact (round (pod-energy p))))
-    (draw-hud-status-text dc (+ 10 i) (format "~a ~a" (role-name (pod-role p)) e)))
-  (list leave-button))
+  (cond
+    ((unbox viewing-sector?)
+     (draw-sector dc space stack))
+    (else
+     (draw-view dc (get-center stack) space)
+     (when serverspace (draw-server-objects dc (get-center stack) serverspace))
+     (draw-hud dc (get-ship stack) #f)
+     (for ((p (in-list (ship-pods (get-ship stack))))
+           (i (in-naturals)))
+       (define pod-color
+         (cond (((pod-energy p) . < . (* (pod-maxe p) (/ 1.0 3.0))) "red")
+               (((pod-energy p) . < . (* (pod-maxe p) (/ 2.0 3.0))) "yellow")
+               (else "green")))
+       (send dc draw-text (role-name (pod-role p)) (/ (- WIDTH) 2) (+ (/ (- HEIGHT) 2) (* (+ i 5) 20)))
+       (draw-fraction-box dc (+ (/ (- WIDTH) 2) 70) (+ (/ (- HEIGHT) 2) (* (+ i 5) 20))
+                          (pod-maxe p) 20 (pod-energy p) pod-color))))
+    
+  (list leave-button (sector-button)))
 
 
 (define (draw-overlay dc space stack)
@@ -244,20 +265,47 @@
             (draw-text dc (message-msg m) 0 0)))
         (loop (cdr l))))))
 
+(define (draw-fraction-box dc x y width height fill-width fill-color)
+  (send dc set-pen nocolor 1 'transparent)
+  (send dc set-brush fill-color 'solid)
+  (send dc draw-rectangle x (+ y 1) (max 0.0 fill-width) (- height 2))
+  (send dc set-pen fgcolor 1.5 'solid)
+  (send dc set-brush fill-color 'transparent)
+  (send dc draw-rectangle x (+ y 1) width (- height 2)))
 
 (define (draw-hud dc ship pod)
+  (define boxx 40)
+  (define ydrop 20)
   (send dc set-text-foreground "white")
-  (draw-hud-status-text dc 1 (format "Ship Hull ~a" (inexact->exact (round (ship-con ship)))))
-  (draw-hud-status-text dc 2 (format "Reactor   ~a" (inexact->exact (round (ship-power ship)))))
-  (draw-hud-status-text dc 3 (format "Reserve   ~a" (inexact->exact (round (ship-bat ship)))))
+  (define con-color
+    (cond (((ship-con ship) . < . (* (ship-maxcon ship) (/ 1.0 3.0))) "red")
+          (((ship-con ship) . < . (* (ship-maxcon ship) (/ 2.0 3.0))) "yellow")
+          (else "green")))
+  (define startx (- (/ WIDTH 2)))
+  (define starty (+ (/ (- HEIGHT) 2) ydrop))
+  (send dc draw-text "Hull" startx starty)
+  (draw-fraction-box dc (+ startx boxx) starty (ship-maxcon ship) 20 (ship-con ship) con-color)
+  
+  (define bat-color
+    (cond (((ship-bat ship) . < . (* (ship-maxbat ship) (/ 1.0 3.0))) "red")
+          (((ship-bat ship) . < . (* (ship-maxbat ship) (/ 2.0 3.0))) "yellow")
+          (else "green")))
+  (send dc draw-text "Res" startx (+ starty ydrop))
+  (draw-fraction-box dc (+ startx boxx) (+ starty ydrop) (ship-maxbat ship) 20 (ship-bat ship) bat-color)
+  
   (when pod
-    (define e (inexact->exact (round (pod-energy pod))))
-    (draw-hud-status-text dc 5 (format "Pod Bat ~a" e))))
+    (define pod-color
+      (cond (((pod-energy pod) . < . (* (pod-maxe pod) (/ 1.0 3.0))) "red")
+            (((pod-energy pod) . < . (* (pod-maxe pod) (/ 2.0 3.0))) "yellow")
+            (else "green")))
+    (send dc draw-text (role-name (pod-role pod)) startx (+ starty (* 3 ydrop)))
+    (draw-fraction-box dc (+ startx boxx) (+ starty (* 3 ydrop)) (pod-maxe pod) 20 (pod-energy pod) pod-color)))
 
 
 (define (draw-buttons dc buttons)
-  (send dc set-brush "darkgray" 'solid)
+  (send dc set-brush "gray" 'solid)
   (send dc set-pen fgcolor 1 'solid)
+  (send dc set-text-foreground "black")
   (for ((b (in-list buttons)))
     (keep-transform dc
       (define-values (x y w h) (values (button-x b) (button-y b)

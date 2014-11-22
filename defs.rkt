@@ -31,6 +31,8 @@
 (define server? (make-parameter #t))
 (define destroy-callback (make-parameter (lambda (ship) '())))
 
+(define viewing-sector? (box #f))
+
 ;; Game State
 
 (struct ob (id) #:mutable #:prefab)
@@ -107,11 +109,12 @@
 ; thrust is how much force your main engines produce
 ; rthrust is how much force your turning engines produce
 
-(struct ship obj (stats crew pods ai-strategy dmgfx) #:mutable #:prefab)
+(struct ship obj (stats crew pods ai-strategy dmgfx cargo) #:mutable #:prefab)
 ; crew is a multipod for players choosing their next role
 ; pods is a list of all the pods on the ship
 ; ai-strategy is a list of strategies, do them in order
 ; damages is a list of ship-level damage, plus temporary damage effects
+; cargo is stuff you're carrying
 
 (define (ship-name s) (stats-name (ship-stats s)))
 (define (ship-type s) (stats-type (ship-stats s)))
@@ -129,7 +132,7 @@
 (struct spaceship ship () #:mutable #:prefab)
 
 (struct plasma obj (e ownship-id) #:mutable #:prefab)
-; e is base energy uncorrected for age
+; e energy
 ; ownship is id of the ship that fired it, or #f if it belongs to no ship
 
 (struct effect obj (size duration) #:mutable #:prefab)
@@ -138,7 +141,10 @@
 ; effect where we want to render it behind everything else (like engine output)
 
 (struct shield obj (e) #:mutable #:prefab)
-; e is base energy uncorrected for age
+; e is energy
+
+(struct upgrade obj (type) #:mutable #:prefab)
+; type is string saying which part of the ship it upgrades
 
 (struct space (time width height objects) #:mutable #:prefab)
 ; time is msec since the scenario started
@@ -195,6 +201,9 @@
 (struct message obj (msg) #:mutable #:prefab)
 ; msg is the text to display
 
+(struct chstats (id newstats) #:mutable #:prefab)
+; id is of the ship
+; newstats is stats
 
 ;; UI
 
@@ -207,6 +216,8 @@
 
 
 (define leave-button (button (/ (- WIDTH) 2) (/ (- HEIGHT) 2) 60 30 5 5 "leave" "Leave"))
+(define (sector-button) (button (- (/ WIDTH 2) 60) (/ (- HEIGHT) 2) 60 30 5 5
+                                "sectorview" (if (unbox viewing-sector?) "Normal" "Sector")))
 
 
 

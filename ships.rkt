@@ -42,12 +42,13 @@
                    #:helm-fore? (helm-fore? #f)
                    #:npc-weapons? (npc-weapons? #t)
                    #:npc-tactical? (npc-tactical? #t)
-                   #:in-hangar (in-hangar '()))
+                   #:in-hangar (in-hangar '())
+                   #:cargo (cargo '()))
   (define s ((if (equal? "space-suit" type) spacesuit spaceship)
              (next-id) 0 (if posvel? (posvel 0 x y r dx dy dr) #f)
              #f
              (multipod (next-id) (crewer (next-id) #f #f) #f #f #f #f 0.0 0.0 start-ship? '())
-             '() '() '()))
+             '() '() '() cargo))
   
   (for ((hangship (in-list in-hangar)))
     (set-obj-posvel! hangship #f))

@@ -182,14 +182,20 @@
             (define from (find-id space (chmov-from c)))
             (cond
               (from
-               (set-hangarpod-ships! from (remove o (hangarpod-ships from))))
+               (when (hangarpod? from)
+                 (set-hangarpod-ships! from (remove o (hangarpod-ships from))))
+               (when (spaceship? from)
+                 (set-ship-cargo! from (remove o (ship-cargo from)))))
               (else
                (set-space-objects! space (remove o (space-objects space)))))
             
             (define to (find-id space (chmov-to c)))
             (cond
               (to
-               (set-hangarpod-ships! to (append (hangarpod-ships to) (list o))))
+               (when (hangarpod? to)
+                 (set-hangarpod-ships! to (append (hangarpod-ships to) (list o))))
+               (when (spaceship? to)
+                 (set-ship-cargo! to (append (ship-cargo to) (list o)))))
               (else
                (set-space-objects! space (append (space-objects space) (list o)))))
             (values #t '()))
@@ -211,6 +217,15 @@
             (values #t '()))
            (else
             (printf "~a new-strat - couldn't find obj id ~a\n" who (new-strat-ship-id c))
+            (values #t '()))))
+    ((chstats? c)
+     (define o (find-id space (chstats-id c)))
+     (cond (o
+            (set-ship-stats! o (chstats-newstats c))
+            ;(printf "ship ~a now has stats ~v\n" (ship-name o) (ship-stats o))
+            (values #t '()))
+           (else
+            (printf "~a chstats - couldn't find obj id ~a\n" who (chstats-id c))
             (values #t '()))))
     ((message? c)
      (set-obj-start-time! c (space-time space))

@@ -102,17 +102,21 @@
   (define space (get-space stack))
   (define w (get-pod stack))
   
-  (draw-view dc (get-center stack) space)
-  (when serverspace (draw-server-objects dc (get-center stack) serverspace))
-  (draw-hud dc ship w)
+  (cond
+    ((unbox viewing-sector?)
+     (draw-sector dc space stack))
+    (else
+     (draw-view dc (get-center stack) space)
+     (when serverspace (draw-server-objects dc (get-center stack) serverspace))
+     (draw-hud dc ship w)
   
-  (when (ship-flying? ship)
-    (keep-transform dc
-      (send dc rotate (posvel-r spv))
-      (define line-size 50)
-      (send dc set-pen "red" 1 'solid)
-      (for ((a (in-list (list (+ (pod-facing w) (/ (pod-spread w) 2))
-                              (- (pod-facing w) (/ (pod-spread w) 2))))))
-        (send dc draw-line 0 0 (* line-size (cos a)) (- (* line-size (sin a)))))))
+     (when (ship-flying? ship)
+       (keep-transform dc
+                       (send dc rotate (posvel-r spv))
+                       (define line-size 50)
+                       (send dc set-pen "red" 1 'solid)
+                       (for ((a (in-list (list (+ (pod-facing w) (/ (pod-spread w) 2))
+                                               (- (pod-facing w) (/ (pod-spread w) 2))))))
+                         (send dc draw-line 0 0 (* line-size (cos a)) (- (* line-size (sin a)))))))))
   
-  (list leave-button))
+  (list leave-button (sector-button)))

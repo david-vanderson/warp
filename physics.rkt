@@ -7,7 +7,8 @@
          "plasma.rkt"
          "shield.rkt"
          "effect.rkt"
-         "ships.rkt")
+         "ships.rkt"
+         "upgrade.rkt")
 
 (provide (all-defined-out))
 
@@ -92,6 +93,10 @@
        (set-space-objects! space (remove o (space-objects space)))))
     ((message? o)
      (when ((obj-age space o) . > . MSG_FADE_TIME)
+       (set-space-objects! space (remove o (space-objects space)))))
+    ((upgrade? o)
+     (physics! pv dt 0.4)
+     (when (upgrade-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))))
 
 
@@ -133,9 +138,17 @@
                               (ship-faction ship)
                               #:x (posvel-x pv) #:y (posvel-y pv)
                               #:dx (+ (posvel-dx pv) (random-between -50 50))
-                              #:dy (+ (posvel-dx pv) (random-between -50 50))))
+                              #:dy (+ (posvel-dy pv) (random-between -50 50))))
         (define rc (role-change p #f (ob-id (car (ship-pods ss))) (next-id)))
         (set! changes (append changes (list (chadd ss) rc))))
+      
+      (for ((u (in-list (ship-cargo ship))))
+        (define newpv (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
+                              (+ (posvel-dx pv) (random-between -50 50))
+                              (+ (posvel-dy pv) (random-between -50 50)) 0))
+        (set-obj-posvel! u newpv)
+        (set-obj-start-time! u (space-time space))
+        (set! changes (append changes (list (chadd u)))))
       
       (define energy-left energy)
       (while (energy-left . > . 1)
