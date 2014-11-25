@@ -9,7 +9,7 @@
          "ships.rkt"
          "upgrade.rkt")
 
-(define ai? #f)
+(define ai? #t)
 
 (define ownspace (space 0 5000 2000 '()))
 
