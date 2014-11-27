@@ -72,7 +72,7 @@
                                   (+ (* PLASMA_SPEED (sin a)) (posvel-dy ps) rvy)
                                   0)
                           (weapon-plasma-size pod) (ob-id ship)))
-        (values #f (list (chadd p) (cherg (ob-id pod) (- (weapon-plasma-size pod))))))))
+        (values #f (list (chadd p #f) (cherg (ob-id pod) (- (weapon-plasma-size pod))))))))
     (else
      (error "command-weapons hit ELSE clause"))))
 

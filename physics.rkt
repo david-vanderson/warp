@@ -129,7 +129,7 @@
       (define pv (obj-posvel ship))
       (define energy (ship-mass ship))
       (define e (effect (next-id) (space-time space) (struct-copy posvel pv) (sqrt energy) 1000))
-      (set! changes (append changes (list (chadd e))))
+      (set! changes (append changes (list (chadd e #f))))
       
       (for ((ps (in-list (search ship player? #t))))
         (define p (car ps))
@@ -140,7 +140,7 @@
                               #:dx (+ (posvel-dx pv) (random-between -50 50))
                               #:dy (+ (posvel-dy pv) (random-between -50 50))))
         (define rc (role-change p #f (ob-id (car (ship-pods ss))) (next-id)))
-        (set! changes (append changes (list (chadd ss) rc))))
+        (set! changes (append changes (list (chadd ss #f) rc))))
       
       (for ((u (in-list (ship-cargo ship))))
         (define newpv (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
@@ -148,7 +148,7 @@
                               (+ (posvel-dy pv) (random-between -50 50)) 0))
         (set-obj-posvel! u newpv)
         (set-obj-start-time! u (space-time space))
-        (set! changes (append changes (list (chadd u)))))
+        (set! changes (append changes (list (chadd u #f)))))
       
       (define energy-left energy)
       (while (energy-left . > . 1)
@@ -162,7 +162,7 @@
                                   (+ (* s (sin t)) (posvel-dy pv))
                                   0)
                           e #f))
-        (set! changes (append changes (list (chadd p)))))
+        (set! changes (append changes (list (chadd p #f)))))
       
       (define msg (message (next-id) (space-time space) #f
                            (format "~a Destroyed" (ship-name ship))))

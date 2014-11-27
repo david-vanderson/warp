@@ -91,7 +91,7 @@
                    (list (make-ship "red-fighter" "Empire Fighter" "Empire")
                          #;(make-ship "red-fighter" "Empire Fighter" "Empire"))))
       (set-ship-ai-strategy! ns (list (strategy (space-time space) "attack" (ob-id hb))))
-      (set! commands (append commands (list (chadd ns)))))
+      (set! commands (append commands (list (chadd ns #f)))))
     (define m (message (next-id) (space-time space) #f (format "~a new enemy ships detected!" next-enemy-count)))
     (set! commands (append commands (list m))))
   
@@ -111,21 +111,21 @@
 ;                 #:in-hangar (list
 ;                              (make-ship "blue-fighter" "Blue Fighter" "Rebel")
 ;                              (make-ship "blue-fighter" "Blue Fighter" "Rebel"))))
-;     (set! commands (append commands (list (chadd s)))))
+;     (set! commands (append commands (list (chadd s #f)))))
 ;    (((count-type "red-frigate") . < . 1)
 ;     (define s (make-ship "red-frigate" "Red Frigate" "Empire" #:x x #:y y #:r (angle-add theta pi) #:start-ship? #t
 ;                 #:in-hangar (list
 ;                              (make-ship "red-fighter" "Red Fighter" "Empire")
 ;                              (make-ship "red-fighter" "Red Fighter" "Empire"))))
-;     (set! commands (append commands (list (chadd s))))))
+;     (set! commands (append commands (list (chadd s #f))))))
   
   
 ;    (((count-type "blue-fighter") . < . 2)
 ;     (define s (make-ship "blue-fighter" "Blue Fighter" "Rebel" #:start-ship? #t #t #:x x #:y y #:r (angle-add theta pi)))
-;     (set! commands (append commands (list (chadd s)))))
+;     (set! commands (append commands (list (chadd s #f)))))
 ;    (((count-type "red-fighter") . < . 2)
 ;     (define s (make-ship "red-fighter" "Red Fighter" "Empire" #t #:x x #:y y #:r (angle-add theta pi)))
-;     (set! commands (append commands (list (chadd s))))))
+;     (set! commands (append commands (list (chadd s #f))))))
   
   commands)
 

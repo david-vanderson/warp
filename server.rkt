@@ -96,7 +96,7 @@
                       (plasma-radius space p) 300))
     (set! changes (append changes (list (chdam (ob-id p) damage)
                                         (chdam (ob-id ship) damage)
-                                        (chadd e)))))
+                                        (chadd e #f)))))
   changes)
 
 

@@ -140,14 +140,11 @@
     (when (time-for (space-time ownspace) 55000 0000)
       (define m (message (next-id) (space-time ownspace) #f "New Fighter at Outpost"))
       (define f (new-blue-fighter))
-      (set! commands (append commands (list (chadd f)
-                                            (chmov (ob-id f) #f (ob-id (get-hangar base)) #f)
-                                            m))))
+      (set! commands (append commands (list (chadd f (ob-id (get-hangar base))) m))))
     
     (when (time-for (space-time ownspace) 65000 20000)
       (define f (new-red-fighter))
-      (set! commands (append commands (list (chadd f)
-                                            (chmov (ob-id f) #f (ob-id (get-hangar destroyer)) #f)))))
+      (set! commands (append commands (list (chadd f (ob-id (get-hangar destroyer)))))))
     
     (when (time-for (space-time ownspace) 90000 30000)
       (define m (message (next-id) (space-time ownspace) #f "Empire Frigate Incoming"))
@@ -159,7 +156,7 @@
                            #:in-hangar fighters #:cargo (list (random-upgrade ownspace #f)
                                                               (random-upgrade ownspace #f))))
       (set-ship-ai-strategy! f (list (strategy (space-time ownspace) "attack" (ob-id base))))
-      (set! commands (append commands (list (chadd f) m))))
+      (set! commands (append commands (list (chadd f #f) m))))
     
     
     

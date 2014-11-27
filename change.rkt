@@ -84,6 +84,29 @@
         #t)))))
 
 
+(define (moveout space o from-id)
+  (define from (find-id space from-id))
+  (cond
+    (from
+     (when (hangarpod? from)
+       (set-hangarpod-ships! from (remove o (hangarpod-ships from))))
+     (when (spaceship? from)
+       (set-ship-cargo! from (remove o (ship-cargo from)))))
+    (else
+     (set-space-objects! space (remove o (space-objects space))))))
+
+(define (movein space o dest-id)
+  (define to (find-id space dest-id))
+  (cond
+    (to
+     (when (hangarpod? to)
+       (set-hangarpod-ships! to (append (hangarpod-ships to) (list o))))
+     (when (spaceship? to)
+       (set-ship-cargo! to (append (ship-cargo to) (list o)))))
+    (else
+     (set-space-objects! space (append (space-objects space) (list o))))))
+
+
 ; make the change in space
 ; return 2 values:
 ; first is a boolean of whether we should forward a copy of this change on
@@ -156,11 +179,11 @@
        ((pilot? c) (change-pilot c space stack who))))
     ((chadd? c)
      ;(printf "~a adding ~v\n" who (chadd-o c))
-     (while (ctime . < . (space-time space))
+     (while (and (ctime . < . (space-time space)) (obj-posvel (chadd-o c)))
        ;(printf "~a ticking forward ~v\n" who (chadd-o c))
        (update-physics! space (chadd-o c) (/ TICK 1000.0))
        (set! ctime (+ ctime TICK)))
-     (set-space-objects! space (cons (chadd-o c) (space-objects space)))
+     (movein space (chadd-o c) (chadd-to c))
      (values #t '()))
     ((chrm? c)
      ;(printf "~a removing ~v\n" who (find-id space (chrm-id c)))
@@ -179,25 +202,8 @@
      (define o (find-id space (chmov-id c)))
      (cond (o
             (set-obj-posvel! o (chmov-pv c))
-            (define from (find-id space (chmov-from c)))
-            (cond
-              (from
-               (when (hangarpod? from)
-                 (set-hangarpod-ships! from (remove o (hangarpod-ships from))))
-               (when (spaceship? from)
-                 (set-ship-cargo! from (remove o (ship-cargo from)))))
-              (else
-               (set-space-objects! space (remove o (space-objects space)))))
-            
-            (define to (find-id space (chmov-to c)))
-            (cond
-              (to
-               (when (hangarpod? to)
-                 (set-hangarpod-ships! to (append (hangarpod-ships to) (list o))))
-               (when (spaceship? to)
-                 (set-ship-cargo! to (append (ship-cargo to) (list o)))))
-              (else
-               (set-space-objects! space (append (space-objects space) (list o)))))
+            (moveout space o (chmov-from c))
+            (movein space o (chmov-to c))
             (values #t '()))
            (else
             (printf "~a chmov - couldn't find obj id ~a\n" who (chmov-id c))

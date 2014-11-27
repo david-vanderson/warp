@@ -171,8 +171,9 @@
 ; changes is list of above structs
 ; pvs is a list of pvupdates
 
-(struct chadd (o) #:mutable #:prefab)
+(struct chadd (o to) #:mutable #:prefab)
 ; o is the new object to add to space-objects
+; to is id of object to add o to, or #f for top level
 
 (struct chrm (id) #:mutable #:prefab)
 ; id is of the object to remove
