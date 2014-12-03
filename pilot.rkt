@@ -351,7 +351,7 @@
                                      (+ (* PLASMA_SPEED (sin a)) (posvel-dy ps) rvy)
                                      0)
                              (helm-plasma-size pod) (ob-id ship)))
-        (values #f (list (chadd plas) (cherg (ob-id pod) (- (helm-plasma-size pod))))))))
+        (values #f (list (chadd plas #f) (cherg (ob-id pod) (- (helm-plasma-size pod))))))))
     (else
      (define role (get-role stack))
      (set-role-npc?! role (role-npc? p))

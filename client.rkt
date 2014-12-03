@@ -110,7 +110,7 @@
                  (set-posvel-y! (obj-posvel ss) (+ (posvel-y pv) (* r (sin t))))
                  (add-player-to-multipod! me (car (ship-pods ss)) -1)
                  (define rc (role-change me (ob-id role) #f -1))
-                 (send-commands (list rc (chadd ss))))))
+                 (send-commands (list rc (chadd ss #f))))))
          ((spacesuit? (get-ship my-stack))
           (send-commands (role-change me (ob-id role) #f -1)))
          (else
