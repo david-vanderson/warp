@@ -198,6 +198,13 @@
            (else
             (printf "~a chdam - couldn't find obj id ~a\n" who (chdam-id c))
             (values #t '()))))
+    ((adddmg? c)
+     (define p (find-id space (adddmg-id c)))
+     (cond (p
+            (values #t (add-dmg! space p (adddmg-dmg c))))
+           (else
+            (printf "~a adddmg - couldn't find obj id ~a\n" who (adddmg-id c))
+            (values #t '()))))
     ((chmov? c)
      (define o (find-id space (chmov-id c)))
      (cond (o

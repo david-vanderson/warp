@@ -355,6 +355,7 @@
     (else
      (define role (get-role stack))
      (set-role-npc?! role (role-npc? p))
+     (set-role-fixings! role (role-fixings p))
      (set-pilot-course! role (pilot-course p))
      (set-pilot-fore! role (pilot-fore p))
      (set-pilot-dock! role (pilot-dock p))

@@ -50,18 +50,20 @@
 (struct player ob (name) #:mutable #:prefab)
 ; name is what is shown in UIs
 
-(struct role ob (player npc?) #:mutable #:prefab)
+(struct role ob (player npc? fixings) #:mutable #:prefab)
 ; the knobs and dials that a player can adjust
 ; player is #f if this role is unoccupied
 ; npc? is #t if this role is controlled by the computer when a player is absent
+; fixings is a list of 2 element lists (dmg-type bool) where bool is #t if we are fixing that dmg
 
-(struct pod ob (role angle dist facing spread energy maxe) #:mutable #:prefab)
+(struct pod ob (role angle dist facing spread energy maxe dmgs) #:mutable #:prefab)
 ; angle/dist is where this pod is with respect to the ship
 ; facing is where the pod is directed towards (with respect to the ship)
 ; - if #f, then ignore angle/dist when calculating the center of this pod's screen
 ; spread is angle within which we can shoot (centered on facing)
 ; energy is how much is in our batteries
 ; maxe is the capacity of our batteries
+; dmgs is a list of dmg structs that detail what in this pod is not working
 
 (struct multipod pod (start? roles) #:mutable #:prefab)
 ; a place for any number of players to sit, roles are created as needed from pod-role
@@ -156,6 +158,17 @@
 ; type is a string that tells us how to show this
 ; size is an int that says how big to show this
 
+(struct dmg ob (type size energy) #:mutable #:prefab)
+; dmg details how a part of a pod is damaged
+; type is a string that says what is damaged and how
+; size is amount of energy needed to fix
+; energy is amount of energy contributed so far
+
+(define (dmg-for-role r)
+  (cond
+    ((pilot? r)
+     (dmg -1 "fore-offline" 100 0)
+     )))
 
 ;; Changes
 ;; Most changes are just role? structs, but here are the exceptions
@@ -186,6 +199,10 @@
 (struct chdam (id damage) #:mutable #:prefab)
 ; id is of the object that is being damaged
 ; damage is the amount
+
+(struct adddmg (id dmg) #:mutable #:prefab)
+; id is of the pod that is being damaged
+; dmg is a dmg struct to add to that pod
 
 (struct cherg (id e) #:mutable #:prefab)
 ; id is of the pod whose energy is being changed

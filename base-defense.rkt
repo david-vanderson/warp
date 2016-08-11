@@ -20,8 +20,8 @@
                             1.0 150.0 150.0 50.0 50.0 6.0 20.0 50.0 1.5))
   (set-ship-pods!
    s (list
-      (helm (next-id) (pilot (next-id) #f #t 0.0 #f #f #f #f) 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0 5.0)
-      (multipod (next-id) (observer (next-id) #f #f) 0.0 3.0 #f #f 0.0 0.0 #f '())))
+      (helm (next-id) (pilot (next-id) #f #t '() 0.0 #f #f #f #f) 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0 '() 5.0)
+      (multipod (next-id) (observer (next-id) #f #f '()) 0.0 3.0 #f #f 0.0 0.0 '() #f '())))
   (set-obj-posvel! s #f)
   s)
 
@@ -32,8 +32,8 @@
                             1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5))
   (set-ship-pods!
    s (list
-      (helm (next-id) (pilot (next-id) #f #t 0.0 #f #f #f #f) 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0 5.0)
-      (multipod (next-id) (observer (next-id) #f #f) 0.0 3.0 #f #f 0.0 0.0 #f '())))
+      (helm (next-id) (pilot (next-id) #f #t '() 0.0 #f #f #f #f) 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0 '() 5.0)
+      (multipod (next-id) (observer (next-id) #f #f '()) 0.0 3.0 #f #f 0.0 0.0 '() #f '())))
   (set-obj-posvel! s #f)
   s)
 
@@ -44,21 +44,21 @@
                                 5.0 150.0 150.0 100.0 100.0 15.0 100.0 30.0 1.0))
 (set-ship-pods!
  cruiser
- `(,(helm (next-id) (pilot (next-id) #f #f pi/2 #f #f #f #f) 0.0 0.0 #f #f 100.0 100.0 #f)
-   ,(multipod (next-id) (observer (next-id) #f #f) 0.0 8.0 #f #f 0.0 0.0 #f '())
-   ,(hangarpod (next-id) (hangar (next-id) #f #f) pi 5.0 #f #f 0.0 0.0 #f '() (list #;(new-blue-fighter)))
-   ,(weapon (next-id) (weapons (next-id) #f ai? #f)
-               (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.8 pi) 60.0 60.0 5.0)
-   ,(weapon (next-id) (weapons (next-id) #f ai? #f)
-               (degrees->radians 45.0) 12.0 (degrees->radians 30.0) (* 0.4 pi) 40.0 40.0 20.0)
-   ,(weapon (next-id) (weapons (next-id) #f ai? #f)
-               (degrees->radians 270.0) 10.0 (degrees->radians 285.0) (* 0.8 pi) 60.0 60.0 5.0)
-   ,(weapon (next-id) (weapons (next-id) #f ai? #f)
-               (degrees->radians 315.0) 12.0 (degrees->radians 330.0) (* 0.4 pi) 40.0 40.0 20.0)
-   ,(tactical (next-id) (tactics (next-id) #f ai? #f)
-                 (degrees->radians 0.0) 15.0 (degrees->radians 0.0) (* 0.8 pi) 50.0 50.0 5.0)
-   ,(tactical (next-id) (tactics (next-id) #f ai? #f)
-                 (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0 5.0)))
+ `(,(helm (next-id) (pilot (next-id) #f #f '() pi/2 #f #f #f #f) 0.0 0.0 #f #f 100.0 100.0 '() #f)
+   ,(multipod (next-id) (observer (next-id) #f #f '()) 0.0 8.0 #f #f 0.0 0.0 '() #f '())
+   ,(hangarpod (next-id) (hangar (next-id) #f #f '()) pi 5.0 #f #f 0.0 0.0 '() #f '() (list #;(new-blue-fighter)))
+   ,(weapon (next-id) (weapons (next-id) #f ai? '() #f)
+               (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.8 pi) 60.0 60.0 '() 5.0)
+   ,(weapon (next-id) (weapons (next-id) #f ai? '() #f)
+               (degrees->radians 45.0) 12.0 (degrees->radians 30.0) (* 0.4 pi) 40.0 40.0 '() 20.0)
+   ,(weapon (next-id) (weapons (next-id) #f ai? '() #f)
+               (degrees->radians 270.0) 10.0 (degrees->radians 285.0) (* 0.8 pi) 60.0 60.0 '() 5.0)
+   ,(weapon (next-id) (weapons (next-id) #f ai? '() #f)
+               (degrees->radians 315.0) 12.0 (degrees->radians 330.0) (* 0.4 pi) 40.0 40.0 '() 20.0)
+   ,(tactical (next-id) (tactics (next-id) #f ai? '() #f)
+                 (degrees->radians 0.0) 15.0 (degrees->radians 0.0) (* 0.8 pi) 50.0 50.0 '() 5.0)
+   ,(tactical (next-id) (tactics (next-id) #f ai? '() #f)
+                 (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0 '() 5.0)))
 
 
 (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:start-ship? #t))
@@ -67,14 +67,14 @@
                              10.0 500.0 500.0 1000.0 1000.0 26.0 1000.0 0.0 0.0))
 (set-ship-pods!
  base
- `(,(multipod (next-id) (observer (next-id) #f #f) 0.0 0.0 #f #f 0.0 0.0 #f '())
-   ,(hangarpod (next-id) (hangar (next-id) #f #f) pi 13.0 #f #f 0.0 0.0 #f '() '())
+ `(,(multipod (next-id) (observer (next-id) #f #f '()) 0.0 0.0 #f #f 0.0 0.0 '() #f '())
+   ,(hangarpod (next-id) (hangar (next-id) #f #f '()) pi 13.0 #f #f 0.0 0.0 '() #f '() '())
    ,@(for/list ((d (in-list (list 0 90 180 270))))
-       (weapon (next-id) (weapons (next-id) #f #t #f)
-               (degrees->radians d) 26.0 (degrees->radians d) (* 0.8 pi) 50.0 50.0 5.0))
+       (weapon (next-id) (weapons (next-id) #f #t '() #f)
+               (degrees->radians d) 26.0 (degrees->radians d) (* 0.8 pi) 50.0 50.0 '() 5.0))
    ,@(for/list ((d (in-list (list 45 135 225 315))))
-       (tactical (next-id) (tactics (next-id) #f #t #f)
-                 (degrees->radians d) 28.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0 10.0))))
+       (tactical (next-id) (tactics (next-id) #f #t '() #f)
+                 (degrees->radians d) 28.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0 '() 10.0))))
 
 
 (define destroyer (make-ship "red-destroyer" "b" "b" #:x 2400 #:y 100 #:r pi #:start-ship? #f))
@@ -85,25 +85,25 @@
                                   10.0 500.0 500.0 500.0 500.0 23.0 500.0 4.0 0.1))
 (set-ship-pods!
  destroyer
- `(,(helm (next-id) (pilot (next-id) #f #t pi #t #f #f #f) 0.0 0.0 #f #f 100.0 100.0 #f)
-   ,(multipod (next-id) (observer (next-id) #f #f) 0.0 10.0 #f #f 0.0 0.0 #f '())
-   ,(hangarpod (next-id) (hangar (next-id) #f #f) pi 10.0 #f #f 0.0 0.0 #f '() '())
+ `(,(helm (next-id) (pilot (next-id) #f #t '() pi #t #f #f #f) 0.0 0.0 #f #f 100.0 100.0 '() #f)
+   ,(multipod (next-id) (observer (next-id) #f #f '()) 0.0 10.0 #f #f 0.0 0.0 '() #f '())
+   ,(hangarpod (next-id) (hangar (next-id) #f #f'() ) pi 10.0 #f #f 0.0 0.0 '() #f '() '())
    ,@(for/list ((d (in-list (list -10 10))))
-       (weapon (next-id) (weapons (next-id) #f #t #f)
+       (weapon (next-id) (weapons (next-id) #f #t '() #f)
                ;angle dist facing spread energy maxe shot-size
-               (degrees->radians d) 23.0 0.0 (* 0.4 pi) 200.0 200.0 20.0))
+               (degrees->radians d) 23.0 0.0 (* 0.4 pi) 200.0 200.0 '() 20.0))
    ,@(for/list ((d (in-list (list -62 62))))
-       (weapon (next-id) (weapons (next-id) #f #t #f)
-               (degrees->radians d) 23.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0 10.0))
+       (weapon (next-id) (weapons (next-id) #f #t '() #f)
+               (degrees->radians d) 23.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0 '() 10.0))
    ,@(for/list ((d (in-list (list -130 130))))
-       (weapon (next-id) (weapons (next-id) #f #t #f)
-               (degrees->radians d) 21.0 (degrees->radians d) (* 0.8 pi) 50.0 50.0 5.0))
+       (weapon (next-id) (weapons (next-id) #f #t '() #f)
+               (degrees->radians d) 21.0 (degrees->radians d) (* 0.8 pi) 50.0 50.0 '() 5.0))
    ,@(for/list ((d (in-list (list -35 35))))
-       (tactical (next-id) (tactics (next-id) #f #t #f)
-                 (degrees->radians d) 24.0 (degrees->radians d) (* 0.7 pi) 150.0 150.0 15.0))
+       (tactical (next-id) (tactics (next-id) #f #t '() #f)
+                 (degrees->radians d) 24.0 (degrees->radians d) (* 0.7 pi) 150.0 150.0 '() 15.0))
    ,@(for/list ((d (in-list (list -90 90))))
-       (tactical (next-id) (tactics (next-id) #f #t #f)
-                 (degrees->radians d) 21.0 (degrees->radians d) (* 0.9 pi) 50.0 50.0 5.0))))
+       (tactical (next-id) (tactics (next-id) #f #t '() #f)
+                 (degrees->radians d) 21.0 (degrees->radians d) (* 0.9 pi) 50.0 50.0 '() 5.0))))
 
 (set-ship-ai-strategy! destroyer
                        (list (strategy (space-time ownspace) "attack" (ob-id base))))

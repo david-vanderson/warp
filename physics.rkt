@@ -108,6 +108,26 @@
 
 
 ; return list of additional changes
+(define (add-dmg! space p dmg)
+  (define changes '())
+  (printf "add-dmg! - ~v\n" dmg)
+  (cond
+    ((ormap (lambda (d) (equal? (dmg-type dmg) (dmg-type d)))
+            (pod-dmgs p))
+     (printf "add-dmg! - already had dmg of type ~a\n" (dmg-type dmg)))
+    (else
+     (set-pod-dmgs! p (append (pod-dmgs p) (list dmg)))
+     (when (server?)
+       (define r (pod-role p))
+       (when (ormap (lambda (f) (equal? (dmg-type dmg) (car f))) (role-fixings r))
+         (printf "add-dmg! - already had a fixing of type ~a\n" (dmg-type dmg)))
+       (define nr (copy r))
+       (set-role-fixings! nr (append (role-fixings nr) (list (dmg-type dmg) #t)))
+       (set! changes (append changes (list nr))))))
+  changes)
+
+
+; return list of additional changes
 (define (reduce-ship! space ship damage)
   (define changes '())
   (set-stats-con! (ship-stats ship) (- (ship-con ship) damage))
