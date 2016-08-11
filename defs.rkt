@@ -164,12 +164,6 @@
 ; size is amount of energy needed to fix
 ; energy is amount of energy contributed so far
 
-(define (dmg-for-role r)
-  (cond
-    ((pilot? r)
-     (dmg -1 "fore-offline" 100 0)
-     )))
-
 ;; Changes
 ;; Most changes are just role? structs, but here are the exceptions
 

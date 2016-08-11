@@ -207,6 +207,20 @@
                      ;                     (height screen-h)
                      ;                     (style '(hide-menu-bar no-caption no-resize-border))
                      ))
+
+
+  ; return list of changes
+(define (dmg-for-pod-role p r)
+  (define changes '())
+  (cond
+    ((pilot? r)
+     (define nr (copy r))
+     (set-pilot-fore! nr #f)
+     (set! changes
+           (list
+            (adddmg (ob-id p) (dmg -1 "fore-offline" 100 0))
+            nr))))
+  changes)
   
   (define my-canvas%
     (class canvas%
@@ -223,8 +237,7 @@
            (define r (get-role my-stack))
            (define p (get-pod my-stack))
            (when (pilot? r)
-             (define d (dmg-for-role r))
-             (send-commands (adddmg (ob-id p) d))) 
+             (send-commands (dmg-for-pod-role p r)))
            )))
       ))
   
