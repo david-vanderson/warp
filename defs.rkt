@@ -6,11 +6,13 @@
 
 (define PORT 22381)
 (define TICK 33)  ; ms time slice for physics, also determines max client frame rate
-(define AI_TICK 100)  ; ms time slice for ai
+(define AI_INTERVAL 1000)  ; ms between ai runs (at least)
 (define WIDTH 1024.0)  ; how many meters wide is the screen view
 (define HEIGHT 768.0)  ; how many meters tall is the screen view
 (define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view
-(define BOTTOM (/ (- HEIGHT) 2))  ; bottom edge of canonical view
+(define RIGHT (/ WIDTH 2))
+(define TOP (/ HEIGHT 2))
+(define BOTTOM (/ (- HEIGHT) 2))
 (define 2pi (* 2 pi))
 (define pi/2 (* 0.5 pi))
 (define AI_GOTO_DIST 50.0)  ; if you are this close you've hit it
@@ -22,13 +24,16 @@
 (define SHIELD_SPEED 60.0)
 (define MSG_FADE_TIME 10000.0)
 
+(define server? (make-parameter #t))
+
 (define next-id
   (let ((id 0))
     (lambda ()
-      (set! id (add1 id))
-      id)))
+      (cond ((server?)
+             (set! id (add1 id))
+             id)
+            (else -1)))))
 
-(define server? (make-parameter #t))
 (define destroy-callback (make-parameter (lambda (ship) '())))
 
 (define viewing-sector? (box #f))
@@ -47,59 +52,54 @@
 ; if posvel is #f, then this obj is inside something else
 ; if posvel is not #f, then this is a top-level object that is drawn
 
+(define (obj-x obj) (posvel-x (obj-posvel obj)))
+(define (obj-y obj) (posvel-y (obj-posvel obj)))
+(define (obj-r obj) (posvel-r (obj-posvel obj)))
+
 (struct player ob (name) #:mutable #:prefab)
 ; name is what is shown in UIs
 
-(struct role ob (player npc? fixings) #:mutable #:prefab)
-; the knobs and dials that a player can adjust
-; player is #f if this role is unoccupied
-; npc? is #t if this role is controlled by the computer when a player is absent
-; fixings is a list of 2 element lists (dmg-type bool) where bool is #t if we are fixing that dmg
-
-(struct pod ob (role angle dist facing spread energy maxe dmgs) #:mutable #:prefab)
+(struct pod ob (name player npc? angle dist facing spread energy maxe tools) #:mutable #:prefab)
+; name is a string that you see and tells you where you are
+; player is #f if unoccupied
+; npc? is #t if controlled by the computer when a player is absent
+; - server also puts ms time in npc? when the ai is running
 ; angle/dist is where this pod is with respect to the ship
 ; facing is where the pod is directed towards (with respect to the ship)
-; - if #f, then ignore angle/dist when calculating the center of this pod's screen
+; - if #f, then pod doesn't have a direction (can click anywhere)
 ; spread is angle within which we can shoot (centered on facing)
 ; energy is how much is in our batteries
 ; maxe is the capacity of our batteries
-; dmgs is a list of dmg structs that detail what in this pod is not working
+; tools is a list of things the player can interact with
+(define (pod-e p)
+  (max 0 (pod-energy p)))
 
-(struct multipod pod (start? roles) #:mutable #:prefab)
-; a place for any number of players to sit, roles are created as needed from pod-role
-; start? is #t if new players can start in this multipod
+(struct lounge pod (crew) #:mutable #:prefab)
+; crew is a list of players that are in the observation lounge
 
+(struct hangar pod (crew ships) #:mutable #:prefab)
+; crew is a list of players that are in the hangar (so they see the ships)
+; ships is a list of ships on this ship
 
-(struct crewer role () #:mutable #:prefab)
-; special role used to contain players while they are choosing their next role
+(struct tool ob (dmgs) #:mutable #:prefab)
+; this is something that a player/ai can interact with
+; dmgs is list of dmg structs
 
-(struct hangar crewer () #:mutable #:prefab)
-; special role used when players are in the hangar of a ship choosing their next role
-
-(struct hangarpod multipod (ships) #:mutable #:prefab)
-; ships is a list of the ships inside the hangar
-
-(struct observer role () #:mutable #:prefab)
-; role where you don't do anything but you see the "captain's view"
-
-(struct helm pod (plasma-size) #:mutable #:prefab)
-(struct pilot role (course fore launch dock fire) #:mutable #:prefab)
+(struct lthrust tool (on) #:mutable #:prefab)  ; turn left
+(struct rthrust tool (on) #:mutable #:prefab)  ; turn right
+(struct fthrust tool (on) #:mutable #:prefab)  ; forward
+; on is bool
+(struct steer tool (course) #:mutable #:prefab)  ; turn towards course
 ; course is angle pilot wants to point at
-; if fore is #t, main thrusters are firing
-; launch is #t if pilot wants to launch from a hangar
-; dock is #t if the pilot wants to dock with the next ship they hits
-; plasma-size and fire are like in weapons, or #f if this helm doesn't shoot
-
-(struct weapon pod (plasma-size) #:mutable #:prefab)
+(struct dock tool (on) #:mutable #:prefab)
+; on is whether to dock if we hit friendly ship
+; dock also does launching
+(struct pbolt tool (plasma-size) #:mutable #:prefab)
 ; plasma-size is how much we fire each time
-(struct weapons role (fire) #:mutable #:prefab)
-; fire is an angle if we want to shoot a plasma (at that angle)
+(struct shbolt tool (shield-size) #:mutable #:prefab)
+; shield-size is how big of a shield we shoot
 
-(struct tactical pod (shield-size) #:mutable #:prefab)
-(struct tactics role (shield) #:mutable #:prefab)
-; shield is an angle if we want to shoot a shield barrier (at that angle)
-
-(struct stats ob (type name faction power bat maxbat con maxcon radius mass thrust rthrust) #:mutable #:prefab)
+(struct stats ob (type name faction power bat maxbat con maxcon radius mass thrust rthrust start) #:mutable #:prefab)
 ; carries all the stats for a ship
 ; name is the name of the ship
 ; faction is the name that this ship belongs to
@@ -110,9 +110,9 @@
 ; mass controls how you bump into other ships
 ; thrust is how much force your main engines produce
 ; rthrust is how much force your turning engines produce
+; start is if you can start on this ship
 
-(struct ship obj (stats crew pods ai-strategy dmgfx cargo) #:mutable #:prefab)
-; crew is a multipod for players choosing their next role
+(struct ship obj (stats pods ai-strategy dmgfx cargo) #:mutable #:prefab)
 ; pods is a list of all the pods on the ship
 ; ai-strategy is a list of strategies, do them in order
 ; damages is a list of ship-level damage, plus temporary damage effects
@@ -129,6 +129,7 @@
 (define (ship-radius s) (stats-radius (ship-stats s)))
 (define (ship-mass s) (stats-mass (ship-stats s)))
 (define (ship-strategy s) (if (null? (ship-ai-strategy s)) #f (car (ship-ai-strategy s))))
+(define (ship-start s) (stats-start (ship-stats s)))
 
 (struct spacesuit ship () #:mutable #:prefab)
 (struct spaceship ship () #:mutable #:prefab)
@@ -158,20 +159,25 @@
 ; type is a string that tells us how to show this
 ; size is an int that says how big to show this
 
-(struct dmg ob (type size energy) #:mutable #:prefab)
+(struct dmg ob (type size energy fixing) #:mutable #:prefab)
 ; dmg details how a part of a pod is damaged
 ; type is a string that says what is damaged and how
 ; size is amount of energy needed to fix
 ; energy is amount of energy contributed so far
+; fixing is bool
 
 ;; Changes
-;; Most changes are just role? structs, but here are the exceptions
 
-(struct role-change (player from to newid) #:mutable #:prefab)
-; from and to are:
-; - role? id or multipod? id
+(struct command (id cmd) #:mutable #:prefab)
+; general purpose command
+; id points to a tool
+; cmd is anything, interpreted by the tool
+
+(struct chrole (player to) #:mutable #:prefab)
+; to is:
+; - id of pod
 ; - #f means we are choosing a starting role
-; - newid is set by server, used if changing to a multipod for the id for the new role
+; - "spacesuit" means we are jumping ship
 
 (struct update (time changes pvs) #:mutable #:prefab)
 ; time is ms since scenario started
@@ -219,28 +225,16 @@
 
 ;; UI
 
-(struct button (x y width height left-inset top-inset name label) #:mutable #:prefab)
+(struct button (draw key x y width height left-inset top-inset label f) #:mutable #:prefab)
+; draw is:
+;  'normal - draw button and respond to clicks
+;  'disabled - draw button disabled and no clicks
+;  'hidden-text - draw only text and respond to clicks
+;  'hidden - draw nothing, respond to clicks
+; key is the hotkey for this button
 ; x y width height are 0,0 bottom left corner 1,1 top right
 ; name is used internally
 ; label is what is written on the button
+; f is function to call when the button is clicked or key pressed
+;  - takes two args x y of where in the button the click was or <key-code> #f if key pressed
 
-
-
-
-(define leave-button (button (/ (- WIDTH) 2) (/ (- HEIGHT) 2) 60 30 5 5 "leave" "Leave"))
-(define (sector-button) (button (- (/ WIDTH 2) 60) (/ (- HEIGHT) 2) 60 30 5 5
-                                "sectorview" (if (unbox viewing-sector?) "Normal" "Sector")))
-
-
-
-;; Utilities
-
-
-(define (role-name role)
-  (cond ((hangar? role) "Hangar")
-        ((crewer? role) "Crewer")
-        ((pilot? role) "Pilot")
-        ((observer? role) "Observer")
-        ((weapons? role) "Weapons")
-        ((tactics? role) "Tactics")
-        (else "Unknown")))

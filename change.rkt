@@ -4,9 +4,9 @@
 
 (require "defs.rkt"
          "utils.rkt"
+         "ships.rkt"
          "pilot.rkt"
          "weapons.rkt"
-         "tactics.rkt"
          "physics.rkt")
 
 (provide (all-defined-out))
@@ -21,75 +21,12 @@
       (set! pvutime (+ pvutime TICK)))))
 
 
-(define (add-player-to-multipod! p mp newid)
-  (define new-role (copy (pod-role mp)))
-  (set-ob-id! new-role newid)
-  (set-role-player! new-role p)
-  (set-multipod-roles! mp (cons new-role (multipod-roles mp))))
-
-
-(define (join-role! space roleid p test? newid)
-  (define r (find-id space roleid))
-  ;(printf "player ~v joining role ~v\n" p roleid)
-  (cond
-    ((not roleid) #t)  ; can always join no-role
-    ((not r) #f)  ; tried to join a role that no longer exists
-    ((multipod? r)
-     ; might have double-clicked, so only join if we're not already there
-     (define already-in?
-       (findf (lambda (xr) (= (ob-id p) (ob-id (role-player xr))))
-              (multipod-roles r)))
-     (cond
-       (already-in? #f)
-       (else
-        (when (not test?)
-          (add-player-to-multipod! p r newid))
-        #t)))
-    ((and (role? r) (not (role-player r)))
-     (when (not test?)
-       (set-role-player! r p))
-     #t)
-    (else #f)))
-
-
-(define (leave-role! space roleid p test?)
-  ;(printf "player ~v leaving role ~v\n" p roleid)
-  (define stack (find-stack space roleid))
-  (cond
-    ; picking an initial role
-    ((not roleid)
-     (define existing-player (find-id space (ob-id p)))
-     (cond ((not existing-player) #t)
-           (else #f)))  ; can't join if already joined
-    
-    ; tried to leave a role that no longer exists
-    ((not stack) #f)
-    
-    ; player wasn't in the role they're trying to leave
-    ((or (not (role-player (car stack)))
-         (not (= (ob-id p) (ob-id (role-player (car stack))))))
-     #f)
-    
-    (else
-     (define role (car stack))  ; will always be a role?
-     (define mp (cadr stack))  ; could be multipod?
-     (cond
-       ((multipod? mp)
-        (when (not test?)
-          (set-multipod-roles! mp (remove role (multipod-roles mp))))
-        #t)
-       (else
-        (when (not test?)
-          (set-role-player! role #f))
-        #t)))))
-
-
 (define (moveout space o from-id)
   (define from (find-id space from-id))
   (cond
     (from
-     (when (hangarpod? from)
-       (set-hangarpod-ships! from (remove o (hangarpod-ships from))))
+     (when (hangar? from)
+       (set-hangar-ships! from (remove o (hangar-ships from))))
      (when (spaceship? from)
        (set-ship-cargo! from (remove o (ship-cargo from)))))
     (else
@@ -99,8 +36,8 @@
   (define to (find-id space dest-id))
   (cond
     (to
-     (when (hangarpod? to)
-       (set-hangarpod-ships! to (append (hangarpod-ships to) (list o))))
+     (when (hangar? to)
+       (set-hangar-ships! to (append (hangar-ships to) (list o))))
      (when (spaceship? to)
        (set-ship-cargo! to (append (ship-cargo to) (list o)))))
     (else
@@ -146,37 +83,76 @@
 (define (apply-change! space c ctime who)
   ;(printf "~a applying change ~v\n" who c)
   (cond
-    ((role-change? c)
-     (define changes '())
-     (define p (role-change-player c))
+    ((command? c)
+     (define s (find-stack space (command-id c)))
+     (define o (if s (car s) #f))
      (cond
-       ((and (join-role! space (role-change-to c) p #t (role-change-newid c))
-             (leave-role! space (role-change-from c) p #t))
-        
-        (when (and (role-change-from c)
-                   (spacesuit? (get-ship (find-stack space (role-change-from c)))))
-          (when (server?)
-            ; leaving a space suit, remove the suit
-            (define suitrm (chrm (ob-id (get-ship (find-stack space (role-change-from c))))))
-            (set! changes (append changes (list suitrm)))))
-        
-        (join-role! space (role-change-to c) p #f (role-change-newid c))
-        (leave-role! space (role-change-from c) p #f)
-        
-        (values #t changes))
+       ((and o (or (dock? o) (steer? o) (fthrust? o) (pbolt? o) (shbolt? o)))
+        (change-pilot-tool! (command-cmd c) space s who))
+       ((and o (pod? o) (equal? (command-cmd c) "npc-off"))
+        (set-pod-npc?! o #f)
+        (values #t '()))
        (else
-        (printf "~a didn't apply role-change ~v\n" who c)
-        (values #f '()))))
-    ((role? c)
-     ; find our role
-     (define stack (find-stack space (ob-id c)))
+        (error 'apply-change! "~a hit ELSE clause for command ~v\n" who c)))) 
+    ((chrole? c)
+     (define changes '())
+     (define p (chrole-player c))
+     (define oldstack (find-stack space (ob-id p)))  ; stack before removing player
+     (define o (find-id space (chrole-to c)))
      (cond
-       ((not stack)  ; ship died as role message was on wire?
-        (printf "~a discarding message (no stack) ~v\n" who c)
-        (values #f '()))
-       ((weapons? c) (change-weapons c space stack who))
-       ((tactics? c) (change-tactics c space stack who))
-       ((pilot? c) (change-pilot c space stack who))))
+       ((or (not (chrole-to c))  ; moving to starting screen
+            (equal? (chrole-to c) "spacesuit")  ; jumping ship
+            (and (pod? o) (not (pod-player o))))  ; moving to empty pod
+
+        ; remove existing player
+        (when oldstack
+          (define pod (get-pod oldstack))
+          (cond
+            ((lounge? pod)
+             (set-lounge-crew! pod (remove p (lounge-crew pod)))
+             (when (and (server?) (spacesuit? (get-ship oldstack)))
+               ; leaving a space suit, remove the suit
+               (append! changes (list (chrm (ob-id (get-ship oldstack)))))))
+            ((hangar? pod)
+             (set-hangar-crew! pod (remove p (hangar-crew pod))))
+            ((pod? pod)
+             (set-pod-player! pod #f))
+            (else
+             (error 'apply-change "~a hit ELSE clause for removing player ~v\n" who c))))
+
+        (define forward? #t)
+        
+        ; put player in new place
+        (cond
+          ((not (chrole-to c))
+           (void))  ; moving to start screen
+          ((equal? (chrole-to c) "spacesuit")  ; jumping ship
+           (set! forward? #f)  ; don't forward this message
+           (when oldstack
+             (define s (get-ship (reverse oldstack)))
+             (when (not (spacesuit? s))
+               (define ss (make-spacesuit (player-name p) s))
+               (define sspv (obj-posvel ss))
+               ; push spacesuit away from parent ship
+               (define t (atan0 (posvel-dy sspv) (posvel-dx sspv)))
+               (define r (+ 1 (hit-distance s ss)))
+               (set-posvel-x! sspv (+ (posvel-x sspv) (* r (cos t))))
+               (set-posvel-y! sspv (+ (posvel-y sspv) (* r (sin t))))
+               (define rc (chrole p (ob-id (ship-lounge ss))))
+               (append! changes (list (chadd ss #f) rc)))))
+          ((lounge? o)
+           (set-lounge-crew! o (append (lounge-crew o) (list p))))
+          ((hangar? o)
+           (set-hangar-crew! o (append (hangar-crew o) (list p))))
+          ((pod? o)
+           (set-pod-player! o p))
+          (else
+           (error 'apply-change "~a hit ELSE clause for placing player ~v\n" who c)))
+        
+        (values forward? changes))
+       (else
+        (printf "~a dropping chrole ~v\n" who c)
+        (values #f '()))))
     ((chadd? c)
      ;(printf "~a adding ~v\n" who (chadd-o c))
      (while (and (ctime . < . (space-time space)) (obj-posvel (chadd-o c)))
@@ -258,22 +234,13 @@
                        (apply-all-changes! space new-changes ctime who))))))
 
 
-(define (change-all-ids! structs)
+(define (change-ids! structs)
   (for ((s (in-list structs)))
-    (when (and (ob? s) (not (player? s)))
-      (set-ob-id! s (next-id)))
+    (when (ob? s)
+      (when (not (player? s))
+        ;(printf "rewriting id on ~v\n" s)
+        (set-ob-id! s (next-id))))
     (when (struct? s)
       (define fields (rest (vector->list (struct->vector s))))
-      (change-all-ids! (flatten fields)))))
+      (change-ids! (flatten fields)))))
 
-(define (change-ids! changes)
-  (for ((c (in-list changes)))
-    (cond
-      ((chadd? c)
-       ;(printf "rewriting ~v\n" c)
-       (change-all-ids! (list (chadd-o c)))
-       ;(printf "to        ~v\n" c)
-       )
-      ((role-change? c)
-       (set-role-change-newid! c (next-id)))
-       )))

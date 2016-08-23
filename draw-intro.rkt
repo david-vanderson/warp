@@ -12,7 +12,7 @@
 (define (draw-intro dc)
   (keep-transform dc
     
-    (send dc draw-text "Intro Screen" 0 0)
+    (draw-text dc "Intro Screen" 0 0)
     
     ; This screen is where you type in your name and the server IP
     

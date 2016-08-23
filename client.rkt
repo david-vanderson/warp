@@ -10,7 +10,6 @@
          "pilot.rkt"
          "crewer.rkt"
          "weapons.rkt"
-         "tactics.rkt"
          "effect.rkt"
          "ships.rkt")
 
@@ -28,112 +27,67 @@
   (define server-in-port #f)
   (define server-out-port #f)
   (define me #f)  ; player? or #f
-  
-  
   (define ownspace #f)
-  (define testing #f)
-  (when testing
-    (set! ownspace (space 0 5000 2000 (list)))
-    (for ((i 10))
-      (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel"
-                           #:x (random-between -1000.0 1000.0)
-                           #:y (random-between -1000.0 1000.0)))
-      (define f (make-ship "blue-frigate" "Rebel Frigate" "Rebel"
-                           #:x (random-between -1000.0 1000.0)
-                           #:y (random-between -1000.0 1000.0)
-                           #:in-hangar
-                           (list (make-ship "blue-fighter" "Rebel Fighter" "Rebel")
-                                 (make-ship "blue-fighter" "Rebel Fighter" "Rebel"))))
-      (define a (random-between 0 2pi))
-      (define p (plasma (next-id) (space-time ownspace)
-                        (posvel (space-time ownspace) (random-between -1000.0 1000.0) (random-between -1000.0 1000.0) 0.0
-                                (+ (* PLASMA_SPEED (cos a)))
-                                (+ (* PLASMA_SPEED (sin a)))
-                                0.0)
-                        10.0 #f))
-      (set-space-objects! ownspace (cons f (space-objects ownspace))))
-    
-    
-    (for ((i 10))
-      (define m (message (next-id) (space-time ownspace) #f (format "message ~a" i)))
-      (set-space-objects! ownspace (cons m (space-objects ownspace)))))
-  
-  
   (define my-stack #f)
   (define buttons #f)
   (define frames '())  ; list of last few frame times
   (define last-update-time #f)
+  (define scale-play 1.0)  ; scale when we are in a normal pod
+  (define scale-ship 10.0)  ; scale when we are in a lounge/hangar
+  (define (scale-ship?)
+    (cond (my-stack
+           (define pod (get-pod my-stack))
+           (define ship (get-ship my-stack))
+           (if (and (spaceship? ship) (or (lounge? pod) (hangar? pod)))
+               #t #f))
+          (else #t)))
+  (define (min-scale)
+    (if ownspace
+        (min (/ WIDTH (space-width ownspace)) (/ HEIGHT (space-height ownspace)))
+        .01))
+  (define (max-scale) 30.0)
+    
+  (define (get-future-scale)
+    (if (scale-ship?) scale-ship scale-play))
+  (define (set-scale z)
+    (define newz (max (min-scale) (min (max-scale) z)))
+    (if (scale-ship?) (set! scale-ship newz) (set! scale-play newz)))
+  
+  (define shown-scale (get-future-scale))  ; scale that is actually used
+  (define (get-scale) shown-scale)
+  (define (update-scale)  ; move shown-scale towards the scale we want
+    (define target (get-future-scale))
+    (define diff (abs (- target shown-scale)))
+    (if (shown-scale . < . target)
+        (set! shown-scale (min target (+ shown-scale (max 0.1 (* 0.4 diff)))))
+        (set! shown-scale (max target (- shown-scale (max 0.1 (* 0.4 diff)))))))
   
   
   (define (click-button? buttons x y)
-    (if (not buttons)
-        #f
-        (ormap (lambda (b)
-                 (and (<= (button-x b) x (+ (button-x b) (button-width b)))
-                      (<= (button-y b) y (+ (button-y b) (button-height b)))
-                      (button-name b)))
-               buttons)))
+    (for/first ((b (in-list buttons))
+                #:when (and (<= (button-x b) x (+ (button-x b) (button-width b)))
+                            (<= (button-y b) y (+ (button-y b) (button-height b)))))
+      b))
+
+  (define (key-button? buttons key)
+    (for/first ((b (in-list buttons))
+                #:when (equal? (button-key b) key))
+      b))
   
   
   (define (click canvas event)
-    (define scale (canvas-scale canvas))
     (define-values (x y) (screen->canon canvas (send event get-x) (send event get-y)))
-    (define button (click-button? buttons x y))
+    (define b (click-button? buttons x y))
     ;(printf "click ~a ~a ~a\n" x y button)
-    (define role (if my-stack (get-role my-stack) #f))
     (cond
-      ((and button (equal? button "leave"))
-       (set-box! viewing-sector? #f)
-       (cond
-         ((not role)
-          (drop-connection "clicked leave")
-          (exit 0))
-         ((and (crewer? role) (not (hangar? role)))
-          (define ships (get-ships my-stack))
-          (cond (((length ships) . > . 1)
-                 (define h (car (filter hangarpod? (ship-pods (cadr ships)))))
-                 (send-commands (role-change me (ob-id role) (ob-id h) -1)))
-                (else
-                 (define pv (obj-posvel (car ships)))
-                 (define dx (random-between -50 50))
-                 (define dy (random-between -50 50))
-                 (define ss (make-ship "space-suit"
-                                       (player-name me)
-                                       (ship-faction (car ships))
-                                       #:x 0
-                                       #:y 0
-                                       #:dx (+ (posvel-dx pv) dx)
-                                       #:dy (+ (posvel-dy pv) dy)))
-                 (define t (atan0 dy dx))
-                 (define r (+ 1 (hit-distance (car ships) ss)))
-                 (set-posvel-x! (obj-posvel ss) (+ (posvel-x pv) (* r (cos t))))
-                 (set-posvel-y! (obj-posvel ss) (+ (posvel-y pv) (* r (sin t))))
-                 (add-player-to-multipod! me (car (ship-pods ss)) -1)
-                 (define rc (role-change me (ob-id role) #f -1))
-                 (send-commands (list rc (chadd ss #f))))))
-         ((spacesuit? (get-ship my-stack))
-          (send-commands (role-change me (ob-id role) #f -1)))
-         (else
-          (define crew (ship-crew (get-ship my-stack)))
-          (send-commands (role-change me (ob-id role) (ob-id crew) -1)))))
-      ((and button (equal? button "sectorview"))
-       (set-box! viewing-sector? (not (unbox viewing-sector?))))
-      ((unbox viewing-sector?)
-       (printf "click dropped because viewing sector\n"))
-      ((crewer? role)
-       (send-commands (click-crewer x y button my-stack)))
-      ((pilot? role)
-       (send-commands (click-pilot x y button my-stack)))
-      ((weapons? role)
-       (send-commands (click-weapons x y button my-stack)))
-      ((tactics? role)
-       (send-commands (click-tactics x y button my-stack)))
-      (button
-       ; player is choosing starting role
-       (when role (error "choosing a starting role but already in pod ~v\n" my-stack))
-       (send-commands (role-change me #f button -1)))
-      (else
-       (printf "click hit ELSE clause\n"))))
+      (b
+       (when (not (equal? (button-draw b) 'disabled))
+         ((button-f b) (- x (button-x b)) (- y (button-y b)))))
+      (my-stack
+       (define p (get-pod my-stack))
+       (for ((t (in-list (pod-tools p))))
+         (cond ((and (steer? t) (ship-flying? (get-ship my-stack)))
+                (send-commands (command (ob-id t) (angle-norm (atan0 y x))))))))))
   
   
   (define (draw-screen canvas dc)
@@ -148,78 +102,232 @@
     ;                          12 'default 'normal 'normal #f 'smoothed #f 'aligned))
     
     (keep-transform dc
-      
-      (send dc set-clipping-rect 0 0 (send canvas get-width) (send canvas get-height))
+      ; make sure whole screen is black
+      (send dc set-clipping-region #f)
       (send dc clear)
-      
+
+      ; scale to canon
       (send dc translate (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
       (define scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
-      (send dc scale scale scale)
-      ; transformation is (center of screen, y down, WIDTHxHEIGHT logical units, rotation clockwise)
-      
-      (send dc set-clipping-rect (- (/ WIDTH 2)) (- (/ HEIGHT 2)) (* 1 WIDTH) (* 1 HEIGHT))
+      (send dc scale scale (- scale))
+      ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
+      ; must reverse y axis when drawing text
+
+      ; clip to canon
+      (send dc set-clipping-rect LEFT BOTTOM WIDTH HEIGHT)
       
       ; reset alpha in case a damage effect changed it last frame
       (send dc set-alpha 1.0)
-      
-      (define role (if my-stack (get-role my-stack) #f))
+
+      (set! buttons '())
       
       (when my-stack (draw-dmgfx dc my-stack))
+
+      (update-scale)
       
-      (set! buttons
-            (cond
-              ((not ownspace)
-               (draw-intro dc))
-              ((not my-stack)
-               (draw-sector dc ownspace #f))
-              ((pilot? role)
-               (draw-pilot dc ownspace my-stack))
-              ((crewer? role)
-               (draw-crewer canvas dc ownspace my-stack))
-              ((observer? role)
-               (define bs (draw-observer dc ownspace my-stack serverspace))
-               ;(draw-pilot-fitness dc ownspace (get-ship my-stack))
-               bs)
-              ((weapons? role)
-               (draw-weapons dc my-stack serverspace))
-              ((tactics? role)
-               (draw-tactics dc my-stack))
-              (else
-               (error "didn't know what to draw"))))
+      (cond
+        ((not ownspace)
+         (draw-intro dc))
+        ((not my-stack)
+         (keep-transform dc
+           (define scale (min (/ WIDTH (space-width ownspace)) (/ HEIGHT (space-height ownspace))))
+           (send dc scale scale scale)
+           (draw-sector-lines dc ownspace)
+           (draw-objects dc ownspace))
+         
+         (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50 5 5 "Exit"
+                                      (lambda (x y)
+                                        (drop-connection "clicked exit")
+                                        (exit 0))))
+         (set! buttons (cons leave-button buttons))
+         
+         (define start-stacks
+           (search ownspace (lambda (o) (and (ship? o) (ship-flying? o) (ship-start o))) #t))
+        
+         (for ((s (in-list start-stacks))
+               (i (in-naturals)))
+           (define mp (car s)) 
+           (define b (button 'normal #f (+ LEFT 100 (* i 250)) (+ BOTTOM 60) 200 30 5 5
+                             (format "Crew on ~a" (ship-name (get-ship s)))
+                             (lambda (x y)
+                               (send-commands (chrole me (ob-id (ship-lounge (get-ship s))))))))
+           (set! buttons (append buttons ( list b))))
+         
+         (draw-buttons dc buttons))
+        
+        (my-stack
+         (keep-transform dc
+           (define z (get-scale))
+           (send dc scale z z)
+           (define center (get-center my-stack))  ; includes pod
+           (define shipcenter (get-topship my-stack))  ; only the ship
+           (send dc translate (- (obj-x center)) (- (obj-y center)))
+           
+           (draw-background-stars dc center z)
+           (draw-sector-lines dc ownspace)
+           (draw-objects dc ownspace)
+
+           (keep-transform dc
+             (center-on dc shipcenter #f)
+
+             ; if we are on a ship inside another ship, draw our ships stacked
+             (define last-ship #f)
+             (for ((s (in-list (reverse (filter ship? my-stack))))
+                   (i (in-naturals)))
+               (cond
+                 ((= i 0) (set! last-ship s))
+                 (else
+                  (send dc set-pen nocolor 1 'transparent)
+                  (send dc set-brush (make-color 0 0 0 0.8) 'solid)
+                  (define r (* 0.8 (ship-radius last-ship)))
+                  (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))
+                  (draw-ship-up dc s))))
+
+             (define ship (get-ship my-stack))
+             (define rot (if (ship-flying? ship) (obj-r ship) pi/2))
+             (send dc rotate (- rot))  ; rotate because we drew the ship pointing up
+             (when (and (not (spacesuit? ship))
+                        (not (hangar? (get-pod my-stack))))
+               (define bs
+                 (draw-pods dc ship rot my-stack send-commands canvas me))
+               (set! buttons (append buttons bs)))
+             )
+           
+           ; transform is back to scaled space
+           (for ((t (in-list (pod-tools (get-pod my-stack)))))
+             (draw-tool-overlay dc t my-stack))
+           )
+
+         ; now we are back to the canon transform
+
+         (when (hangar? (get-pod my-stack))
+           ; draw hangar background
+           (send dc set-pen fgcolor 1.0 'solid)
+           (send dc set-brush (make-color 0 0 0 .8) 'solid)
+           (define size (* 0.9 (min WIDTH HEIGHT)))
+           (send dc draw-rectangle (* -0.5 size) (* -0.5 size) size size)
+           
+           ; draw all the ships in the hangar
+           (define shipmax 54)
+           (for ((s (in-list (hangar-ships (get-pod my-stack))))
+                 (i (in-naturals)))
+             (keep-transform dc
+               (send dc translate
+                     (+ (* -0.5 size) 10 (/ shipmax 2))
+                     (- (* 0.5 size) 10 (* i 100) (/ shipmax 2)))
+               (draw-ship-up dc s)
+               (send dc translate (+ 10 (/ shipmax 2)) (/ shipmax 2))
+               (draw-text dc (format "~a" (ship-name s)) 0 -5)
+               (define-values (x y) (dc->canon canvas dc 0 -60))
+               (define bl (lambda (x y)
+                            (send-commands (chrole me (ob-id (ship-lounge s))))))
+               (set! buttons (append buttons (list (button 'normal #f x y 65 30 5 5 "Board" bl))))
+               (for ((p (in-list (find-all s player?)))
+                     (i (in-naturals)))
+                 (draw-text dc (player-name p) 0 (- -70 (* i 20))))
+               )))
+            
+         
+         ; draw game UI
+         (define zw 20)
+         (define zh 150)
+         (define zx (- RIGHT 10 zw))
+         (define zy (- TOP 70 zh))
+         (send dc set-pen "blue" 1.5 'solid)
+         (send dc draw-line zx zy (+ zx zw) zy)
+         (send dc draw-line zx (+ zy zh) (+ zx zw) (+ zy zh))
+         (send dc draw-line (+ zx (/ zw 2.0)) zy (+ zx (/ zw 2.0)) (+ zy zh))
+         (define zfrac (/ (- (log (get-future-scale)) (log (min-scale)))
+                          (- (log (max-scale)) (log (min-scale)))))
+         (define zfracy (+ zy (* zfrac zh)))
+         (send dc draw-line (+ zx 2) zfracy (+ zx zw -2) zfracy)
+         (define zbutton (button 'hidden #f zx zy zw zh 0 0 "Zoom"
+                (lambda (x y)
+                  (define zfracy (/ y zh))
+                  (define z (exp (+ (log (min-scale))
+                                    (* zfracy (- (log (max-scale)) (log (min-scale)))))))
+                  (set-scale z))))
+         (define zkeyb (button 'hidden #\z 0 0 0 0 0 0 "Zoom In"
+                               (lambda (k y) (set-scale (* (get-future-scale) 1.1)))))
+                                 
+         (define xkeyb (button 'hidden #\x 0 0 0 0 0 0 "Zoom Out"
+                               (lambda (k y) (set-scale (/ (get-future-scale) 1.1)))))
+         
+                                 
+         (set! buttons (append buttons (list zbutton zkeyb xkeyb)))
+         
+         
+         ; draw pod UI
+         (draw-pod-ui dc my-stack)
+         
+         ; draw tool UI
+         (for ((t (in-list (pod-tools (get-pod my-stack)))))
+           (define bs (draw-tool-ui dc t my-stack send-commands))
+           (set! buttons (append buttons bs)))
+         
+                  
+         (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50 5 5 "Exit"
+           (lambda (x y)
+             (define p (get-pod my-stack))
+             (define newid
+               (cond
+                 ((and (lounge? p) (spacesuit? (get-ship my-stack)))
+                  ; dying
+                  #f
+                  )
+                 ((and (lounge? p) (ship-flying? (get-ship my-stack)))
+                  ; jumping ship
+                  "spacesuit"
+                  )
+                 ((lounge? p)
+                  ; leaving this ship into mothership hangar
+                  (define ms (cadr (get-ships my-stack)))
+                  (ob-id (ship-hangar ms)))
+                 (else
+                  ; move to lounge
+                  (ob-id (ship-lounge (get-ship my-stack))))))
+             (send-commands (chrole me newid)))))
+         (set! buttons (append buttons (list leave-button)))
+         (draw-buttons dc buttons))
+        (else
+         (error "didn't know what to draw")))
       
-      (draw-buttons dc buttons)
+      ;(draw-buttons dc buttons)
       (draw-overlay dc ownspace my-stack)
       (draw-framerate dc frames)
       )
     )
-  
+    
   
   (define-values (left-inset top-inset) (get-display-left-top-inset))
   (define-values (screen-w screen-h) (get-display-size))
+
+  ;(printf "insets ~a ~a size ~a ~a\n" left-inset top-inset screen-w screen-h)
   
   (define frame (new frame%
                      (label "Warp")
-                     (width (inexact->exact WIDTH))
-                     (height (inexact->exact HEIGHT))
-                     ;                     (x (- left-inset))
-                     ;                     (y (- top-inset))
-                     ;                     (width screen-w)
-                     ;                     (height screen-h)
-                     ;                     (style '(hide-menu-bar no-caption no-resize-border))
+                     (width (inexact->exact (round (/ WIDTH 1.5))))
+                     (height (inexact->exact (round (/ HEIGHT 1.5))))
+                     ; use below instead for fullscreen
+                     ; (x (- left-inset))
+                     ; (y (- top-inset))
+                     ; (width (+ screen-w left-inset))
+                     ; (height (+ screen-h top-inset))
+                     ; (style '(hide-menu-bar no-caption no-resize-border))
                      ))
 
 
   ; return list of changes
 (define (dmg-for-pod-role p r)
   (define changes '())
-  (cond
-    ((pilot? r)
-     (define nr (copy r))
-     (set-pilot-fore! nr #f)
-     (set! changes
-           (list
-            (adddmg (ob-id p) (dmg -1 "fore-offline" 100 0))
-            nr))))
+;  (cond
+;    ((pilot? r)
+;     (define nr (copy r))
+;     (set-pilot-fore! nr #f)
+;     (set! changes
+;           (list
+;            (adddmg (ob-id p) (dmg -1 "fore-offline" 100 0))
+;            nr))))
   changes)
   
   (define my-canvas%
@@ -229,16 +337,42 @@
         (when (send event button-down? 'left)
           (click this event)))
       (define/override (on-char event)
-        ;(displayln (~v (send event get-key-code)))
-        (case (send event get-key-code)
-          ((#\h)
-           (printf "hello\n"))
-          ((#\d)
-           (define r (get-role my-stack))
-           (define p (get-pod my-stack))
-           (when (pilot? r)
-             (send-commands (dmg-for-pod-role p r)))
-           )))
+        (define kc (send event get-key-code))
+        ;(displayln (~v kc))
+        (define b (key-button? buttons kc))
+        (cond
+          (b
+           (when (not (equal? (button-draw b) 'disabled))
+             ((button-f b) kc #f)))
+          (else
+           (case kc
+             ((#\h)
+              (printf "hello\n"))
+             #;((#\d)
+                (define r (get-role my-stack))
+                (define p (get-pod my-stack))
+                (when (pilot? r)
+                  (send-commands (dmg-for-pod-role p r)))
+                )
+             ((#\m)
+              (when ownspace
+                (send-commands (message (next-id) (space-time ownspace) #f
+                                        (~a "message " (space-time ownspace))))))
+             ((#\p)
+              (when ownspace
+                (send-commands (chadd (plasma -1 (space-time ownspace) (posvel -1 0 0 (random-between 0 2pi) (random 100) (random 100) 0) (random 100) #f) #f))))
+             ((#\s)
+              (when ownspace
+                (define r (random-between 0 2pi))
+                (define s (random 100))
+                (send-commands (chadd (shield -1 (space-time ownspace) (posvel -1 0 0 r (* s (cos r)) (* s (sin r)) 0) (random 30)) #f)))) 
+             ((#\j)
+              (set-scale (* (get-scale) 1.1)))
+             ((#\k)
+              (set-scale (/ (get-scale) 1.1)))
+             ((#\n)
+              (new-stars))
+             ))))
       ))
   
   (define canvas
@@ -299,9 +433,9 @@
   (define (client-loop)
     (define start-loop-time (current-milliseconds))
     
-    (when (and (not testing) (not server-in-port))
+    (when (not server-in-port)
       (define newname
-        (get-text-from-user "Player Name"
+        "Testing" #;(get-text-from-user "Player Name"
                             "Player Name"
                             #f
                             (or name "")))
@@ -311,7 +445,7 @@
       
       ; ask the user for address
       (define newip
-        (get-text-from-user "IP of server"
+        "127.0.0.1" #;(get-text-from-user "IP of server"
                             "IP address of the Server"
                             #f
                             (or ip "")))
@@ -344,7 +478,7 @@
             (set-player-name! me name)))))
     
     ; get new world
-    (while (and (not testing) server-in-port (byte-ready? server-in-port))
+    (while (and server-in-port (byte-ready? server-in-port))
       (define input (read-from-server))
       ;(printf "client input: ~v\n" input)
       (cond ((space? input)
@@ -386,16 +520,14 @@
       )
     
     (when ownspace
-      (when testing (tick-space! ownspace))
-      (when (not testing)
-        (set! my-stack (find-stack ownspace (ob-id me)))
+      (set! my-stack (find-stack ownspace (ob-id me)))
       
-        ; physics prediction
-        (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))
-        (when (dt . > . TICK)
-          ;(printf "client ticking forward for prediction ~a\n" dt)
-          (tick-space! ownspace)
-          (set! dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))))
+      ; physics prediction
+      (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))
+      (when (dt . > . TICK)
+        ;(printf "client ticking forward for prediction ~a\n" dt)
+        (tick-space! ownspace)
+        (set! dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time)))
       
       ;(printf "client is ahead by ~a\n" (- (space-time ownspace) last-update-time))
       )
@@ -412,7 +544,7 @@
     ; sleep so we don't hog the whole racket vm
     (define sleep-time
       (add1
-       (if (and (not testing) ownspace)
+       (if ownspace
            (- (calc-dt (current-milliseconds) start-time
                        (+ (space-time ownspace) TICK) start-space-time))
            (- (+ start-loop-time TICK) (current-milliseconds)))))

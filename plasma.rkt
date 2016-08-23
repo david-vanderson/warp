@@ -17,7 +17,6 @@
 (send plasma-bitmap load-file (string-append "images/" "plasma" ".png") 'png/alpha)
 
 
-
 (define (plasma-energy space p)
   (- (plasma-e p) (* (max 0.0 (- (obj-age space p) PLASMA_LIFE)) (/ PLASMA_FADE 1000.0))))
 
@@ -36,10 +35,9 @@
     (set-space-objects! space (remove p (space-objects space)))))
 
 
-(define (draw-plasma dc p center space)
-  (define-values (x y) (recenter center p))
+(define (draw-plasma dc p space)
   (keep-transform dc
-    (send dc translate x (- y))
+    (center-on dc p)
     (send dc scale
           (/ (plasma-radius space p) (send plasma-bitmap get-width) 0.5)
           (/ (plasma-radius space p) (send plasma-bitmap get-height) 0.5))
@@ -51,15 +49,4 @@
           plasma-bitmap
           (- (/ (send plasma-bitmap get-width) 2))
           (- (/ (send plasma-bitmap get-height) 2)))))
-  
-;  (send dc set-pen "red" 3 'solid)
-;  (define rad (plasma-radius space p))
-;  (define cycle 2000.0)
-;  (define t (modulo (obj-age space p) cycle))
-;  (define rot (* 2pi (/ t cycle)))
-;  (define num 5)
-;  (for ((i num))
-;    (define r (+ rot (/ (* i 2pi) num)))
-;    (send dc draw-line x y
-;          (+ x (* rad (cos r))) (+ y (* rad (sin r))))))
 

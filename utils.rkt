@@ -8,6 +8,8 @@
 
 (provide (all-defined-out))
 
+(define-syntax-rule (append! lst e ...)
+  (set! lst (append lst e ...)))
 
 (define (copy s)
   (read (open-input-string (with-output-to-string (lambda () (write s))))))
@@ -61,119 +63,131 @@
 
 ; returns a list of stacks of all objects from ownspace
 ; to the object with the given id (found object first)
-(define search-escape #f)  ; escape cont
-(define search-return #f)  ; found stacks
-(define (search o id (multiple? #f))
+(define (search o id (multiple? #f) (subships? #t))
+  (define search-return '())  ; found stacks
   (let/ec esc
-    (set! search-escape esc)
-    (set! search-return '())
-    (search-internal o id multiple?))
+    (let search-internal ((o o) (stack '()))
+      (cond
+        ((and (not (space? o))
+              (or (and (integer? id) (= id (ob-id o)))
+                  (and (procedure? id) (id o))))
+         (set! search-return (cons (cons o stack) search-return))
+         (when (not multiple?) (esc)))
+        ((or (player? o)
+             (plasma? o)
+             (shield? o)
+             (effect? o)
+             (message? o)
+             (upgrade? o)
+             (dmg? o))
+         (void))
+        ((space? o)
+         (for ((x (in-list (space-objects o))))
+           (search-internal x (cons o stack))))
+        ((ship? o)
+         (for ((x (in-list (ship-pods o))))
+           (search-internal x (cons o stack)))
+         (for ((x (in-list (ship-cargo o))))
+           (search-internal x (cons o stack))))
+        ((lounge? o)
+         (for ((x (in-list (lounge-crew o))))
+           (search-internal x (cons o stack))))
+        ((hangar? o)
+         (for ((x (in-list (hangar-crew o))))
+           (search-internal x (cons o stack)))
+         (when subships?
+           (for ((x (in-list (hangar-ships o))))
+             (search-internal x (cons o stack)))))
+        ((pod? o)
+         (when (pod-player o)
+           (search-internal (pod-player o) (cons o stack)))
+         (for ((x (in-list (pod-tools o))))
+           (search-internal x (cons o stack))))
+        ((tool? o)
+         (for ((x (in-list (tool-dmgs o))))
+           (search-internal x (cons o stack))))
+        (else
+         (error 'search-internal "hit ELSE clause for ~v" o)))))
   search-return)
-
-(define (search-internal o id multiple? (stack '()))
-  (cond
-    ((and (not (space? o))
-          (or (and (integer? id) (= id (ob-id o)))
-              (and (procedure? id) (id o))))
-     (set! search-return (cons (cons o stack) search-return))
-     (when (not multiple?) (search-escape)))
-    ((or (player? o)
-         (plasma? o)
-         (shield? o)
-         (effect? o)
-         (message? o)
-         (upgrade? o))
-     (void))
-    ((space? o)
-     (for ((x (in-list (space-objects o))))
-       (search-internal x id multiple? (cons o stack))))
-    ((ship? o)
-     (search-internal (ship-crew o) id multiple? (cons o stack))
-     (for ((x (in-list (ship-pods o))))
-       (search-internal x id multiple? (cons o stack)))
-     (for ((x (in-list (ship-cargo o))))
-       (search-internal x id multiple? (cons o stack))))
-    ((hangarpod? o)
-     (for ((x (in-list (multipod-roles o))))
-       (search-internal x id multiple? (cons o stack)))
-     (for ((x (in-list (hangarpod-ships o))))
-       (search-internal x id multiple? (cons o stack))))
-    ((multipod? o)
-     (for ((x (in-list (multipod-roles o))))
-       (search-internal x id multiple? (cons o stack))))
-    ((pod? o)
-     (search-internal (pod-role o) id multiple? (cons o stack)))
-    ((role? o)
-     (when (role-player o)
-       (search-internal (role-player o) id multiple? (cons o stack))))
-    (else
-     (error 'search-internal "hit ELSE clause for ~v" o))))
 
 
 (define (find-all o id)
   (map car (search o id #t)))
 
-(define (find-stack o id)
-  (define r (if id (search o id) null))
+(define (find-stack o id (subships? #t))
+  (define r (if id (search o id #f subships?) null))
   (if (null? r) #f (car r)))
 
-(define (find-id o id)
-  (define r (find-stack o id))
+(define (find-id o id (subships? #t))
+  (define r (find-stack o id subships?))
   (if r (car r) #f))
 
 (define (find-top-id space id)
   (for/first ((o (in-list (space-objects space))) #:when (= (ob-id o) id)) o))
 
-(define (ship-helm s)
-  (for/first ((p (in-list (ship-pods s))) #:when (helm? p)) p))
-
-(define (ship-pilot s)
-  (pod-role (ship-helm s)))
-
 (define (ship-flying? ship)
   (obj-posvel ship))
-  
 
-(define (recenter center o)
-  (values (- (posvel-x (obj-posvel o)) (posvel-x (obj-posvel center)))
-          (- (posvel-y (obj-posvel o)) (posvel-y (obj-posvel center)))))
+(define (ai-pod? o)
+  (and (pod? o) (pod-npc? o) (not (pod-player o))))
 
-(define (get-role stack)
-  (car (memf role? stack)))
+(define (npc-ship? s)
+  (find-id s (lambda (o) (and (pod? o) (pod-npc? o))) #f))
 
 (define (get-pod stack)
-  (car (memf pod? stack)))
+  (findf pod? stack))
 
 (define (get-ship stack)
-  (car (memf ship? stack)))
+  (findf ship? stack))
 
 (define (get-ships stack)
   (filter ship? stack))
 
-(define (get-hangar ship)
-  (for/first ((p (in-list (ship-pods ship))) #:when (hangarpod? p)) p))
+(define (get-topship stack)
+  (get-ship (reverse stack)))
+
+(define (ship-lounge s)
+  (findf lounge? (ship-pods s)))
+
+(define (ship-hangar s)
+  (findf hangar? (ship-pods s)))
 
 (define (ship-ships s)
-  (define hp (get-hangar s))
-  (if hp (hangarpod-ships hp) '()))
+  (define h (ship-hangar s))
+  (if h (hangar-ships h) '()))
 
 (define (get-center stack)
-  (define center (get-ship (reverse stack)))
-  (define spv (obj-posvel center))
+  (define shipcenter (get-topship stack))
+  (define spv (obj-posvel shipcenter))
   
   (define ship (get-ship stack))
+  (define pod (get-pod stack))
   (cond
-    ((equal? (ob-id ship) (ob-id center))
-     (define pod (get-pod stack))
+    ((equal? (ob-id ship) (ob-id shipcenter))
      (obj #f #f (posvel
                  0
                  (+ (posvel-x spv) (* (pod-dist pod) (cos (+ (posvel-r spv) (pod-angle pod)))))
                  (+ (posvel-y spv) (* (pod-dist pod) (sin (+ (posvel-r spv) (pod-angle pod)))))
                  (posvel-r spv) 0 0 0)))
-    (else center)))
+    (else shipcenter)))
 
 (define (get-space stack)
   (car (reverse stack)))
+
+
+(define (can-launch? stack)
+  (define ships (get-ships stack))
+  (and (not (ship-flying? (car ships)))
+       (not (null? (cdr ships)))
+       (ship-flying? (cadr ships))))
+
+
+(define (will-dock? s1 s2)
+  (define d (find-id s1 dock? #f))
+  (and d
+       (dock-on d)
+       (equal? (ship-faction s1) (ship-faction s2))
+       (ship-hangar s2)))
 
 
 (define (angle-norm r)
@@ -229,16 +243,18 @@
   (+ (ship-radius ship1)
      (ship-radius ship2)))
 
-(define (pod-xyr pod ship)
-  (define ps (obj-posvel ship))
-  (define podangle (+ (posvel-r ps) (pod-angle pod)))
-  (values (+ (posvel-x ps) (* (pod-dist pod) (cos podangle)))
-          (+ (posvel-y ps) (* (pod-dist pod) (sin podangle)))
-          podangle))
-
 (define (pod-obj pod ship)
-  (define-values (px py pr) (pod-xyr pod ship))
-  (obj #f #f (posvel #f px py pr (posvel-dx (obj-posvel ship)) (posvel-dy (obj-posvel ship)) #f)))
+  (define ps (obj-posvel ship))
+  (define pa (+ (posvel-r ps) (pod-angle pod)))
+  (define pf (pod-facing pod))
+  (obj #f #f (posvel #f
+                     (+ (posvel-x ps) (* (pod-dist pod) (cos pa)))
+                     (+ (posvel-y ps) (* (pod-dist pod) (sin pa)))
+                     (+ (posvel-r ps) (if pf pf (pod-angle pod)))
+                     ; add rotational velocity
+                     (+ (posvel-dx ps) (* -1 (* (pod-dist pod) (posvel-dr ps)) (sin pa)))
+                     (+ (posvel-dy ps) (* 1 (* (pod-dist pod) (posvel-dr ps)) (cos pa)))
+                     (posvel-dr ps))))
 
 
 ;; ai utils

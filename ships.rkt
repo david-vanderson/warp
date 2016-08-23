@@ -5,6 +5,7 @@
          racket/math)
 
 (require "defs.rkt")
+(require "utils.rkt")
 
 (provide (all-defined-out))
 
@@ -31,6 +32,22 @@
 (load-ship "blue-cruiser")
 
 
+(define (normal-lounge)
+  (lounge (next-id) "Lounge" #f #f 0.0 0.0 #f #f 0.0 0.0 '() '()))
+
+(define (normal-hangar angle dist in-hangar)
+  (hangar (next-id) "Hangar" #f #f angle dist #f #f 0.0 0.0 '() '() in-hangar))
+
+
+(define (make-spacesuit name ship)
+  (define pv (obj-posvel ship))
+  (make-ship "space-suit"
+             name
+             (ship-faction ship)
+             #:x (posvel-x pv) #:y (posvel-y pv)
+             #:dx (+ (posvel-dx pv) (random-between -50 50))
+             #:dy (+ (posvel-dy pv) (random-between -50 50))))
+
 
 (define (make-ship type name faction
                    #:posvel? (posvel? #t)
@@ -45,10 +62,13 @@
                    #:in-hangar (in-hangar '())
                    #:cargo (cargo '()))
   (define s ((if (equal? "space-suit" type) spacesuit spaceship)
+             ;(stats pods hangar crew ai-strategy dmgfx cargo)
              (next-id) 0 (if posvel? (posvel 0 x y r dx dy dr) #f)
-             #f
-             (multipod (next-id) (crewer (next-id) #f #f '()) #f #f #f #f 0.0 0.0 '() start-ship? '())
-             '() '() '() cargo))
+             #f  ; fill the stats later
+             #f  ; fill pods later
+             '()  ; empty ai-strategy
+             '()  ; empty dmgfx
+             cargo))
   
   (for ((hangship (in-list in-hangar)))
     (set-obj-posvel! hangship #f))
@@ -56,42 +76,47 @@
   (case type
     (("space-suit")
      ;type name faction power bat maxbat con maxcon radius mass thrust rthrust
-     (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 1.0 1.0 7.0 1.0 0.0 0.0))
-     (set-ship-pods!
-      s (list
-         (multipod (next-id) (observer (next-id) #f #f) 0.0 0.0 #f #f 0.0 0.0 '() #f '()))))
+     (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 1.0 1.0 7.0 1.0 0.0 0.0 start-ship?))
+     (set-ship-pods! s (list (lounge (next-id) "Lounge" #f #f 0.0 0.0 #f #f 0.0 0.0 '() '()))))
     (("blue-station" "red-station")
      (define mb 500.0)
-     (set-ship-stats! s (stats (next-id) type name faction 10.0 mb mb 1000.0 1000.0 26.0 1000.0 0.0 0.0))
+     (define mc 100.0)
+     (set-ship-stats! s (stats (next-id) type name faction 10.0 mb mb mc mc 26.0 1000.0 50.0 0.4 start-ship?))
      (set-ship-pods!
-      s `(,(multipod (next-id) (observer (next-id) #f #f '()) 0.0 0.0 #f #f 0.0 0.0 '() #f '())
-          ,(hangarpod (next-id) (hangar (next-id) #f #f '()) pi 13.0 #f #f 0.0 0.0 '() #f '() in-hangar)
+      s `(,(normal-lounge)
+          ,(normal-hangar pi 13.0 in-hangar)
+          ,(pod (next-id) "Pilot" #f (and npc? npc-helm?) 0.0 13.0 #f #f 100.0 100.0
+                (list (steer (next-id) '() r) (fthrust (next-id) '() #f)))
           ,@(for/list ((d (in-list (list 0 90 180 270))))
-              (weapon (next-id) (weapons (next-id) #f (and npc? npc-weapons?) '() #f)
-                      (degrees->radians d) 26.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0 '() 15.0))
+              (pod (next-id) "W" #f (and npc? npc-weapons?)
+                   (degrees->radians d) 26.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
+                   (list (pbolt (next-id) '() 15.0))))
           ,@(for/list ((d (in-list (list 45 135 225 315))))
-              (tactical (next-id) (tactics (next-id) #f (and npc? npc-tactical?) '() #f)
-                        (degrees->radians d) 28.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0 '() 25.0)))))
+              (pod (next-id) "T" #f (and npc? npc-tactical?)
+                   (degrees->radians d) 28.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
+                   (list (shbolt (next-id) '() 50.0)))))))
     (("blue-frigate" "red-frigate")
      (set-ship-stats! s (stats (next-id) type name faction
                                ;power bat maxbat con maxcon radius mass thrust rthrust
-                               5.0 50.0 50.0 100.0 100.0 18.0 100.0 20.0 0.3))
+                               5.0 50.0 50.0 100.0 100.0 18.0 100.0 20.0 0.3 start-ship?))
      (set-ship-pods!
-      s (list
-         (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) '() r helm-fore? #f #f #f) 0.0 0.0 #f #f 100.0 100.0 '() #f)
-         (multipod (next-id) (observer (next-id) #f #f '()) 0.0 10.0 #f #f 0.0 0.0 '() #f '())
-         (hangarpod (next-id) (hangar (next-id) #f #f '()) pi 10.0 #f #f 0.0 0.0 '() #f '() in-hangar)
-         (weapon (next-id) (weapons (next-id) #f (and npc? npc-weapons?) '() #f)
-                 (degrees->radians 21.8) 21.5 (/ pi 6) pi/2 100.0 100.0 '() 10.0)
-         (weapon (next-id) (weapons (next-id) #f (and npc? npc-weapons?) '() #f)
-                 (degrees->radians -21.8) 21.5 (- (/ pi 6)) pi/2 100.0 100.0 '() 10.0))))
+      s `(,(normal-lounge)
+          ,(normal-hangar pi 10.0 in-hangar)
+          ,(pod (next-id) "Pilot" #f (and npc? npc-helm?) 0.0 5.0 #f #f 100.0 100.0
+                (list (steer (next-id) '() r) (fthrust (next-id) '() #f) (dock (next-id) '() #f)))
+          ,(pod (next-id) "W" #f (and npc? npc-weapons?)
+                (degrees->radians 21.8) 21.5 (/ pi 6) pi/2 100.0 100.0
+                (list (pbolt (next-id) '() 10.0)))
+          ,(pod (next-id) "W" #f (and npc? npc-weapons?)
+                (degrees->radians -21.8) 21.5 (- (/ pi 6)) pi/2 100.0 100.0
+                (list (pbolt (next-id) '() 10.0))))))
     (("blue-fighter" "red-fighter")
      (define mb 100.0)
-     (set-ship-stats! s (stats (next-id) type name faction 1.0 mb mb 50.0 50.0 6.0 20.0 40.0 1.0))
+     (set-ship-stats! s (stats (next-id) type name faction 1.0 mb mb 50.0 50.0 6.0 20.0 40.0 1.0 start-ship?))
      (set-ship-pods!
-      s (list
-         (helm (next-id) (pilot (next-id) #f (and npc? npc-helm?) '() r helm-fore? #f #f #f) 0.0 0.0 #f #f 100.0 100.0 '() #f)
-         (multipod (next-id) (observer (next-id) #f #f '()) 0.0 3.0 #f #f 0.0 0.0 '() #f '())
-         (weapon (next-id) (weapons (next-id) #f (and npc? npc-weapons?) '() #f)
-                 0.0 6.5 0.0 (* 0.8 pi) 100.0 100.0 '() 5.0)))))
+      s `(,(normal-lounge)
+          ,(pod (next-id) "Pilot" #f (and npc? npc-helm?) 0.0 5.0 0.0 (/ pi 6) 100.0 100.0
+                (list (steer (next-id) '() r) (fthrust (next-id) '() #f)
+                      (dock (next-id) '() #f) (pbolt (next-id) '() 5.0))))))
+    )
   s)

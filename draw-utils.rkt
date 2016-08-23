@@ -16,6 +16,13 @@
     a))
 
 
+(define (center-on dc o (rotate #t))
+  (send dc translate (obj-x o) (obj-y o))
+  (when rotate
+    ; rotate such that positive x axis points in the obj-r direction
+    (send dc rotate (- (obj-r o)))))
+
+
 (define (canvas-scale canvas)
   (min (/ (send canvas get-width) WIDTH)
        (/ (send canvas get-height) HEIGHT)))
@@ -36,18 +43,17 @@
   (screen->canon canvas sx sy))
 
 
+; only works with an unrotated dc transform
 (define (dc-point-size dc)
   (define m (send dc get-initial-matrix))
   (min (abs (vector-ref m 0)) (abs (vector-ref m 3))))
 
 
 (define (draw-text dc str x y)
-  (send dc draw-text str x y)
-  #t)
-
-
-(define (draw-hud-status-text dc linenum str)
-  (draw-text dc str (- (/ WIDTH 2)) (+ (/ (- HEIGHT) 2) (* linenum 20))))
+  (keep-transform dc
+    (send dc translate x y)
+    (send dc scale 1 -1)
+    (send dc draw-text str 0 0)))
 
 
 (define (linear-color color1 color2 z alpha)

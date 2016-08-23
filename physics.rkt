@@ -13,19 +13,12 @@
 (provide (all-defined-out))
 
 
-(define (opposite-sign? a b)
-  (if (positive? a)
-      (negative? b)
-      (positive? b)))
-
-
 (define (steer! ownship dt)
-  (define h (ship-helm ownship))
+  (define cstack (find-stack ownship steer? #f))
   (cond
-    ((not h) #f)
+    ((not cstack) #f)
     (else
-     (define p (pod-role h))
-     (define course (pilot-course p))
+     (define course (steer-course (car cstack)))
      (define posvel (obj-posvel ownship))
      (define r (posvel-r posvel))
      
@@ -35,12 +28,14 @@
         ;(printf "STOPPING\n")
         (set-posvel-r! posvel course)
         (set-posvel-dr! posvel 0.0))
-       (((pod-energy h) . > . 0.0)
+       (((pod-energy (get-pod cstack)) . > . 0.0)
         (set-posvel-dr! posvel (if ((angle-diff r course) . > . 0.0) racc (- racc)))))
+
+     (define ftstack (find-stack ownship fthrust? #f))
      
      (cond
-       ((pilot-fore (ship-pilot ownship))
-        (when ((pod-energy h) . > . 0.0)
+       ((and ftstack (fthrust-on (car ftstack)))
+        (when ((pod-energy (get-pod ftstack)) . > . 0.0)
           (define xy_acc (stats-thrust (ship-stats ownship)))
           (define ddx (* xy_acc (cos (posvel-r posvel))))
           (define ddy (* xy_acc (sin (posvel-r posvel))))
@@ -108,22 +103,17 @@
 
 
 ; return list of additional changes
-(define (add-dmg! space p dmg)
+; when a damage is added to a tool, it might turn the tool off?
+; when a damage is added, should the pod lose any energy directly?
+(define (add-dmg! space t dmg)
   (define changes '())
-  (printf "add-dmg! - ~v\n" dmg)
+  (printf "add-dmg! ~v\n" dmg)
   (cond
     ((ormap (lambda (d) (equal? (dmg-type dmg) (dmg-type d)))
-            (pod-dmgs p))
-     (printf "add-dmg! - already had dmg of type ~a\n" (dmg-type dmg)))
+            (tool-dmgs t))
+     (printf "add-dmg! already had dmg of type ~a\n" (dmg-type dmg)))
     (else
-     (set-pod-dmgs! p (append (pod-dmgs p) (list dmg)))
-     (when (server?)
-       (define r (pod-role p))
-       (when (ormap (lambda (f) (equal? (dmg-type dmg) (car f))) (role-fixings r))
-         (printf "add-dmg! - already had a fixing of type ~a\n" (dmg-type dmg)))
-       (define nr (copy r))
-       (set-role-fixings! nr (append (role-fixings nr) (list (dmg-type dmg) #t)))
-       (set! changes (append changes (list nr))))))
+     (set-tool-dmgs! t (append (tool-dmgs t) (list dmg)))))
   changes)
 
 
@@ -153,13 +143,8 @@
       
       (for ((ps (in-list (search ship player? #t))))
         (define p (car ps))
-        (define ss (make-ship "space-suit"
-                              (player-name p)
-                              (ship-faction ship)
-                              #:x (posvel-x pv) #:y (posvel-y pv)
-                              #:dx (+ (posvel-dx pv) (random-between -50 50))
-                              #:dy (+ (posvel-dy pv) (random-between -50 50))))
-        (define rc (role-change p #f (ob-id (car (ship-pods ss))) (next-id)))
+        (define ss (make-spacesuit (player-name p) ship))
+        (define rc (chrole p (ob-id (ship-lounge ss))))
         (set! changes (append changes (list (chadd ss #f) rc))))
       
       (for ((u (in-list (ship-cargo ship))))
@@ -198,13 +183,17 @@
   ;(printf "update-energy! ship ~a extra: ~a bat: ~a\n" (ship-name ship) extra (ship-bat ship))
   
   ; remove energy for stateful things
-  (define h (ship-helm ship))
-  (when (and h (ship-flying? ship) ((pod-energy h) . > . 0.0))
-    (when (pilot-fore (pod-role h))
-      (set-pod-energy! h (- (pod-energy h) (* 3.0 dt))))
-    (when (not (= (pilot-course (pod-role h))
-                  (posvel-r (obj-posvel ship))))
-      (set-pod-energy! h (- (pod-energy h) (* 2.0 dt)))))
+  (when (ship-flying? ship)
+    (define ftstack (find-stack ship fthrust? #f))
+    (define p (if ftstack (get-pod ftstack) #f))
+    (when (and p ((pod-energy p) . > . 0.0) (fthrust-on (car ftstack)))
+      (set-pod-energy! p (- (pod-energy p) (* 3.0 dt))))
+    
+    (define sstack (find-stack ship steer? #f))
+    (define sp (if sstack (get-pod sstack) #f))
+    (when (and sp ((pod-energy sp) . > . 0.0) (not (= (steer-course (car sstack))
+                                                      (posvel-r (obj-posvel ship)))))
+      (set-pod-energy! sp (- (pod-energy sp) (* 2.0 dt)))))
   
   ; take out battery energy
   (define batpow (* 5.0 dt))
@@ -226,12 +215,12 @@
   ; distribute power proportionally
   (define maxreq 0.0001)
   (define espent 0.0)
-  (for ((p (in-list (ship-pods ship))) #:when (not (multipod? p)))
+  (for ((p (in-list (ship-pods ship))))
     (set! maxreq (+ maxreq (min e (pod-need p)))))
   (for ((s (in-list (ship-ships ship))))
     (set! maxreq (+ maxreq (min e (* 10.0 dt) (ship-need s)))))
   
-  (for ((p (in-list (ship-pods ship))) #:when (not (multipod? p)))
+  (for ((p (in-list (ship-pods ship))))
     (define xfer (min (pod-need p) (* e (/ (min e (pod-need p)) maxreq))))
     ;(printf "xfer: ~a, ~a, ~a\n" (pod-need p) maxreq xfer)
     (set-pod-energy! p (+ (pod-energy p) xfer))
