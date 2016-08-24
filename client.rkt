@@ -8,7 +8,6 @@
          "draw.rkt"
          "draw-intro.rkt"
          "pilot.rkt"
-         "crewer.rkt"
          "weapons.rkt"
          "effect.rkt"
          "ships.rkt")
