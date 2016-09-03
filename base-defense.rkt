@@ -80,12 +80,12 @@
             (list (shbolt (next-id) '() 10.0))))))
 
 
-(define destroyer (make-ship "red-destroyer" "b" "b" #:x 2400 #:y 100 #:r pi))
+(define destroyer (make-ship "red-destroyer" "b" "b" #:x -1000 #;2400 #:y 100 #:r pi))
 (set-ship-stats! destroyer (stats (next-id)
                                   ;type name faction
                                   "red-destroyer" "Empire Destroyer" "Empire"
                                   ;power bat maxbat con maxcon radius mass thrust rthrust
-                                  10.0 500.0 500.0 500.0 500.0 23.0 500.0 4.0 0.1 #f))
+                                  10.0 500.0 500.0 500.0 500.0 23.0 500.0 14.0 0.1 #f))
 (set-ship-pods!
  destroyer
  `(,(normal-lounge)
@@ -99,7 +99,7 @@
        (pod (next-id) "W" #f #t (degrees->radians d) 23.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
             (list (pbolt (next-id) '() 10.0))))
    ,@(for/list ((d (in-list (list -130 130))))
-       (pod (next-id) "W" #f #t (degrees->radians d) 21.0 (degrees->radians d) (* 0.8 pi) 50.0 50.0
+       (pod (next-id) "W" #f #t (degrees->radians d) 21.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
             (list (pbolt (next-id) '() 5.0))))
    ,@(for/list ((d (in-list (list -35 35))))
        (pod (next-id) "T" #f #t (degrees->radians d) 24.0 (degrees->radians d) (* 0.7 pi) 150.0 150.0
@@ -109,7 +109,7 @@
             (list (shbolt (next-id) '() 5.0))))))
        
 (set-ship-ai-strategy! destroyer
-                       (list (strategy (space-time ownspace) "attack" (ob-id base))))
+                       (list (strategy (space-time ownspace) "attack-only" (ob-id base))))
 
 
 (define special (new-blue-fighter))

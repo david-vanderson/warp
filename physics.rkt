@@ -181,6 +181,11 @@
 
 (define (update-energy! dt ship extra)
   ;(printf "update-energy! ship ~a extra: ~a bat: ~a\n" (ship-name ship) extra (ship-bat ship))
+
+  (define podpow (* 10.0 dt))  ; how much e can go to each pod
+  (define batpow (* 20.0 dt))  ; how much e can flow out of reserve
+  (define repairpow (* 10.0 dt))  ; how much e can go to repair each ship
+  (define repairratio 0.5)  ; how many hp you get for each e
   
   ; remove energy for stateful things
   (when (ship-flying? ship)
@@ -196,7 +201,6 @@
       (set-pod-energy! sp (- (pod-energy sp) (* 2.0 dt)))))
   
   ; take out battery energy
-  (define batpow (* 5.0 dt))
   (define bate (min batpow (ship-bat ship)))
   (set-stats-bat! (ship-stats ship) (- (ship-bat ship) bate))
   
@@ -216,28 +220,28 @@
   (define maxreq 0.0001)
   (define espent 0.0)
   (for ((p (in-list (ship-pods ship))))
-    (set! maxreq (+ maxreq (min e (pod-need p)))))
+    (set! maxreq (+ maxreq (min e podpow (pod-need p)))))
   (for ((s (in-list (ship-ships ship))))
-    (set! maxreq (+ maxreq (min e (* 10.0 dt) (ship-need s)))))
+    (set! maxreq (+ maxreq (min e repairpow (ship-need s)))))
   
   (for ((p (in-list (ship-pods ship))))
-    (define xfer (min (pod-need p) (* e (/ (min e (pod-need p)) maxreq))))
+    (define xfer (min podpow (pod-need p) (* e (/ (min e podpow (pod-need p)) maxreq))))
     ;(printf "xfer: ~a, ~a, ~a\n" (pod-need p) maxreq xfer)
     (set-pod-energy! p (+ (pod-energy p) xfer))
     (set! espent (+ espent xfer)))
   
   (for ((s (in-list (ship-ships ship))))
-    (define xfer (min (* 10.0 dt) (ship-need s) (* e (/ (min e (* 10.0 dt) (ship-need s)) maxreq))))
+    (define xfer (min repairpow (ship-need s) (* e (/ (min e repairpow (ship-need s)) maxreq))))
     (define stats (ship-stats s))
-    (set-stats-con! stats (+ (stats-con stats) (* 0.5 xfer)))
+    (set-stats-con! stats (+ (stats-con stats) (* repairratio xfer)))
     (set! espent (+ espent xfer)))
   
   ;(printf "update-energy: ~a, ~a\n" e espent)
   (set! e (- e espent))
   
   ; put back in battery energy we didn't use
-  (define batback (min e (+ bate (* 2 batpow))
-                       (- (ship-maxbat ship) (ship-bat ship))))
+  ; and also possibly more from reactor
+  (define batback (min e (- (ship-maxbat ship) (ship-bat ship))))
   (set! e (- e batback))
   (set-stats-bat! (ship-stats ship) (+ (ship-bat ship) batback))
   

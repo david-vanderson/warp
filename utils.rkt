@@ -30,6 +30,9 @@
         (else (/ (- death age)
                  (- death life)))))
 
+(define (clamp zmin zmax z)
+  (max zmin (min zmax z)))
+
 (define (remain a b)
   (define z (/ a b))
   (* b (- z (floor z))))

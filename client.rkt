@@ -62,10 +62,14 @@
         (set! shown-scale (max target (- shown-scale (max 0.1 (* 0.4 diff)))))))
   
   
-  (define (click-button? buttons x y)
+  (define (in-button? buttons x y)
     (for/first ((b (in-list buttons))
-                #:when (and (<= (button-x b) x (+ (button-x b) (button-width b)))
-                            (<= (button-y b) y (+ (button-y b) (button-height b)))))
+                #:when (if (button-height b)
+                           (and (<= (button-x b) x (+ (button-x b) (button-width b)))
+                                (<= (button-y b) y (+ (button-y b) (button-height b))))
+                           (and (<= (sqrt (+ (* (- x (button-x b)) (- x (button-x b)))
+                                             (* (- y (button-y b)) (- y (button-y b)))))
+                                    (button-width b)))))
       b))
 
   (define (key-button? buttons key)
@@ -76,8 +80,8 @@
   
   (define (click canvas event)
     (define-values (x y) (screen->canon canvas (send event get-x) (send event get-y)))
-    (define b (click-button? buttons x y))
-    ;(printf "click ~a ~a ~a\n" x y button)
+    (define b (in-button? buttons x y))
+    (printf "click ~a ~a ~a\n" x y button)
     (cond
       (b
        (when (not (equal? (button-draw b) 'disabled))
@@ -134,7 +138,7 @@
            (draw-sector-lines dc ownspace)
            (draw-objects dc ownspace))
          
-         (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50 5 5 "Exit"
+         (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50 "Exit"
                                       (lambda (x y)
                                         (drop-connection "clicked exit")
                                         (exit 0))))
@@ -146,7 +150,7 @@
          (for ((s (in-list start-stacks))
                (i (in-naturals)))
            (define mp (car s)) 
-           (define b (button 'normal #f (+ LEFT 100 (* i 250)) (+ BOTTOM 60) 200 30 5 5
+           (define b (button 'normal #f (+ LEFT 100 (* i 250)) (+ BOTTOM 60) 200 30
                              (format "Crew on ~a" (ship-name (get-ship s)))
                              (lambda (x y)
                                (send-commands (chrole me (ob-id (ship-lounge (get-ship s))))))))
@@ -220,7 +224,7 @@
                (define-values (x y) (dc->canon canvas dc 0 -60))
                (define bl (lambda (x y)
                             (send-commands (chrole me (ob-id (ship-lounge s))))))
-               (set! buttons (append buttons (list (button 'normal #f x y 65 30 5 5 "Board" bl))))
+               (set! buttons (append buttons (list (button 'normal #f x y 65 30 "Board" bl))))
                (for ((p (in-list (find-all s player?)))
                      (i (in-naturals)))
                  (draw-text dc (player-name p) 0 (- -70 (* i 20))))
@@ -240,16 +244,16 @@
                           (- (log (max-scale)) (log (min-scale)))))
          (define zfracy (+ zy (* zfrac zh)))
          (send dc draw-line (+ zx 2) zfracy (+ zx zw -2) zfracy)
-         (define zbutton (button 'hidden #f zx zy zw zh 0 0 "Zoom"
+         (define zbutton (button 'hidden #f zx zy zw zh "Zoom"
                 (lambda (x y)
                   (define zfracy (/ y zh))
                   (define z (exp (+ (log (min-scale))
                                     (* zfracy (- (log (max-scale)) (log (min-scale)))))))
                   (set-scale z))))
-         (define zkeyb (button 'hidden #\z 0 0 0 0 0 0 "Zoom In"
+         (define zkeyb (button 'hidden #\z 0 0 0 0 "Zoom In"
                                (lambda (k y) (set-scale (* (get-future-scale) 1.1)))))
                                  
-         (define xkeyb (button 'hidden #\x 0 0 0 0 0 0 "Zoom Out"
+         (define xkeyb (button 'hidden #\x 0 0 0 0 "Zoom Out"
                                (lambda (k y) (set-scale (/ (get-future-scale) 1.1)))))
          
                                  
@@ -263,9 +267,8 @@
          (for ((t (in-list (pod-tools (get-pod my-stack)))))
            (define bs (draw-tool-ui dc t my-stack send-commands))
            (set! buttons (append buttons bs)))
-         
                   
-         (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50 5 5 "Exit"
+         (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50 "Exit"
            (lambda (x y)
              (define p (get-pod my-stack))
              (define newid
@@ -287,7 +290,29 @@
                   (ob-id (ship-lounge (get-ship my-stack))))))
              (send-commands (chrole me newid)))))
          (set! buttons (append buttons (list leave-button)))
-         (draw-buttons dc buttons))
+         (draw-buttons dc buttons)
+
+         ; draw mouse cursor
+         (define-values (p mods) (get-current-mouse-state))
+         (define-values (wx wy) (send canvas screen->client
+                                      (+ (send p get-x) left-inset)
+                                      (+ (send p get-y) top-inset)))
+         (define-values (mx my) (screen->canon canvas wx wy))
+         (define drawn #f)
+         (when (not (in-button? buttons mx my))
+           (for ((t (in-list (pod-tools (get-pod my-stack)))))
+             (when (steer? t)
+               (set! drawn #t)
+               (keep-transform dc
+                 (send dc set-pen "blue" (/ 1.5 (dc-point-size dc)) 'solid)
+                 (send dc translate mx my)
+                 (send dc rotate (- (atan0 my mx)))
+                 (send dc draw-lines '((0 . 0) (-15 . -5) (-15 . 5) (0 . 0)))))))
+
+         (cond (drawn (send canvas set-cursor (make-object cursor% 'blank)))
+               (else (send canvas set-cursor (make-object cursor% 'arrow))))
+         
+         )
         (else
          (error "didn't know what to draw")))
       
@@ -299,7 +324,7 @@
     
   
   (define-values (left-inset top-inset) (get-display-left-top-inset))
-  (define-values (screen-w screen-h) (get-display-size))
+  (define-values (screen-w screen-h) (get-display-size #t))
 
   ;(printf "insets ~a ~a size ~a ~a\n" left-inset top-inset screen-w screen-h)
   
@@ -310,8 +335,8 @@
                      ; use below instead for fullscreen
                      ; (x (- left-inset))
                      ; (y (- top-inset))
-                     ; (width (+ screen-w left-inset))
-                     ; (height (+ screen-h top-inset))
+                     ; (width screen-w)
+                     ; (height screen-h)
                      ; (style '(hide-menu-bar no-caption no-resize-border))
                      ))
 
@@ -347,11 +372,17 @@
            (case kc
              ((#\h)
               (printf "hello\n"))
-             #;((#\d)
-                (define r (get-role my-stack))
-                (define p (get-pod my-stack))
-                (when (pilot? r)
-                  (send-commands (dmg-for-pod-role p r)))
+             ((#\d)
+              (when ownspace
+                (send-commands
+                 (for/list ((s (in-list (space-objects ownspace)))
+                            #:when (spaceship? s))
+                   (chdam (ob-id s) 10))))
+                  
+                ;(define r (get-role my-stack))
+                ;(define p (get-pod my-stack))
+                ;(when (pilot? r)
+                  ;(send-commands (dmg-for-pod-role p r)))
                 )
              ((#\m)
               (when ownspace

@@ -45,7 +45,7 @@
                                    (theta ship ne))))
        (set! f (+ f (* 5.0 (min 0.8 (/ ad pi)))))
        ))
-    (("attack")
+    (("attack" "attack-only")
      (define ne (find-top-id space (strategy-arg strat)))
      (when ne
        (define d (distance ship ne))
@@ -53,7 +53,7 @@
        
        (define ad (abs (angle-diff (posvel-r (obj-posvel ship))
                                    (theta ship ne))))
-       (set! f (+ f (* 5.0 (- 1.0 (max 0.2 (/ ad pi))))))
+       (set! f (+ f (* 10.0 (- 1.0 (max 0.1 (/ ad pi))))))
        ))
     (("return")
      (define mship (find-top-id space (strategy-arg strat)))
@@ -125,18 +125,19 @@
            ; done retreating
            ;(printf "done retreating\n")
            (set! changes (list (new-strat (ob-id ship) (cdr strats)))))))
-       (("attack")
+       (("attack" "attack-only")
         (define e (find-top-id space (strategy-arg strat)))
         (cond
           ((or (not e) (return-to-base? ship))
            ; abort
            (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
-          ((and ne (not (equal? (ob-id ne) (ob-id e))))
+          ((and (equal? (strategy-name strat) "attack") ne (not (equal? (ob-id ne) (ob-id e))))
            ; new enemy, attack
            ;(printf "new enemy\n")
            (define ns (strategy (space-time space) "attack" (ob-id ne)))
            (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))
-          (((distance ship e) . < . (* 5 (hit-distance ship e)))
+          ((and (equal? (strategy-name strat) "attack")
+                ((distance ship e) . < . (* 5 (hit-distance ship e))))
            ; too close, retreat
            ;(printf "too close\n")
            (define ns (strategy (space-time space) "retreat" (ob-id e)))

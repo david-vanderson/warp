@@ -76,11 +76,11 @@
   (case type
     (("space-suit")
      ;type name faction power bat maxbat con maxcon radius mass thrust rthrust
-     (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 1.0 1.0 7.0 1.0 0.0 0.0 start-ship?))
+     (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 1.0 1.0 5.0 1.0 0.0 0.0 start-ship?))
      (set-ship-pods! s (list (lounge (next-id) "Lounge" #f #f 0.0 0.0 #f #f 0.0 0.0 '() '()))))
     (("blue-station" "red-station")
      (define mb 500.0)
-     (define mc 100.0)
+     (define mc 500.0)
      (set-ship-stats! s (stats (next-id) type name faction 10.0 mb mb mc mc 26.0 1000.0 50.0 0.4 start-ship?))
      (set-ship-pods!
       s `(,(normal-lounge)
@@ -102,7 +102,7 @@
      (set-ship-pods!
       s `(,(normal-lounge)
           ,(normal-hangar pi 10.0 in-hangar)
-          ,(pod (next-id) "Pilot" #f (and npc? npc-helm?) 0.0 5.0 #f #f 100.0 100.0
+          ,(pod (next-id) "Pilot" #f (and npc? npc-helm?) 0.0 3.0 #f #f 100.0 100.0
                 (list (steer (next-id) '() r) (fthrust (next-id) '() #f) (dock (next-id) '() #f)))
           ,(pod (next-id) "W" #f (and npc? npc-weapons?)
                 (degrees->radians 21.8) 21.5 (/ pi 6) pi/2 100.0 100.0

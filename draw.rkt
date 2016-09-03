@@ -2,6 +2,7 @@
 
 (require racket/class
          racket/list
+         racket/math
          racket/draw)
 
 (require "defs.rkt"
@@ -107,14 +108,21 @@
     ((ptsize . < . 0.25)  ; "sector" view - ships are triangles
      (cond ((ship? o)
             (send dc set-pen "blue" (/ 1.5 ptsize) 'solid)
-            (define tri '((-1 . -2) (-1 . 2) (5 . 0) (-1 . -2)))
-            (define ztri
-              (for/list ((x (in-list tri)))
-                (cons (* (car x) (ship-radius o) 0.5)
-                      (* (cdr x) (ship-radius o) 0.5))))
+            (define outline
+              (cond ((spacesuit? o)
+                     ; diamond, but small enough so it looks like a dot
+                     '((-1 . 0) (0 . 1) (1 . 0) (0 . -1) (-1 . 0)))
+                    ((find-id o fthrust? #f)
+                     '((-1 . -2) (-1 . 2) (5 . 0) (-1 . -2)))  ; engines -> triangle
+                    (else
+                     '((-5 . -5) (-5 . 5) (5 . 5) (5 . -5) (-5 . -5)))))  ; no engines -> square
+            (define zoutline
+              (for/list ((x (in-list outline)))
+                (cons (* (car x) (ship-radius o) (/ 0.1 ptsize))
+                      (* (cdr x) (ship-radius o) (/ 0.1 ptsize)))))
             (keep-transform dc
               (center-on dc o)
-              (send dc draw-lines ztri)))
+              (send dc draw-lines zoutline)))
            ((upgrade? o)
             (send dc set-pen (upgrade-color o) (/ 1.5 ptsize) 'transparent)
             (send dc draw-point (obj-x o) (obj-y o)))
@@ -123,7 +131,9 @@
             (send dc draw-point (obj-x o) (obj-y o)))))
     (else
      (cond ((ship? o)
-            (draw-ship dc o))
+            (draw-ship dc o)
+            (when (spaceship? o)
+              (draw-ship-info dc o space)))
            ((plasma? o)
             (draw-plasma dc o space))
            ((shield? o)
@@ -255,19 +265,69 @@
          (send dc set-pen fgcolor 1 'solid)
          (send dc set-text-foreground "black")))
 
-      (send dc draw-rectangle x y w h)
-      
       (define r (send dc get-clipping-region))
-      (send dc set-clipping-rect x y w h)
-      (draw-text dc (button-label b) (+ x (button-left-inset b)) (+ y h (- (button-top-inset b))))
+
+      (define-values (tw th td ta) (send dc get-text-extent (button-label b)))
+      
+      (cond
+        (h
+         (send dc draw-rectangle x y w h)
+         (send dc set-clipping-rect x y w h)
+         (draw-text dc (button-label b)
+                    (+ x (/ w 2.0) (- (/ tw 2.0)))
+                    (+ y (/ h 2.0) (/ th 2.0))))
+        (else
+         (send dc draw-ellipse (- x w) (- y w) (* 2 w) (* 2 w))
+         (send dc set-clipping-rect (- x w) (- y w) (* 2 w) (* 2 w))
+         (draw-text dc (button-label b)
+                    (+ x (- (/ tw 2.0)))
+                    (+ y (/ th 2.0)))))
+      
       (send dc set-clipping-region r))))
 
 
+(define (draw-ship-info dc ship space)
+  (keep-transform dc
+    (send dc translate (obj-x ship) (obj-y ship))
+
+    (send dc set-pen nocolor 1 'transparent)
+    
+    (define hpfrac (max 0.0 (/ (ship-con ship) (ship-maxcon ship))))
+    (define cycle (+ 200 (* 5000 hpfrac)))
+    (define z (clamp 0.0 1.0 (* 2.0 (/ (abs (- (remain (obj-age space ship) cycle)
+                                               (/ cycle 2.0))) cycle))))
+    (define alpha (+ 0.0 (* 1.0 z (max 0.1 (- 0.8 hpfrac)))))
+    (define hpcolor (linear-color "red" "black" (max 0.2 (- hpfrac 0.2)) alpha))
+    (send dc set-brush hpcolor 'solid)
+    (define hpr (ship-radius ship))
+    (send dc draw-arc (- hpr) (- hpr) (* 2 hpr) (* 2 hpr) 0 2pi)
+
+;    (define batcolor (stoplight-color (ship-bat ship) (ship-maxbat ship)))
+;    (define batfrac (max 0.0 (/ (ship-bat ship) (ship-maxbat ship))))
+;    (send dc set-brush batcolor 'solid)
+;    (define br infor)
+;    (send dc draw-arc (- br) (- br) (* 2 br) (* 2 br)
+;          (- (- pi/2) (* pi/2 batfrac)) (+ (- pi/2) (* pi/2 batfrac)))
+    
+    (send dc rotate (- (obj-r ship)))
+    (for ((p (in-list (ship-pods ship))))
+      (keep-transform dc
+        (send dc translate (* (pod-dist p) (cos (pod-angle p))) (* (pod-dist p) (sin (pod-angle p))))
+        (when (pod-facing p)
+          (send dc rotate (- (pod-facing p))))
+        (when ((pod-maxe p) . > . 0)
+          (send dc set-brush nocolor 'transparent)
+          (define height (+ 0.5 (* 1.0 (/ (pod-e p) (pod-maxe p)))))
+          (send dc set-pen (stoplight-color (pod-e p) (pod-maxe p)) height 'solid)
+          (define r 4.0)
+          (send dc draw-arc (- r) (- r) (* 2 r) (* 2 r) (- (/ pi 4)) (/ pi 4)))))))
+          
+
+
 (define (draw-pods dc ship rot stack send-commands canvas me)
-  (define size 2.0)
-  (define half (/ size 2))
   (define buttons '())
-  (for ((p (in-list (ship-pods ship))))
+  (for ((p (in-list (ship-pods ship)))
+        #:when (not (lounge? p)))
     (keep-transform dc
       (send dc translate (* (pod-dist p) (cos (pod-angle p))) (* (pod-dist p) (sin (pod-angle p))))
       (send dc rotate rot)  ; back out the ship rotation
@@ -275,29 +335,31 @@
       (define mypod (equal? (ob-id p) (ob-id (get-pod stack))))  ; the pod I'm in
       (when mypod
         (draw-my-pod dc stack rot))
-      
-      (send dc set-pen "white" (/ size 10.0) #;(/ 2 (dc-point-size dc)) 'solid)
-      (send dc set-brush "gray" 'solid)
-      (send dc draw-rectangle (- half) (- half) size size)
-      
-      (when ((pod-maxe p) . > . 0)
-        (send dc set-pen nocolor 1 'transparent)
-        (send dc set-brush (stoplight-color (pod-e p) (pod-maxe p)) 'solid)
-        (define height (* size (/ (pod-e p) (pod-maxe p))))
-        (send dc draw-rectangle (- half) (- half) half height))
-      
-      (cond
-        ((pod-player p)
-         ;(send dc draw-rectangle (- 5) (- 5) 10 10)
-         ;(send dc draw-text (pod-name p) (- 5) (- 5))
-         )
-        (else
-         (define-values (x y) (dc->canon canvas dc (- half) (- half)))
-         (define-values (x2 y2) (dc->canon canvas dc half half))
-         (define b (button 'normal #f x y (abs (- x2 x)) (abs (- y2 y)) 0 0 (pod-name p)
-                           (lambda (x y)
-                             (send-commands (chrole me (ob-id p))))))
-         (set! buttons (append buttons (list b)))))))
+
+      (define ptsize (dc-point-size dc))
+      (define size (* 3.0 (min 1.0 (max 0.0 (/ (- ptsize 1.0) 4.0)))))
+      (when (size . > . 0.5)
+        
+        (cond
+          ((pod-player p)
+           ;(send dc draw-rectangle (- 5) (- 5) 10 10)
+           ;(send dc draw-text (pod-name p) (- 5) (- 5))
+           )
+          ((hangar? p)
+           (define-values (x y) (dc->canon canvas dc (- size) (- size)))
+           (define-values (x2 y2) (dc->canon canvas dc size size))
+           (define b (button 'normal #f x y (abs (- x2 x)) (abs (- y2 y)) (pod-name p)
+                             (lambda (x y)
+                               (send-commands (chrole me (ob-id p))))))
+           (append! buttons (list b)))
+          (else
+           (define-values (cx cy) (dc->canon canvas dc 0 0))
+           (define-values (rx ry) (dc->canon canvas dc size 0))
+           ;(printf "drawing button at ~a ~a ~a\n" cx cy (abs (- rx cx)))
+           (define b (button 'normal #f cx cy (abs (- rx cx)) #f (pod-name p)
+                             (lambda (x y)
+                               (send-commands (chrole me (ob-id p))))))
+           (append! buttons (list b)))))))
 buttons)
 
 
@@ -307,7 +369,7 @@ buttons)
     (keep-transform dc
       ;(send dc translate (* (pod-dist p) (cos (pod-angle p))) (* (pod-dist p) (sin (pod-angle p))))
       (define line-size 50)
-      (send dc set-pen "red" (/ 1.5 (dc-point-size dc)) 'solid)
+      (send dc set-pen "darkred" (/ 1.0 (dc-point-size dc)) 'dot)
       (for ((a (in-list (list (+ rot (pod-facing p) (/ (pod-spread p) 2))
                               (+ rot (pod-facing p) (- (/ (pod-spread p) 2)))))))
         (send dc draw-line 0 0 (* line-size (cos a)) (* line-size (sin a)))))))
@@ -320,7 +382,7 @@ buttons)
                (not (= (ob-id ship) (ob-id s)))
                (will-dock? ship s))
       (send dc set-brush nocolor 'transparent)
-      (send dc set-pen "hotpink" 2.0 'solid)
+      (send dc set-pen "hotpink" (/ 1.5 (dc-point-size dc)) 'solid)
       (send dc draw-ellipse (- (obj-x s) 10) (- (obj-y s) 10) 20 20))))
 
 
@@ -379,21 +441,25 @@ buttons)
     ((steer? t)
      (void))
     ((fthrust? t)
-     (define b (button 'normal 'up 0 -300 60 30 5 5 (if (fthrust-on t) "Stop" "Go")
+     (define b (button 'normal #\w 0 -300 60 30 (if (fthrust-on t) "Stop [W]" "Go [W]")
                        (lambda (x y) (send-commands (command (ob-id t) (not (fthrust-on t)))))))
+     (when (not (ship-flying? (get-ship stack)))
+       (set-button-draw! b 'disabled))
      (set! buttons (append buttons (list b))))
     ((dock? t)
-     (define b (button 'normal #\d -100 -300 70 30 5 5 (if (dock-on t) "Docking..." "Dock")
+     (define b (button 'normal #\c -100 -300 70 30 (if (dock-on t) "Docking... [C]" "Dock [C]")
                        (lambda (x y) (send-commands (command (ob-id t) (not (dock-on t)))))))
+     (when (not (ship-flying? (get-ship stack)))
+       (set-button-draw! b 'disabled))
      (set! buttons (append buttons (list b)))
      (when (can-launch? stack)
-       (define b (button 'normal #\l -200 -300 70 30 5 5 "Launch"
+       (define b (button 'normal #\l -200 -300 70 30 "Launch [L]"
                          (lambda (x y) (send-commands (command (ob-id t) "launch")))))
        (set! buttons (append buttons (list b)))))
     ((pbolt? t)
      (define ship (get-ship stack))
      (define pod (get-pod stack))
-     (define b (button 'normal #\space (+ LEFT 40) (+ BOTTOM 10) 50 50 5 5 "Fire" #f))
+     (define b (button 'normal #\space (+ LEFT 40) (+ BOTTOM 10) 50 50 "Fire [_]" #f))
      (cond
        ((and (ship-flying? ship) ((pod-energy pod) . > . (pbolt-plasma-size t)))
         (define a (+ (obj-r ship) (pod-facing (get-pod stack))))
@@ -404,7 +470,7 @@ buttons)
     ((shbolt? t)
      (define ship (get-ship stack))
      (define pod (get-pod stack))
-     (define b (button 'normal #\space (+ LEFT 40) (+ BOTTOM 10) 50 50 5 5 "Shield" #f))
+     (define b (button 'normal #\space (+ LEFT 40) (+ BOTTOM 10) 50 50 "Shield [_]" #f))
      (cond
        ((and (ship-flying? ship) ((pod-energy pod) . > . (shbolt-shield-size t)))
         (define a (+ (obj-r ship) (pod-facing (get-pod stack))))

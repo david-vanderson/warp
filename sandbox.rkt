@@ -20,10 +20,37 @@
 
 ;(define f (make-ship "red-fighter" "Empire1" "Empire" #:start-ship? #t #:x 300 #:y 10))
 
+(define ai? #f)
+
+(define cruiser (make-ship "blue-cruiser" "z" "z" #:x -500 #:y -50))
+(set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
+                                ;power bat maxbat con maxcon radius mass thrust rthrust
+                                5.0 150.0 150.0 150.0 150.0 15.0 100.0 30.0 1.0 #t))
+(set-ship-pods!
+ cruiser
+ `(,(normal-lounge)
+   ,(normal-hangar pi 5.0 '())
+   ,(pod (next-id) "Pilot" #f #f 0.0 5.0 #f #f 100.0 100.0
+         (list (steer (next-id) '() pi/2) (fthrust (next-id) '() #f) (dock (next-id) '() #f)))
+   ,(pod (next-id) "W" #f ai? (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.8 pi) 60.0 60.0
+         (list (pbolt (next-id) '() 5.0)))
+   ,(pod (next-id) "W" #f ai? (degrees->radians 45.0) 12.0 (degrees->radians 30.0) (* 0.4 pi) 40.0 40.0
+         (list (pbolt (next-id) '() 20.0)))
+   ,(pod (next-id) "W" #f ai? (degrees->radians 270.0) 10.0 (degrees->radians 285.0) (* 0.8 pi) 60.0 60.0
+         (list (pbolt (next-id) '() 5.0)))
+   ,(pod (next-id) "W" #f ai? (degrees->radians 315.0) 12.0 (degrees->radians 330.0) (* 0.4 pi) 40.0 40.0
+         (list (pbolt (next-id) '() 20.0)))
+   ,(pod (next-id) "T" #f ai? (degrees->radians 0.0) 15.0 (degrees->radians 0.0) (* 0.8 pi) 50.0 50.0
+         (list (shbolt (next-id) '() 5.0)))
+   ,(pod (next-id) "T" #f ai? (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0
+         (list (shbolt (next-id) '() 20.0)))))
+
 (define ownspace
   (space
    0 10000 10000
    (list
+
+    cruiser
     
     ;(make-ship "blue-fighter" "Blue 6" "Rebel" #:x 500 #:y 0 #:r 0 #:start-ship? #t)
     #;(make-ship "blue-frigate" "Blue Frigate" "Rebel" #:x 400 #:y 0 #:r 0 #:start-ship? #t #:npc? #t

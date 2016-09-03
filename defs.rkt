@@ -225,15 +225,15 @@
 
 ;; UI
 
-(struct button (draw key x y width height left-inset top-inset label f) #:mutable #:prefab)
+(struct button (draw key x y width height label f) #:mutable #:prefab)
 ; draw is:
 ;  'normal - draw button and respond to clicks
 ;  'disabled - draw button disabled and no clicks
 ;  'hidden-text - draw only text and respond to clicks
 ;  'hidden - draw nothing, respond to clicks
 ; key is the hotkey for this button
-; x y width height are 0,0 bottom left corner 1,1 top right
-; name is used internally
+; x y is bottom left corner
+; if height is #f, then x y is center of circle with radius width
 ; label is what is written on the button
 ; f is function to call when the button is clicked or key pressed
 ;  - takes two args x y of where in the button the click was or <key-code> #f if key pressed

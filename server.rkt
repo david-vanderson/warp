@@ -181,9 +181,14 @@
 
 ; return a list of changes
 (define (dock! s1 s2)
+  (define changes '())
   (define hangar (ship-hangar s2))
+  (append! changes (list (chmov (ob-id s1) #f (ob-id hangar) #f)))
   (define d (find-id s1 dock? #f))
-  (list (chmov (ob-id s1) #f (ob-id hangar) #f) (command (ob-id d) #f)))
+  (append! changes (list (command (ob-id d) #f)))
+  (define f (find-id s1 fthrust? #f))
+  (when f (append! changes (list (command (ob-id f) #f))))
+  changes)
 
 (define (pickup! ship suit)
   (define rc (chrole (car (lounge-crew (ship-lounge suit))) (ob-id (ship-lounge ship))))
