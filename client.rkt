@@ -10,7 +10,8 @@
          "pilot.rkt"
          "weapons.rkt"
          "effect.rkt"
-         "ships.rkt")
+         "ships.rkt"
+         "plasma.rkt")
 
 (provide start-client)
 
@@ -107,6 +108,7 @@
     (keep-transform dc
       ; make sure whole screen is black
       (send dc set-clipping-region #f)
+      (send dc set-background (linear-color "black" "white" 0.1 1.0))
       (send dc clear)
 
       ; scale to canon
@@ -115,9 +117,6 @@
       (send dc scale scale (- scale))
       ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
       ; must reverse y axis when drawing text
-
-      ; clip to canon
-      (send dc set-clipping-rect LEFT BOTTOM WIDTH HEIGHT)
       
       ; reset alpha in case a damage effect changed it last frame
       (send dc set-alpha 1.0)
@@ -159,15 +158,35 @@
          (draw-buttons dc buttons))
         
         (my-stack
+         (define oldclip (send dc get-clipping-region))
          (keep-transform dc
            (define z (get-scale))
            (send dc scale z z)
            (define center (get-center my-stack))  ; includes pod
            (define shipcenter (get-topship my-stack))  ; only the ship
            (send dc translate (- (obj-x center)) (- (obj-y center)))
-           
-           (draw-background-stars dc center z)
+
+           ; make fog of war region
+           (define fow (new region% (dc dc)))
+           (define r (ship-radar shipcenter))
+           (send fow set-ellipse (- (obj-x shipcenter) r) (- (obj-y shipcenter) r) (* 2 r) (* 2 r))
+           (for ((s (in-list (space-objects ownspace)))
+                 #:when (and (ship? s) (equal? (ship-faction s) (ship-faction (get-ship my-stack)))))
+             (define rad (ship-radar s))
+             (define reg (new region% (dc dc)))
+             (send reg set-ellipse (- (obj-x s) rad) (- (obj-y s) rad) (* 2 rad) (* 2 rad))
+             (send fow union reg))
+
+           (send dc set-clipping-region fow)
+           (send dc set-background "black")
+           (send dc clear)
+
+           ; sector lines draw regardless of fow
+           (send dc set-clipping-region #f)
            (draw-sector-lines dc ownspace)
+           
+           (send dc set-clipping-region fow)
+           (draw-background-stars dc center z)
            (draw-objects dc ownspace)
 
            (keep-transform dc
@@ -202,6 +221,7 @@
            )
 
          ; now we are back to the canon transform
+         (send dc set-clipping-region #f)
 
          (when (hangar? (get-pod my-stack))
            ; draw hangar background
@@ -410,7 +430,9 @@
          (parent frame)
          (paint-callback draw-screen)
          (style '(no-autoclear))))
-  
+
+  (load-ships)
+  (load-plasma)
   
   (send frame show #t)
   

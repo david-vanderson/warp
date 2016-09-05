@@ -13,8 +13,10 @@
 (define PLASMA_LIFE 3000)  ; ms after which plasma starts fading
 (define PLASMA_FADE 2.0)  ; energy loss per second after PLASMA_LIFE
 
-(define plasma-bitmap (make-bitmap 1 1))
-(send plasma-bitmap load-file (string-append "images/" "plasma" ".png") 'png/alpha)
+(define plasma-bitmap #f)
+
+(define (load-plasma)
+  (set! plasma-bitmap (load-bitmap "plasma")))
 
 
 (define (plasma-energy space p)

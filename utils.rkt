@@ -2,7 +2,9 @@
 
 (require racket/function
          racket/math
-         racket/port)
+         racket/port
+         racket/draw
+         racket/class)
 
 (require "defs.rkt")
 
@@ -13,6 +15,9 @@
 
 (define (copy s)
   (read (open-input-string (with-output-to-string (lambda () (write s))))))
+
+(define (load-bitmap name)
+  (read-bitmap (string-append "images/" name ".png")))
 
 (define (obj-age space o)
   (- (space-time space) (obj-start-time o)))

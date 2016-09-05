@@ -72,7 +72,8 @@
         (("power") (set-stats-power! newstats (* 1.1 (stats-power newstats))) "reactor")
         (("thrust") (set-stats-thrust! newstats (* 1.1 (stats-thrust newstats))) "engines")
         (("bat") (set-stats-maxbat! newstats (* 1.1 (stats-maxbat newstats))) "reserve")
-        (("con") (set-stats-maxcon! newstats (* 1.1 (stats-maxcon newstats))) "hull")))
+        (("con") (set-stats-maxcon! newstats (* 1.1 (stats-maxcon newstats))) "hull")
+        (("radar") (set-stats-radar! newstats (* 1.1 (stats-radar newstats))) "radar")))
     (define m (message (next-id) (space-time space) #f (format "~a upgraded ~a" (ship-name ship) which)))
     
     (append! changes (list (chstats (ob-id ship) newstats) m (chrm (ob-id u)))))

@@ -16,20 +16,19 @@
   (hash-ref shipshash type))
 
 (define (load-ship type)
-  (define b (make-bitmap 1 1))
-  (send b load-file (string-append "images/" type ".png") 'png/alpha)
-  (hash-set! shipshash type b))
+  (hash-set! shipshash type (load-bitmap type)))
 
-(load-ship "space-suit")
-
-(load-ship "blue-station")
-(load-ship "red-station")
-(load-ship "blue-frigate")
-(load-ship "red-frigate")
-(load-ship "blue-fighter")
-(load-ship "red-fighter")
-(load-ship "red-destroyer")
-(load-ship "blue-cruiser")
+(define (load-ships)
+  (load-ship "space-suit")
+  (load-ship "blue-station")
+  (load-ship "red-station")
+  (load-ship "blue-frigate")
+  (load-ship "red-frigate")
+  (load-ship "blue-fighter")
+  (load-ship "red-fighter")
+  (load-ship "red-destroyer")
+  (load-ship "blue-cruiser")
+  )
 
 
 (define (normal-lounge)
@@ -75,13 +74,13 @@
   
   (case type
     (("space-suit")
-     ;type name faction power bat maxbat con maxcon radius mass thrust rthrust
-     (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 1.0 1.0 5.0 1.0 0.0 0.0 start-ship?))
+     ;type name faction power bat maxbat con maxcon radius mass thrust rthrust radar start?
+     (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 1.0 1.0 5.0 1.0 0.0 0.0 200.0 start-ship?))
      (set-ship-pods! s (list (lounge (next-id) "Lounge" #f #f 0.0 0.0 #f #f 0.0 0.0 '() '()))))
     (("blue-station" "red-station")
      (define mb 500.0)
      (define mc 500.0)
-     (set-ship-stats! s (stats (next-id) type name faction 10.0 mb mb mc mc 26.0 1000.0 50.0 0.4 start-ship?))
+     (set-ship-stats! s (stats (next-id) type name faction 10.0 mb mb mc mc 26.0 1000.0 50.0 0.4 200.0 start-ship?))
      (set-ship-pods!
       s `(,(normal-lounge)
           ,(normal-hangar pi 13.0 in-hangar)
@@ -98,7 +97,7 @@
     (("blue-frigate" "red-frigate")
      (set-ship-stats! s (stats (next-id) type name faction
                                ;power bat maxbat con maxcon radius mass thrust rthrust
-                               5.0 50.0 50.0 100.0 100.0 18.0 100.0 20.0 0.3 start-ship?))
+                               5.0 50.0 50.0 100.0 100.0 18.0 100.0 20.0 0.3 250.0 start-ship?))
      (set-ship-pods!
       s `(,(normal-lounge)
           ,(normal-hangar pi 10.0 in-hangar)
@@ -112,7 +111,7 @@
                 (list (pbolt (next-id) '() 10.0))))))
     (("blue-fighter" "red-fighter")
      (define mb 100.0)
-     (set-ship-stats! s (stats (next-id) type name faction 1.0 mb mb 50.0 50.0 6.0 20.0 40.0 1.0 start-ship?))
+     (set-ship-stats! s (stats (next-id) type name faction 1.0 mb mb 50.0 50.0 6.0 20.0 40.0 1.0 300.0 start-ship?))
      (set-ship-pods!
       s `(,(normal-lounge)
           ,(pod (next-id) "Pilot" #f (and npc? npc-helm?) 0.0 5.0 0.0 (/ pi 6) 100.0 100.0

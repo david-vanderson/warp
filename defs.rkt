@@ -99,7 +99,7 @@
 (struct shbolt tool (shield-size) #:mutable #:prefab)
 ; shield-size is how big of a shield we shoot
 
-(struct stats ob (type name faction power bat maxbat con maxcon radius mass thrust rthrust start) #:mutable #:prefab)
+(struct stats ob (type name faction power bat maxbat con maxcon radius mass thrust rthrust radar start) #:mutable #:prefab)
 ; carries all the stats for a ship
 ; name is the name of the ship
 ; faction is the name that this ship belongs to
@@ -110,6 +110,7 @@
 ; mass controls how you bump into other ships
 ; thrust is how much force your main engines produce
 ; rthrust is how much force your turning engines produce
+; radar is fog of war radius for this ship
 ; start is if you can start on this ship
 
 (struct ship obj (stats pods ai-strategy dmgfx cargo) #:mutable #:prefab)
@@ -129,6 +130,7 @@
 (define (ship-radius s) (stats-radius (ship-stats s)))
 (define (ship-mass s) (stats-mass (ship-stats s)))
 (define (ship-strategy s) (if (null? (ship-ai-strategy s)) #f (car (ship-ai-strategy s))))
+(define (ship-radar s) (stats-radar (ship-stats s)))
 (define (ship-start s) (stats-start (ship-stats s)))
 
 (struct spacesuit ship () #:mutable #:prefab)
