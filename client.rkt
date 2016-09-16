@@ -32,6 +32,14 @@
   (define buttons #f)
   (define frames '())  ; list of last few frame times
   (define last-update-time #f)
+
+  (define center-follow? #t)  ; show our position in the center?
+
+  ; when (not center-follow?)
+  (define centerxy (obj #f #f (posvel #f 0 0 #f #f #f #f)))  ; center of the screen
+  (define dragxypx '(0 . 0))  ; last xy of drag in pixels
+  (define dragstate "none")  ; "none", "start", "drag"
+  
   (define scale-play 1.0)  ; scale when we are in a normal pod
   (define scale-ship 10.0)  ; scale when we are in a lounge/hangar
   (define (scale-ship?)
@@ -159,12 +167,21 @@
         
         (my-stack
          (define oldclip (send dc get-clipping-region))
+         (define mypos (get-center my-stack))
+         (define center (if center-follow?
+                              mypos  ; includes pod
+                              centerxy))
+         (define z (get-scale))
+         
          (keep-transform dc
-           (define z (get-scale))
-           (send dc scale z z)
-           (define center (get-center my-stack))  ; includes pod
-           (define shipcenter (get-topship my-stack))  ; only the ship
+           (send dc scale z z)  
            (send dc translate (- (obj-x center)) (- (obj-y center)))
+           (when center-follow?
+             ; record the center so we start from there if center-follow? becomes #f
+             (set-posvel-x! (obj-posvel centerxy) (obj-x center))
+             (set-posvel-y! (obj-posvel centerxy) (obj-y center)))
+
+           (define shipcenter (get-topship my-stack))  ; only the ship
 
            ; make fog of war region
            (define fow (new region% (dc dc)))
@@ -288,27 +305,31 @@
            (define bs (draw-tool-ui dc t my-stack send-commands))
            (set! buttons (append buttons bs)))
                   
-         (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50 "Exit"
-           (lambda (x y)
-             (define p (get-pod my-stack))
-             (define newid
-               (cond
-                 ((and (lounge? p) (spacesuit? (get-ship my-stack)))
-                  ; dying
-                  #f
-                  )
-                 ((and (lounge? p) (ship-flying? (get-ship my-stack)))
-                  ; jumping ship
-                  "spacesuit"
-                  )
-                 ((lounge? p)
-                  ; leaving this ship into mothership hangar
-                  (define ms (cadr (get-ships my-stack)))
-                  (ob-id (ship-hangar ms)))
-                 (else
-                  ; move to lounge
-                  (ob-id (ship-lounge (get-ship my-stack))))))
-             (send-commands (chrole me newid)))))
+         (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50
+                                      (if center-follow? "Exit" "Back")
+           (if (not center-follow?)
+               (lambda (x y)
+                 (set! center-follow? #t))
+               (lambda (x y)
+                 (define p (get-pod my-stack))
+                 (define newid
+                   (cond
+                     ((and (lounge? p) (spacesuit? (get-ship my-stack)))
+                      ; dying
+                      #f
+                      )
+                     ((and (lounge? p) (ship-flying? (get-ship my-stack)))
+                      ; jumping ship
+                      "spacesuit"
+                      )
+                     ((lounge? p)
+                      ; leaving this ship into mothership hangar
+                      (define ms (cadr (get-ships my-stack)))
+                      (ob-id (ship-hangar ms)))
+                     (else
+                      ; move to lounge
+                      (ob-id (ship-lounge (get-ship my-stack))))))
+                 (send-commands (chrole me newid))))))
          (set! buttons (append buttons (list leave-button)))
          (draw-buttons dc buttons)
 
@@ -326,7 +347,9 @@
                (keep-transform dc
                  (send dc set-pen "blue" (/ 1.5 (dc-point-size dc)) 'solid)
                  (send dc translate mx my)
-                 (send dc rotate (- (atan0 my mx)))
+                 (define dx (- (+ (obj-x center) (/ mx z)) (obj-x mypos)))
+                 (define dy (- (+ (obj-y center) (/ my z)) (obj-y mypos)))
+                 (send dc rotate (- (atan0 dy dx)))
                  (send dc draw-lines '((0 . 0) (-15 . -5) (-15 . 5) (0 . 0)))))))
 
          (cond (drawn (send canvas set-cursor (make-object cursor% 'blank)))
@@ -374,12 +397,36 @@
 ;            nr))))
   changes)
   
+  
   (define my-canvas%
     (class canvas%
       (super-new)
       (define/override (on-event event)
-        (when (send event button-down? 'left)
-          (click this event)))
+        (case (send event get-event-type)
+          ((left-down)
+           (click this event))
+          ((right-down)
+           (set! dragstate "start")
+           (set! dragxypx (cons (send event get-x) (send event get-y))))
+          ((motion)
+           (when (and (send event dragging?) (send event get-right-down))
+             (when (or (and (equal? dragstate "start")
+                            (or ((abs (- (send event get-x) (car dragxypx))) . > . 3)
+                                ((abs (- (send event get-y) (cdr dragxypx))) . > . 3)))
+                       (equal? dragstate "drag"))
+               (set! dragstate "drag")
+               (set! center-follow? #f)
+               (define scale (* (get-scale) (min (/ (send this get-width) WIDTH)
+                                                 (/ (send this get-height) HEIGHT))))
+               (define dx (/ (- (send event get-x) (car dragxypx)) scale))
+               (define dy (/ (- (send event get-y) (cdr dragxypx)) scale))
+               (set-posvel-x! (obj-posvel centerxy) (- (obj-x centerxy) dx))
+               (set-posvel-y! (obj-posvel centerxy) (+ (obj-y centerxy) dy))
+               
+               (set! dragxypx (cons (send event get-x) (send event get-y))))))
+          ((right-up)
+           (set! dragstate "none"))
+          ))
       (define/override (on-char event)
         (define kc (send event get-key-code))
         ;(displayln (~v kc))
