@@ -43,6 +43,11 @@
   (screen->canon canvas sx sy))
 
 
+(define (space->canon center zoom x y)
+  (values (* zoom (- x (obj-x center)))
+          (* zoom (- y (obj-y center)))))
+
+
 ; only works with an unrotated dc transform
 (define (dc-point-size dc)
   (define m (send dc get-initial-matrix))

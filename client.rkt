@@ -33,7 +33,8 @@
   (define frames '())  ; list of last few frame times
   (define last-update-time #f)
 
-  (define center-follow? #t)  ; show our position in the center?
+  (define center #f)  ; updated each frame for the click handler
+  (define center-follow? #t)  ; show player position in the center?
 
   ; when (not center-follow?)
   (define centerxy (obj #f #f (posvel #f 0 0 #f #f #f #f)))  ; center of the screen
@@ -96,10 +97,12 @@
        (when (not (equal? (button-draw b) 'disabled))
          ((button-f b) (- x (button-x b)) (- y (button-y b)))))
       (my-stack
+       (define mypos (get-center my-stack))
+       (define-values (cx cy) (space->canon center (get-scale) (obj-x mypos) (obj-y mypos)))
        (define p (get-pod my-stack))
        (for ((t (in-list (pod-tools p))))
          (cond ((and (steer? t) (ship-flying? (get-ship my-stack)))
-                (send-commands (command (ob-id t) (angle-norm (atan0 y x))))))))))
+                (send-commands (command (ob-id t) (angle-norm (atan0 (- y cy) (- x cx)))))))))))
   
   
   (define (draw-screen canvas dc)
@@ -114,7 +117,7 @@
     ;                          12 'default 'normal 'normal #f 'smoothed #f 'aligned))
     
     (keep-transform dc
-      ; make sure whole screen is black
+      ; make sure whole screen is fog of war gray
       (send dc set-clipping-region #f)
       (send dc set-background (linear-color "black" "white" 0.1 1.0))
       (send dc clear)
@@ -168,9 +171,9 @@
         (my-stack
          (define oldclip (send dc get-clipping-region))
          (define mypos (get-center my-stack))
-         (define center (if center-follow?
-                              mypos  ; includes pod
-                              centerxy))
+         (set! center (if center-follow?
+                          mypos  ; includes pod
+                          centerxy))
          (define z (get-scale))
          
          (keep-transform dc
@@ -269,6 +272,8 @@
             
          
          ; draw game UI
+
+         ; zoom scale
          (define zw 20)
          (define zh 150)
          (define zx (- RIGHT 10 zw))
