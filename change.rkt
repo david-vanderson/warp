@@ -6,7 +6,7 @@
          "utils.rkt"
          "ships.rkt"
          "pilot.rkt"
-         "weapons.rkt"
+         "pbolt.rkt"
          "physics.rkt")
 
 (provide (all-defined-out))
@@ -87,7 +87,12 @@
      (define s (find-stack space (command-id c)))
      (define o (if s (car s) #f))
      (cond
-       ((and o (or (dock? o) (steer? o) (fthrust? o) (pbolt? o) (shbolt? o)))
+       ((and o (dmg? o))
+        (set-dmg-fixing?! o (command-cmd c))
+        (values #t '()))
+       ((and o (pbolt? o))
+        (change-pbolt! (command-cmd c) space s who))
+       ((and o (or (dock? o) (steer? o) (fthrust? o) (shbolt? o)))
         (change-pilot-tool! (command-cmd c) space s who))
        ((and o (pod? o) (equal? (command-cmd c) "npc-off"))
         (set-pod-npc?! o #f)
@@ -155,17 +160,24 @@
         (values #f '()))))
     ((chadd? c)
      ;(printf "~a adding ~v\n" who (chadd-o c))
-     (while (and (ctime . < . (space-time space)) (obj-posvel (chadd-o c)))
-       ;(printf "~a ticking forward ~v\n" who (chadd-o c))
-       (update-physics! space (chadd-o c) (/ TICK 1000.0))
-       (set! ctime (+ ctime TICK)))
-     (movein space (chadd-o c) (chadd-to c))
-     (values #t '()))
+     (cond
+       ((dmg? (chadd-o c))
+        (define tool (find-id space (chadd-to c)))
+        (cond (tool
+               (set-tool-dmgs! tool (cons (chadd-o c) (tool-dmgs tool))))
+              (else
+               (printf "~a chadd - couldn't find tool id ~a\n" who (chadd-to c))))
+        (values #t '()))
+       (else
+        (while (and (ctime . < . (space-time space)) (obj-posvel (chadd-o c)))
+               ;(printf "~a ticking forward ~v\n" who (chadd-o c))
+               (update-physics! space (chadd-o c) (/ TICK 1000.0))
+               (set! ctime (+ ctime TICK)))
+        (movein space (chadd-o c) (chadd-to c))
+        (values #t '()))))
     ((chrm? c)
      ;(printf "~a removing ~v\n" who (find-id space (chrm-id c)))
-     (set-space-objects! space
-                         (filter-not (lambda (o) (equal? (ob-id o) (chrm-id c)))
-                                     (space-objects space)))
+     (set-space-objects! space (remove-id (chrm-id c) (space-objects space)))
      (values #t '()))
     ((chdam? c)
      (define o (find-id space (chdam-id c)))
@@ -173,13 +185,6 @@
             (values #t (damage-object! space o (chdam-damage c))))
            (else
             (printf "~a chdam - couldn't find obj id ~a\n" who (chdam-id c))
-            (values #t '()))))
-    ((adddmg? c)
-     (define p (find-id space (adddmg-id c)))
-     (cond (p
-            (values #t (add-dmg! space p (adddmg-dmg c))))
-           (else
-            (printf "~a adddmg - couldn't find obj id ~a\n" who (adddmg-id c))
             (values #t '()))))
     ((chmov? c)
      (define o (find-id space (chmov-id c)))

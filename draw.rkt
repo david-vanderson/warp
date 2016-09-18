@@ -12,6 +12,7 @@
          "shield.rkt"
          "effect.rkt"
          "ships.rkt"
+         "pbolt.rkt"
          "upgrade.rkt")
 
 (provide (all-defined-out))
@@ -247,7 +248,7 @@
         (else "green")))
 
 
-(define (draw-buttons dc buttons)
+(define (draw-buttons dc buttons time)
   (for ((b (in-list buttons))
         #:when (not (equal? (button-draw b) 'hidden)))
     (keep-transform dc
@@ -272,6 +273,22 @@
       (define-values (tw th td ta) (send dc get-text-extent (button-label b)))
       
       (cond
+        ((dmgbutton? b)
+         (define col (if (dmgbutton-fixing? b) "red"
+                         (if (time-toggle time 1000) "red" "darkred")))
+         (define transcol (linear-color col "black" 0.2 1.0))
+         (send dc set-brush transcol 'solid)
+         (send dc set-pen col 1 'solid)
+         (send dc draw-rectangle x y w h)
+
+         (send dc set-brush col 'solid)
+         (send dc draw-rectangle x y w (* h (dmgbutton-frac b)))
+         
+         (send dc set-text-foreground "black")
+         (send dc set-clipping-rect x y w h)
+         (draw-text dc (button-label b)
+                    (+ x (/ w 2.0) (- (/ tw 2.0)))
+                    (+ y (/ h 2.0) (/ th 2.0))))
         (h
          (send dc draw-rectangle x y w h)
          (send dc set-clipping-rect x y w h)
@@ -315,7 +332,18 @@
           (define height (+ 0.5 (* 1.0 (/ (pod-e p) (pod-maxe p)))))
           (send dc set-pen (stoplight-color (pod-e p) (pod-maxe p)) height 'solid)
           (define r 4.0)
-          (send dc draw-arc (- r) (- r) (* 2 r) (* 2 r) (- (/ pi 4)) (/ pi 4)))))))
+          (send dc draw-arc (- r) (- r) (* 2 r) (* 2 r) (- (/ pi 4)) (/ pi 4)))
+        (define ndmgs (length (search p dmg? #t #f)))
+        (when (ndmgs . > . 0)
+          (send dc set-pen "red" 2 'solid)
+          (define r 5.0)
+          (define da (degrees->radians 30.0))
+          (define a (- (* (- ndmgs 1) (/ da 2.0))))
+          (send dc rotate a)
+          (for ((i ndmgs))
+            (send dc draw-point r 0)
+            (send dc rotate da)))
+        ))))
           
 
 
@@ -433,8 +461,8 @@ buttons)
 (define (draw-tool-ui dc t stack send-commands)
   (define buttons '())
   (cond
-    ((steer? t)
-     (void))
+    ((steer? t) (void))
+    ((pbolt? t) (append! buttons (draw-pbolt-ui! dc t stack send-commands)))
     ((fthrust? t)
      (define b (button 'normal #\w 0 -300 60 30 (if (fthrust-on t) "Stop [W]" "Go [W]")
                        (lambda (x y) (send-commands (command (ob-id t) (not (fthrust-on t)))))))
@@ -451,17 +479,7 @@ buttons)
        (define b (button 'normal #\l -200 -300 70 30 "Launch [L]"
                          (lambda (x y) (send-commands (command (ob-id t) "launch")))))
        (set! buttons (append buttons (list b)))))
-    ((pbolt? t)
-     (define ship (get-ship stack))
-     (define pod (get-pod stack))
-     (define b (button 'normal #\space (+ LEFT 40) (+ BOTTOM 10) 50 50 "Fire [_]" #f))
-     (cond
-       ((and (ship-flying? ship) ((pod-energy pod) . > . (pbolt-plasma-size t)))
-        (define a (+ (obj-r ship) (pod-facing (get-pod stack))))
-        (set-button-f! b (lambda (x y) (send-commands (command (ob-id t) a)))))
-       (else
-        (set-button-draw! b 'disabled)))
-     (set! buttons (append buttons (list b))))
+    
     ((shbolt? t)
      (define ship (get-ship stack))
      (define pod (get-pod stack))

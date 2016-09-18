@@ -292,28 +292,6 @@
     ((fthrust? tool)
      (set-fthrust-on! tool cmd)
      (values #t '()))
-    ((pbolt? tool)
-     (define a cmd)  ; cmd is angle to fire
-     (define ship (get-ship stack))
-     (define pod (get-pod stack))
-     (cond
-       ((not (ship-flying? ship))
-        (printf "~a discarding message (not flying) ~v\n" who cmd)
-        (values #f '()))
-       ((not ((pod-energy pod) . > . (pbolt-plasma-size tool)))
-        (printf "~a discarding message (not enough energy) ~v\n" who cmd)
-        (values #f '()))
-       (else
-        (define po (pod-obj pod ship))
-        
-        (define plas (plasma (next-id) (space-time space)
-                             (posvel (space-time space) (obj-x po) (obj-y po) (obj-r po)
-                                     (+ (* PLASMA_SPEED (cos a)) (posvel-dx (obj-posvel po)))
-                                     (+ (* PLASMA_SPEED (sin a)) (posvel-dy (obj-posvel po)))
-                                     0)
-                             (pbolt-plasma-size tool) (ob-id ship)))
-        
-        (values #f (list (chadd plas #f) (cherg (ob-id pod) (- (pbolt-plasma-size tool))))))))
     ((shbolt? tool)
      (define a cmd)  ; cmd is angle to fire
      (define ship (get-ship stack))

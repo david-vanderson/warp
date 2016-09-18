@@ -13,6 +13,10 @@
 (define-syntax-rule (append! lst e ...)
   (set! lst (append lst e ...)))
 
+(define (remove-id id list)
+  (filter (lambda (o) (not (equal? (ob-id o) id)))
+          list))
+
 (define (copy s)
   (read (open-input-string (with-output-to-string (lambda () (write s))))))
 
@@ -24,6 +28,9 @@
 
 (define (time-for age repeat (offset 0))
   (<= (+ 1 offset) (modulo age repeat) (+ offset TICK)))
+
+(define (time-toggle age repeat (div 2) (offset 0))
+  (<= (modulo (+ age offset) repeat) (/ repeat div)))
 
 (define (strategy-age space s)
   (- (space-time space) (strategy-t s)))

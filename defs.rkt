@@ -161,7 +161,7 @@
 ; type is a string that tells us how to show this
 ; size is an int that says how big to show this
 
-(struct dmg ob (type size energy fixing) #:mutable #:prefab)
+(struct dmg ob (type size energy fixing?) #:mutable #:prefab)
 ; dmg details how a part of a pod is damaged
 ; type is a string that says what is damaged and how
 ; size is amount of energy needed to fix
@@ -202,10 +202,6 @@
 ; id is of the object that is being damaged
 ; damage is the amount
 
-(struct adddmg (id dmg) #:mutable #:prefab)
-; id is of the pod that is being damaged
-; dmg is a dmg struct to add to that pod
-
 (struct cherg (id e) #:mutable #:prefab)
 ; id is of the pod whose energy is being changed
 ; e is the additional energy (usually negative)
@@ -240,3 +236,6 @@
 ; f is function to call when the button is clicked or key pressed
 ;  - takes two args x y of where in the button the click was or <key-code> #f if key pressed
 
+(struct dmgbutton button (frac fixing?) #:mutable #:prefab)
+; frac is percentage fixed
+; fixing? is #t if this is being fixed

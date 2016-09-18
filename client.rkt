@@ -9,6 +9,7 @@
          "draw-intro.rkt"
          "pilot.rkt"
          "weapons.rkt"
+         "pbolt.rkt"
          "effect.rkt"
          "ships.rkt"
          "plasma.rkt")
@@ -166,7 +167,7 @@
                                (send-commands (chrole me (ob-id (ship-lounge (get-ship s))))))))
            (set! buttons (append buttons ( list b))))
          
-         (draw-buttons dc buttons))
+         (draw-buttons dc buttons (space-time ownspace)))
         
         (my-stack
          (define oldclip (send dc get-clipping-region))
@@ -336,7 +337,7 @@
                       (ob-id (ship-lounge (get-ship my-stack))))))
                  (send-commands (chrole me newid))))))
          (set! buttons (append buttons (list leave-button)))
-         (draw-buttons dc buttons)
+         (draw-buttons dc buttons (space-time ownspace))
 
          ; draw mouse cursor
          (define-values (p mods) (get-current-mouse-state))
@@ -446,16 +447,18 @@
               (printf "hello\n"))
              ((#\d)
               (when ownspace
-                (send-commands
-                 (for/list ((s (in-list (space-objects ownspace)))
-                            #:when (spaceship? s))
-                   (chdam (ob-id s) 10))))
-                  
-                ;(define r (get-role my-stack))
-                ;(define p (get-pod my-stack))
-                ;(when (pilot? r)
-                  ;(send-commands (dmg-for-pod-role p r)))
-                )
+                (define cmds '())
+                (for ((s (in-list (space-objects ownspace)))
+                      #:when (spaceship? s))
+                  (append! cmds (list (chdam (ob-id s) 10))))
+
+                (when my-stack
+                  (define p (get-pod my-stack))
+                  (define pbolt (findf pbolt? (pod-tools p)))
+                  (when pbolt
+                    (append! cmds (pbolt-dmg! pbolt))))
+                
+                (send-commands cmds)))
              ((#\m)
               (when ownspace
                 (send-commands (message (next-id) (space-time ownspace) #f

@@ -11,6 +11,7 @@
          "physics.rkt"
          "pilot.rkt"
          "weapons.rkt"
+         "pbolt.rkt"
          "plasma.rkt"
          "shield.rkt"
          "ships.rkt"

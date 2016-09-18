@@ -20,7 +20,7 @@
 
 ;(define f (make-ship "red-fighter" "Empire1" "Empire" #:start-ship? #t #:x 300 #:y 10))
 
-(define ai? #f)
+(define ai? #t)
 
 (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -500 #:y -50))
 (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"

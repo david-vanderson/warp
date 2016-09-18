@@ -186,6 +186,7 @@
   (define batpow (* 20.0 dt))  ; how much e can flow out of reserve
   (define repairpow (* 10.0 dt))  ; how much e can go to repair each ship
   (define repairratio 0.5)  ; how many hp you get for each e
+  (define fixpow (* 1.0 dt))  ; how much e can go to each fixing dmg
   
   ; remove energy for stateful things
   (when (ship-flying? ship)
@@ -199,6 +200,19 @@
     (when (and sp ((pod-energy sp) . > . 0.0) (not (= (steer-course (car sstack))
                                                       (posvel-r (obj-posvel ship)))))
       (set-pod-energy! sp (- (pod-energy sp) (* 2.0 dt)))))
+
+  ; remove energy for fixing stuff
+  (define dstacks (search ship dmg? #t #f))
+  (for ((ds (in-list dstacks))
+        #:when (dmg-fixing? (car ds)))
+    (define d (car ds))
+    (define tool (cadr ds))
+    (define p (get-pod ds))
+    (when ((pod-energy p) . > . 0.0)
+      (set-pod-energy! p (- (pod-energy p) fixpow))
+      (set-dmg-energy! d (+ (dmg-energy d) fixpow))
+      (when ((dmg-energy d) . >= . (dmg-size d))
+        (set-tool-dmgs! tool (remove-id (ob-id d) (tool-dmgs tool))))))
   
   ; take out battery energy
   (define bate (min batpow (ship-bat ship)))
