@@ -69,3 +69,20 @@
               (inexact->exact (floor (+ (* nz (send a green)) (* z (send b green)))))
               (inexact->exact (floor (+ (* nz (send a blue))  (* z (send b blue)))))
               alpha))
+
+
+(define (add-offline-button! tool b send-commands)
+  (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs tool)))
+  (cond
+    (offline
+     (set-button-draw! b 'dmg)
+     (dmgbutton 'normal #f
+                (button-x b) (+ (button-y b) (button-height b))
+                (button-width b) (button-height b)
+     "Offline"
+     (lambda (x y) (send-commands (command (ob-id offline)
+                                           (not (dmg-fixing? offline)))))
+     (/ (dmg-energy offline) (dmg-size offline)) (dmg-fixing? offline)))
+    (else
+     #f)))
+

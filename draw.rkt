@@ -470,21 +470,13 @@ buttons)
     ((steer? t) (void))
     ((pbolt? t) (append! buttons (draw-pbolt-ui! dc t stack send-commands)))
     ((fthrust? t)
-     (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))
-     (when offline
-       (define ob (dmgbutton 'normal #f 0 -270 60 30 "Offline"
-                             (lambda (x y) (send-commands (command (ob-id offline)
-                                                                   (not (dmg-fixing? offline)))))
-                             (/ (dmg-energy offline) (dmg-size offline)) (dmg-fixing? offline)))
-       (append! buttons (list ob)))
      (define b (button 'normal #\w 0 -300 60 30 (if (fthrust-on t) "Stop [W]" "Go [W]")
                        (lambda (x y) (send-commands (command (ob-id t) (not (fthrust-on t)))))))
      (when (not (ship-flying? (get-ship stack)))
        (set-button-draw! b 'disabled))
-     (when offline
-       (set-button-draw! b 'dmg))
-     (append! buttons (list b)))
-
+     (append! buttons (list b))
+     (define ob (add-offline-button! t b send-commands))
+     (when ob (append! buttons (list ob))))
      
     ((dock? t)
      (define b (button 'normal #\c -100 -300 70 30 (if (dock-on t) "Docking... [C]" "Dock [C]")

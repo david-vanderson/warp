@@ -1,7 +1,8 @@
 #lang racket/base
 
 (require "defs.rkt"
-         "utils.rkt")
+         "utils.rkt"
+         "draw-utils.rkt")
 
 (provide (all-defined-out))
 
@@ -42,25 +43,14 @@
   (define buttons '())
   (define ship (get-ship stack))
   (define pod (get-pod stack))
-  (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))
-  (when offline
-    (define ob (dmgbutton 'normal #f (+ LEFT 90) (+ BOTTOM 10) 50 50 "Offline"
-                          (lambda (x y) (send-commands (command (ob-id offline)
-                                                                (not (dmg-fixing? offline)))))
-                          (/ (dmg-energy offline) (dmg-size offline)) (dmg-fixing? offline)))
-    (append! buttons (list ob)))
-    
-  (define b (button 'normal #\space (+ LEFT 40) (+ BOTTOM 10) 50 50 "Fire [_]" #f))
-  (cond
-    ((and (ship-flying? ship)
-          ((pod-energy pod) . > . (pbolt-plasma-size t))
-          (not offline))
-     (define a (+ (obj-r ship) (pod-facing (get-pod stack))))
-     (set-button-f! b (lambda (x y) (send-commands (command (ob-id t) a)))))
-    (else
-     (set-button-draw! b (if offline 'dmg 'disabled))))
+  (define b (button 'disabled #\space (+ LEFT 40) (+ BOTTOM 10) 50 50 "Fire [_]" #f))
+  (when (and (ship-flying? ship) ((pod-energy pod) . > . (pbolt-plasma-size t)))
+    (define a (+ (obj-r ship) (pod-facing (get-pod stack))))
+    (set-button-f! b (lambda (x y) (send-commands (command (ob-id t) a))))
+    (set-button-draw! b 'normal))
   (append! buttons (list b))
-  
+  (define ob (add-offline-button! t b send-commands))
+  (when ob (append! buttons (list ob)))
   buttons)
 
 
