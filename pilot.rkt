@@ -318,15 +318,6 @@
 
 ;; client
 
-(define (click-xy stack x y)
-  (define p (get-pod stack))
-  (for/first ((t (in-list (pod-tools p))))
-    (cond
-      ((steer? t)
-       (define a (angle-norm (atan0 y x)))
-       (command (ob-id t) a))
-      (else #f))))
-
 
 
 #;(define (draw-pilot-fitness dc space ship)

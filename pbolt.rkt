@@ -44,7 +44,7 @@
   (define pod (get-pod stack))
   (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))
   (when offline
-    (define ob (dmgbutton 'dmg #f (+ LEFT 90) (+ BOTTOM 10) 50 50 "Offline"
+    (define ob (dmgbutton 'normal #f (+ LEFT 90) (+ BOTTOM 10) 50 50 "Offline"
                           (lambda (x y) (send-commands (command (ob-id offline)
                                                                 (not (dmg-fixing? offline)))))
                           (/ (dmg-energy offline) (dmg-size offline)) (dmg-fixing? offline)))
@@ -58,7 +58,7 @@
      (define a (+ (obj-r ship) (pod-facing (get-pod stack))))
      (set-button-f! b (lambda (x y) (send-commands (command (ob-id t) a)))))
     (else
-     (set-button-draw! b 'disabled)))
+     (set-button-draw! b (if offline 'dmg 'disabled))))
   (append! buttons (list b))
   
   buttons)

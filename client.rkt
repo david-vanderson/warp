@@ -95,7 +95,7 @@
     (printf "click ~a ~a ~a\n" x y button)
     (cond
       (b
-       (when (not (equal? (button-draw b) 'disabled))
+       (when (not (member (button-draw b) '(disabled dmg)))
          ((button-f b) (- x (button-x b)) (- y (button-y b)))))
       (my-stack
        (define mypos (get-center my-stack))
@@ -389,19 +389,6 @@
                      ; (style '(hide-menu-bar no-caption no-resize-border))
                      ))
 
-
-  ; return list of changes
-(define (dmg-for-pod-role p r)
-  (define changes '())
-;  (cond
-;    ((pilot? r)
-;     (define nr (copy r))
-;     (set-pilot-fore! nr #f)
-;     (set! changes
-;           (list
-;            (adddmg (ob-id p) (dmg -1 "fore-offline" 100 0))
-;            nr))))
-  changes)
   
   
   (define my-canvas%
@@ -439,7 +426,7 @@
         (define b (key-button? buttons kc))
         (cond
           (b
-           (when (not (equal? (button-draw b) 'disabled))
+           (when (not (member (button-draw b) '(disabled dmg)))
              ((button-f b) kc #f)))
           (else
            (case kc
@@ -456,7 +443,10 @@
                   (define p (get-pod my-stack))
                   (define pbolt (findf pbolt? (pod-tools p)))
                   (when pbolt
-                    (append! cmds (pbolt-dmg! pbolt))))
+                    (append! cmds (pbolt-dmg! pbolt)))
+                  (define fthrust (findf fthrust? (pod-tools p)))
+                  (when fthrust
+                    (append! cmds (list (chadd (dmg -1 "offline" 10 0 #t) (ob-id fthrust))))))
                 
                 (send-commands cmds)))
              ((#\m)
