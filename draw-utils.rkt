@@ -71,8 +71,8 @@
               alpha))
 
 
-(define (add-offline-button! tool b send-commands)
-  (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs tool)))
+(define (add-offline-button! tool b send-commands (dmgstr "offline"))
+  (define offline (findf (lambda (d) (equal? dmgstr (dmg-type d))) (tool-dmgs tool)))
   (cond
     (offline
      (set-button-draw! b 'dmg)

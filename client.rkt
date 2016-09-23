@@ -452,8 +452,18 @@
                                         (command (ob-id fthrust) #f))))
                   (define steer (findf steer? (pod-tools p)))
                   (when steer
-                    (append! cmds (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id steer))
-                                        (command (ob-id steer) (obj-r (get-ship my-stack)))))))
+                    (append! cmds (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id steer))))
+                    (when (ship-flying? (get-ship my-stack))
+                      (append! cmds (list (command (ob-id steer) (obj-r (get-ship my-stack)))))))
+                  (define shbolt (findf shbolt? (pod-tools p)))
+                  (when shbolt
+                    (append! cmds (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id shbolt)))))
+                  (define dock (findf dock? (pod-tools p)))
+                  (when dock
+                    (append! cmds (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id dock))
+                                        (command (ob-id dock) #f)
+                                        (chadd (dmg -1 "nolaunch" 10 0 #f) (ob-id dock))
+                                        ))))
                 
                 (send-commands cmds)))
              ((#\m)
