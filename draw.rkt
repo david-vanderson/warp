@@ -467,8 +467,17 @@ buttons)
 (define (draw-tool-ui dc t stack send-commands)
   (define buttons '())
   (cond
-    ((steer? t) (void))
     ((pbolt? t) (append! buttons (draw-pbolt-ui! dc t stack send-commands)))
+    ((steer? t)
+     (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))
+     (when offline
+       (define ob (dmgbutton 'normal #f
+                             -100 -200 200 30
+                             "Steer Offline"
+                             (lambda (x y) (send-commands (command (ob-id offline)
+                                                                   (not (dmg-fixing? offline)))))
+                             (/ (dmg-energy offline) (dmg-size offline)) (dmg-fixing? offline)))
+       (append! buttons (list ob))))
     ((fthrust? t)
      (define b (button 'normal #\w 0 -300 60 30 (if (fthrust-on t) "Stop [W]" "Go [W]")
                        (lambda (x y) (send-commands (command (ob-id t) (not (fthrust-on t)))))))

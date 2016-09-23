@@ -8,7 +8,7 @@
 
 
 (define (pbolt-dmg! tool)
-  (list (chadd (dmg -1 "offline" 10 0 #t) (ob-id tool))))
+  (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id tool))))
 
 
 ;; client/server

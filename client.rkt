@@ -102,7 +102,9 @@
        (define-values (cx cy) (space->canon center (get-scale) (obj-x mypos) (obj-y mypos)))
        (define p (get-pod my-stack))
        (for ((t (in-list (pod-tools p))))
-         (cond ((and (steer? t) (ship-flying? (get-ship my-stack)))
+         (cond ((and (steer? t)
+                     (ship-flying? (get-ship my-stack))
+                     (not (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t))))
                 (send-commands (command (ob-id t) (angle-norm (atan0 (- y cy) (- x cx)))))))))))
   
   
@@ -348,7 +350,7 @@
          (define drawn #f)
          (when (not (in-button? buttons mx my))
            (for ((t (in-list (pod-tools (get-pod my-stack)))))
-             (when (steer? t)
+             (when (and (steer? t) (not (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t))))
                (set! drawn #t)
                (keep-transform dc
                  (send dc set-pen "blue" (/ 1.5 (dc-point-size dc)) 'solid)
@@ -446,7 +448,12 @@
                     (append! cmds (pbolt-dmg! pbolt)))
                   (define fthrust (findf fthrust? (pod-tools p)))
                   (when fthrust
-                    (append! cmds (list (chadd (dmg -1 "offline" 10 0 #t) (ob-id fthrust))))))
+                    (append! cmds (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id fthrust))
+                                        (command (ob-id fthrust) #f))))
+                  (define steer (findf steer? (pod-tools p)))
+                  (when steer
+                    (append! cmds (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id steer))
+                                        (command (ob-id steer) (obj-r (get-ship my-stack)))))))
                 
                 (send-commands cmds)))
              ((#\m)
