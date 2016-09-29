@@ -12,6 +12,7 @@
          "pbolt.rkt"
          "effect.rkt"
          "ships.rkt"
+         "dmg.rkt"
          "plasma.rkt")
 
 (provide start-client)
@@ -442,28 +443,8 @@
                   (append! cmds (list (chdam (ob-id s) 10))))
 
                 (when my-stack
-                  (define p (get-pod my-stack))
-                  (define pbolt (findf pbolt? (pod-tools p)))
-                  (when pbolt
-                    (append! cmds (pbolt-dmg! pbolt)))
-                  (define fthrust (findf fthrust? (pod-tools p)))
-                  (when fthrust
-                    (append! cmds (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id fthrust))
-                                        (command (ob-id fthrust) #f))))
-                  (define steer (findf steer? (pod-tools p)))
-                  (when steer
-                    (append! cmds (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id steer))))
-                    (when (ship-flying? (get-ship my-stack))
-                      (append! cmds (list (command (ob-id steer) (obj-r (get-ship my-stack)))))))
-                  (define shbolt (findf shbolt? (pod-tools p)))
-                  (when shbolt
-                    (append! cmds (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id shbolt)))))
-                  (define dock (findf dock? (pod-tools p)))
-                  (when dock
-                    (append! cmds (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id dock))
-                                        (command (ob-id dock) #f)
-                                        (chadd (dmg -1 "nolaunch" 10 0 #f) (ob-id dock))
-                                        ))))
+                  (define s (get-ship my-stack))
+                  (append! cmds (dmg-ship s 20 (- pi/2))))
                 
                 (send-commands cmds)))
              ((#\m)

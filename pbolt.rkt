@@ -7,8 +7,12 @@
 (provide (all-defined-out))
 
 
-(define (pbolt-dmg! tool)
-  (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id tool))))
+(define (dmg-pbolt tool)
+  (cond
+    ((null? (tool-dmgs tool))
+     (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id tool))))
+    (else
+     #f)))
 
 
 ;; client/server
