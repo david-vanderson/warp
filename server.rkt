@@ -15,6 +15,7 @@
          "plasma.rkt"
          "shield.rkt"
          "ships.rkt"
+         "dmg.rkt"
          "upgrade.rkt")
 
 (provide start-server)
@@ -97,7 +98,9 @@
                       (plasma-radius space p) 300))
     (append! changes (list (chdam (ob-id p) damage)
                            (chdam (ob-id ship) damage)
-                           (chadd e #f))))
+                           (chadd e #f)))
+
+    (append! changes (dmg-ship ship (distance ship p) (angle-diff (theta ship p) (obj-r ship)))))
   changes)
 
 

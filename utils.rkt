@@ -213,9 +213,6 @@
 (define (angle-add r theta)
   (angle-norm (+ r theta)))
 
-(define (angle-sub r theta)
-  (angle-norm (- r theta)))
-
 ; gives angular distance and direction (-pi to pi)
 (define (angle-diff from to)
   (define diff (- to from))
@@ -242,8 +239,8 @@
 
 
 (define (theta from to)
-  (define dx (- (posvel-x (obj-posvel to)) (posvel-x (obj-posvel from))))
-  (define dy (- (posvel-y (obj-posvel to)) (posvel-y (obj-posvel from))))
+  (define dx (- (obj-x to) (obj-x from)))
+  (define dy (- (obj-y to) (obj-y from)))
   ;(printf "dx ~a, dy ~a\n" dx dy)
   (atan0 dy dx))
 
@@ -319,18 +316,18 @@
                 (if source-vel (posvel-dx (obj-posvel source-vel)) 0)))
   (define vy (- (if target-vel (posvel-dy (obj-posvel target-vel)) 0)
                 (if source-vel (posvel-dy (obj-posvel source-vel)) 0)))
+  (define st-r (theta source-pos target-pos))
   (define t #f)
   (cond
     ((= 0 vy vx)
      ; nobody's moving, so shoot directly at them
-     (set! t (theta source-pos target-pos)))
+     (set! t st-r))
     (else
      (define v-r (atan vy vx))
      (define v-l (sqrt (+ (* vx vx) (* vy vy))))
-     (define ep-r (theta target-pos source-pos))
-     (define sin-aim (* (sin (angle-diff ep-r v-r)) (/ v-l shot-speed)))
+     (define sin-aim (* (sin (angle-diff st-r v-r)) (/ v-l shot-speed)))
      (when (< -1 sin-aim 1)
-       (set! t (angle-sub (theta source-pos target-pos) (asin sin-aim))))))
+       (set! t (angle-add st-r (asin sin-aim))))))
   t)
   
 

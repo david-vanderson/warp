@@ -84,8 +84,8 @@
      (set-ship-pods!
       s `(,(normal-lounge)
           ,(normal-hangar pi 13.0 in-hangar)
-          ,(pod (next-id) "Pilot" #f (and npc? npc-helm?) 0.0 13.0 #f #f 100.0 100.0
-                (list (steer (next-id) '() r) (fthrust (next-id) '() #f)))
+          ;,(pod (next-id) "Pilot" #f (and npc? npc-helm?) 0.0 13.0 #f #f 100.0 100.0
+          ;      (list (steer (next-id) '() r) (fthrust (next-id) '() #f)))
           ,@(for/list ((d (in-list (list 0 90 180 270))))
               (pod (next-id) "W" #f (and npc? npc-weapons?)
                    (degrees->radians d) 26.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0

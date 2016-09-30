@@ -9,20 +9,21 @@
          "ships.rkt")
 
 (define enemy-base
-  (make-ship "red-station" "Empire Base" "Empire" #:x 400 #:y 400 #:r pi/2 #:start-ship? #t
+  (make-ship "red-station" "Empire Base" "Empire" #:x 0 #:y 0 #:r pi/2 #:start-ship? #t
       #:in-hangar
-      (list (make-ship "red-fighter" "Empire Fighter" "Empire")
-            (make-ship "red-fighter" "Empire Fighter" "Empire")
-            (make-ship "red-fighter" "Empire Fighter" "Empire")
-            (make-ship "red-fighter" "Empire Fighter" "Empire"))))
+      (list ;(make-ship "red-fighter" "Empire Fighter" "Empire")
+            ;(make-ship "red-fighter" "Empire Fighter" "Empire")
+            ;(make-ship "red-fighter" "Empire Fighter" "Empire")
+            ;(make-ship "red-fighter" "Empire Fighter" "Empire")
+       )))
 
 ;(set-stats-con! (ship-stats enemy-base) 200)
 
 ;(define f (make-ship "red-fighter" "Empire1" "Empire" #:start-ship? #t #:x 300 #:y 10))
 
-(define ai? #t)
+(define ai? #f)
 
-(define cruiser (make-ship "blue-cruiser" "z" "z" #:x -500 #:y -50))
+(define cruiser (make-ship "blue-cruiser" "z" "z" #:x -400 #:y -50))
 (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
                                 ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
                                 5.0 150.0 150.0 150.0 150.0 15.0 100.0 30.0 1.0 500.0 #t))

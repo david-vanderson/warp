@@ -10,7 +10,7 @@
 (define (dmg-pbolt tool)
   (cond
     ((null? (tool-dmgs tool))
-     (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id tool))))
+     (list (chadd (dmg (next-id) "offline" 10 0 #f) (ob-id tool))))
     (else
      #f)))
 
@@ -79,6 +79,7 @@
         (define offset (angle-diff podangle t))
         (when ((abs offset) . < . (/ (pod-spread pod) 2))
           (define chance-per-sec (/ (pod-energy pod) (pod-maxe pod)))
+          ;(printf "t = ~a\n" chance-per-sec)
           (when ((random) . < . chance-per-sec)
             (set! changes (list (command (ob-id pb) t))))))))
   changes)
