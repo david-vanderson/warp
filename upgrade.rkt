@@ -35,4 +35,4 @@
 (define types '("power" "thrust" "bat" "con" "radar"))
 
 (define (random-upgrade ownspace pv)
-  (upgrade (next-id) (space-time ownspace) pv "radar" #;(list-ref types (random (length types)))))
+  (upgrade -1 (space-time ownspace) pv "radar" #;(list-ref types (random (length types)))))

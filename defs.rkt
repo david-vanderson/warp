@@ -40,8 +40,12 @@
 
 ;; Game State
 
-(struct ob (id) #:mutable #:prefab)
+(struct ob (idi) #:mutable #:prefab)
 ; id is used to uniquely identify any game object
+(define (ob-id o)
+  (if (= -1 (ob-idi o))
+      (raise-argument-error 'ob-id "id can't be -1" o)
+      (ob-idi o)))
 
 (struct posvel (t x y r dx dy dr) #:mutable #:prefab)
 ; t is the last spacetime that this posvel was sent to clients

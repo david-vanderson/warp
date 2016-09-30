@@ -15,57 +15,57 @@
 
 (define (new-blue-fighter)
   (define s (make-ship "blue-fighter" "a" "a"))
-  (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
+  (set-ship-stats! s (stats -1 "blue-fighter" "Rebel Fighter" "Rebel"
                             ;power bat maxbat con maxcon radius mass thrust rthrust radar start-ship?
                             1.0 150.0 150.0 50.0 50.0 6.0 20.0 50.0 1.5 300.0 #f))
   (set-ship-pods!
    s `(,(normal-lounge)
-       ,(pod (next-id) "Pilot" #f ai? 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0
-             (list (steer (next-id) '() 0.0) (fthrust (next-id) '() #f)
-                   (dock (next-id) '() #f) (pbolt (next-id) '() 5.0)))))
+       ,(pod -1 "Pilot" #f ai? 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0
+             (list (steer -1 '() 0.0) (fthrust -1 '() #f)
+                   (dock -1 '() #f) (pbolt -1 '() 5.0)))))
   (set-obj-posvel! s #f)
   s)
 
 (define (new-red-fighter)
   (define s (make-ship "red-fighter" "a" "a"))
-  (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
+  (set-ship-stats! s (stats -1 "red-fighter" "Empire Fighter" "Empire"
                             ;power bat maxbat con maxcon radius mass thrust rthrust
                             1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5 300.0 #f))
   (set-ship-pods!
    s `(,(normal-lounge)
-       ,(pod (next-id) "Pilot" #f #t 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0
-             (list (steer (next-id) '() 0.0) (fthrust (next-id) '() #f)
-                   (dock (next-id) '() #f) (pbolt (next-id) '() 5.0)))))
+       ,(pod -1 "Pilot" #f #t 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0
+             (list (steer -1 '() 0.0) (fthrust -1 '() #f)
+                   (dock -1 '() #f) (pbolt -1 '() 5.0)))))
   (set-obj-posvel! s #f)
   s)
 
 
 (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50))
-(set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
+(set-ship-stats! cruiser (stats -1 "blue-cruiser" "Rebel Cruiser" "Rebel"
                                 ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
                                 5.0 150.0 150.0 150.0 150.0 15.0 100.0 30.0 1.0 750.0 #t))
 (set-ship-pods!
  cruiser
  `(,(normal-lounge)
    ,(normal-hangar pi 5.0 (list (new-blue-fighter)))
-   ,(pod (next-id) "Pilot" #f #f 0.0 10.0 #f #f 100.0 100.0
-         (list (steer (next-id) '() pi/2) (fthrust (next-id) '() #f) (dock (next-id) '() #f)))
-   ,(pod (next-id) "W" #f ai? (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.8 pi) 60.0 60.0
-         (list (pbolt (next-id) '() 5.0)))
-   ,(pod (next-id) "W" #f ai? (degrees->radians 45.0) 12.0 (degrees->radians 30.0) (* 0.4 pi) 40.0 40.0
-         (list (pbolt (next-id) '() 20.0)))
-   ,(pod (next-id) "W" #f ai? (degrees->radians 270.0) 10.0 (degrees->radians 285.0) (* 0.8 pi) 60.0 60.0
-         (list (pbolt (next-id) '() 5.0)))
-   ,(pod (next-id) "W" #f ai? (degrees->radians 315.0) 12.0 (degrees->radians 330.0) (* 0.4 pi) 40.0 40.0
-         (list (pbolt (next-id) '() 20.0)))
-   ,(pod (next-id) "T" #f ai? (degrees->radians 0.0) 15.0 (degrees->radians 0.0) (* 0.8 pi) 50.0 50.0
-         (list (shbolt (next-id) '() 5.0)))
-   ,(pod (next-id) "T" #f ai? (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0
-         (list (shbolt (next-id) '() 20.0)))))
+   ,(pod -1 "Pilot" #f #f 0.0 10.0 #f #f 100.0 100.0
+         (list (steer -1 '() pi/2) (fthrust -1 '() #f) (dock -1 '() #f)))
+   ,(pod -1 "W" #f ai? (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.8 pi) 60.0 60.0
+         (list (pbolt -1 '() 5.0)))
+   ,(pod -1 "W" #f ai? (degrees->radians 45.0) 12.0 (degrees->radians 30.0) (* 0.4 pi) 40.0 40.0
+         (list (pbolt -1 '() 20.0)))
+   ,(pod -1 "W" #f ai? (degrees->radians 270.0) 10.0 (degrees->radians 285.0) (* 0.8 pi) 60.0 60.0
+         (list (pbolt -1 '() 5.0)))
+   ,(pod -1 "W" #f ai? (degrees->radians 315.0) 12.0 (degrees->radians 330.0) (* 0.4 pi) 40.0 40.0
+         (list (pbolt -1 '() 20.0)))
+   ,(pod -1 "T" #f ai? (degrees->radians 0.0) 15.0 (degrees->radians 0.0) (* 0.8 pi) 50.0 50.0
+         (list (shbolt -1 '() 5.0)))
+   ,(pod -1 "T" #f ai? (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0
+         (list (shbolt -1 '() 20.0)))))
 
 
 (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100))
-(set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
+(set-ship-stats! base (stats -1 "blue-station" "Rebel Outpost" "Rebel"
                              ;power bat maxbat con maxcon radius mass thrust rthrust radar start-ship?
                              10.0 500.0 500.0 1000.0 1000.0 26.0 1000.0 0.0 0.0 1500.0 #t))
 (set-ship-pods!
@@ -73,15 +73,15 @@
  `(,(normal-lounge)
    ,(normal-hangar pi 13.0 '())
    ,@(for/list ((d (in-list (list 0 90 180 270))))
-       (pod (next-id) "W" #f #t (degrees->radians d) 26.0 (degrees->radians d) (* 0.8 pi) 50.0 50.0
-            (list (pbolt (next-id) '() 5.0))))
+       (pod -1 "W" #f #t (degrees->radians d) 26.0 (degrees->radians d) (* 0.8 pi) 50.0 50.0
+            (list (pbolt -1 '() 5.0))))
    ,@(for/list ((d (in-list (list 45 135 225 315))))
-       (pod (next-id) "T" #f #t (degrees->radians d) 28.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
-            (list (shbolt (next-id) '() 10.0))))))
+       (pod -1 "T" #f #t (degrees->radians d) 28.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
+            (list (shbolt -1 '() 10.0))))))
 
 
 (define destroyer (make-ship "red-destroyer" "b" "b" #:x -1000 #;2400 #:y 100 #:r pi))
-(set-ship-stats! destroyer (stats (next-id)
+(set-ship-stats! destroyer (stats -1
                                   ;type name faction
                                   "red-destroyer" "Empire Destroyer" "Empire"
                                   ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
@@ -90,23 +90,23 @@
  destroyer
  `(,(normal-lounge)
    ,(normal-hangar pi 10.0 '())
-   ,(pod (next-id) "Pilot" #f #t 0.0 10.0 #f #f 100.0 100.0
-         (list (steer (next-id) '() pi) (fthrust (next-id) '() #t)))
+   ,(pod -1 "Pilot" #f #t 0.0 10.0 #f #f 100.0 100.0
+         (list (steer -1 '() pi) (fthrust -1 '() #t)))
    ,@(for/list ((d (in-list (list -10 10))))
-       (pod (next-id) "W" #f #t (degrees->radians d) 23.0 0.0 (* 0.4 pi) 200.0 200.0
-            (list (pbolt (next-id) '() 20.0))))
+       (pod -1 "W" #f #t (degrees->radians d) 23.0 0.0 (* 0.4 pi) 200.0 200.0
+            (list (pbolt -1 '() 20.0))))
    ,@(for/list ((d (in-list (list -62 62))))
-       (pod (next-id) "W" #f #t (degrees->radians d) 23.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
-            (list (pbolt (next-id) '() 10.0))))
+       (pod -1 "W" #f #t (degrees->radians d) 23.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
+            (list (pbolt -1 '() 10.0))))
    ,@(for/list ((d (in-list (list -130 130))))
-       (pod (next-id) "W" #f #t (degrees->radians d) 21.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
-            (list (pbolt (next-id) '() 5.0))))
+       (pod -1 "W" #f #t (degrees->radians d) 21.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
+            (list (pbolt -1 '() 5.0))))
    ,@(for/list ((d (in-list (list -35 35))))
-       (pod (next-id) "T" #f #t (degrees->radians d) 24.0 (degrees->radians d) (* 0.7 pi) 150.0 150.0
-            (list (shbolt (next-id) '() 15.0))))
+       (pod -1 "T" #f #t (degrees->radians d) 24.0 (degrees->radians d) (* 0.7 pi) 150.0 150.0
+            (list (shbolt -1 '() 15.0))))
    ,@(for/list ((d (in-list (list -90 90))))
-       (pod (next-id) "T" #f #t (degrees->radians d) 21.0 (degrees->radians d) (* 0.9 pi) 50.0 50.0
-            (list (shbolt (next-id) '() 5.0))))))
+       (pod -1 "T" #f #t (degrees->radians d) 21.0 (degrees->radians d) (* 0.9 pi) 50.0 50.0
+            (list (shbolt -1 '() 5.0))))))
        
 (set-ship-ai-strategy! destroyer
                        (list (strategy (space-time ownspace) "attack-only" (ob-id base))))
@@ -122,7 +122,7 @@
 (set-space-objects! ownspace (list cruiser base destroyer #;special))
 
 ;(for ((i 10) (t (in-cycle '("power" "thrust" "bat" "con"))))
-;  (define u (upgrade (next-id) (space-time ownspace)
+;  (define u (upgrade -1 (space-time ownspace)
 ;                     (posvel (space-time ownspace) -1700 (+ -250 (* i 50)) 0 0 0 0)
 ;                     t))      
 ;  (set-space-objects! ownspace (cons u (space-objects ownspace))))
@@ -141,7 +141,7 @@
   (when (and hb eb)
     
     (when (time-for (space-time ownspace) 55000 0000)
-      (define m (message (next-id) (space-time ownspace) #f "New Fighter at Outpost"))
+      (define m (message -1 (space-time ownspace) #f "New Fighter at Outpost"))
       (define f (new-blue-fighter))
       (set! commands (append commands (list (chadd f (ob-id (ship-hangar base))) m))))
     
@@ -150,7 +150,7 @@
       (set! commands (append commands (list (chadd f (ob-id (ship-hangar destroyer)))))))
     
     (when (time-for (space-time ownspace) 90000 30000)
-      (define m (message (next-id) (space-time ownspace) #f "Empire Frigate Incoming"))
+      (define m (message -1 (space-time ownspace) #f "Empire Frigate Incoming"))
       (define x (+ (/ (space-width ownspace) 2) 100))
       (define y (random-between (- (/ (space-height ownspace) 2)) (/ (space-height ownspace) 2)))
       (define fighters (for/list ((i (random 3)))
@@ -164,13 +164,13 @@
     
     
     (when ((ship-con hb) . < . (- last-base-con 100))
-      (define m (message (next-id) (space-time ownspace) #f (format "Outpost Health: ~a" (inexact->exact (round (ship-con hb))))))
+      (define m (message -1 (space-time ownspace) #f (format "Outpost Health: ~a" (inexact->exact (round (ship-con hb))))))
       (set! commands (append commands (list m)))
       (set! last-base-con (ship-con hb)))
     
     
     (when (< (ship-con eb) (- last-enemy-base-con 50))
-      (define m (message (next-id) (space-time ownspace) #f (format "Empire Destroyer Health: ~a" (inexact->exact (round (ship-con eb))))))
+      (define m (message -1 (space-time ownspace) #f (format "Empire Destroyer Health: ~a" (inexact->exact (round (ship-con eb))))))
       (set! commands (append commands (list m)))
       (set! last-enemy-base-con (ship-con eb))))
   

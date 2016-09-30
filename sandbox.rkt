@@ -24,27 +24,27 @@
 (define ai? #f)
 
 (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -400 #:y -50))
-(set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
+(set-ship-stats! cruiser (stats -1 "blue-cruiser" "Rebel Cruiser" "Rebel"
                                 ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
                                 5.0 150.0 150.0 150.0 150.0 15.0 100.0 30.0 1.0 500.0 #t))
 (set-ship-pods!
  cruiser
  `(,(normal-lounge)
    ,(normal-hangar pi 5.0 '())
-   ,(pod (next-id) "Pilot" #f #f 0.0 5.0 #f #f 100.0 100.0
-         (list (steer (next-id) '() pi/2) (fthrust (next-id) '() #f) (dock (next-id) '() #f)))
-   ,(pod (next-id) "W" #f ai? (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.8 pi) 60.0 60.0
-         (list (pbolt (next-id) '() 5.0)))
-   ,(pod (next-id) "W" #f ai? (degrees->radians 45.0) 12.0 (degrees->radians 30.0) (* 0.4 pi) 40.0 40.0
-         (list (pbolt (next-id) '() 20.0)))
-   ,(pod (next-id) "W" #f ai? (degrees->radians 270.0) 10.0 (degrees->radians 285.0) (* 0.8 pi) 60.0 60.0
-         (list (pbolt (next-id) '() 5.0)))
-   ,(pod (next-id) "W" #f ai? (degrees->radians 315.0) 12.0 (degrees->radians 330.0) (* 0.4 pi) 40.0 40.0
-         (list (pbolt (next-id) '() 20.0)))
-   ,(pod (next-id) "T" #f ai? (degrees->radians 0.0) 15.0 (degrees->radians 0.0) (* 0.8 pi) 50.0 50.0
-         (list (shbolt (next-id) '() 5.0)))
-   ,(pod (next-id) "T" #f ai? (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0
-         (list (shbolt (next-id) '() 20.0)))))
+   ,(pod -1 "Pilot" #f #f 0.0 5.0 #f #f 100.0 100.0
+         (list (steer -1 '() pi/2) (fthrust -1 '() #f) (dock -1 '() #f)))
+   ,(pod -1 "W" #f ai? (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.8 pi) 60.0 60.0
+         (list (pbolt -1 '() 5.0)))
+   ,(pod -1 "W" #f ai? (degrees->radians 45.0) 12.0 (degrees->radians 30.0) (* 0.4 pi) 40.0 40.0
+         (list (pbolt -1 '() 20.0)))
+   ,(pod -1 "W" #f ai? (degrees->radians 270.0) 10.0 (degrees->radians 285.0) (* 0.8 pi) 60.0 60.0
+         (list (pbolt -1 '() 5.0)))
+   ,(pod -1 "W" #f ai? (degrees->radians 315.0) 12.0 (degrees->radians 330.0) (* 0.4 pi) 40.0 40.0
+         (list (pbolt -1 '() 20.0)))
+   ,(pod -1 "T" #f ai? (degrees->radians 0.0) 15.0 (degrees->radians 0.0) (* 0.8 pi) 50.0 50.0
+         (list (shbolt -1 '() 5.0)))
+   ,(pod -1 "T" #f ai? (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0
+         (list (shbolt -1 '() 20.0)))))
 
 (define ownspace
   (space
@@ -74,7 +74,7 @@
   (define commands '())
   
 ;  (when (<= 1 (modulo (space-time space) 1800) TICK)
-;    (set! commands (append commands (list (message (next-id) (space-time space) #f
+;    (set! commands (append commands (list (message -1 (space-time space) #f
 ;                                                   (format "Time ~a" (space-time space)))))))
   
 ;  (when (<= 15001 (space-time space) (+ 15000 TICK))
@@ -83,13 +83,13 @@
   
 ;  (define hb (find-id space (lambda (o) (and (ship? o) (equal? "blue-station" (ship-type o))))))
 ;  (when (and hb ((ship-con hb) . < . (- last-base-con 100)))
-;    (define m (message (next-id) (space-time space) #f (format "Base Health: ~a" (inexact->exact (round (ship-con hb))))))
+;    (define m (message -1 (space-time space) #f (format "Base Health: ~a" (inexact->exact (round (ship-con hb))))))
 ;    (set! commands (append commands (list m)))
 ;    (set! last-base-con (ship-con hb)))
   
 ;  (define eb (find-id space (lambda (o) (and (ship? o) (equal? "red-station" (ship-type o))))))
 ;  (when (and eb (< (ship-con eb) (- last-enemy-base-con 50)))
-;    (define m (message (next-id) (space-time space) #f (format "Enemy Base Health: ~a" (inexact->exact (round (ship-con eb))))))
+;    (define m (message -1 (space-time space) #f (format "Enemy Base Health: ~a" (inexact->exact (round (ship-con eb))))))
 ;    (set! commands (append commands (list m)))
 ;    (set! last-enemy-base-con (ship-con eb)))
 ;  
@@ -106,7 +106,7 @@
 ;                         #;(make-ship "red-fighter" "Empire Fighter" "Empire"))))
 ;      (set-ship-ai-strategy! ns (list (strategy (space-time space) "attack" (ob-id hb))))
 ;      (set! commands (append commands (list (chadd ns #f)))))
-;    (define m (message (next-id) (space-time space) #f (format "~a new enemy ships detected!" next-enemy-count)))
+;    (define m (message -1 (space-time space) #f (format "~a new enemy ships detected!" next-enemy-count)))
 ;    (set! commands (append commands (list m))))
   
 ;  (define types (map ship-type (filter ship? (space-objects space))))

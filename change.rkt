@@ -137,14 +137,15 @@
              (define s (get-ship (reverse oldstack)))
              (when (not (spacesuit? s))
                (define ss (make-spacesuit (player-name p) s))
+               (set-lounge-crew! (ship-lounge ss) (list p))
                (define sspv (obj-posvel ss))
                ; push spacesuit away from parent ship
                (define t (atan0 (posvel-dy sspv) (posvel-dx sspv)))
                (define r (+ 1 (hit-distance s ss)))
                (set-posvel-x! sspv (+ (posvel-x sspv) (* r (cos t))))
                (set-posvel-y! sspv (+ (posvel-y sspv) (* r (sin t))))
-               (define rc (chrole p (ob-id (ship-lounge ss))))
-               (append! changes (list (chadd ss #f) rc)))))
+               (define rc (chrole p #f))
+               (append! changes (list rc (chadd ss #f))))))
           ((lounge? o)
            (set-lounge-crew! o (append (lounge-crew o) (list p))))
           ((hangar? o)
@@ -230,6 +231,7 @@
 
 
 (define (apply-all-changes! space changes ctime who)
+  (when (server?) (change-ids! changes))
   (if (null? changes)
       '()
       (apply append
@@ -241,10 +243,9 @@
 
 (define (change-ids! structs)
   (for ((s (in-list structs)))
-    (when (ob? s)
-      (when (not (player? s))
+    (when (and (ob? s) (not (player? s)))
         ;(printf "rewriting id on ~v\n" s)
-        (set-ob-id! s (next-id))))
+        (set-ob-idi! s (next-id)))
     (when (struct? s)
       (define fields (rest (vector->list (struct->vector s))))
       (change-ids! (flatten fields)))))

@@ -130,7 +130,7 @@
                     ;"flicker"
                     ))
     (define type (list-ref types (random (length types))))
-    (define d (dmgfx (next-id) (space-time space) #f type damage))
+    (define d (dmgfx -1 (space-time space) #f type damage))
     (set-ship-dmgfx! ship (append (ship-dmgfx ship) (list d))))
   
   (when ((ship-con ship) . <= . 0)
@@ -138,14 +138,15 @@
     (when (server?)
       (define pv (obj-posvel ship))
       (define energy (ship-mass ship))
-      (define e (effect (next-id) (space-time space) (struct-copy posvel pv) (sqrt energy) 1000))
+      (define e (effect -1 (space-time space) (struct-copy posvel pv) (sqrt energy) 1000))
       (set! changes (append changes (list (chadd e #f))))
       
       (for ((ps (in-list (search ship player? #t))))
         (define p (car ps))
         (define ss (make-spacesuit (player-name p) ship))
-        (define rc (chrole p (ob-id (ship-lounge ss))))
-        (set! changes (append changes (list (chadd ss #f) rc))))
+        (set-lounge-crew! (ship-lounge ss) (list p))
+        (define rc (chrole p #f))
+        (set! changes (append changes (list rc (chadd ss #f)))))
       
       (for ((u (in-list (ship-cargo ship))))
         (define newpv (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
@@ -161,7 +162,7 @@
         (set! energy-left (- energy-left e))
         (define t (random-between 0 2pi))
         (define s (random-between 10 50))
-        (define p (plasma (next-id) (space-time space)
+        (define p (plasma -1 (space-time space)
                           (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
                                   (+ (* s (cos t)) (posvel-dx pv))
                                   (+ (* s (sin t)) (posvel-dy pv))
@@ -169,7 +170,7 @@
                           e #f))
         (set! changes (append changes (list (chadd p #f)))))
       
-      (define msg (message (next-id) (space-time space) #f
+      (define msg (message -1 (space-time space) #f
                            (format "~a Destroyed" (ship-name ship))))
       (set! changes (append changes (list msg) ((destroy-callback) ship)))))
   changes)

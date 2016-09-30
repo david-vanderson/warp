@@ -97,6 +97,7 @@
     (cond
       (b
        (when (not (member (button-draw b) '(disabled dmg)))
+         (printf "clicked button ~v\nship is ~v\n" b (if my-stack (get-ship my-stack) #f))
          ((button-f b) (- x (button-x b)) (- y (button-y b)))))
       (my-stack
        (define mypos (get-center my-stack))
@@ -449,7 +450,7 @@
                 (send-commands cmds)))
              ((#\m)
               (when ownspace
-                (send-commands (message (next-id) (space-time ownspace) #f
+                (send-commands (message -1 (space-time ownspace) #f
                                         (~a "message " (space-time ownspace))))))
              ((#\p)
               (when ownspace

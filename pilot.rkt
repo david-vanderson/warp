@@ -306,7 +306,7 @@
        (else
         (define po (pod-obj pod ship))
         
-        (define sh (shield (next-id) (space-time space)
+        (define sh (shield -1 (space-time space)
                            (posvel (space-time space) (obj-x po) (obj-y po) (obj-r po)
                                    (+ (* SHIELD_SPEED (cos a)) (posvel-dx (obj-posvel po)))
                                    (+ (* SHIELD_SPEED (sin a)) (posvel-dy (obj-posvel po)))

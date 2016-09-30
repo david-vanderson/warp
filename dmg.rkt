@@ -12,7 +12,7 @@
 (define (dmg-fthrust tool)
   (cond
     ((null? (tool-dmgs tool))
-     (list (chadd (dmg (next-id) "offline" 10 0 #f) (ob-id tool))
+     (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id tool))
            (command (ob-id tool) #f)))
     (else
      #f)))
@@ -21,7 +21,7 @@
   (cond
     ((null? (tool-dmgs tool))
      (define cmds
-       (list (chadd (dmg (next-id) "offline" 10 0 #f) (ob-id tool))))
+       (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id tool))))
      (when (ship-flying? ship)
        (append! cmds (list (command (ob-id tool) (obj-r ship)))))
      cmds)
@@ -31,7 +31,7 @@
 (define (dmg-shbolt tool)
   (cond
     ((null? (tool-dmgs tool))
-     (list (chadd (dmg (next-id) "offline" 10 0 #f) (ob-id tool))))
+     (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id tool))))
     (else
      #f)))
 
@@ -39,14 +39,14 @@
   (cond
     ((null? (tool-dmgs tool))
      (if ((random) . < . 0.5)
-         (list (chadd (dmg (next-id) "offline" 10 0 #f) (ob-id tool))
+         (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id tool))
                (command (ob-id tool) #f))
-         (list (chadd (dmg (next-id) "nolaunch" 10 0 #f) (ob-id tool)))))
+         (list (chadd (dmg -1 "nolaunch" 10 0 #f) (ob-id tool)))))
     (((length (tool-dmgs tool)) . < . 2)
      (if (equal? "nolaunch" (dmg-type (car (tool-dmgs tool))))
-         (list (chadd (dmg (next-id) "offline" 10 0 #f) (ob-id tool))
+         (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id tool))
                (command (ob-id tool) #f))
-         (list (chadd (dmg (next-id) "nolaunch" 10 0 #f) (ob-id tool)))))
+         (list (chadd (dmg -1 "nolaunch" 10 0 #f) (ob-id tool)))))
     (else
      #f)))
 

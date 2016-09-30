@@ -76,7 +76,7 @@
         (("bat") (set-stats-maxbat! newstats (* 1.1 (stats-maxbat newstats))) "reserve")
         (("con") (set-stats-maxcon! newstats (* 1.1 (stats-maxcon newstats))) "hull")
         (("radar") (set-stats-radar! newstats (* 1.1 (stats-radar newstats))) "radar")))
-    (define m (message (next-id) (space-time space) #f (format "~a upgraded ~a" (ship-name ship) which)))
+    (define m (message -1 (space-time space) #f (format "~a upgraded ~a" (ship-name ship) which)))
     
     (append! changes (list (chstats (ob-id ship) newstats) m (chrm (ob-id u)))))
   changes)
@@ -91,7 +91,7 @@
              ((distance ship p) . < . (+ (ship-radius ship) (plasma-radius space p))))
     ;(printf "plasma hit ship ~a (~a ~a)\n" (ship-name ship) (plasma-ownship-id p) (obj-id ship))
     (define damage (plasma-energy space p))
-    (define e (effect (next-id) (space-time space)
+    (define e (effect -1 (space-time space)
                       (struct-copy posvel (obj-posvel p)
                                    (dx (posvel-dx (obj-posvel ship)))
                                    (dy (posvel-dy (obj-posvel ship))))
@@ -100,7 +100,8 @@
                            (chdam (ob-id ship) damage)
                            (chadd e #f)))
 
-    (append! changes (dmg-ship ship (distance ship p) (angle-diff (theta ship p) (obj-r ship)))))
+    (when ((random) . > . 0.5)
+      (append! changes (dmg-ship ship (distance ship p) (angle-diff (theta ship p) (obj-r ship))))))
   changes)
 
 
@@ -399,7 +400,6 @@
         ((eof-object? cmds)
          (remove-client c "eof"))
         (else
-         (change-ids! cmds)
          (define command-changes
            (apply-all-changes! ownspace cmds (space-time ownspace) "server"))
          (append! updates command-changes)))))
@@ -450,6 +450,8 @@
 
 
 (define (start-server port new-space on-tick on-destroy)
+  (change-ids! (list new-space))
+  (printf "start ownspace ~v\n" new-space)
   (set! ownspace new-space)
   (set! scenario-hook on-tick)
   (destroy-callback on-destroy)
