@@ -1,17 +1,16 @@
 #lang racket/base
 
-(require racket/function
-         racket/math
+(require racket/math
          racket/port
-         racket/draw
-         racket/class)
+         racket/list
+         racket/draw)
 
 (require "defs.rkt")
 
 (provide (all-defined-out))
 
 (define-syntax-rule (append! lst e ...)
-  (set! lst (append lst e ...)))
+  (set! lst (append lst (flatten (list e ...)))))
 
 (define (remove-id id list)
   (filter (lambda (o) (not (equal? (ob-id o) id)))
@@ -196,6 +195,8 @@
        (not (null? (cdr ships)))
        (ship-flying? (cadr ships))))
 
+(define (tool-online? t (dmgtype "offline"))
+  (not (findf (lambda (d) (equal? dmgtype (dmg-type d))) (tool-dmgs t))))
 
 (define (will-dock? s1 s2)
   (define d (find-id s1 dock? #f))
@@ -214,7 +215,7 @@
   (angle-norm (+ r theta)))
 
 ; gives angular distance and direction (-pi to pi)
-(define (angle-diff from to)
+(define (angle-frto from to)
   (define diff (- to from))
   (cond (((abs diff) . <= . pi) diff)
         ((diff . > . pi) (- diff 2pi))
@@ -304,7 +305,7 @@
                         (space-objects space)))
   (define ns #f)
   (for ((s (in-list ships)))
-    (define a (angle-diff (angle-add pi (posvel-r (obj-posvel ship))) (theta ship s)))
+    (define a (angle-frto (angle-add pi (posvel-r (obj-posvel ship))) (theta ship s)))
     (when ((abs a) . < . max-ang)
       (set! ns s)))
   ns)
@@ -325,7 +326,7 @@
     (else
      (define v-r (atan vy vx))
      (define v-l (sqrt (+ (* vx vx) (* vy vy))))
-     (define sin-aim (* (sin (angle-diff st-r v-r)) (/ v-l shot-speed)))
+     (define sin-aim (* (sin (angle-frto st-r v-r)) (/ v-l shot-speed)))
      (when (< -1 sin-aim 1)
        (set! t (angle-add st-r (asin sin-aim))))))
   t)
@@ -342,7 +343,7 @@
     (when (d . < . agro-dist)
       (define t (target-angle p #f ownship ownship PLASMA_SPEED))
       (when (and t
-                 ((abs (angle-diff t (dtheta p))) . < . (degrees->radians 3))  ; incoming
+                 ((abs (angle-frto t (dtheta p))) . < . (degrees->radians 3))  ; incoming
                  (or (not np) (d . < . np-dist)))
         (set! np p)
         (set! np-dist d))))

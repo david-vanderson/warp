@@ -93,11 +93,11 @@
   (define (click canvas event)
     (define-values (x y) (screen->canon canvas (send event get-x) (send event get-y)))
     (define b (in-button? buttons x y))
-    (printf "click ~a ~a ~a\n" x y button)
+    ;(printf "click ~a ~a ~a\n" x y b)
     (cond
       (b
        (when (not (member (button-draw b) '(disabled dmg)))
-         (printf "clicked button ~v\nship is ~v\n" b (if my-stack (get-ship my-stack) #f))
+         ;(printf "clicked button ~v\nship is ~v\n" b (if my-stack (get-ship my-stack) #f))
          ((button-f b) (- x (button-x b)) (- y (button-y b)))))
       (my-stack
        (define mypos (get-center my-stack))

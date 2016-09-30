@@ -18,6 +18,7 @@
   (define pod (get-pod stack))
   (define sb (findf shbolt? (pod-tools pod)))
   (when (and (ship-flying? ownship)
+             (tool-online? sb)
              ((pod-energy pod) . > . (shbolt-shield-size sb)))
     
     (define ne (nearest-incoming-plasma space ownship))
@@ -27,7 +28,7 @@
       (define t (target-angle me me ne ne SHIELD_SPEED))
       (when t
         (define podangle (angle-add (obj-r ownship) (pod-facing pod)))
-        (define offset (angle-diff podangle t))
+        (define offset (angle-frto podangle t))
         (when ((abs offset) . < . (/ (pod-spread pod) 2))
           (define chance-per-sec (/ (pod-energy pod) (pod-maxe pod)))
           (set! chance-per-sec (expt chance-per-sec 0.7))

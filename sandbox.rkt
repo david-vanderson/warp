@@ -11,17 +11,18 @@
 (define enemy-base
   (make-ship "red-station" "Empire Base" "Empire" #:x 0 #:y 0 #:r pi/2 #:start-ship? #t
       #:in-hangar
-      (list ;(make-ship "red-fighter" "Empire Fighter" "Empire")
-            ;(make-ship "red-fighter" "Empire Fighter" "Empire")
-            ;(make-ship "red-fighter" "Empire Fighter" "Empire")
-            ;(make-ship "red-fighter" "Empire Fighter" "Empire")
+      (list
+       (make-ship "red-fighter" "Empire Fighter" "Empire")
+       (make-ship "red-fighter" "Empire Fighter" "Empire")
+       (make-ship "red-fighter" "Empire Fighter" "Empire")
+       (make-ship "red-fighter" "Empire Fighter" "Empire")
        )))
 
 ;(set-stats-con! (ship-stats enemy-base) 200)
 
 ;(define f (make-ship "red-fighter" "Empire1" "Empire" #:start-ship? #t #:x 300 #:y 10))
 
-(define ai? #f)
+(define ai? #t)
 
 (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -400 #:y -50))
 (set-ship-stats! cruiser (stats -1 "blue-cruiser" "Rebel Cruiser" "Rebel"

@@ -90,6 +90,10 @@
              (not (equal? (plasma-ownship-id p) (ob-id ship)))
              ((distance ship p) . < . (+ (ship-radius ship) (plasma-radius space p))))
     ;(printf "plasma hit ship ~a (~a ~a)\n" (ship-name ship) (plasma-ownship-id p) (obj-id ship))
+
+    (when ((random) . > . 0.5)
+      (append! changes (dmg-ship ship (distance ship p) (angle-frto (obj-r ship) (theta ship p)))))
+    
     (define damage (plasma-energy space p))
     (define e (effect -1 (space-time space)
                       (struct-copy posvel (obj-posvel p)
@@ -98,10 +102,7 @@
                       (plasma-radius space p) 300))
     (append! changes (list (chdam (ob-id p) damage)
                            (chdam (ob-id ship) damage)
-                           (chadd e #f)))
-
-    (when ((random) . > . 0.5)
-      (append! changes (dmg-ship ship (distance ship p) (angle-diff (theta ship p) (obj-r ship))))))
+                           (chadd e #f))))
   changes)
 
 
@@ -282,14 +283,20 @@
 
   (when (not (null? sorted-stacks))
     (define s (car sorted-stacks))  ; get first one
+    (define p (get-pod s))
     ; don't run ai faster than AI_INTERVAL ms, could be slower
-    (when ((- (space-time space) (pod-npc? (get-pod s))) . > . AI_INTERVAL)
-      (set-pod-npc?! (get-pod s) (space-time space))  ; set runtime
+    (when ((- (space-time space) (pod-npc? p)) . > . AI_INTERVAL)
+      (set-pod-npc?! p (space-time space))  ; set runtime
 
       ;(printf "running ai for pod ~a\n" (ob-id (get-pod s)))
+
+      ; ai always fixes all the dmgs
+      (for* ((t (in-list (pod-tools p)))
+             (d (in-list (tool-dmgs t)))
+            #:when (not (dmg-fixing? d)))
+        (append! changes (list (command (ob-id d) #t))))
       
       ; run this pod's ai
-      (define p (get-pod s))
       (when (and (findf fthrust? (pod-tools p)) (findf steer? (pod-tools p)))
         (append! changes (pilot-ai-strategy! space s))
         
@@ -451,7 +458,7 @@
 
 (define (start-server port new-space on-tick on-destroy)
   (change-ids! (list new-space))
-  (printf "start ownspace ~v\n" new-space)
+  ;(printf "start ownspace ~v\n" new-space)
   (set! ownspace new-space)
   (set! scenario-hook on-tick)
   (destroy-callback on-destroy)

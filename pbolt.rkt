@@ -67,6 +67,7 @@
   (define pod (get-pod stack))
   (define pb (findf pbolt? (pod-tools pod)))
   (when (and (ship-flying? ownship)
+             (tool-online? pb)
              ((pod-energy pod) . > . (pbolt-plasma-size pb)))
     
     (define ne (nearest-enemy space ownship))
@@ -76,10 +77,10 @@
       (define t (target-angle me me ne ne PLASMA_SPEED))
       (when t
         (define podangle (angle-add (obj-r ownship) (pod-facing pod)))
-        (define offset (angle-diff podangle t))
+        (define offset (angle-frto podangle t))
         (when ((abs offset) . < . (/ (pod-spread pod) 2))
           (define chance-per-sec (/ (pod-energy pod) (pod-maxe pod)))
           ;(printf "t = ~a\n" chance-per-sec)
           (when ((random) . < . chance-per-sec)
-            (set! changes (list (command (ob-id pb) t))))))))
+            (append! changes (list (command (ob-id pb) t))))))))
   changes)

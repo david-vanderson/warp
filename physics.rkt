@@ -24,12 +24,12 @@
      
      (define racc (stats-rthrust (ship-stats ownship)))
      (cond
-       (((abs (angle-diff r course)) . < . (* racc dt))
+       (((abs (angle-frto r course)) . < . (* racc dt))
         ;(printf "STOPPING\n")
         (set-posvel-r! posvel course)
         (set-posvel-dr! posvel 0.0))
        (((pod-energy (get-pod cstack)) . > . 0.0)
-        (set-posvel-dr! posvel (if ((angle-diff r course) . > . 0.0) racc (- racc)))))
+        (set-posvel-dr! posvel (if ((angle-frto r course) . > . 0.0) racc (- racc)))))
 
      (define ftstack (find-stack ownship fthrust? #f))
      
