@@ -235,7 +235,6 @@
 
 
 (define (apply-all-changes! space changes ctime who)
-  (when (server?) (change-ids! changes))
   (if (null? changes)
       '()
       (apply append
@@ -243,14 +242,3 @@
                (define-values (forward? new-changes) (apply-change! space c ctime who))
                (append (if forward? (list (copy c)) '())
                        (apply-all-changes! space new-changes ctime who))))))
-
-
-(define (change-ids! structs)
-  (for ((s (in-list structs)))
-    (when (and (ob? s) (not (player? s)))
-        ;(printf "rewriting id on ~v\n" s)
-        (set-ob-idi! s (next-id)))
-    (when (struct? s)
-      (define fields (rest (vector->list (struct->vector s))))
-      (change-ids! (flatten fields)))))
-

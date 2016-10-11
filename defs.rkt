@@ -24,28 +24,20 @@
 (define SHIELD_SPEED 60.0)
 (define MSG_FADE_TIME 10000.0)
 
-(define server? (make-parameter #t))
+(define server? (make-parameter #t))  ; clients set this to #f
+(define idimag (make-parameter 0))  ; clients set this to their player id
 
 (define next-id
   (let ((id 0))
     (lambda ()
-      (cond ((server?)
-             (set! id (add1 id))
-             id)
-            (else -1)))))
+      (set! id (add1 id))
+      (make-rectangular id (idimag)))))
 
-(define destroy-callback (make-parameter (lambda (ship) '())))
-
-(define viewing-sector? (box #f))
 
 ;; Game State
 
-(struct ob (idi) #:mutable #:prefab)
+(struct ob (id) #:mutable #:prefab)
 ; id is used to uniquely identify any game object
-(define (ob-id o)
-  (if (= -1 (ob-idi o))
-      (raise-argument-error 'ob-id "id can't be -1" o)
-      (ob-idi o)))
 
 (struct posvel (t x y r dx dy dr) #:mutable #:prefab)
 ; t is the last spacetime that this posvel was sent to clients

@@ -450,16 +450,16 @@
                 (send-commands cmds)))
              ((#\m)
               (when ownspace
-                (send-commands (message -1 (space-time ownspace) #f
+                (send-commands (message (next-id) (space-time ownspace) #f
                                         (~a "message " (space-time ownspace))))))
              ((#\p)
               (when ownspace
-                (send-commands (chadd (plasma -1 (space-time ownspace) (posvel -1 0 0 (random-between 0 2pi) (random 100) (random 100) 0) (random 100) #f) #f))))
+                (send-commands (chadd (plasma (next-id) (space-time ownspace) (posvel -1 0 0 (random-between 0 2pi) (random 100) (random 100) 0) (random 100) #f) #f))))
              ((#\s)
               (when ownspace
                 (define r (random-between 0 2pi))
                 (define s (random 100))
-                (send-commands (chadd (shield -1 (space-time ownspace) (posvel -1 0 0 r (* s (cos r)) (* s (sin r)) 0) (random 30)) #f)))) 
+                (send-commands (chadd (shield (next-id) (space-time ownspace) (posvel -1 0 0 r (* s (cos r)) (* s (sin r)) 0) (random 30)) #f)))) 
              ((#\j)
               (set-scale (* (get-scale) 1.1)))
              ((#\k)
@@ -571,7 +571,8 @@
           (define newme (read-from-server))
           (when (not (eof-object? newme))
             (set! me newme)
-            (set-player-name! me name)))))
+            (set-player-name! me name)
+            (idimag (ob-id me))))))
     
     ; get new world
     (while (and server-in-port (byte-ready? server-in-port))

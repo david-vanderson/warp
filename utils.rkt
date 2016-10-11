@@ -83,7 +83,7 @@
     (let search-internal ((o o) (stack '()))
       (cond
         ((and (not (space? o))
-              (or (and (integer? id) (= id (ob-id o)))
+              (or (and (number? id) (= id (ob-id o)))
                   (and (procedure? id) (id o))))
          (set! search-return (cons (cons o stack) search-return))
          (when (not multiple?) (esc)))

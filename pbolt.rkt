@@ -10,7 +10,7 @@
 (define (dmg-pbolt tool)
   (cond
     ((null? (tool-dmgs tool))
-     (list (chadd (dmg -1 "offline" 10 0 #f) (ob-id tool))))
+     (list (chadd (dmg (next-id) "offline" 10 0 #f) (ob-id tool))))
     (else
      #f)))
 
@@ -32,7 +32,7 @@
     (else
      (define po (pod-obj pod ship))
      
-     (define plas (plasma -1 (space-time space)
+     (define plas (plasma (next-id) (space-time space)
                           (posvel (space-time space) (obj-x po) (obj-y po) (obj-r po)
                                   (+ (* PLASMA_SPEED (cos a)) (posvel-dx (obj-posvel po)))
                                   (+ (* PLASMA_SPEED (sin a)) (posvel-dy (obj-posvel po)))

@@ -16,11 +16,13 @@
          "shield.rkt"
          "ships.rkt"
          "dmg.rkt"
+         "scenario.rkt"
          "upgrade.rkt")
 
 (provide start-server)
 
-(struct client (id name in out) #:mutable #:prefab)
+(struct client (player in out) #:mutable #:prefab)
+(define (client-id c) (ob-id (client-player c)))
 
 (define server-listener #f)
 (define clients '())
@@ -76,7 +78,7 @@
         (("bat") (set-stats-maxbat! newstats (* 1.1 (stats-maxbat newstats))) "reserve")
         (("con") (set-stats-maxcon! newstats (* 1.1 (stats-maxcon newstats))) "hull")
         (("radar") (set-stats-radar! newstats (* 1.1 (stats-radar newstats))) "radar")))
-    (define m (message -1 (space-time space) #f (format "~a upgraded ~a" (ship-name ship) which)))
+    (define m (message (next-id) (space-time space) #f (format "~a upgraded ~a" (ship-name ship) which)))
     
     (append! changes (list (chstats (ob-id ship) newstats) m (chrm (ob-id u)))))
   changes)
@@ -95,7 +97,7 @@
       (append! changes (dmg-ship ship (distance ship p) (angle-frto (obj-r ship) (theta ship p)))))
     
     (define damage (plasma-energy space p))
-    (define e (effect -1 (space-time space)
+    (define e (effect (next-id) (space-time space)
                       (struct-copy posvel (obj-posvel p)
                                    (dx (posvel-dx (obj-posvel ship)))
                                    (dy (posvel-dy (obj-posvel ship))))
@@ -316,7 +318,7 @@
 (define updates '())
 
 (define (remove-client c msg)
-  (printf "removing client ~a ~a ~a\n" (client-id c) (client-name c) msg)
+  (printf "removing client ~v ~a\n" (client-player c) msg)
   (define s (find-stack ownspace (client-id c)))
   (when s
     (append! updates
@@ -363,13 +365,13 @@
     (printf "server accept-ready\n")
     (define-values (in out) (tcp-accept server-listener))
     (set-tcp-nodelay! out #t)
-    (define c (client (next-id) "New Player" in out))
+    (define c (client (player (next-id) "New Player") in out))
     (append! clients (list c))
     (define p (car (read-from-client c)))
-    (set-client-name! c (player-name p))
+    (set-player-name! (client-player c) (player-name p))
     (define m (message (next-id) (space-time ownspace) #f (format "New Player: ~a" (player-name p))))
     (append! updates (list m))
-    (send-to-client c (player (client-id c) (player-name p)))  ; assign an id
+    (send-to-client c (client-player c))  ; assign an id
     (send-to-client c ownspace))  ; send full state
   
   
@@ -456,12 +458,20 @@
   (server-loop))
 
 
-(define (start-server port new-space on-tick on-destroy)
-  (change-ids! (list new-space))
+(define (change-scenario! scenario)
+  (define sc (if (string? scenario) (string->scenario scenario) scenario))
+  (define-values (new-space on-tick) (sc ownspace scenario-hook))
+  ;(change-ids! (list new-space))
   ;(printf "start ownspace ~v\n" new-space)
   (set! ownspace new-space)
-  (set! scenario-hook on-tick)
-  (destroy-callback on-destroy)
+  (set! scenario-hook on-tick))
+
+
+(define (start-server port (scenario "pick"))
+  (change-scenario! scenario)
   (set! server-listener (tcp-listen port 4 #t))
   (server-loop))
 
+
+(module+ main
+  (start-server PORT))
