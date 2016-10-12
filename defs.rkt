@@ -164,12 +164,27 @@
 ; energy is amount of energy contributed so far
 ; fixing is bool
 
+(struct ann obj () #:mutable #:prefab)
+; map annotation
+
+(struct ann-button ann (w h text msg) #:mutable #:prefab)
+; clickable button
+; obj-x/y is lower left-hand corner
+; w/h is size of button
+; text is what the button says
+; msg is what is sent to server when a player clicks it
+;  - gets delivered to the scenario's on-message as a (anncmd ann-button-id msg) struct
+
+
 ;; Changes
 
 (struct command (id cmd) #:mutable #:prefab)
 ; general purpose command
 ; id points to a tool
 ; cmd is anything, interpreted by the tool
+
+(struct anncmd command () #:mutable #:prefab)
+; for commands that the server will pick out before sending to apply-change!
 
 (struct chrole (player to) #:mutable #:prefab)
 ; to is:

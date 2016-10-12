@@ -170,6 +170,18 @@
                              (lambda (x y)
                                (send-commands (chrole me (ob-id (ship-lounge (get-ship s))))))))
            (set! buttons (append buttons ( list b))))
+
+         (for ((a (in-list (space-objects ownspace)))
+                 #:when (ann? a))
+             (when (ann-button? a)
+               (define-values (x y) (dc->canon canvas dc (obj-x a) (obj-y a)))
+               (define-values (x2 y2) (dc->canon canvas dc
+                                                 (+ (obj-x a) (ann-button-w a))
+                                                 (+ (obj-y a) (ann-button-h a))))
+               (define ab (button 'normal #f
+                                  x y (- x2 x) (- y2 y) (ann-button-text a)
+                                  (lambda (k y) (send-commands (anncmd (ob-id a) (ann-button-msg a))))))
+               (append! buttons ab)))
          
          (draw-buttons dc buttons (space-time ownspace)))
         
@@ -206,9 +218,10 @@
            (send dc set-background "black")
            (send dc clear)
 
-           ; sector lines draw regardless of fow
+           ; sector lines and annotations draw regardless of fow
            (send dc set-clipping-region #f)
            (draw-sector-lines dc ownspace)
+           ; XXX draw annotations
            
            (send dc set-clipping-region fow)
            (draw-background-stars dc center z)

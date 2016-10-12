@@ -71,7 +71,7 @@
 (define last-enemy-base-con 10000)
 
 ; return a list of changes
-(define (hook space)
+(define (on-tick space change-scenario!)
   (define commands '())
   
 ;  (when (<= 1 (modulo (space-time space) 1800) TICK)
@@ -144,11 +144,14 @@
   
   commands)
 
-(define (sc oldspace oldtick)
-  (values ownspace hook))
+(define (on-message space cmd change-scenario!)
+  '())
+
+(define (sc oldspace old-on-tick old-on-message)
+  (values ownspace on-tick on-message))
 
 (thread (lambda ()
-(start-server PORT sc)
+(start-server PORT #;sc)
 ))
 
 (thread (lambda () (start-client "127.0.0.1" PORT "Dave" #t #f)))

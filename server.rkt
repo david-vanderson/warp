@@ -2,6 +2,7 @@
 
 (require racket/tcp
          racket/math
+         racket/list
          racket/port
          ffi/unsafe)
 
@@ -27,7 +28,8 @@
 (define server-listener #f)
 (define clients '())
 (define ownspace #f)
-(define (scenario-hook) '())
+(define (scenario-on-tick change-scenario!) '())
+(define (scenario-on-message cmd change-scenario!) '())
 
 
 
@@ -373,7 +375,23 @@
     (append! updates (list m))
     (send-to-client c (client-player c))  ; assign an id
     (send-to-client c ownspace))  ; send full state
-  
+
+  ; process commands
+  (for ((c clients))
+    (while (and (not (port-closed? (client-in c)))
+                (byte-ready? (client-in c)))
+      (define cmds (read-from-client c))
+      (cond
+        ((not cmds) #f)  ; if read-from-client fails, it returns #f
+        ((eof-object? cmds)
+         (remove-client c "eof"))
+        (else
+         (for ((m (in-list cmds)) #:when (anncmd? m))
+           (scenario-on-message ownspace m change-scenario!))
+         (let ((cmds (filter-not anncmd? cmds)))
+           (define command-changes
+             (apply-all-changes! ownspace cmds (space-time ownspace) "server"))
+           (append! updates command-changes))))))
   
   ; simulation tick
   (when (TICK . < . (- current-time previous-physics-time))
@@ -395,24 +413,8 @@
   
   
   ; scenario hook
-  (append! updates (apply-all-changes! ownspace (scenario-hook ownspace)
+  (append! updates (apply-all-changes! ownspace (scenario-on-tick ownspace change-scenario!)
                                        (space-time ownspace) "server"))
-  
-  
-  ; process commands
-  (for ((c clients))
-    (while (and (not (port-closed? (client-in c)))
-                (byte-ready? (client-in c)))
-      (define cmds (read-from-client c))
-      (cond
-        ((not cmds) #f)  ; if read-from-client fails, it returns #f
-        ((eof-object? cmds)
-         (remove-client c "eof"))
-        (else
-         (define command-changes
-           (apply-all-changes! ownspace cmds (space-time ownspace) "server"))
-         (append! updates command-changes)))))
-  
   
   ; send any 0-time posvels and least-recently sent
   (define oldest #f)
@@ -459,15 +461,17 @@
 
 
 (define (change-scenario! scenario)
-  (define sc (if (string? scenario) (string->scenario scenario) scenario))
-  (define-values (new-space on-tick) (sc ownspace scenario-hook))
+  (define-values (new-space on-tick on-message) (scenario ownspace scenario-on-tick scenario-on-message))
   ;(change-ids! (list new-space))
   ;(printf "start ownspace ~v\n" new-space)
   (set! ownspace new-space)
-  (set! scenario-hook on-tick))
+  (set! scenario-on-tick on-tick)
+  (set! scenario-on-message on-message)
+  (for ((c clients))
+    (send-to-client c ownspace)))
 
 
-(define (start-server port (scenario "pick"))
+(define (start-server port (scenario sc-pick))
   (change-scenario! scenario)
   (set! server-listener (tcp-listen port 4 #t))
   (server-loop))

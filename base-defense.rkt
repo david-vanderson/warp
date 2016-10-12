@@ -4,10 +4,12 @@
 
 (require "defs.rkt"
          "utils.rkt"
-         "client.rkt"
-         "server.rkt"
+         ;"client.rkt"
+         ;"server.rkt"
          "ships.rkt"
          "upgrade.rkt")
+
+(provide (all-defined-out))
 
 (define ai? #t)
 
@@ -133,7 +135,7 @@
 (define last-enemy-base-con 10000)
 
 ; return a list of changes
-(define (on-tick ownspace)
+(define (on-tick ownspace change-scenario!)
   (define commands '())
   
   (define hb (find-id ownspace (ob-id base)))
@@ -176,15 +178,18 @@
   
   commands)
 
-(define (sc oldspace oldtick)
-  (values ownspace on-tick))
+(define (on-message space msg change-scenario!)
+  '())
 
-(thread (lambda ()
-(start-server PORT sc)
-))
+(define (base-defense-scenario oldspace oldtick oldmessage)
+  (values ownspace on-tick on-message))
+
+;(thread (lambda ()
+;(start-server PORT sc)
+;))
 
 ;(thread (lambda () (start-client "127.0.0.1" PORT "Dave" #t #f)))
 ;(thread (lambda () (start-client "127.0.0.1" PORT "Andrea" #t #f)))
 
-(semaphore-wait (make-semaphore))
+;(semaphore-wait (make-semaphore))
 

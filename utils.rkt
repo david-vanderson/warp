@@ -93,6 +93,7 @@
              (effect? o)
              (message? o)
              (upgrade? o)
+             (ann? o)
              (dmg? o))
          (void))
         ((space? o)
