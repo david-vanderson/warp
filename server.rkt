@@ -202,7 +202,7 @@
   changes)
 
 (define (pickup! ship suit)
-  (define rc (chrole (car (lounge-crew (ship-lounge suit))) (ob-id (ship-lounge ship))))
+  (define rc (chrole (ob-id (car (lounge-crew (ship-lounge suit)))) (ob-id (ship-lounge ship))))
   (define rm (chrm (ob-id suit)))
   (list rc rm))
 
@@ -322,11 +322,10 @@
 (define (remove-client c msg)
   (printf "removing client ~v ~a\n" (client-player c) msg)
   (define s (find-stack ownspace (client-id c)))
-  (when s
-    (append! updates
-             (apply-all-changes! ownspace
-                                 (list (chrole (car s) #f))
-                                 (space-time ownspace) "server")))
+  (append! updates
+           (apply-all-changes! ownspace
+                               (list (chrole (client-id c) #f) (chrm (client-id c)))
+                               (space-time ownspace) "server"))
   
   (close-input-port (client-in c))
   (close-output-port (client-out c))
@@ -367,14 +366,16 @@
     (printf "server accept-ready\n")
     (define-values (in out) (tcp-accept server-listener))
     (set-tcp-nodelay! out #t)
-    (define c (client (player (next-id) "New Player") in out))
+    (define c (client (player (next-id) #f #f) in out))
     (append! clients (list c))
     (define p (car (read-from-client c)))
     (set-player-name! (client-player c) (player-name p))
-    (define m (message (next-id) (space-time ownspace) #f (format "New Player: ~a" (player-name p))))
-    (append! updates (list m))
     (send-to-client c (client-player c))  ; assign an id
-    (send-to-client c ownspace))  ; send full state
+    (send-to-client c ownspace)  ; send full state
+    (append! updates
+             (apply-all-changes! ownspace (list (chadd (client-player c) #f)) (space-time ownspace) "server"))
+    (define m (message (next-id) (space-time ownspace) #f (format "New Player: ~a" (player-name p))))
+    (append! updates (list m)))
 
   ; process commands
   (for ((c clients))
@@ -460,11 +461,11 @@
   (server-loop))
 
 
+
 (define (change-scenario! scenario)
-  (define-values (new-space on-tick on-message) (scenario ownspace scenario-on-tick scenario-on-message))
-  ;(change-ids! (list new-space))
+  (define-values (newspace on-tick on-message) (scenario ownspace scenario-on-tick scenario-on-message))
   ;(printf "start ownspace ~v\n" new-space)
-  (set! ownspace new-space)
+  (set! ownspace newspace)
   (set! scenario-on-tick on-tick)
   (set! scenario-on-message on-message)
   (for ((c clients))

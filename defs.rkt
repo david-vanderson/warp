@@ -52,7 +52,7 @@
 (define (obj-y obj) (posvel-y (obj-posvel obj)))
 (define (obj-r obj) (posvel-r (obj-posvel obj)))
 
-(struct player ob (name) #:mutable #:prefab)
+(struct player ob (name faction) #:mutable #:prefab)
 ; name is what is shown in UIs
 
 (struct pod ob (name player npc? angle dist facing spread energy maxe tools) #:mutable #:prefab)
@@ -147,7 +147,7 @@
 (struct upgrade obj (type) #:mutable #:prefab)
 ; type is string saying which part of the ship it upgrades
 
-(struct space (time width height objects) #:mutable #:prefab)
+(struct space (time width height players objects) #:mutable #:prefab)
 ; time is msec since the scenario started
 
 (struct strategy (t name arg) #:mutable #:prefab)
@@ -186,7 +186,7 @@
 (struct anncmd command () #:mutable #:prefab)
 ; for commands that the server will pick out before sending to apply-change!
 
-(struct chrole (player to) #:mutable #:prefab)
+(struct chrole (playerid to) #:mutable #:prefab)
 ; to is:
 ; - id of pod
 ; - #f means we are choosing a starting role

@@ -102,53 +102,59 @@
         (values #t '()))
        (else
         (error 'apply-change! "~a hit ELSE clause for command ~v\n" who c)))) 
+    ((and (chrole? c) (equal? (chrole-to c) "spacesuit"))
+     (define changes '())
+     (define pid (chrole-playerid c))
+     (define oldstack (find-stack space pid))
+     (cond
+       (oldstack
+        (define p (car oldstack))
+        (define s (get-ship (reverse oldstack)))
+        (when (and s (not (spacesuit? s)))
+          (define ss (make-spacesuit (player-name p) s))
+          (define sspv (obj-posvel ss))
+          ; push spacesuit away from parent ship
+          (define t (atan0 (posvel-dy sspv) (posvel-dx sspv)))
+          (define r (+ 1 (hit-distance s ss)))
+          (set-posvel-x! sspv (+ (posvel-x sspv) (* r (cos t))))
+          (set-posvel-y! sspv (+ (posvel-y sspv) (* r (sin t))))
+          (append! changes (chadd ss #f) (chrole pid (ob-id (ship-lounge ss))))))
+       (else
+        (printf "~a dropping chrole ~v\n" who c)))
+     (values #f changes))
     ((chrole? c)
      (define changes '())
-     (define p (chrole-player c))
-     (define oldstack (find-stack space (ob-id p)))  ; stack before removing player
+     (define pid (chrole-playerid c))
+     (define oldstack (find-stack space pid))  ; stack before removing player
      (define o (find-id space (chrole-to c)))
      (cond
        ((or (not (chrole-to c))  ; moving to starting screen
-            (equal? (chrole-to c) "spacesuit")  ; jumping ship
             (and (pod? o) (not (pod-player o))))  ; moving to empty pod
-
-        ; remove existing player
+        
+        ; remove existing player struct
         (when oldstack
           (define pod (get-pod oldstack))
           (cond
             ((lounge? pod)
-             (set-lounge-crew! pod (remove p (lounge-crew pod)))
+             (set-lounge-crew! pod (remove-id pid (lounge-crew pod)))
              (when (and (server?) (spacesuit? (get-ship oldstack)))
                ; leaving a space suit, remove the suit
                (append! changes (chrm (ob-id (get-ship oldstack))))))
             ((hangar? pod)
-             (set-hangar-crew! pod (remove p (hangar-crew pod))))
+             (set-hangar-crew! pod (remove-id pid (hangar-crew pod))))
             ((pod? pod)
              (set-pod-player! pod #f))
             (else
              (error 'apply-change "~a hit ELSE clause for removing player ~v\n" who c))))
-
-        (define forward? #t)
         
         ; put player in new place
+        (define p (findfid pid (space-players space)))
         (cond
+          ((not p)
+           (printf "~a chrole - couldn't find player struct to place ~v\n" who pid))
           ((not (chrole-to c))
-           (void))  ; moving to start screen
-          ((equal? (chrole-to c) "spacesuit")  ; jumping ship
-           (set! forward? #f)  ; don't forward this message
-           (when oldstack
-             (define s (get-ship (reverse oldstack)))
-             (when (not (spacesuit? s))
-               (define ss (make-spacesuit (player-name p) s))
-               (set-lounge-crew! (ship-lounge ss) (list p))
-               (define sspv (obj-posvel ss))
-               ; push spacesuit away from parent ship
-               (define t (atan0 (posvel-dy sspv) (posvel-dx sspv)))
-               (define r (+ 1 (hit-distance s ss)))
-               (set-posvel-x! sspv (+ (posvel-x sspv) (* r (cos t))))
-               (set-posvel-y! sspv (+ (posvel-y sspv) (* r (sin t))))
-               (define rc (chrole p #f))
-               (append! changes rc (chadd ss #f)))))
+           ; moving to starting screen - nothing
+           )
           ((lounge? o)
            (set-lounge-crew! o (append (lounge-crew o) (list p))))
           ((hangar? o)
@@ -158,31 +164,49 @@
           (else
            (error 'apply-change "~a hit ELSE clause for placing player ~v\n" who c)))
         
-        (values forward? changes))
+        (values #t changes))
        (else
         (printf "~a dropping chrole ~v\n" who c)
         (values #f '()))))
     ((chadd? c)
-     ;(printf "~a adding ~v\n" who (chadd-o c))
+     (define o (chadd-o c))
+     ;(printf "~a adding ~v\n" who o)
      (cond
-       ((dmg? (chadd-o c))
+       ((dmg? o)
         (define tool (find-id space (chadd-to c)))
         (cond (tool
-               (set-tool-dmgs! tool (cons (chadd-o c) (tool-dmgs tool)))
+               (set-tool-dmgs! tool (cons o (tool-dmgs tool)))
                (values #t '()))
               (else
                (printf "~a chadd - couldn't find tool id ~a\n" who (chadd-to c))
                (values #f '()))))
+       ((player? o)
+        (define ep (findfid (ob-id o) (space-players space)))
+        (cond
+          (ep
+           (printf "~a chadd - trying to add an existing player ~v\n" who o)
+           (values #f '()))
+          (else
+           (printf "~a adding player ~v\n" who o)
+           (set-space-players! space (cons o (space-players space)))
+           (values #t '()))))
        (else
-        (while (and (ctime . < . (space-time space)) (obj-posvel (chadd-o c)))
+        (while (and (ctime . < . (space-time space))
+                    (obj-posvel o))  ; some objs have a #f posvel when inside other things
                ;(printf "~a ticking forward ~v\n" who (chadd-o c))
-               (update-physics! space (chadd-o c) (/ TICK 1000.0))
+               (update-physics! space o (/ TICK 1000.0))
                (set! ctime (+ ctime TICK)))
-        (movein space (chadd-o c) (chadd-to c))
+        (movein space o (chadd-to c))
         (values #t '()))))
     ((chrm? c)
-     ;(printf "~a removing ~v\n" who (find-id space (chrm-id c)))
-     (set-space-objects! space (remove-id (chrm-id c) (space-objects space)))
+     (define p (findfid (chrm-id c) (space-players space)))
+     (cond
+       (p
+        (printf "~a removing player ~v\n" who p)
+        (set-space-players! space (remove-id (chrm-id c) (space-players space))))
+       (else
+        ;(printf "~a removing ~v\n" who (find-id space (chrm-id c)))
+        (set-space-objects! space (remove-id (chrm-id c) (space-objects space)))))
      (values #t '()))
     ((chdam? c)
      (define o (find-id space (chdam-id c)))

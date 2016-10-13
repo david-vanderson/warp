@@ -16,6 +16,9 @@
   (filter (lambda (o) (not (equal? (ob-id o) id)))
           list))
 
+(define (findfid id list)
+  (findf (lambda (o) (= id (ob-id o))) list))
+
 (define (copy s)
   (read (open-input-string (with-output-to-string (lambda () (write s))))))
 

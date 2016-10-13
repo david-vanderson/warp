@@ -28,12 +28,14 @@
   
   (define server-in-port #f)
   (define server-out-port #f)
-  (define me #f)  ; player? or #f
+  (define meid #f)  ; integer? or #f
   (define ownspace #f)
   (define my-stack #f)
   (define buttons #f)
   (define frames '())  ; list of last few frame times
   (define last-update-time #f)
+
+  (define showtab #f)  ; tab toggles an overlay showing players and goals
 
   (define center #f)  ; updated each frame for the click handler
   (define center-follow? #t)  ; show player position in the center?
@@ -157,7 +159,7 @@
                                       (lambda (x y)
                                         (drop-connection "clicked exit")
                                         (exit 0))))
-         (set! buttons (cons leave-button buttons))
+         (append! buttons leave-button)
          
          (define start-stacks
            (search ownspace (lambda (o) (and (ship? o) (ship-flying? o) (ship-start o))) #t))
@@ -168,7 +170,7 @@
            (define b (button 'normal #f (+ LEFT 100 (* i 250)) (+ BOTTOM 60) 200 30
                              (format "Crew on ~a" (ship-name (get-ship s)))
                              (lambda (x y)
-                               (send-commands (chrole me (ob-id (ship-lounge (get-ship s))))))))
+                               (send-commands (chrole meid (ob-id (ship-lounge (get-ship s))))))))
            (set! buttons (append buttons ( list b))))
 
          (for ((a (in-list (space-objects ownspace)))
@@ -181,9 +183,7 @@
                (define ab (button 'normal #f
                                   x y (- x2 x) (- y2 y) (ann-button-text a)
                                   (lambda (k y) (send-commands (anncmd (ob-id a) (ann-button-msg a))))))
-               (append! buttons ab)))
-         
-         (draw-buttons dc buttons (space-time ownspace)))
+               (append! buttons ab))))
         
         (my-stack
          (define oldclip (send dc get-clipping-region))
@@ -249,7 +249,7 @@
              (when (and (not (spacesuit? ship))
                         (not (hangar? (get-pod my-stack))))
                (define bs
-                 (draw-pods dc ship rot my-stack send-commands canvas me))
+                 (draw-pods dc ship rot my-stack send-commands canvas meid))
                (set! buttons (append buttons bs)))
              )
            
@@ -281,7 +281,7 @@
                (draw-text dc (format "~a" (ship-name s)) 0 -5)
                (define-values (x y) (dc->canon canvas dc 0 -60))
                (define bl (lambda (x y)
-                            (send-commands (chrole me (ob-id (ship-lounge s))))))
+                            (send-commands (chrole meid (ob-id (ship-lounge s))))))
                (set! buttons (append buttons (list (button 'normal #f x y 65 30 "Board" bl))))
                (for ((p (in-list (find-all s player?)))
                      (i (in-naturals)))
@@ -352,9 +352,9 @@
                      (else
                       ; move to lounge
                       (ob-id (ship-lounge (get-ship my-stack))))))
-                 (send-commands (chrole me newid))))))
-         (set! buttons (append buttons (list leave-button)))
-         (draw-buttons dc buttons (space-time ownspace))
+                 (send-commands (chrole meid newid))))))
+         
+         (append! buttons leave-button)
 
          ; draw mouse cursor
          (define-values (p mods) (get-current-mouse-state))
@@ -381,8 +381,26 @@
          )
         (else
          (error "didn't know what to draw")))
+
+
+      ; stuff we draw on all screens
+
+      (define tab-button (button 'hidden #\tab 0 0 0 0 "Tab"
+                                 (lambda (k y) (set! showtab (not showtab)))))
+      (append! buttons tab-button)
+        
+      (draw-buttons dc buttons (if ownspace (space-time ownspace) 0))
+
+      (when showtab
+        (when ownspace
+          (send dc set-text-foreground "white")
+          (for ((p (in-list (space-players ownspace)))
+                (i (in-naturals)))
+            (define str (if (player-faction p)
+                            (~a (player-name p) " " (player-faction p))
+                            (player-name p)))
+            (draw-text dc str (+ LEFT 200) (- TOP 100 (* i 20))))))
       
-      ;(draw-buttons dc buttons)
       (draw-overlay dc ownspace my-stack)
       (draw-framerate dc frames)
       )
@@ -515,7 +533,7 @@
       (close-output-port server-out-port))
     (set! server-in-port #f)
     (set! server-out-port #f)
-    (set! me #f)
+    (set! meid #f)
     (set! ownspace #f))
   
   
@@ -577,15 +595,14 @@
         
         (when server-out-port
           ; send our name to the server
-          (send-commands (player #f name)))
+          (send-commands (player #f name #f)))
         
         (when server-in-port
           ; read a player struct that has our unique id
           (define newme (read-from-server))
           (when (not (eof-object? newme))
-            (set! me newme)
-            (set-player-name! me name)
-            (idimag (ob-id me))))))
+            (set! meid (ob-id newme))
+            (idimag meid)))))
     
     ; get new world
     (while (and server-in-port (byte-ready? server-in-port))
@@ -630,7 +647,7 @@
       )
     
     (when ownspace
-      (set! my-stack (find-stack ownspace (ob-id me)))
+      (set! my-stack (find-stack ownspace meid))
       
       ; physics prediction
       (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))

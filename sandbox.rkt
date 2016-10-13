@@ -49,7 +49,7 @@
 
 (define ownspace
   (space
-   0 10000 10000
+   0 10000 10000 '()
    `(
      ,cruiser
 
@@ -147,7 +147,8 @@
 (define (on-message space cmd change-scenario!)
   '())
 
-(define (sc oldspace old-on-tick old-on-message)
+(define (sc oldspace oldtick oldmessage)
+  (set-space-players! ownspace (space-players oldspace))
   (values ownspace on-tick on-message))
 
 (thread (lambda ()

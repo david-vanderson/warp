@@ -353,7 +353,7 @@
           
 
 
-(define (draw-pods dc ship rot stack send-commands canvas me)
+(define (draw-pods dc ship rot stack send-commands canvas meid)
   (define buttons '())
   (for ((p (in-list (ship-pods ship)))
         #:when (not (lounge? p)))
@@ -379,7 +379,7 @@
            (define-values (x2 y2) (dc->canon canvas dc size size))
            (define b (button 'normal #f x y (abs (- x2 x)) (abs (- y2 y)) (pod-name p)
                              (lambda (x y)
-                               (send-commands (chrole me (ob-id p))))))
+                               (send-commands (chrole meid (ob-id p))))))
            (append! buttons (list b)))
           (else
            (define-values (cx cy) (dc->canon canvas dc 0 0))
@@ -387,7 +387,7 @@
            ;(printf "drawing button at ~a ~a ~a\n" cx cy (abs (- rx cx)))
            (define b (button 'normal #f cx cy (abs (- rx cx)) #f (pod-name p)
                              (lambda (x y)
-                               (send-commands (chrole me (ob-id p))))))
+                               (send-commands (chrole meid (ob-id p))))))
            (append! buttons (list b)))))))
 buttons)
 

@@ -13,7 +13,7 @@
 
 (define ai? #t)
 
-(define ownspace (space 0 5000 2000 '()))
+(define ownspace (space 0 5000 2000 '() '()))
 
 (define (new-blue-fighter)
   (define s (make-ship "blue-fighter" "a" "a"))
@@ -182,6 +182,7 @@
   '())
 
 (define (base-defense-scenario oldspace oldtick oldmessage)
+  (set-space-players! ownspace (space-players oldspace))
   (values ownspace on-tick on-message))
 
 ;(thread (lambda ()

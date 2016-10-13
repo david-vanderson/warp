@@ -144,9 +144,7 @@
       (for ((ps (in-list (search ship player? #t))))
         (define p (car ps))
         (define ss (make-spacesuit (player-name p) ship))
-        (set-lounge-crew! (ship-lounge ss) (list p))
-        (define rc (chrole p #f))
-        (set! changes (append changes (list rc (chadd ss #f)))))
+        (append! changes (chadd ss #f) (chrole (ob-id p) (ob-id (ship-lounge ss)))))
       
       (for ((u (in-list (ship-cargo ship))))
         (define newpv (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
