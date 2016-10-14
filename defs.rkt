@@ -192,6 +192,8 @@
 ; - #f means we are choosing a starting role
 ; - "spacesuit" means we are jumping ship
 
+(struct chfaction (playerid newf) #:mutable #:prefab)
+
 (struct update (time changes pvs) #:mutable #:prefab)
 ; time is ms since scenario started
 ; changes is list of above structs

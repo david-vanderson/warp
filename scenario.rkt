@@ -37,19 +37,41 @@
   (values newspace on-tick on-message))
 
 
-(define (pilot-training-scenario oldspace old-on-tick old-on-message)
-  (define s (make-ship "red-fighter" "Pilot Trainer" "Empire"))
+(define next-faction
+  (let ((i 0))
+    (lambda ()
+      (set! i (add1 i))
+      (format "Training~a" i))))
+
+(define (new-trainer faction)
+  (define s (make-ship "red-fighter" "Pilot Trainer" faction #:npc? #f
+                       #:x (random-between -100 100) #:y (random-between -100 100)))
   (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
                             ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
-                            1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5 300.0 #f))
+                            1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5 300.0 #t))
+  s)
+
+(define (pilot-training-scenario oldspace old-on-tick old-on-message)
+  (define players (if oldspace (space-players oldspace) '()))
+  (for ((p players))
+    (set-player-faction! p #f))
+  
   (define newspace
     (space 0 10000 10000
-           (if oldspace (space-players oldspace) '())
-           `(
-             ,s
-             )))
+           players
+           '()))
+  
   (define (on-tick space change-scenario!)
-    '())
+    (define changes '())
+    (for ((p (space-players space)))
+      (cond
+        ((not (player-faction p))
+         (define f (next-faction))
+         (append! changes (chfaction (ob-id p) f) (chadd (new-trainer f) #f)))
+        ((not (find-id space (lambda (o) (and (ship? o) (equal? (ship-faction o) (player-faction p))))))
+         (append! changes (chadd (new-trainer (player-faction p)) #f)))))
+    changes)
+  
   (define (on-message space cmd change-scenario!)
     '())
   (values newspace on-tick on-message))

@@ -168,6 +168,11 @@
        (else
         (printf "~a dropping chrole ~v\n" who c)
         (values #f '()))))
+    ((chfaction? c)
+     (define pid (chfaction-playerid c))
+     (define p (findfid pid (space-players space)))
+     (when p (set-player-faction! p (chfaction-newf c)))
+     (values #t '()))
     ((chadd? c)
      (define o (chadd-o c))
      ;(printf "~a adding ~v\n" who o)

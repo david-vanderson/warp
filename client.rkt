@@ -160,15 +160,21 @@
                                         (drop-connection "clicked exit")
                                         (exit 0))))
          (append! buttons leave-button)
+
+         (define p (findfid meid (space-players ownspace)))
+         (define fac (if p (player-faction p) #f))
          
          (define start-stacks
-           (search ownspace (lambda (o) (and (ship? o) (ship-flying? o) (ship-start o))) #t))
+           (search ownspace (lambda (o) (and (ship? o)
+                                             (ship-flying? o)
+                                             (ship-start o)
+                                             (if fac (equal? fac (ship-faction o)) #t))) #t))
         
          (for ((s (in-list start-stacks))
                (i (in-naturals)))
            (define mp (car s)) 
            (define b (button 'normal #f (+ LEFT 100 (* i 250)) (+ BOTTOM 60) 200 30
-                             (format "Crew on ~a" (ship-name (get-ship s)))
+                             (format "~a" (ship-name (get-ship s)))
                              (lambda (x y)
                                (send-commands (chrole meid (ob-id (ship-lounge (get-ship s))))))))
            (set! buttons (append buttons ( list b))))
