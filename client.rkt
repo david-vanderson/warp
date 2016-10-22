@@ -13,6 +13,7 @@
          "effect.rkt"
          "ships.rkt"
          "dmg.rkt"
+         "order.rkt"
          "plasma.rkt")
 
 (provide start-client)
@@ -126,7 +127,7 @@
     (keep-transform dc
       ; make sure whole screen is fog of war gray
       (send dc set-clipping-region #f)
-      (send dc set-background (linear-color "black" "white" 0.1 1.0))
+      (send dc set-background (linear-color "black" "white" 0.13 1.0))
       (send dc clear)
 
       ; scale to canon
@@ -144,6 +145,8 @@
       (when my-stack (draw-dmgfx dc my-stack))
 
       (update-scale)
+
+      (define ordertree #f)
       
       (cond
         ((not ownspace)
@@ -227,7 +230,49 @@
            ; sector lines and annotations draw regardless of fow
            (send dc set-clipping-region #f)
            (draw-sector-lines dc ownspace)
+
            ; XXX draw annotations
+
+           ; draw order annotations
+           (define p (findfid meid (space-players ownspace)))
+           (define fac (if p (player-faction p) #f))
+           (define orders (findf (lambda (o) (equal? (car o) fac)) (space-orders ownspace)))
+           (when orders
+             (set! ordertree (cadr orders))
+             (define cycle 3000)
+             (define a (* 2.0 (/ (abs (- (remain (space-time ownspace) cycle)
+                                         (/ cycle 2.0))) cycle)))
+             (define bright (linear-color "blue" "blue" 1.0 (+ 0.5 (* 0.5 a))))
+             (define dim (linear-color "blue" "blue" 1.0 0.5))
+             (for-orders ordertree showtab
+                         (lambda (ot depth highlight?)
+                           (when (order? ot)
+                             (for ((a (in-list (order-anns ot))))
+                               (cond
+                                 ((ann-circle? a)
+                                  (keep-transform dc
+                                    (define col (if highlight? bright dim))
+                                    (send dc set-pen col (/ 2.0 (dc-point-size dc)) 'solid)
+                                    (send dc set-text-foreground col)
+                                    (send dc set-brush nocolor 'transparent)
+                                    (send dc translate (obj-x a) (obj-y a))
+                                    (define r (ann-circle-radius a))
+                                    (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))
+                                    (send dc scale (/ 1.0 z) (/ 1.0 z))
+                                    (draw-text dc (ann-circle-text a) 0 0)))
+                                 (else
+                                  (error "don't know how to draw annotation ~v" a))))))))
+
+           ;; debug, show radar distance for all ships
+           (when DEBUG
+             (send dc set-brush nocolor 'transparent)
+             (send dc set-pen "pink" (/ 1.0 (dc-point-size dc)) 'solid)
+             (for ((s (in-list (space-objects ownspace)))
+                   #:when (ship? s))
+               (keep-transform dc
+                 (define r (ship-radar s))
+                 (send dc translate (obj-x s) (obj-y s))
+                 (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r)))))
            
            (send dc set-clipping-region fow)
            (draw-background-stars dc center z)
@@ -397,16 +442,39 @@
         
       (draw-buttons dc buttons (if ownspace (space-time ownspace) 0))
 
-      (when showtab
-        (when ownspace
-          (send dc set-text-foreground "white")
+      (when ownspace
+        (send dc set-text-foreground "white")
+        
+        (when showtab
+           ; list all players
+          (draw-text dc "Players:" 200 (- TOP 80))
           (for ((p (in-list (space-players ownspace)))
                 (i (in-naturals)))
             (define str (if (player-faction p)
                             (~a (player-name p) " " (player-faction p))
                             (player-name p)))
-            (draw-text dc str (+ LEFT 200) (- TOP 100 (* i 20))))))
-      
+            (draw-text dc str 200 (- TOP 100 (* i 20)))))
+           
+        (define line 0)
+        (send dc set-pen nocolor 1 'transparent)
+        (when ordertree
+          (define left (+ LEFT 130))
+          (draw-text dc "Orders:" left TOP)
+          (set! left (+ left 50))
+          (define top TOP)
+          (for-orders ordertree showtab
+                      (lambda (ot depth highlight?)
+                        (when showtab
+                          (if (ord-done? ot)
+                              (send dc set-brush "green" 'solid)
+                              (send dc set-brush "red" 'solid))
+                          (send dc draw-ellipse (+ left (* 10 depth) 2) (- top (* 20 line) 9) 5 5))
+                        (if highlight?
+                            (send dc set-text-foreground "white")
+                            (send dc set-text-foreground "gray"))
+                        (draw-text dc (ord-text ot) (+ left 12 (* 10 depth)) (- top (* 20 line)))
+                        (set! line (+ line 1))))))
+          
       (draw-overlay dc ownspace my-stack)
       (draw-framerate dc frames)
       )
@@ -592,6 +660,7 @@
           (with-handlers ((exn:fail:network?
                            (lambda (exn)
                              ((error-display-handler) (exn-message exn) exn)
+                             (sleep 1)
                              (values #f #f))))
             (printf "trying to connect to ~a:~a\n" ip port)
             (tcp-connect ip port)))

@@ -25,7 +25,7 @@
   (when ((length frames) . > . 1)
     (send dc set-text-foreground "white")
     (keep-transform dc
-      (send dc translate (- 60 (/ WIDTH 2)) (/ HEIGHT 2))
+      (send dc translate (+ LEFT 60) TOP)
       (define start (list-ref frames (- (length frames) 1)))
       (define end (first frames))
       (define span (/ (- end start) 1000))

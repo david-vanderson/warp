@@ -20,11 +20,11 @@
 
 ;(set-stats-con! (ship-stats enemy-base) 200)
 
-;(define f (make-ship "red-fighter" "Empire1" "Empire" #:start-ship? #t #:x 300 #:y 10))
+(define f (make-ship "red-fighter" "Empire1" "Empire" #:start-ship? #t #:x 0 #:y -100))
 
-(define ai? #t)
+(define ai? #f)
 
-(define cruiser (make-ship "blue-cruiser" "z" "z" #:x -400 #:y -50))
+(define cruiser (make-ship "blue-cruiser" "z" "z" #:x -600 #:y -50))
 (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
                                 ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
                                 5.0 150.0 150.0 150.0 150.0 15.0 100.0 30.0 1.0 500.0 #t))
@@ -49,9 +49,10 @@
 
 (define ownspace
   (space
-   0 10000 10000 '()
+   0 10000 10000 '() '()
    `(
      ,cruiser
+     ,f
 
      #;,@(for/list ((i 30))
          (define x (random-between -1000 1000))
@@ -148,11 +149,11 @@
   '())
 
 (define (sc oldspace oldtick oldmessage)
-  (set-space-players! ownspace (space-players oldspace))
+  (set-space-players! ownspace (if oldspace (space-players oldspace) '()))
   (values ownspace on-tick on-message))
 
 (thread (lambda ()
-(start-server PORT #;sc)
+(start-server PORT sc)
 ))
 
 (thread (lambda () (start-client "127.0.0.1" PORT "Dave" #t #f)))

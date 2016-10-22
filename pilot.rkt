@@ -125,23 +125,30 @@
            ; done retreating
            ;(printf "done retreating\n")
            (set! changes (list (new-strat (ob-id ship) (cdr strats)))))))
-       (("attack" "attack-only")
+       (("attack")
         (define e (find-top-id space (strategy-arg strat)))
         (cond
-          ((or (not e) (return-to-base? ship))
+          ((or (not e) (return-to-base? ship)
+               ((distance ship e) . > . (* 2 (ship-radar ship))))
            ; abort
            (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
-          ((and (equal? (strategy-name strat) "attack") ne (not (equal? (ob-id ne) (ob-id e))))
+          ((and ne (not (equal? (ob-id ne) (ob-id e))))
            ; new enemy, attack
            ;(printf "new enemy\n")
            (define ns (strategy (space-time space) "attack" (ob-id ne)))
            (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))
-          ((and (equal? (strategy-name strat) "attack")
-                ((distance ship e) . < . (* 5 (hit-distance ship e))))
+          (((distance ship e) . < . (* 5 (hit-distance ship e)))
            ; too close, retreat
            ;(printf "too close\n")
            (define ns (strategy (space-time space) "retreat" (ob-id e)))
-           (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))))))
+           (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))))
+       (("attack-only")
+        (define e (find-top-id space (strategy-arg strat)))
+        (cond
+          ((or (not e) (return-to-base? ship))
+           ; abort
+           (set! changes (list (new-strat (ob-id ship) (cdr strats)))))))
+        ))
     (else
      (define mothership (cadr (get-ships stack)))
      (cond
@@ -163,6 +170,7 @@
           (else
            (define ne (nearest-enemy space mothership))
            (when (and ne
+                      ((distance mothership ne) . < . (* 2 (ship-radar ship)))
                       (tool-online? d "nolaunch")
                       (= (ship-bat ship) (ship-maxbat ship))
                       (not (ship-behind? space mothership)))

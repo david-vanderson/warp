@@ -7,6 +7,7 @@
          "ships.rkt"
          "pilot.rkt"
          "pbolt.rkt"
+         "order.rkt"
          "physics.rkt")
 
 (provide (all-defined-out))
@@ -172,6 +173,11 @@
      (define pid (chfaction-playerid c))
      (define p (findfid pid (space-players space)))
      (when p (set-player-faction! p (chfaction-newf c)))
+     (values #t '()))
+    ((chorders? c)
+     ;(printf "~a chorders ~v\n" who c)
+     (when (not (server?))
+       (set-space-orders-for! space (chorders-faction c) (chorders-ot c)))
      (values #t '()))
     ((chadd? c)
      (define o (chadd-o c))

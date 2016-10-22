@@ -280,8 +280,6 @@
 ;; ai utils
 
 (define (nearest-enemy space ownship)
-  (define agro-dist 500)  ; ignore ships farther away than this
-  
   (define enemies (filter (lambda (o)
                             (and (spaceship? o)
                                  ((ship-con o) . > . 0)
@@ -291,7 +289,7 @@
   (define ne-dist #f)
   (for ((e (in-list enemies)))
     (define d (distance ownship e))
-    (when (and (d . < . agro-dist)
+    (when (and (d . < . (ship-radar ownship))
                (or (not ne) (d . < . ne-dist)))
       (set! ne e)
       (set! ne-dist d)))

@@ -4,6 +4,7 @@
 
 (provide (all-defined-out))
 
+(define DEBUG #f)
 (define PORT 22381)
 (define TICK 33)  ; ms time slice for physics, also determines max client frame rate
 (define AI_INTERVAL 1000)  ; ms between ai runs (at least)
@@ -106,7 +107,7 @@
 ; mass controls how you bump into other ships
 ; thrust is how much force your main engines produce
 ; rthrust is how much force your turning engines produce
-; radar is fog of war radius for this ship
+; radar is fog of war radius for this ship, also agro distance
 ; start is if you can start on this ship
 
 (struct ship obj (stats pods ai-strategy dmgfx cargo) #:mutable #:prefab)
@@ -147,8 +148,12 @@
 (struct upgrade obj (type) #:mutable #:prefab)
 ; type is string saying which part of the ship it upgrades
 
-(struct space (time width height players objects) #:mutable #:prefab)
+(struct space (time width height players orders objects) #:mutable #:prefab)
 ; time is msec since the scenario started
+; orders is a (list (faction ordertree) ...)
+; ordertree is either:
+; - order
+; - ordercomb
 
 (struct strategy (t name arg) #:mutable #:prefab)
 ; name is the state we are in, arg is the parameter(s) for that state
@@ -175,6 +180,24 @@
 ; msg is what is sent to server when a player clicks it
 ;  - gets delivered to the scenario's on-message as a (anncmd ann-button-id msg) struct
 
+(struct ann-circle ann (radius text) #:mutable #:prefab)
+
+(struct ord (done? text) #:mutable #:prefab)
+; base order
+; done? is #t if this order is completed (can go back to #f for some orders)
+; text tells the player what to do
+
+(struct order ord (anns f) #:mutable #:prefab)
+; anns is list of ann structs to show on the map
+; f is #f on clients
+; - on server it's a (space order -> bool) function that says if the order is done
+;   - also gets passed its containing order so it can modify itself
+;   - example is when a waypoint is scouted, the function is replaced with (lambda (s o) #t)
+;   - so as to "lock" the order as done
+
+(struct ordercomb ord (type orders) #:mutable #:prefab)
+; type is symbol saying how to combine
+; orders is a list
 
 ;; Changes
 
@@ -193,6 +216,8 @@
 ; - "spacesuit" means we are jumping ship
 
 (struct chfaction (playerid newf) #:mutable #:prefab)
+(struct chorders (faction ot) #:mutable #:prefab)
+; ot is an ordertree - see space struct
 
 (struct update (time changes pvs) #:mutable #:prefab)
 ; time is ms since scenario started

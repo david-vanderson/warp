@@ -13,7 +13,7 @@
 
 (define ai? #t)
 
-(define ownspace (space 0 5000 2000 '() '()))
+(define ownspace (space 0 5000 2000 '() '() '()))
 
 (define (new-blue-fighter)
   (define s (make-ship "blue-fighter" "a" "a"))
