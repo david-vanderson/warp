@@ -6,7 +6,6 @@
          "physics.rkt"
          "draw-utils.rkt"
          "draw.rkt"
-         "draw-intro.rkt"
          "pilot.rkt"
          "weapons.rkt"
          "pbolt.rkt"
@@ -37,12 +36,14 @@
   (define last-update-time #f)
 
   (define showtab #f)  ; tab toggles an overlay showing players and goals
+  (define showsector? #f)  ; tilde toggles showing the whole sector or the regular view
+  (define zerocenter (obj #f #f (posvel #f 0 0 #f #f #f #f)))
 
-  (define center #f)  ; updated each frame for the click handler
+  (define center #f)  ; updated each frame for the click handler and mouse cursor drawing
   (define center-follow? #t)  ; show player position in the center?
 
   ; when (not center-follow?)
-  (define centerxy (obj #f #f (posvel #f 0 0 #f #f #f #f)))  ; center of the screen
+  (define centerxy (obj #f #f (posvel #f 0 0 #f #f #f #f)))  ; center of the screen when panning
   (define dragxypx '(0 . 0))  ; last xy of drag in pixels
   (define dragstate "none")  ; "none", "start", "drag"
   
@@ -64,11 +65,11 @@
   (define (get-future-scale)
     (if (scale-ship?) scale-ship scale-play))
   (define (set-scale z)
-    (define newz (max (min-scale) (min (max-scale) z)))
+    (define newz (clamp (min-scale) (max-scale) z))
     (if (scale-ship?) (set! scale-ship newz) (set! scale-play newz)))
   
   (define shown-scale (get-future-scale))  ; scale that is actually used
-  (define (get-scale) shown-scale)
+  (define (get-scale) (if showsector? (min-scale) shown-scale))
   (define (update-scale)  ; move shown-scale towards the scale we want
     (define target (get-future-scale))
     (define diff (abs (- target shown-scale)))
@@ -146,307 +147,185 @@
 
       (update-scale)
 
-      (define ordertree #f)
-      
-      (cond
-        ((not ownspace)
-         (draw-intro dc))
-        ((not my-stack)
-         (keep-transform dc
-           (define scale (min (/ WIDTH (space-width ownspace)) (/ HEIGHT (space-height ownspace))))
-           (send dc scale scale scale)
-           (draw-sector-lines dc ownspace)
-           (draw-objects dc ownspace))
-         
-         (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50 "Exit"
-                                      (lambda (x y)
-                                        (drop-connection "clicked exit")
-                                        (exit 0))))
-         (append! buttons leave-button)
+      (set! center
+            (cond ((or (not ownspace) showsector?)
+                   zerocenter)
+                  ((and my-stack center-follow?)
+                   (get-center my-stack))
+                  (else
+                   centerxy)))
+      (when center-follow?
+        ; record the center so we start from there if center-follow? becomes #f
+        (set-posvel-x! (obj-posvel centerxy) (obj-x center))
+        (set-posvel-y! (obj-posvel centerxy) (obj-y center)))
 
-         (define p (findfid meid (space-players ownspace)))
-         (define fac (if p (player-faction p) #f))
-         
-         (define start-stacks
-           (search ownspace (lambda (o) (and (ship? o)
-                                             (ship-flying? o)
-                                             (ship-start o)
-                                             (if fac (equal? fac (ship-faction o)) #t))) #t))
-        
-         (for ((s (in-list start-stacks))
-               (i (in-naturals)))
-           (define mp (car s)) 
-           (define b (button 'normal #f (+ LEFT 100 (* i 250)) (+ BOTTOM 60) 200 30
-                             (format "~a" (ship-name (get-ship s)))
-                             (lambda (x y)
-                               (send-commands (chrole meid (ob-id (ship-lounge (get-ship s))))))))
-           (set! buttons (append buttons ( list b))))
-
-         (for ((a (in-list (space-objects ownspace)))
-                 #:when (ann? a))
-             (when (ann-button? a)
-               (define-values (x y) (dc->canon canvas dc (obj-x a) (obj-y a)))
-               (define-values (x2 y2) (dc->canon canvas dc
-                                                 (+ (obj-x a) (ann-button-w a))
-                                                 (+ (obj-y a) (ann-button-h a))))
-               (define ab (button 'normal #f
-                                  x y (- x2 x) (- y2 y) (ann-button-text a)
-                                  (lambda (k y) (send-commands (anncmd (ob-id a) (ann-button-msg a))))))
-               (append! buttons ab))))
-        
-        (my-stack
-         (define oldclip (send dc get-clipping-region))
-         (define mypos (get-center my-stack))
-         (set! center (if center-follow?
-                          mypos  ; includes pod
-                          centerxy))
-         (define z (get-scale))
-         
-         (keep-transform dc
-           (send dc scale z z)  
-           (send dc translate (- (obj-x center)) (- (obj-y center)))
-           (when center-follow?
-             ; record the center so we start from there if center-follow? becomes #f
-             (set-posvel-x! (obj-posvel centerxy) (obj-x center))
-             (set-posvel-y! (obj-posvel centerxy) (obj-y center)))
-
-           (define shipcenter (get-topship my-stack))  ; only the ship
-
-           ; make fog of war region
-           (define fow (new region% (dc dc)))
-           (define r (ship-radar shipcenter))
-           (send fow set-ellipse (- (obj-x shipcenter) r) (- (obj-y shipcenter) r) (* 2 r) (* 2 r))
-           (for ((s (in-list (space-objects ownspace)))
-                 #:when (and (ship? s) (equal? (ship-faction s) (ship-faction (get-ship my-stack)))))
-             (define rad (ship-radar s))
-             (define reg (new region% (dc dc)))
-             (send reg set-ellipse (- (obj-x s) rad) (- (obj-y s) rad) (* 2 rad) (* 2 rad))
-             (send fow union reg))
-
-           (send dc set-clipping-region fow)
-           (send dc set-background "black")
-           (send dc clear)
-
-           ; sector lines and annotations draw regardless of fow
-           (send dc set-clipping-region #f)
-           (draw-sector-lines dc ownspace)
-
-           ; XXX draw annotations
-
-           ; draw order annotations
-           (define p (findfid meid (space-players ownspace)))
-           (define fac (if p (player-faction p) #f))
-           (define orders (findf (lambda (o) (equal? (car o) fac)) (space-orders ownspace)))
-           (when orders
-             (set! ordertree (cadr orders))
-             (define cycle 3000)
-             (define a (* 2.0 (/ (abs (- (remain (space-time ownspace) cycle)
-                                         (/ cycle 2.0))) cycle)))
-             (define bright (linear-color "blue" "blue" 1.0 (+ 0.5 (* 0.5 a))))
-             (define dim (linear-color "blue" "blue" 1.0 0.5))
-             (for-orders ordertree showtab
-                         (lambda (ot depth highlight?)
-                           (when (order? ot)
-                             (for ((a (in-list (order-anns ot))))
-                               (cond
-                                 ((ann-circle? a)
-                                  (keep-transform dc
-                                    (define col (if highlight? bright dim))
-                                    (send dc set-pen col (/ 2.0 (dc-point-size dc)) 'solid)
-                                    (send dc set-text-foreground col)
-                                    (send dc set-brush nocolor 'transparent)
-                                    (send dc translate (obj-x a) (obj-y a))
-                                    (define r (ann-circle-radius a))
-                                    (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))
-                                    (send dc scale (/ 1.0 z) (/ 1.0 z))
-                                    (draw-text dc (ann-circle-text a) 0 0)))
-                                 (else
-                                  (error "don't know how to draw annotation ~v" a))))))))
-
-           ;; debug, show radar distance for all ships
-           (when DEBUG
-             (send dc set-brush nocolor 'transparent)
-             (send dc set-pen "pink" (/ 1.0 (dc-point-size dc)) 'solid)
-             (for ((s (in-list (space-objects ownspace)))
-                   #:when (ship? s))
-               (keep-transform dc
-                 (define r (ship-radar s))
-                 (send dc translate (obj-x s) (obj-y s))
-                 (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r)))))
-           
-           (send dc set-clipping-region fow)
-           (draw-background-stars dc center z)
-           (draw-objects dc ownspace)
-
-           (keep-transform dc
-             (center-on dc shipcenter #f)
-
-             ; if we are on a ship inside another ship, draw our ships stacked
-             (define last-ship #f)
-             (for ((s (in-list (reverse (filter ship? my-stack))))
-                   (i (in-naturals)))
-               (cond
-                 ((= i 0) (set! last-ship s))
-                 (else
-                  (send dc set-pen nocolor 1 'transparent)
-                  (send dc set-brush (make-color 0 0 0 0.8) 'solid)
-                  (define r (* 0.8 (ship-radius last-ship)))
-                  (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))
-                  (draw-ship-up dc s))))
-
-             (define ship (get-ship my-stack))
-             (define rot (if (ship-flying? ship) (obj-r ship) pi/2))
-             (send dc rotate (- rot))  ; rotate because we drew the ship pointing up
-             (when (and (not (spacesuit? ship))
-                        (not (hangar? (get-pod my-stack))))
-               (define bs
-                 (draw-pods dc ship rot my-stack send-commands canvas meid))
-               (set! buttons (append buttons bs)))
-             )
-           
-           ; transform is back to scaled space
-           (for ((t (in-list (pod-tools (get-pod my-stack)))))
-             (draw-tool-overlay dc t my-stack))
-           )
-
-         ; now we are back to the canon transform
-         (send dc set-clipping-region #f)
-
-         (when (hangar? (get-pod my-stack))
-           ; draw hangar background
-           (send dc set-pen fgcolor 1.0 'solid)
-           (send dc set-brush (make-color 0 0 0 .8) 'solid)
-           (define size (* 0.9 (min WIDTH HEIGHT)))
-           (send dc draw-rectangle (* -0.5 size) (* -0.5 size) size size)
-           
-           ; draw all the ships in the hangar
-           (define shipmax 54)
-           (for ((s (in-list (hangar-ships (get-pod my-stack))))
-                 (i (in-naturals)))
-             (keep-transform dc
-               (send dc translate
-                     (+ (* -0.5 size) 10 (/ shipmax 2))
-                     (- (* 0.5 size) 10 (* i 100) (/ shipmax 2)))
-               (draw-ship-up dc s)
-               (send dc translate (+ 10 (/ shipmax 2)) (/ shipmax 2))
-               (draw-text dc (format "~a" (ship-name s)) 0 -5)
-               (define-values (x y) (dc->canon canvas dc 0 -60))
-               (define bl (lambda (x y)
-                            (send-commands (chrole meid (ob-id (ship-lounge s))))))
-               (set! buttons (append buttons (list (button 'normal #f x y 65 30 "Board" bl))))
-               (for ((p (in-list (find-all s player?)))
-                     (i (in-naturals)))
-                 (draw-text dc (player-name p) 0 (- -70 (* i 20))))
-               )))
-            
-         
-         ; draw game UI
-
-         ; zoom scale
-         (define zw 20)
-         (define zh 150)
-         (define zx (- RIGHT 10 zw))
-         (define zy (- TOP 70 zh))
-         (send dc set-pen "blue" 1.5 'solid)
-         (send dc draw-line zx zy (+ zx zw) zy)
-         (send dc draw-line zx (+ zy zh) (+ zx zw) (+ zy zh))
-         (send dc draw-line (+ zx (/ zw 2.0)) zy (+ zx (/ zw 2.0)) (+ zy zh))
-         (define zfrac (/ (- (log (get-future-scale)) (log (min-scale)))
-                          (- (log (max-scale)) (log (min-scale)))))
-         (define zfracy (+ zy (* zfrac zh)))
-         (send dc draw-line (+ zx 2) zfracy (+ zx zw -2) zfracy)
-         (define zbutton (button 'hidden #f zx zy zw zh "Zoom"
-                (lambda (x y)
-                  (define zfracy (/ y zh))
-                  (define z (exp (+ (log (min-scale))
-                                    (* zfracy (- (log (max-scale)) (log (min-scale)))))))
-                  (set-scale z))))
-         (define zkeyb (button 'hidden #\z 0 0 0 0 "Zoom In"
-                               (lambda (k y) (set-scale (* (get-future-scale) 1.1)))))
-                                 
-         (define xkeyb (button 'hidden #\x 0 0 0 0 "Zoom Out"
-                               (lambda (k y) (set-scale (/ (get-future-scale) 1.1)))))
-         
-                                 
-         (set! buttons (append buttons (list zbutton zkeyb xkeyb)))
-         
-         
-         ; draw pod UI
-         (draw-pod-ui dc my-stack)
-         
-         ; draw tool UI
-         (for ((t (in-list (pod-tools (get-pod my-stack)))))
-           (define bs (draw-tool-ui dc t my-stack send-commands))
-           (set! buttons (append buttons bs)))
-                  
-         (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50
-                                      (if center-follow? "Exit" "Back")
-           (if (not center-follow?)
-               (lambda (x y)
-                 (set! center-follow? #t))
-               (lambda (x y)
-                 (define p (get-pod my-stack))
-                 (define newid
-                   (cond
-                     ((and (lounge? p) (spacesuit? (get-ship my-stack)))
-                      ; dying
-                      #f
-                      )
-                     ((and (lounge? p) (ship-flying? (get-ship my-stack)))
-                      ; jumping ship
-                      "spacesuit"
-                      )
-                     ((lounge? p)
-                      ; leaving this ship into mothership hangar
-                      (define ms (cadr (get-ships my-stack)))
-                      (ob-id (ship-hangar ms)))
-                     (else
-                      ; move to lounge
-                      (ob-id (ship-lounge (get-ship my-stack))))))
-                 (send-commands (chrole meid newid))))))
-         
-         (append! buttons leave-button)
-
-         ; draw mouse cursor
-         (define-values (p mods) (get-current-mouse-state))
-         (define-values (wx wy) (send canvas screen->client
-                                      (+ (send p get-x) left-inset)
-                                      (+ (send p get-y) top-inset)))
-         (define-values (mx my) (screen->canon canvas wx wy))
-         (define drawn #f)
-         (when (not (in-button? buttons mx my))
-           (for ((t (in-list (pod-tools (get-pod my-stack)))))
-             (when (and (steer? t) (not (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t))))
-               (set! drawn #t)
-               (keep-transform dc
-                 (send dc set-pen "blue" (/ 1.5 (dc-point-size dc)) 'solid)
-                 (send dc translate mx my)
-                 (define dx (- (+ (obj-x center) (/ mx z)) (obj-x mypos)))
-                 (define dy (- (+ (obj-y center) (/ my z)) (obj-y mypos)))
-                 (send dc rotate (- (atan0 dy dx)))
-                 (send dc draw-lines '((0 . 0) (-15 . -5) (-15 . 5) (0 . 0)))))))
-
-         (cond (drawn (send canvas set-cursor (make-object cursor% 'blank)))
-               (else (send canvas set-cursor (make-object cursor% 'arrow))))
-         
-         )
-        (else
-         (error "didn't know what to draw")))
-
-
-      ; stuff we draw on all screens
-
-      (define tab-button (button 'hidden #\tab 0 0 0 0 "Tab"
-                                 (lambda (k y) (set! showtab (not showtab)))))
-      (append! buttons tab-button)
-        
-      (draw-buttons dc buttons (if ownspace (space-time ownspace) 0))
+      (when (not ownspace)
+        ; This screen is where you type in your name and the server IP   
+        (draw-text dc "Intro Screen" 0 0))
 
       (when ownspace
-        (send dc set-text-foreground "white")
+        (define p (findfid meid (space-players ownspace)))
+        (define fac (if p (player-faction p) #f))
+        (when (and (not fac) my-stack)
+          (set! fac (ship-faction (get-ship my-stack))))
+        (define orders (findf (lambda (o) (equal? (car o) fac)) (space-orders ownspace)))
+        (define ordertree (if orders (cadr orders) #f))
         
+        (keep-transform dc
+          (send dc scale (get-scale) (get-scale))
+          (send dc translate (- (obj-x center)) (- (obj-y center)))
+          
+          ; make fog of war region
+          (define fow (new region% (dc dc)))
+          (for ((s (in-list (space-objects ownspace)))
+                #:when (and fac (ship? s) (equal? (ship-faction s) fac)))
+            (define rad (ship-radar s))
+            (define reg (new region% (dc dc)))
+            (send reg set-ellipse (- (obj-x s) rad) (- (obj-y s) rad) (* 2 rad) (* 2 rad))
+            (send fow union reg))
+
+          ; make the background black for places you can see
+          (send dc set-clipping-region fow)
+          (send dc set-background "black")
+          (send dc clear)
+
+          ; turn off clipping for map stuff
+          (send dc set-clipping-region #f)
+          (draw-sector-lines dc ownspace)
+
+          ; map annotations
+          (for ((a (in-list (space-objects ownspace)))
+                #:when (ann? a))
+            (when (ann-button? a)
+              (define-values (x y) (dc->canon canvas dc (obj-x a) (obj-y a)))
+              (define-values (x2 y2) (dc->canon canvas dc
+                                                (+ (obj-x a) (ann-button-w a))
+                                                (+ (obj-y a) (ann-button-h a))))
+              (define ab (button 'normal #f
+                                 x y (- x2 x) (- y2 y) (ann-button-text a)
+                                 (lambda (k y) (send-commands (anncmd (ob-id a) (ann-button-msg a))))))
+              (append! buttons ab)))
+          
+          ; order annotations
+          (when ordertree
+            (define a (cycletri (space-time ownspace 3000)))
+            (define bright (linear-color "blue" "blue" 1.0 (+ 0.5 (* 0.5 a))))
+            (define dim (linear-color "blue" "blue" 1.0 0.5))
+            (for-orders ordertree showtab
+                        (lambda (ot depth highlight?)
+                          (when (order? ot)
+                            (for ((a (in-list (order-anns ot))))
+                              (cond
+                                ((ann-circle? a)
+                                 (keep-transform dc
+                                   (define col (if highlight? bright dim))
+                                   (send dc set-pen col (/ 2.0 (dc-point-size dc)) 'solid)
+                                   (send dc set-text-foreground col)
+                                   (send dc set-brush nocolor 'transparent)
+                                   (send dc translate (obj-x a) (obj-y a))
+                                   (define r (ann-circle-radius a))
+                                   (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))
+                                   (send dc scale (/ 1.0 (get-scale)) (/ 1.0 (get-scale)))
+                                   (draw-text dc (ann-circle-text a) 0 0)))
+                                (else
+                                 (error "don't know how to draw annotation ~v" a))))))))
+          
+          ;; debug, show radar distance for all ships
+          (when DEBUG
+            (send dc set-brush nocolor 'transparent)
+            (send dc set-pen "pink" (/ 1.0 (dc-point-size dc)) 'solid)
+            (for ((s (in-list (space-objects ownspace)))
+                  #:when (ship? s))
+              (keep-transform dc
+                (define r (ship-radar s))
+                (send dc translate (obj-x s) (obj-y s))
+                (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r)))))
+          
+          ; turn clipping back on for regular stuff
+          (send dc set-clipping-region fow)
+          (draw-background-stars dc center (get-scale))
+          (draw-objects dc ownspace meid)
+
+          ; draw stuff specific to the ship you are on
+          ; - stacked if we are on a ship inside another ship
+          ; - pod buttons to change pods
+          (when my-stack
+            (keep-transform dc
+              (center-on dc (get-topship my-stack) #f)
+              
+              ; if we are on a ship inside another ship, draw our ships stacked
+              (define last-ship #f)
+              (for ((s (in-list (reverse (filter ship? my-stack))))
+                    (i (in-naturals)))
+                (cond
+                  ((= i 0) (set! last-ship s))
+                  (else
+                   (send dc set-pen nocolor 1 'transparent)
+                   (send dc set-brush (make-color 0 0 0 0.8) 'solid)
+                   (define r (* 0.8 (ship-radius last-ship)))
+                   (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))
+                   (draw-ship-up dc s))))
+              
+              (define ship (get-ship my-stack))
+              (define rot (if (ship-flying? ship) (obj-r ship) pi/2))
+              (send dc rotate (- rot))  ; rotate because we drew the ship pointing up
+              (when (and (not (spacesuit? ship))
+                         (not (hangar? (get-pod my-stack))))
+                (define bs
+                  (draw-pods dc ship rot my-stack send-commands canvas meid))
+                (set! buttons (append buttons bs))))
+
+            ; transform is back to scaled space
+            (for ((t (in-list (pod-tools (get-pod my-stack)))))
+              (draw-tool-overlay dc t my-stack)))
+
+          )
+        ; now we are back to the canon transform
+
+        ; turn clipping off so we can draw all the UI stuff
+        (send dc set-clipping-region #f)
+
+        (when my-stack
+          (when (hangar? (get-pod my-stack))
+            ; draw hangar background
+            (send dc set-pen fgcolor 1.0 'solid)
+            (send dc set-brush (make-color 0 0 0 .8) 'solid)
+            (define size (* 0.9 (min WIDTH HEIGHT)))
+            (send dc draw-rectangle (* -0.5 size) (* -0.5 size) size size)
+            
+            ; draw all the ships in the hangar
+            (define shipmax 54)
+            (for ((s (in-list (hangar-ships (get-pod my-stack))))
+                  (i (in-naturals)))
+              (keep-transform dc
+                (send dc translate
+                      (+ (* -0.5 size) 10 (/ shipmax 2))
+                      (- (* 0.5 size) 10 (* i 100) (/ shipmax 2)))
+                (draw-ship-up dc s)
+                (send dc translate (+ 10 (/ shipmax 2)) (/ shipmax 2))
+                (draw-text dc (format "~a" (ship-name s)) 0 -5)
+                (define-values (x y) (dc->canon canvas dc 0 -60))
+                (define bl (lambda (x y)
+                             (send-commands (chrole meid (ob-id (ship-lounge s))))))
+                (append! buttons (button 'normal #f x y 65 30 "Board" bl))
+                (for ((p (in-list (find-all s player?)))
+                      (i (in-naturals)))
+                  (draw-text dc (player-name p) 0 (- -70 (* i 20))))
+                )))
+
+          ; draw pod UI
+          (draw-pod-ui dc my-stack)
+        
+          ; draw tool UI
+          (for ((t (in-list (pod-tools (get-pod my-stack)))))
+            (define bs (draw-tool-ui dc t my-stack send-commands))
+            (append! buttons bs))
+
+          ) ; when my-stack
+
+        (send dc set-text-foreground "white")
         (when showtab
-           ; list all players
+          ; list all players
           (draw-text dc "Players:" 200 (- TOP 80))
           (for ((p (in-list (space-players ownspace)))
                 (i (in-naturals)))
@@ -454,7 +333,8 @@
                             (~a (player-name p) " " (player-faction p))
                             (player-name p)))
             (draw-text dc str 200 (- TOP 100 (* i 20)))))
-           
+        
+        ; draw orders
         (define line 0)
         (send dc set-pen nocolor 1 'transparent)
         (when ordertree
@@ -473,12 +353,124 @@
                             (send dc set-text-foreground "white")
                             (send dc set-text-foreground "gray"))
                         (draw-text dc (ord-text ot) (+ left 12 (* 10 depth)) (- top (* 20 line)))
-                        (set! line (+ line 1))))))
+                        (set! line (+ line 1)))))
+
+        (when (not my-stack)
+          (define start-stacks
+            (search ownspace (lambda (o) (and (ship? o)
+                                              (ship-flying? o)
+                                              (ship-start o)
+                                              (if fac (equal? fac (ship-faction o)) #t))) #t))
           
-      (draw-overlay dc ownspace my-stack)
-      (draw-framerate dc frames)
-      )
-    )
+          (for ((s (in-list start-stacks))
+                (i (in-naturals)))
+            (define mp (car s)) 
+            (define b (button 'normal #f (+ LEFT 100 (* i 250)) (+ BOTTOM 60) 200 30
+                              (format "~a" (ship-name (get-ship s)))
+                              (lambda (x y)
+                                (send-commands (chrole meid (ob-id (ship-lounge (get-ship s))))))))
+            (append! buttons b)))
+            
+        ; draw game UI
+        
+        ; zoom scale
+        (when (not showsector?)
+          (define zw 20)
+          (define zh 150)
+          (define zx (- RIGHT 10 zw))
+          (define zy (- TOP 70 zh))
+          (send dc set-pen "blue" 1.5 'solid)
+          (send dc draw-line zx zy (+ zx zw) zy)
+          (send dc draw-line zx (+ zy zh) (+ zx zw) (+ zy zh))
+          (send dc draw-line (+ zx (/ zw 2.0)) zy (+ zx (/ zw 2.0)) (+ zy zh))
+          (define zfrac (/ (- (log (get-future-scale)) (log (min-scale)))
+                           (- (log (max-scale)) (log (min-scale)))))
+          (define zfracy (+ zy (* zfrac zh)))
+          (send dc draw-line (+ zx 2) zfracy (+ zx zw -2) zfracy)
+          (define zbutton (button 'hidden #f zx zy zw zh "Zoom"
+                                  (lambda (x y)
+                                    (define zfracy (/ y zh))
+                                    (define z (exp (+ (log (min-scale))
+                                                      (* zfracy (- (log (max-scale)) (log (min-scale)))))))
+                                    (set-scale z))))
+          (define zkeyb (button 'hidden #\z 0 0 0 0 "Zoom In"
+                                (lambda (k y) (set-scale (* (get-future-scale) 1.1)))))
+          
+          (define xkeyb (button 'hidden #\x 0 0 0 0 "Zoom Out"
+                                (lambda (k y) (set-scale (/ (get-future-scale) 1.1)))))
+          
+          (append! buttons zbutton zkeyb xkeyb))
+        
+        (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50
+                                     (if center-follow? "Exit" "Back")
+          (cond
+            ((not my-stack)
+             (lambda (x y)
+               (drop-connection "clicked exit")
+               (exit 0)))
+            ((not center-follow?)
+             (lambda (x y)
+               (set! center-follow? #t)))
+            (else
+             (lambda (x y)
+               (define p (get-pod my-stack))
+               (define newid
+                 (cond
+                   ((and (lounge? p) (spacesuit? (get-ship my-stack)))
+                    ; dying
+                    #f
+                    )
+                   ((and (lounge? p) (ship-flying? (get-ship my-stack)))
+                    ; jumping ship
+                    "spacesuit"
+                    )
+                   ((lounge? p)
+                    ; leaving this ship into mothership hangar
+                    (define ms (cadr (get-ships my-stack)))
+                    (ob-id (ship-hangar ms)))
+                   (else
+                    ; move to lounge
+                    (ob-id (ship-lounge (get-ship my-stack))))))
+               (send-commands (chrole meid newid)))))))
+        
+        (append! buttons leave-button)
+          
+        ; draw mouse cursor
+        (when my-stack
+          (define-values (p mods) (get-current-mouse-state))
+          (define-values (wx wy) (send canvas screen->client
+                                       (+ (send p get-x) left-inset)
+                                       (+ (send p get-y) top-inset)))
+          (define-values (x y) (screen->canon canvas wx wy))
+          (define drawn #f)
+          (when (not (in-button? buttons x y))
+            (for ((t (in-list (pod-tools (get-pod my-stack)))))
+              (when (and (steer? t) (not (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t))))
+                (set! drawn #t)
+                (define mypos (get-center my-stack))
+                (define-values (mx my) (space->canon center (get-scale) (obj-x mypos) (obj-y mypos)))
+                (define a (angle-norm (atan0 (- y my) (- x mx))))
+                (keep-transform dc
+                  (send dc set-pen "blue" (/ 1.5 (dc-point-size dc)) 'solid)
+                  (send dc translate x y)
+                  (send dc rotate (- a))
+                  (send dc draw-lines '((0 . 0) (-15 . -5) (-15 . 5) (0 . 0)))))))
+          
+          (cond (drawn (send canvas set-cursor (make-object cursor% 'blank)))
+                (else (send canvas set-cursor (make-object cursor% 'arrow)))))
+        
+        (append! buttons
+                 (button 'hidden #\tab 0 0 0 0 "Mission Info"
+                         (lambda (k y) (set! showtab (not showtab))))
+                 (button 'hidden #\` 0 0 0 0 "Show Sector"
+                         (lambda (k y) (set! showsector? (not showsector?)))))
+
+        (draw-overlay dc ownspace my-stack)
+        (draw-framerate dc frames)
+        
+        ) ; when ownspace
+      (draw-buttons dc buttons (if ownspace (space-time ownspace) 0))
+    ))
     
   
   (define-values (left-inset top-inset) (get-display-left-top-inset))
@@ -508,8 +500,9 @@
           ((left-down)
            (click this event))
           ((right-down)
-           (set! dragstate "start")
-           (set! dragxypx (cons (send event get-x) (send event get-y))))
+           (when (not showsector?)
+             (set! dragstate "start")
+             (set! dragxypx (cons (send event get-x) (send event get-y)))))
           ((motion)
            (when (and (send event dragging?) (send event get-right-down))
              (when (or (and (equal? dragstate "start")
@@ -687,7 +680,15 @@
              (set! ownspace input)
              (set! start-space-time (space-time ownspace))
              (set! start-time (current-milliseconds))
-             (set! last-update-time start-space-time))
+             (set! last-update-time start-space-time)
+
+             ; new ownspace, reset view stuff
+             (set! showsector? #f)
+             (set! center #f)
+             (set! center-follow? #t)
+             (set-posvel-x! (obj-posvel centerxy) 0)
+             (set-posvel-y! (obj-posvel centerxy) 0)
+             (set! dragstate "none"))
             ((and ownspace (update? input))
              (when (not (= (update-time input) (+ last-update-time TICK)))
                (error "UPDATE TIMES DID NOT MATCH\n"))

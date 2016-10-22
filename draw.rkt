@@ -105,12 +105,17 @@
         (define y (+ origy (* k height) (cdr s)))
         (send dc draw-point x y)))))
 
-(define (draw-object dc o space (map #f))
+(define (draw-object dc o space pid)
   (define ptsize (dc-point-size dc))
   (cond       
     ((ptsize . < . 0.25)  ; "sector" view - ships are triangles
      (cond ((ship? o)
-            (send dc set-pen "blue" (/ 1.5 ptsize) 'solid)
+            (define col
+              (if (find-id o pid)
+                  (linear-color "blue" "blue" 1.0
+                                (+ 0.5 (* 0.5 (cycletri (space-time space) 1500))))
+                  "blue"))
+            (send dc set-pen col (/ 1.5 ptsize) 'solid)
             (define outline
               (cond ((spacesuit? o)
                      ; diamond, but small enough so it looks like a dot
@@ -121,8 +126,8 @@
                      '((-5 . -5) (-5 . 5) (5 . 5) (5 . -5) (-5 . -5)))))  ; no engines -> square
             (define zoutline
               (for/list ((x (in-list outline)))
-                (cons (* (car x) (ship-radius o) (/ 0.1 ptsize))
-                      (* (cdr x) (ship-radius o) (/ 0.1 ptsize)))))
+                (cons (* (car x) (ship-radius o) (/ 0.15 (sqrt ptsize)))
+                      (* (cdr x) (ship-radius o) (/ 0.15 (sqrt ptsize))))))
             (keep-transform dc
               (center-on dc o)
               (send dc draw-lines zoutline)))
@@ -159,7 +164,7 @@
         (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))))))
 
 
-(define (draw-objects dc space)
+(define (draw-objects dc space pid)
   (define objects (space-objects space))
   (define ships (filter ship? objects))
   (define effects (filter effect? objects))
@@ -169,7 +174,7 @@
   (set! effects (remove* backeffects effects))
   
   (for ((o (in-list (append backeffects ships other effects))))
-    (draw-object dc o space))
+    (draw-object dc o space pid))
   )
 
 (define (draw-ship-raw dc s)
@@ -318,9 +323,8 @@
     (send dc set-pen nocolor 1 'transparent)
     (define hpfrac (max 0.0 (/ (ship-con ship) (ship-maxcon ship))))
     (when (hpfrac . < . 0.5)
-      (define cycle (+ 200 (* 5000 hpfrac)))
-      (define z (clamp 0.0 1.0 (* 2.0 (/ (abs (- (remain (obj-age space ship) cycle)
-                                                 (/ cycle 2.0))) cycle))))
+      (define cycletime (+ 200 (* 5000 hpfrac)))
+      (define z (cycletri (obj-age space ship) cycletime))
       (define alpha (+ 0.0 (* 1.0 z (max 0.1 (- 0.8 hpfrac)))))
       (define hpcolor (linear-color "red" "black" (max 0.2 (- hpfrac 0.2)) alpha))
       (send dc set-brush hpcolor 'solid)

@@ -51,6 +51,11 @@
   (define z (/ a b))
   (* b (- z (floor z))))
 
+; returns triangle wave from 1-0-1 over cycletime
+(define (cycletri age cycletime)
+  (define a (/ (remain age cycletime) cycletime))  ; goes 0-1,0-1
+  (abs (* 2.0 (- a 0.5))))  ; goes 1-0-1
+
 (define (sigmoid x div)
   (- (/ 2.0 (+ 1.0 (exp (- (/ x div))))) 1.0))
 
