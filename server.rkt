@@ -17,6 +17,7 @@
          "shield.rkt"
          "ships.rkt"
          "dmg.rkt"
+         "order.rkt"
          "scenario.rkt"
          "upgrade.rkt")
 
@@ -333,6 +334,7 @@
 
 
 (define (send-to-client c msg)
+  (when (space? msg) (set! msg (scrub-space msg)))
   (with-handlers ((exn:fail:network? (lambda (exn) (remove-client c "send-to-client"))))
     (define bstr (with-output-to-bytes (lambda () (write msg))))
     (define start-time (current-milliseconds))
@@ -434,7 +436,7 @@
            (set! oldest o))))
   ;(printf "\n")
   
-  (when oldest
+  (when (and oldest (< 500 (- (space-time ownspace) (posvel-t (obj-posvel oldest)))))
 ;    (when (< 500 (- (space-time ownspace) (posvel-t (obj-posvel oldest))) 10000)
 ;      (printf "server oldest posvel is ~a\n" (- (space-time ownspace) (posvel-t (obj-posvel oldest)))))
     (set-posvel-t! (obj-posvel oldest) (space-time ownspace))

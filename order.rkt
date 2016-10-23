@@ -40,6 +40,11 @@
                      (scrub ot)))))))
 
 
+(define (scrub-space s)
+  (struct-copy space s (orders (for/list ((fo (space-orders s)))
+                                 (list (car fo) (scrub (cadr fo)))))))
+
+
 ; run order functions and update ord-done?
 ; return #t if all orders are done, and #f if not
 ; can short circuit

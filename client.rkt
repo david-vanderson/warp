@@ -210,7 +210,7 @@
           
           ; order annotations
           (when ordertree
-            (define a (cycletri (space-time ownspace 3000)))
+            (define a (cycletri (space-time ownspace) 3000))
             (define bright (linear-color "blue" "blue" 1.0 (+ 0.5 (* 0.5 a))))
             (define dim (linear-color "blue" "blue" 1.0 0.5))
             (for-orders ordertree showtab
