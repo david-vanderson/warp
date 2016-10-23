@@ -40,12 +40,14 @@
 
 (define (make-spacesuit name ship)
   (define pv (obj-posvel ship))
+  (define theta (angle-add (obj-r ship) pi/2))
+  (define r (random-between -50 50))
   (make-ship "space-suit"
              name
              (ship-faction ship)
              #:x (posvel-x pv) #:y (posvel-y pv)
-             #:dx (+ (posvel-dx pv) (random-between -50 50))
-             #:dy (+ (posvel-dy pv) (random-between -50 50))))
+             #:dx (+ (posvel-dx pv) (* r (cos theta)))
+             #:dy (+ (posvel-dy pv) (* r (sin theta)))))
 
 
 (define (make-ship type name faction

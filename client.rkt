@@ -55,7 +55,7 @@
            (define ship (get-ship my-stack))
            (if (and (spaceship? ship) (or (lounge? pod) (hangar? pod)))
                #t #f))
-          (else #t)))
+          (else #f)))
   (define (min-scale)
     (if ownspace
         (min (/ WIDTH (space-width ownspace)) (/ HEIGHT (space-height ownspace)))
@@ -152,6 +152,8 @@
                    zerocenter)
                   ((and my-stack center-follow?)
                    (get-center my-stack))
+                  (center-follow?
+                   zerocenter)
                   (else
                    centerxy)))
       (when center-follow?
@@ -368,6 +370,9 @@
             (define b (button 'normal #f (+ LEFT 100 (* i 250)) (+ BOTTOM 60) 200 30
                               (format "~a" (ship-name (get-ship s)))
                               (lambda (x y)
+                                ; leaving sector overview, so center on ship and reset scale
+                                (set! scale-play 1.0)
+                                (set! center-follow? #t)
                                 (send-commands (chrole meid (ob-id (ship-lounge (get-ship s))))))))
             (append! buttons b)))
             
@@ -404,13 +409,13 @@
         (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50
                                      (if center-follow? "Exit" "Back")
           (cond
+            ((not center-follow?)
+             (lambda (x y)
+               (set! center-follow? #t)))
             ((not my-stack)
              (lambda (x y)
                (drop-connection "clicked exit")
                (exit 0)))
-            ((not center-follow?)
-             (lambda (x y)
-               (set! center-follow? #t)))
             (else
              (lambda (x y)
                (define p (get-pod my-stack))
@@ -418,6 +423,9 @@
                  (cond
                    ((and (lounge? p) (spacesuit? (get-ship my-stack)))
                     ; dying
+                    ; reset scale so starting screen shows whole sector
+                    (set! scale-play (min-scale))
+                    (set! center-follow? #t)  ; sector centered
                     #f
                     )
                    ((and (lounge? p) (ship-flying? (get-ship my-stack)))
@@ -688,7 +696,12 @@
              (set! center-follow? #t)
              (set-posvel-x! (obj-posvel centerxy) 0)
              (set-posvel-y! (obj-posvel centerxy) 0)
-             (set! dragstate "none"))
+             (set! dragstate "none")
+
+             (when (not (find-id ownspace meid))
+               ; set scale so we see the whole sector
+               (set! scale-play (min-scale)))
+             )
             ((and ownspace (update? input))
              (when (not (= (update-time input) (+ last-update-time TICK)))
                (error "UPDATE TIMES DID NOT MATCH\n"))
