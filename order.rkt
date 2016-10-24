@@ -7,8 +7,34 @@
 
 (define (set-space-orders-for! space faction ot)
   (define (pred fo) (not (equal? (car fo) faction)))
-  (set-space-orders! space (cons (list faction ot)
-                                 (filter pred (space-orders space)))))
+  (define otherorders (filter pred (space-orders space)))
+  (if ot
+      (set-space-orders! space (cons (list faction ot) otherorders))
+      (set-space-orders! space otherorders)))
+
+(define (get-space-orders-for space faction)
+  (define fo (findf (lambda (fo) (equal? faction (car fo))) (space-orders space)))
+  (if fo (cadr fo) #f))
+
+
+; return a list of chorders
+(define (order-changes space order-space)
+  (define changes '())
+  ; for all orders in order-space, check that the matching faction's orders are the same
+  (for ((fo (space-orders order-space)))
+    (define fac (car fo))
+    (define new (scrub (cadr fo)))
+    (define old (get-space-orders-for space fac))
+    (when (not (equal? new old))
+      (printf "not equal? new old\nnew: ~v\nold: ~v\n" new old)
+      (append! changes (chorders fac new))))
+  
+  ; clean up any leftover old orders
+  (for ((fo (space-orders space)))
+    (define fac (car fo))
+    (when (not (get-space-orders-for order-space fac))
+      (append! changes (chorders fac #f))))
+  changes)
 
 
 ; client
@@ -38,11 +64,6 @@
                   (orders
                    (for/list ((ot (in-list (ordercomb-orders ot))))
                      (scrub ot)))))))
-
-
-(define (scrub-space s)
-  (struct-copy space s (orders (for/list ((fo (space-orders s)))
-                                 (list (car fo) (scrub (cadr fo)))))))
 
 
 ; run order functions and update ord-done?

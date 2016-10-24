@@ -334,7 +334,6 @@
 
 
 (define (send-to-client c msg)
-  (when (space? msg) (set! msg (scrub-space msg)))
   (with-handlers ((exn:fail:network? (lambda (exn) (remove-client c "send-to-client"))))
     (define bstr (with-output-to-bytes (lambda () (write msg))))
     (define start-time (current-milliseconds))
