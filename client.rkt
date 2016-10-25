@@ -406,43 +406,53 @@
                                 (lambda (k y) (set-scale (/ (get-future-scale) 1.1)))))
           
           (append! buttons zbutton zkeyb xkeyb))
+
         
-        (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50
-                                     (if center-follow? "Exit" "Back")
-          (cond
-            ((not center-follow?)
+        (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50 "Exit" #f))
+        (define quit-button (button 'normal 'escape (- RIGHT 50) BOTTOM 50 50 "Quit" #f))
+        (cond
+          ((not center-follow?)
+           (set-button-label! leave-button "Back")
+           (set-button-f! leave-button
+                          (lambda (x y)
+                            (set! center-follow? #t)))
+           (append! buttons leave-button))
+          ((not my-stack)
+           (set-button-f! quit-button
              (lambda (x y)
-               (set! center-follow? #t)))
-            ((not my-stack)
-             (lambda (x y)
-               (drop-connection "clicked exit")
-               (exit 0)))
-            (else
-             (lambda (x y)
-               (define p (get-pod my-stack))
-               (define newid
-                 (cond
-                   ((and (lounge? p) (spacesuit? (get-ship my-stack)))
-                    ; dying
-                    ; reset scale so starting screen shows whole sector
-                    (set! scale-play (min-scale))
-                    (set! center-follow? #t)  ; sector centered
-                    #f
-                    )
-                   ((and (lounge? p) (ship-flying? (get-ship my-stack)))
-                    ; jumping ship
-                    "spacesuit"
-                    )
-                   ((lounge? p)
-                    ; leaving this ship into mothership hangar
-                    (define ms (cadr (get-ships my-stack)))
-                    (ob-id (ship-hangar ms)))
-                   (else
-                    ; move to lounge
-                    (ob-id (ship-lounge (get-ship my-stack))))))
-               (send-commands (chrole meid newid)))))))
-        
-        (append! buttons leave-button)
+               (define ans (message-box/custom "Quit?" "Done Playing?"
+                                               "Quit" "Keep Playing" #f
+                                               frame '(default=2)))
+               (when (equal? 1 ans)
+                 (drop-connection "clicked exit")
+                 (exit 0))))
+           (append! buttons quit-button))
+          ((and (lounge? (get-pod my-stack)) (spacesuit? (get-ship my-stack)))
+           ; dying
+           (set-button-f! leave-button (lambda (x y)
+                                         ; reset scale so starting screen shows whole sector
+                                         (set! scale-play (min-scale))
+                                         (set! center-follow? #t)  ; sector centered
+                                         (send-commands (chrole meid #f))))
+           (append! buttons leave-button))
+          ((and (lounge? (get-pod my-stack)) (ship-flying? (get-ship my-stack)))
+           ; jumping ship
+           (set-button-label! quit-button "Jump")
+           (set-button-key! quit-button #f)  ; turn off keyboard shortcut
+           (set-button-f! quit-button (lambda (x y) (send-commands (chrole meid "spacesuit"))))
+           (append! buttons quit-button))
+          ((lounge? (get-pod my-stack))
+           ; leaving this ship into mothership hangar
+           (define ms (cadr (get-ships my-stack)))
+           (set-button-f! leave-button (lambda (x y)
+                                         (send-commands (chrole meid (ob-id (ship-hangar ms))))))
+           (append! buttons leave-button))
+          (else
+           ; move to lounge
+           (set-button-f! leave-button
+                          (lambda (x y)
+                            (send-commands (chrole meid (ob-id (ship-lounge (get-ship my-stack)))))))
+           (append! buttons leave-button)))
           
         ; draw mouse cursor
         (when my-stack
