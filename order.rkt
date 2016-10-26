@@ -26,7 +26,6 @@
     (define new (scrub (cadr fo)))
     (define old (get-space-orders-for space fac))
     (when (not (equal? new old))
-      (printf "not equal? new old\nnew: ~v\nold: ~v\n" new old)
       (append! changes (chorders fac new))))
   
   ; clean up any leftover old orders
@@ -86,7 +85,7 @@
 (define (scout-waypoint text x y r)
   (define pv (posvel 0 x y 0 0 0 0))
   (define pvobj (obj #f #f pv))
-  (order #f text (list (ann-circle (next-id) 0 pv r text))
+  (order #f text (list (ann-circle (next-id) 0 pv #f r text))
          (lambda (space faction o)
            (for/first ((s (in-list (space-objects space)))
                        #:when (and (ship? s) (equal? faction (ship-faction s))

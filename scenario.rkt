@@ -19,16 +19,23 @@
 ;; Scenario Picking
 
 (define (sc-pick oldspace old-on-tick old-on-message)
+  (define players (if oldspace (space-players oldspace) '()))
+  (for ((p players)) (set-player-faction! p "players"))
   (define newspace
     (space 0 1000 1000
-           (if oldspace (space-players oldspace) '())
+           players
            '()
            `(
-             ,(ann-button (next-id) 0 (posvel 0 -200 200 0 0 0 0) 200 100 "Pilot Training" "pilot-training")
-             ,(ann-button (next-id) 0 (posvel 0 -200 0 0 0 0 0) 200 100 "Base Defense" "base-defense")
+             ,(ann-button (next-id) 0 (posvel 0 -200 200 0 200 100 0) #f "Pilot Training" "pilot-training")
+             ,(ann-button (next-id) 0 (posvel 0 -200 0 0 200 100 0) #f "Base Defense" "base-defense")
              )))
   (define (on-tick space change-scenario!)
-    '())
+    (define changes '())
+    (for ((p (space-players space)))
+      (when (not (player-faction p))
+        ; new player
+        (append! changes (chfaction (ob-id p) "players"))))
+    changes)
   (define (on-message space cmd change-scenario!)
     (define o (find-id space (command-id cmd)))
     (when (and o (ann-button? o))
@@ -39,19 +46,7 @@
   (values newspace on-tick on-message))
 
 
-(define next-faction
-  (let ((i 0))
-    (lambda ()
-      (set! i (add1 i))
-      (format "Training~a" i))))
 
-(define (new-trainer faction)
-  (define s (make-ship "red-fighter" "Pilot Trainer" faction #:npc? #f
-                       #:x (random-between -100 100) #:y (random-between -100 100)))
-  (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                            ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
-                            1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5 300.0 #t))
-  s)
 
 (define (pilot-training-scenario oldspace old-on-tick old-on-message)
   (define players (if oldspace (space-players oldspace) '()))
@@ -62,7 +57,9 @@
     (space 0 10000 10000
            players
            '()
-           '()))
+           `(
+             ,(ann-button (next-id) 0 (posvel 0 LEFT (- TOP 110) 0 100 50 0) #t "Quit Scenario" "quit-scenario")
+             )))
 
   (define (new-orders)
     (ordercomb #f "Scout" 'seq
@@ -72,17 +69,33 @@
                 (scout-waypoint "Scout D"   0    0 50))))
 
   (define real-orders (space 0 0 0 '() '() '()))  ; only care about orders
+
+  (define next-faction
+    (let ((i 0))
+      (lambda ()
+        (set! i (add1 i))
+        (format "Training~a" i))))
+  
+  (define (new-trainer faction)
+    (define s (make-ship "red-fighter" "Pilot Trainer" faction #:npc? #f
+                         #:x (random-between -100 100) #:y (random-between -100 100)))
+    (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
+                              ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
+                              1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5 300.0 #t))
+    s)
   
   (define (on-tick space change-scenario!)
     (define changes '())
     (for ((p (space-players space)))
       (cond
         ((not (player-faction p))
+         ; new player
          (define f (next-faction))
          (define o (new-orders))
          (set-space-orders-for! real-orders f o)
          (append! changes (chfaction (ob-id p) f) (chadd (new-trainer f) #f)))
         ((not (find-id space (lambda (o) (and (ship? o) (equal? (ship-faction o) (player-faction p))))))
+         ; player has no ship left
          (define o (new-orders))
          (set-space-orders-for! real-orders (player-faction p) o)
          (append! changes (chadd (new-trainer (player-faction p)) #f)))))
@@ -95,6 +108,10 @@
     changes)
   
   (define (on-message space cmd change-scenario!)
+    (define o (find-id space (command-id cmd)))
+    (when (and o (ann-button? o))
+      (case (ann-button-msg o)
+        (("quit-scenario") (change-scenario! sc-pick))))
     '())
   (values newspace on-tick on-message))
   

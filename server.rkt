@@ -463,7 +463,7 @@
 
 
 
-(define (change-scenario! scenario)
+(define (change-scenario! (scenario sc-pick))
   (define-values (newspace on-tick on-message) (scenario ownspace scenario-on-tick scenario-on-message))
   ;(printf "start ownspace ~v\n" new-space)
   (set! ownspace newspace)
@@ -476,6 +476,7 @@
 (define (start-server port (scenario sc-pick))
   (change-scenario! scenario)
   (set! server-listener (tcp-listen port 4 #t))
+  (printf "waiting for clients...\n")
   (server-loop))
 
 

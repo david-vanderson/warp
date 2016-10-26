@@ -52,6 +52,9 @@
 (define (obj-x obj) (posvel-x (obj-posvel obj)))
 (define (obj-y obj) (posvel-y (obj-posvel obj)))
 (define (obj-r obj) (posvel-r (obj-posvel obj)))
+(define (obj-dx obj) (posvel-dx (obj-posvel obj)))
+(define (obj-dy obj) (posvel-dy (obj-posvel obj)))
+(define (obj-dr obj) (posvel-dr (obj-posvel obj)))
 
 (struct player ob (name faction) #:mutable #:prefab)
 ; name is what is shown in UIs
@@ -169,16 +172,18 @@
 ; energy is amount of energy contributed so far
 ; fixing is bool
 
-(struct ann obj () #:mutable #:prefab)
+(struct ann obj (showtab?) #:mutable #:prefab)
 ; map annotation
+; if showtab? annotation is only shown when client showtab?
+;  - this doesn't affect annotations inside orders
 
-(struct ann-button ann (w h text msg) #:mutable #:prefab)
+(struct ann-button ann (text msg) #:mutable #:prefab)
 ; clickable button
-; obj-x/y is lower left-hand corner
-; w/h is size of button
+; obj-x/y is lower left-hand corner (in canon coords)
+; obj-dx/dy is size of button (in canon coords)
 ; text is what the button says
 ; msg is what is sent to server when a player clicks it
-;  - gets delivered to the scenario's on-message as a (anncmd ann-button-id msg) struct
+;  - gets delivered to the scenario's on-message as a (anncmd ann-button-id #f) struct
 
 (struct ann-circle ann (radius text) #:mutable #:prefab)
 

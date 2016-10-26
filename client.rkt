@@ -199,14 +199,10 @@
           ; map annotations
           (for ((a (in-list (space-objects ownspace)))
                 #:when (ann? a))
-            (when (ann-button? a)
-              (define-values (x y) (dc->canon canvas dc (obj-x a) (obj-y a)))
-              (define-values (x2 y2) (dc->canon canvas dc
-                                                (+ (obj-x a) (ann-button-w a))
-                                                (+ (obj-y a) (ann-button-h a))))
+            (when (and (ann-button? a) (or (not (ann-showtab? a)) showtab))
               (define ab (button 'normal #f
-                                 x y (- x2 x) (- y2 y) (ann-button-text a)
-                                 (lambda (k y) (send-commands (anncmd (ob-id a) (ann-button-msg a))))))
+                                 (obj-x a) (obj-y a) (obj-dx a) (obj-dy a) (ann-button-text a)
+                                 (lambda (k y) (send-commands (anncmd (ob-id a) #f)))))
               (append! buttons ab)))
           
           ; order annotations
@@ -363,7 +359,10 @@
             (search ownspace (lambda (o) (and (ship? o)
                                               (ship-flying? o)
                                               (ship-start o)
-                                              (if fac (equal? fac (ship-faction o)) #t))) #t))
+                                              (equal? fac (ship-faction o)))) #t))
+
+          (when (not fac)
+            (draw-text dc "Waiting for faction assignment..." -100 0))
           
           (for ((s (in-list start-stacks))
                 (i (in-naturals)))
