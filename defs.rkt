@@ -183,6 +183,10 @@
 ; msg is what is sent to server when a player clicks it
 ;  - gets delivered to the scenario's on-message as a (anncmd ann-button-id #f) struct
 
+(struct ann-text ann (text) #:mutable #:prefab)
+; text annotation
+; obj-x/y is top-left corner (in canon coords)
+
 (struct ann-circle ann (radius text) #:mutable #:prefab)
 
 (struct ord (done? text) #:mutable #:prefab)

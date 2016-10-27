@@ -5,6 +5,8 @@
          "change.rkt"
          "order.rkt"
          "base-defense.rkt"
+         racket/format
+         racket/string
          "ships.rkt")
 
 (provide (all-defined-out))
@@ -61,13 +63,16 @@
              ,(ann-button (next-id) 0 (posvel 0 LEFT (- TOP 110) 0 100 50 0) #t "Quit Scenario" "quit-scenario")
              )))
 
+  (define time-limit (* 1000 60 1))  ; 1 minute for the whole scenario
+  (define inside-time-limit? #t)
+
   (define (new-orders)
-    (timeout "Within ~a" 0 (* 1000 60 1)  ; 1 minute
+    (timeout "Within ~a" 0 time-limit
              (ordercomb #f "Scout" 'seq
-                        (list (scout-waypoint "Scout A" 500    0 50)
-                              (scout-waypoint "Scout B" 500 -500 50)
-                              (scout-waypoint "Scout C"   0 -500 50)
-                              (scout-waypoint "Scout D"   0    0 50)))))
+                        (list (scout-waypoint "Scout A"  300 -300 50)
+                              (scout-waypoint "Scout B"  300  300 50)
+                              (scout-waypoint "Scout C" -300 -300 50)
+                              (scout-waypoint "Scout D" -300  300 50)))))
 
   (define real-orders (space 0 0 0 '() '() '()))  ; only care about orders
 
@@ -75,10 +80,10 @@
     (let ((i 0))
       (lambda ()
         (set! i (add1 i))
-        (format "Training~a" i))))
+        (format "Trainer ~a" i))))
   
   (define (new-trainer faction)
-    (define s (make-ship "red-fighter" "Pilot Trainer" faction #:npc? #f
+    (define s (make-ship "red-fighter" faction faction #:npc? #f
                          #:x (random-between -100 100) #:y (random-between -100 100)))
     (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
                               ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
@@ -103,6 +108,24 @@
 
     (for ((fo (space-orders real-orders)))
       (check space (car fo) (cadr fo)))
+
+    (when (and inside-time-limit? ((space-time space) . > . time-limit))
+      ; scenario end
+      (set! inside-time-limit? #f)
+      ; add text annotation that says who finished or didn't
+      (define txt '("Pilot Training Over"))
+      (for ((p (space-players space)))
+        (define ot (get-space-orders-for real-orders (player-faction p)))
+        ;(printf "ot ~v\n" ot)
+        (append! txt (~a (player-name p)
+                         (if (check space (player-faction p) ot)
+                             " succeeded"
+                             " failed"))))
+      (append! changes (chadd (ann-text (next-id) 0 (posvel 0 -100 200 0 0 0 0) #f
+                                        (string-join txt "\n")) #f))
+      ; add end scenario button
+      (append! changes (chadd (ann-button (next-id) 0 (posvel 0 -100 260 0 100 50 0) #f "Quit Scenario" "quit-scenario") #f))
+      )
     
     (append! changes (order-changes space real-orders))
     

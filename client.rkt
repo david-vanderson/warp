@@ -171,8 +171,7 @@
         (define fac (if p (player-faction p) #f))
         (when (and (not fac) my-stack)
           (set! fac (ship-faction (get-ship my-stack))))
-        (define orders (findf (lambda (o) (equal? (car o) fac)) (space-orders ownspace)))
-        (define ordertree (if orders (cadr orders) #f))
+        (define ordertree (get-space-orders-for ownspace fac))
         
         (keep-transform dc
           (send dc scale (get-scale) (get-scale))
@@ -197,13 +196,7 @@
           (draw-sector-lines dc ownspace)
 
           ; map annotations
-          (for ((a (in-list (space-objects ownspace)))
-                #:when (ann? a))
-            (when (and (ann-button? a) (or (not (ann-showtab? a)) showtab))
-              (define ab (button 'normal #f
-                                 (obj-x a) (obj-y a) (obj-dx a) (obj-dy a) (ann-button-text a)
-                                 (lambda (k y) (send-commands (anncmd (ob-id a) #f)))))
-              (append! buttons ab)))
+          
           
           ; order annotations
           (when ordertree
@@ -323,6 +316,21 @@
           ) ; when my-stack
 
         (send dc set-text-foreground "white")
+
+        ; draw annotations that exist in canon space
+        (for ((a (in-list (space-objects ownspace)))
+                #:when (ann? a))
+          (when (and (ann-button? a) (or (not (ann-showtab? a)) showtab))
+            (define ab (button 'normal #f
+                               (obj-x a) (obj-y a) (obj-dx a) (obj-dy a) (ann-button-text a)
+                               (lambda (k y) (send-commands (anncmd (ob-id a) #f)))))
+            (append! buttons ab))
+          (when (and (ann-text? a) (or (not (ann-showtab? a)) showtab))
+            (define txts (string-split (ann-text-text a) "\n"))
+            (for ((t (in-list txts))
+                  (i (in-naturals)))
+              (draw-text dc t (obj-x a) (- (obj-y a) (* i 20))))))
+        
         (when showtab
           ; list all players
           (draw-text dc "Players:" 200 (- TOP 80))
