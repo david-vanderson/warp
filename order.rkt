@@ -39,11 +39,14 @@
 ; client
 (define (for-orders ot doall? f)
   (let loop ((ot ot) (depth 0) (highlight #t))
-    (when (or doall?
-              (and (order? ot) (not (ord-done? ot))))
+    (when (or doall? (not (ord-done? ot)))
       (f ot depth (and highlight (not (ord-done? ot)))))
     (cond
-      ((order? ot) (ord-done? ot))
+      ((ordertime? ot)
+       (loop (ordertime-ot ot) (+ depth 1) highlight)
+       (ord-done? ot))
+      ((order? ot)
+       (ord-done? ot))
       ((equal? 'seq (ordercomb-type ot))
        (for/and ((ot (in-list (ordercomb-orders ot))))
          (define d (loop ot (+ depth 1) highlight))
@@ -56,6 +59,10 @@
 ; replace all order-f with #f so this ordertree can be serialized
 (define (scrub ot)
   (cond
+    ((ordertime? ot)
+     (struct-copy ordertime ot
+                  (f #:parent order #f)
+                  (ot (scrub (ordertime-ot ot)))))
     ((order? ot)
      (struct-copy order ot (f #f)))
     (else
@@ -76,7 +83,7 @@
        (for/and ((ot (in-list (ordercomb-orders ot))))
          (check space faction ot)))
       (else
-       (error "check: got an unknown order combinator\n"))))
+       (error "check: got an unknown ord\n"))))
   (set-ord-done?! ot d)
   d)
 
@@ -90,6 +97,24 @@
            (for/first ((s (in-list (space-objects space)))
                        #:when (and (ship? s) (equal? faction (ship-faction s))
                                    ((distance pvobj s) . < . r)))
-             (set-ord-done?! o #t)
              (set-order-f! o (lambda (s f o) #t))
              #t))))
+
+; make a timout order
+(define (timeout text start total ot)
+  (define (f space faction o)
+    (define left (- (ordertime-subtotal o)
+                    (- (space-time space) (ordertime-start o))))
+    (when (and (left . > . 0)
+               (check space faction (ordertime-ot o)))
+      ; time left and order completed, lock order done
+      (set-ord-done?! o #t)
+      (set-ord-text! o (format (ord-text o) "--:--"))
+      (set-order-f! o (lambda (s f o) #t)))
+    (when (left . < . 0)
+      ; no time left, lock order not done
+      (set-ord-text! o (format (ord-text o) "--:--"))
+      (set-order-f! o (lambda (s f o) #f)))
+    (ord-done? o))
+  (ordertime #f text '() f total start ot))
+

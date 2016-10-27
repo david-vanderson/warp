@@ -154,9 +154,7 @@
 (struct space (time width height players orders objects) #:mutable #:prefab)
 ; time is msec since the scenario started
 ; orders is a (list (faction ordertree) ...)
-; ordertree is either:
-; - order
-; - ordercomb
+; ordertree is an instance of ord
 
 (struct strategy (t name arg) #:mutable #:prefab)
 ; name is the state we are in, arg is the parameter(s) for that state
@@ -204,6 +202,13 @@
 ; type is symbol saying how to combine
 ; orders is a list
 
+(struct ordertime order (subtotal start ot) #:mutable #:prefab)
+; kind of order that sets a time limit counting down from subtotal
+; if text has "~a" inside, it's replaced with 00:00 style time
+; - if start is #f, then time is subtotal
+; - if start is a time, then time is subtotal - (space-time - start)
+
+
 ;; Changes
 
 (struct command (id cmd) #:mutable #:prefab)
@@ -222,7 +227,7 @@
 
 (struct chfaction (playerid newf) #:mutable #:prefab)
 (struct chorders (faction ot) #:mutable #:prefab)
-; ot is an ordertree - see space struct
+; ot is an instance of ord
 
 (struct update (time changes pvs) #:mutable #:prefab)
 ; time is ms since scenario started

@@ -62,11 +62,12 @@
              )))
 
   (define (new-orders)
-    (ordercomb #f "Scout" 'seq
-          (list (scout-waypoint "Scout A" 500    0 50)
-                (scout-waypoint "Scout B" 500 -500 50)
-                (scout-waypoint "Scout C"   0 -500 50)
-                (scout-waypoint "Scout D"   0    0 50))))
+    (timeout "Within ~a" 0 (* 1000 60 1)  ; 1 minute
+             (ordercomb #f "Scout" 'seq
+                        (list (scout-waypoint "Scout A" 500    0 50)
+                              (scout-waypoint "Scout B" 500 -500 50)
+                              (scout-waypoint "Scout C"   0 -500 50)
+                              (scout-waypoint "Scout D"   0    0 50)))))
 
   (define real-orders (space 0 0 0 '() '() '()))  ; only care about orders
 

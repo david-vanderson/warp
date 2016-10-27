@@ -351,7 +351,17 @@
                         (if highlight?
                             (send dc set-text-foreground "white")
                             (send dc set-text-foreground "gray"))
-                        (draw-text dc (ord-text ot) (+ left 12 (* 10 depth)) (- top (* 20 line)))
+                        (define txt (ord-text ot))
+                        (when (and (ordertime? ot) (string-contains? txt "~a"))
+                          (define secleft (ceiling (/ (- (ordertime-subtotal ot)
+                                                         (- (space-time ownspace) (ordertime-start ot)))
+                                                      1000)))
+                          (define-values (min sec) (quotient/remainder secleft 60))
+                          (set! txt (format (ord-text ot)
+                                            (~a (~a min #:min-width 2 #:align 'right #:pad-string "0")
+                                                ":"
+                                                (~a sec #:min-width 2 #:align 'right #:pad-string "0")))))
+                        (draw-text dc txt (+ left 12 (* 10 depth)) (- top (* 20 line)))
                         (set! line (+ line 1)))))
 
         (when (not my-stack)
