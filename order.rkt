@@ -106,15 +106,16 @@
     (define left (- (ordertime-subtotal o)
                     (- (space-time space) (ordertime-start o))))
     (when (and (left . > . 0)
+               (not (ord-done? o))
                (check space faction (ordertime-ot o)))
-      ; time left and order completed, lock order done
+      ; time left and order completed, mark done
       (set-ord-done?! o #t)
-      (set-ord-text! o (format (ord-text o) "--:--"))
-      (set-order-f! o (lambda (s f o) #t)))
+      ; don't lock the order so that you can see the time still tick down
+      )
     (when (left . < . 0)
-      ; no time left, lock order not done
+      ; no time left, lock order and stop countdown
       (set-ord-text! o (format (ord-text o) "--:--"))
-      (set-order-f! o (lambda (s f o) #f)))
+      (set-order-f! o (lambda (s f o) (ord-done? o))))
     (ord-done? o))
   (ordertime #f text '() f total start ot))
 

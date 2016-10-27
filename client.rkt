@@ -122,9 +122,6 @@
     (send dc set-background bgcolor)
 
     (send dc set-font normal-control-font)
-    ;(send dc set-text-mode 'transparent)
-    ;    (send dc set-font (send the-font-list find-or-create-font
-    ;                          12 'default 'normal 'normal #f 'smoothed #f 'aligned))
     
     (keep-transform dc
       ; make sure whole screen is fog of war gray
@@ -315,8 +312,6 @@
 
           ) ; when my-stack
 
-        (send dc set-text-foreground "white")
-
         ; draw annotations that exist in canon space
         (for ((a (in-list (space-objects ownspace)))
                 #:when (ann? a))
@@ -326,10 +321,21 @@
                                (lambda (k y) (send-commands (anncmd (ob-id a) #f)))))
             (append! buttons ab))
           (when (and (ann-text? a) (or (not (ann-showtab? a)) showtab))
+            (cond
+              ((ann-text-life a)
+               (define z (linear-fade (obj-age ownspace a)
+                                      (ann-text-life a)
+                                      (+ (ann-text-life a) MSG_FADE_TIME)))
+               (define cc (linear-color "white" "white" z z))
+               (send dc set-text-foreground cc))
+              (else
+               (send dc set-text-foreground "white")))
             (define txts (string-split (ann-text-text a) "\n"))
             (for ((t (in-list txts))
                   (i (in-naturals)))
               (draw-text dc t (obj-x a) (- (obj-y a) (* i 20))))))
+
+        (send dc set-text-foreground "white")
         
         (when showtab
           ; list all players
@@ -472,13 +478,13 @@
            (append! buttons leave-button)))
           
         ; draw mouse cursor
+        (define drawn #f)
         (when my-stack
           (define-values (p mods) (get-current-mouse-state))
           (define-values (wx wy) (send canvas screen->client
                                        (+ (send p get-x) left-inset)
                                        (+ (send p get-y) top-inset)))
           (define-values (x y) (screen->canon canvas wx wy))
-          (define drawn #f)
           (when (not (in-button? buttons x y))
             (for ((t (in-list (pod-tools (get-pod my-stack)))))
               (when (and (steer? t) (not (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t))))
@@ -490,10 +496,9 @@
                   (send dc set-pen "blue" (/ 1.5 (dc-point-size dc)) 'solid)
                   (send dc translate x y)
                   (send dc rotate (- a))
-                  (send dc draw-lines '((0 . 0) (-15 . -5) (-15 . 5) (0 . 0)))))))
+                  (send dc draw-lines '((0 . 0) (-15 . -5) (-15 . 5) (0 . 0))))))))
           
-          (cond (drawn (send canvas set-cursor (make-object cursor% 'blank)))
-                (else (send canvas set-cursor (make-object cursor% 'arrow)))))
+        (send canvas set-cursor (make-object cursor% (if drawn 'blank 'arrow)))
         
         (append! buttons
                  (button 'hidden #\tab 0 0 0 0 "Mission Info"
@@ -505,6 +510,7 @@
         (draw-framerate dc frames)
         
         ) ; when ownspace
+
       (draw-buttons dc buttons (if ownspace (space-time ownspace) 0))
     ))
     
@@ -802,6 +808,7 @@
        (sleep/yield .001)))
     
     (flush-output)
+    (collect-garbage 'incremental)
     (client-loop))
   
   (queue-callback client-loop #f))
