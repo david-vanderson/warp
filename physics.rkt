@@ -188,7 +188,7 @@
   (define batpow (* 20.0 dt))  ; how much e can flow out of reserve
   (define repairpow (* 10.0 dt))  ; how much e can go to repair each ship
   (define repairratio 0.5)  ; how many hp you get for each e
-  (define fixpow (* 1.0 dt))  ; how much e can go to each fixing dmg
+  (define fixpow (* 10.0 dt))  ; how much e can go to each fixing dmg
   
   ; remove energy for stateful things
   (when (ship-flying? ship)

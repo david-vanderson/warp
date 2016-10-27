@@ -25,6 +25,9 @@
 (define SHIELD_SPEED 60.0)
 (define MSG_FADE_TIME 10000.0)
 
+(define DMG_SIZE 50.0)
+(define DMG_FIX? #t)  ; whether damages start out with fixing?
+
 (define server? (make-parameter #t))  ; clients set this to #f
 (define idimag (make-parameter 0))  ; clients set this to their player id
 

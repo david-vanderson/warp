@@ -10,7 +10,7 @@
 (define (dmg-pbolt tool)
   (cond
     ((null? (tool-dmgs tool))
-     (list (chadd (dmg (next-id) "offline" 10 0 #f) (ob-id tool))))
+     (list (chadd (dmg (next-id) "offline" DMG_SIZE 0 DMG_FIX?) (ob-id tool))))
     (else
      #f)))
 
