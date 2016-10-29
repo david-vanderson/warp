@@ -14,35 +14,49 @@
 
 
 (define (steer! ownship dt)
-  (define cstack (find-stack ownship steer? #f))
-  (cond
-    ((not cstack) #f)
-    (else
-     (define course (steer-course (car cstack)))
-     (define posvel (obj-posvel ownship))
-     (define r (posvel-r posvel))
-     
-     (define racc (stats-rthrust (ship-stats ownship)))
-     (cond
-       (((abs (angle-frto r course)) . < . (* racc dt))
-        ;(printf "STOPPING\n")
-        (set-posvel-r! posvel course)
-        (set-posvel-dr! posvel 0.0))
-       (((pod-energy (get-pod cstack)) . > . 0.0)
-        (set-posvel-dr! posvel (if ((angle-frto r course) . > . 0.0) racc (- racc)))))
+  (define trying? #f)
+  (define pv (obj-posvel ownship))
 
-     (define ftstack (find-stack ownship fthrust? #f))
+  (define w (find-id ownship warp? #f))
+  (cond
+    ((and w ((warp-e w) . > . 0.0) (equal? "release" (warp-mode w)))
+     (define xy_acc 120.0)
+     (define ddx (* xy_acc (cos (posvel-r pv))))
+     (define ddy (* xy_acc (sin (posvel-r pv))))
+     (set-posvel-dx! pv (+ (posvel-dx pv) (* ddx dt)))
+     (set-posvel-dy! pv (+ (posvel-dy pv) (* ddy dt)))
+     (set! trying? #t))
+    ((and w ((warp-e w) . < . (warp-maxe w)) (equal? "hold" (warp-mode w)))
+     ; charging the warp drive
+     (set-posvel-dr! pv 0.0)
+     )
+    (else
+     (define cstack (find-stack ownship steer? #f))
+     (when cstack
+       (define course (steer-course (car cstack)))
+       (define r (posvel-r pv))
+       
+       (define racc (stats-rthrust (ship-stats ownship)))
+       (cond
+         (((abs (angle-frto r course)) . < . (* racc dt))
+          ;(printf "STOPPING\n")
+          (set-posvel-r! pv course)
+          (set-posvel-dr! pv 0.0))
+         (((pod-energy (get-pod cstack)) . > . 0.0)
+          (set-posvel-dr! pv (if ((angle-frto r course) . > . 0.0) racc (- racc)))
+          (set! trying? #t))))
      
-     (cond
-       ((and ftstack (fthrust-on (car ftstack)))
-        (when ((pod-energy (get-pod ftstack)) . > . 0.0)
-          (define xy_acc (stats-thrust (ship-stats ownship)))
-          (define ddx (* xy_acc (cos (posvel-r posvel))))
-          (define ddy (* xy_acc (sin (posvel-r posvel))))
-          (set-posvel-dx! posvel (+ (posvel-dx posvel) (* ddx dt)))
-          (set-posvel-dy! posvel (+ (posvel-dy posvel) (* ddy dt))))
-        #t)
-       (else #f)))))
+     (define ftstack (find-stack ownship fthrust? #f))
+     (when (and ftstack (fthrust-on (car ftstack))
+                ((pod-energy (get-pod ftstack)) . > . 0.0))
+       (define xy_acc (stats-thrust (ship-stats ownship)))
+       (define ddx (* xy_acc (cos (posvel-r pv))))
+       (define ddy (* xy_acc (sin (posvel-r pv))))
+       (set-posvel-dx! pv (+ (posvel-dx pv) (* ddx dt)))
+       (set-posvel-dy! pv (+ (posvel-dy pv) (* ddy dt)))
+       (set! trying? #t))))
+  
+  trying?)
 
 
 (define (drag dv dt coef epsilon)
@@ -188,20 +202,27 @@
   (define batpow (* 20.0 dt))  ; how much e can flow out of reserve
   (define repairpow (* 10.0 dt))  ; how much e can go to repair each ship
   (define repairratio 0.5)  ; how many hp you get for each e
-  (define fixpow (* 10.0 dt))  ; how much e can go to each fixing dmg
+  (define fixpow (* 5.0 dt))  ; how much e can go to each fixing dmg
   
   ; remove energy for stateful things
   (when (ship-flying? ship)
-    (define ftstack (find-stack ship fthrust? #f))
-    (define p (if ftstack (get-pod ftstack) #f))
-    (when (and p ((pod-energy p) . > . 0.0) (fthrust-on (car ftstack)))
-      (set-pod-energy! p (- (pod-energy p) (* 3.0 dt))))
+    (define w (find-id ship warp? #f))
+    (cond
+      ((and w ((warp-e w) . > . 0.0) (equal? "release" (warp-mode w)))
+       (set-warp-e! w (max 0.0 (- (warp-e w) (* 25.0 dt)))))
+      (else
     
-    (define sstack (find-stack ship steer? #f))
-    (define sp (if sstack (get-pod sstack) #f))
-    (when (and sp ((pod-energy sp) . > . 0.0) (not (= (steer-course (car sstack))
-                                                      (posvel-r (obj-posvel ship)))))
-      (set-pod-energy! sp (- (pod-energy sp) (* 2.0 dt)))))
+       (define ftstack (find-stack ship fthrust? #f))
+       (define p (if ftstack (get-pod ftstack) #f))
+       (when (and p ((pod-energy p) . > . 0.0) (fthrust-on (car ftstack)))
+         (set-pod-energy! p (- (pod-energy p) (* 3.0 dt))))
+       
+       (define sstack (find-stack ship steer? #f))
+       (define sp (if sstack (get-pod sstack) #f))
+       (when (and sp ((pod-energy sp) . > . 0.0) (not (= (steer-course (car sstack))
+                                                         (posvel-r (obj-posvel ship)))))
+         (set-pod-energy! sp (- (pod-energy sp) (* 2.0 dt))))))
+    )
 
   ; remove energy for fixing stuff
   (define dstacks (search ship dmg? #t #f))
@@ -244,7 +265,15 @@
     (define xfer (min podpow (pod-need p) (* e (/ (min e podpow (pod-need p)) maxreq))))
     ;(printf "xfer: ~a, ~a, ~a\n" (pod-need p) maxreq xfer)
     (set-pod-energy! p (+ (pod-energy p) xfer))
-    (set! espent (+ espent xfer)))
+    (set! espent (+ espent xfer))
+
+    ; transfer pod energy to tools
+    (define w (findf warp? (pod-tools p)))
+    (when (and w ((warp-e w) . < . (warp-maxe w)) (equal? "hold" (warp-mode w)))
+      (define xfer (min (* 15.0 dt) (- (warp-maxe w) (warp-e w)) (pod-energy p)))
+      (set-warp-e! w (+ (warp-e w) xfer))
+      (set-pod-energy! p (- (pod-energy p) xfer)))
+    )
   
   (for ((s (in-list (ship-ships ship))))
     (define xfer (min repairpow (ship-need s) (* e (/ (min e repairpow (ship-need s)) maxreq))))

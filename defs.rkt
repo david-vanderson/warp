@@ -101,6 +101,10 @@
 ; plasma-size is how much we fire each time
 (struct shbolt tool (shield-size) #:mutable #:prefab)
 ; shield-size is how big of a shield we shoot
+(struct warp tool (maxe e mode) #:mutable #:prefab)
+; maxe is how much energy can be stored
+; e is how much energy there is currently
+; mode is "hold" (if charging) or "release" (if warping, default)
 
 (struct stats ob (type name faction power bat maxbat con maxcon radius mass thrust rthrust radar start) #:mutable #:prefab)
 ; carries all the stats for a ship

@@ -33,7 +33,8 @@
  `(,(normal-lounge)
    ,(normal-hangar pi 5.0 '())
    ,(pod (next-id) "Pilot" #f #f 0.0 5.0 #f #f 100.0 100.0
-         (list (steer (next-id) '() pi/2) (fthrust (next-id) '() #f) (dock (next-id) '() #f)))
+         (list (steer (next-id) '() pi/2) (fthrust (next-id) '() #f) (dock (next-id) '() #f)
+               (warp (next-id) '() 100.0 0.0 "release")))
    ,(pod (next-id) "W" #f ai? (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.8 pi) 60.0 60.0
          (list (pbolt (next-id) '() 5.0)))
    ,(pod (next-id) "W" #f ai? (degrees->radians 45.0) 12.0 (degrees->radians 30.0) (* 0.4 pi) 40.0 40.0
@@ -73,7 +74,12 @@
 
 ; return a list of changes
 (define (on-tick space change-scenario!)
-  (define commands '())
+  (define changes '())
+
+  (for ((p (space-players space)))
+      (when (not (player-faction p))
+        ; new player
+        (append! changes (chfaction (ob-id p) "Rebel"))))
   
 ;  (when (<= 1 (modulo (space-time space) 1800) TICK)
 ;    (set! commands (append commands (list (message (next-id) (space-time space) #f
@@ -143,7 +149,7 @@
 ;     (define s (make-ship "red-fighter" "Red Fighter" "Empire" #t #:x x #:y y #:r (angle-add theta pi)))
 ;     (set! commands (append commands (list (chadd s #f))))))
   
-  commands)
+  changes)
 
 (define (on-message space cmd change-scenario!)
   '())

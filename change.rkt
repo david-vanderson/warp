@@ -7,6 +7,7 @@
          "ships.rkt"
          "pilot.rkt"
          "pbolt.rkt"
+         "warp.rkt"
          "order.rkt"
          "physics.rkt")
 
@@ -96,6 +97,8 @@
         (values #t '()))
        ((pbolt? o)
         (change-pbolt! (command-cmd c) space s who))
+       ((warp? o)
+        (change-warp! (command-cmd c) space s who))
        ((or (dock? o) (steer? o) (fthrust? o) (shbolt? o))
         (change-pilot-tool! (command-cmd c) space s who))
        ((pod? o) (equal? (command-cmd c) "npc-off")

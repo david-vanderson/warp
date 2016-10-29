@@ -12,24 +12,43 @@
 
 (define (add-backeffects! space o)
   (when (ship? o)
+    (define w (find-id o warp? #f))
     (define ftstack (find-stack o fthrust? #f))
-    (when (and ftstack
-               (fthrust-on (car ftstack))
-               (or (time-for (obj-age space o) 800)
-                   (and (time-for (obj-age space o) 800 400)
-                        ((pod-energy (get-pod ftstack)) . > . 1))))
-      ;(printf "~a adding backeffect at ~a ~a\n" (ship-name o) (modulo (obj-age space o) 500) (obj-age space o))
-      (define l (- (ship-radius o)))
-      (define t (posvel-r (obj-posvel o)))
-      (define be (backeffect 0 (space-time space)
-                             (posvel 0
-                                     (+ (posvel-x (obj-posvel o)) (* l (cos t)))
-                                     (+ (posvel-y (obj-posvel o)) (* l (sin t)))
-                                     0
-                                     (- (posvel-dx (obj-posvel o)))
-                                     (- (posvel-dy (obj-posvel o)))
-                                     0) #f #f))
-      (set-space-objects! space (cons be (space-objects space))))))
+    (cond
+      ((and w ((warp-e w) . > . 0.0) (equal? "release" (warp-mode w)))
+       (when (time-for (obj-age space o) 100)
+         (define l (- (ship-radius o)))
+         (define t (posvel-r (obj-posvel o)))
+         (define be (backeffect 0 (space-time space)
+                                (posvel 0
+                                        (+ (posvel-x (obj-posvel o)) (* l (cos t))
+                                           (* (random-between (- l) l) (sin t)))
+                                        (+ (posvel-y (obj-posvel o)) (* l (sin t))
+                                           (* (random-between (- l) l) (cos t)))
+                                        0
+                                        (- (* 1.5 (posvel-dx (obj-posvel o))))
+                                        (- (* 1.5 (posvel-dy (obj-posvel o))))
+                                        0) #f #f))
+         (set-space-objects! space (cons be (space-objects space)))))
+      ((and w ((warp-e w) . < . (warp-maxe w)) (equal? "hold" (warp-mode w)))
+       ; charging warp drive
+       )
+      ((and ftstack (fthrust-on (car ftstack)))
+       (when (or (time-for (obj-age space o) 800)
+                 (and (time-for (obj-age space o) 800 400)
+                      ((pod-energy (get-pod ftstack)) . > . 1)))
+         
+         (define l (- (ship-radius o)))
+         (define t (posvel-r (obj-posvel o)))
+         (define be (backeffect 0 (space-time space)
+                                (posvel 0
+                                        (+ (posvel-x (obj-posvel o)) (* l (cos t)))
+                                        (+ (posvel-y (obj-posvel o)) (* l (sin t)))
+                                        0
+                                        (- (posvel-dx (obj-posvel o)))
+                                        (- (posvel-dy (obj-posvel o)))
+                                        0) #f #f))
+         (set-space-objects! space (cons be (space-objects space))))))))
 
 
 (define BACKEFFECT_DEAD 1000)

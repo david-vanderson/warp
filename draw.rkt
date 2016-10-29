@@ -13,6 +13,7 @@
          "effect.rkt"
          "ships.rkt"
          "pbolt.rkt"
+         "warp.rkt"
          "upgrade.rkt")
 
 (provide (all-defined-out))
@@ -472,6 +473,7 @@ buttons)
   (define buttons '())
   (cond
     ((pbolt? t) (append! buttons (draw-pbolt-ui! dc t stack send-commands)))
+    ((warp? t) (append! buttons (draw-warp-ui! dc t stack send-commands)))
     ((steer? t)
      (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))
      (when offline
