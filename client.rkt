@@ -32,6 +32,10 @@
   (define ownspace #f)
   (define my-stack #f)
   (define buttons #f)
+  ; if you are holding a key/mouse button (from a holdbutton?), this is a pair
+  ; car is keycode (or 'mouse) of the key that's being held
+  ; cdr is the holdbutton-frelease function
+  (define holding? #f)
   (define frames '())  ; list of last few frame times
   (define last-update-time #f)
 
@@ -102,7 +106,10 @@
       (b
        (when (not (member (button-draw b) '(disabled dmg)))
          ;(printf "clicked button ~v\nship is ~v\n" b (if my-stack (get-ship my-stack) #f))
-         ((button-f b) (- x (button-x b)) (- y (button-y b)))))
+         ((button-f b) (- x (button-x b)) (- y (button-y b)))
+         (when (holdbutton? b)
+           (set! holding? (cons 'mouse (holdbutton-frelease b))))
+         ))
       (my-stack
        (define mypos (get-center my-stack))
        (define-values (cx cy) (space->canon center (get-scale) (obj-x mypos) (obj-y mypos)))
@@ -541,6 +548,11 @@
         (case (send event get-event-type)
           ((left-down)
            (click this event))
+          ((left-up)
+           (when (and holding? (equal? (car holding?) 'mouse))
+             ((cdr holding?))  ; run the release function
+             (set! holding? #f)  ; cancel the hold
+             ))
           ((right-down)
            (when (not showsector?)
              (set! dragstate "start")
@@ -566,16 +578,29 @@
           ))
       (define/override (on-char event)
         (define kc (send event get-key-code))
-        ;(displayln (~v kc))
+        ;(printf "on-char ~v\n" kc)
         (define b (key-button? buttons kc))
+        
         (cond
+          ((and holding? (equal? kc (car holding?)))
+           ; repeated keypress from holding the key down, drop it
+           )
+          ((and holding? (equal? kc 'release)
+                (equal? (car holding?) (send event get-key-release-code)))
+           ; released the key being held
+           ((cdr holding?))  ; run the release function
+           (set! holding? #f)  ; cancel the hold
+           )
           (b
            (when (not (member (button-draw b) '(disabled dmg)))
-             ((button-f b) kc #f)))
+             ((button-f b) kc #f)
+             (when (holdbutton? b)
+               (set! holding? (cons kc (holdbutton-frelease b))))
+             ))
           (else
            (case kc
-             ((#\h)
-              (printf "hello\n"))
+;             ((#\h)
+;              (printf "hello\n"))
              ((#\d)
               (when ownspace
                 (define cmds '())
@@ -592,20 +617,20 @@
               (when ownspace
                 (send-commands (message (next-id) (space-time ownspace) #f
                                         (~a "message " (space-time ownspace))))))
-             ((#\p)
-              (when ownspace
-                (send-commands (chadd (plasma (next-id) (space-time ownspace) (posvel -1 0 0 (random-between 0 2pi) (random 100) (random 100) 0) (random 100) #f) #f))))
-             ((#\s)
-              (when ownspace
-                (define r (random-between 0 2pi))
-                (define s (random 100))
-                (send-commands (chadd (shield (next-id) (space-time ownspace) (posvel -1 0 0 r (* s (cos r)) (* s (sin r)) 0) (random 30)) #f)))) 
-             ((#\j)
-              (set-scale (* (get-scale) 1.1)))
-             ((#\k)
-              (set-scale (/ (get-scale) 1.1)))
-             ((#\n)
-              (new-stars))
+;             ((#\p)
+;              (when ownspace
+;                (send-commands (chadd (plasma (next-id) (space-time ownspace) (posvel -1 0 0 (random-between 0 2pi) (random 100) (random 100) 0) (random 100) #f) #f))))
+;             ((#\s)
+;              (when ownspace
+;                (define r (random-between 0 2pi))
+;                (define s (random 100))
+;                (send-commands (chadd (shield (next-id) (space-time ownspace) (posvel -1 0 0 r (* s (cos r)) (* s (sin r)) 0) (random 30)) #f)))) 
+;             ((#\j)
+;              (set-scale (* (get-scale) 1.1)))
+;             ((#\k)
+;              (set-scale (/ (get-scale) 1.1)))
+;             ((#\n)
+;              (new-stars))
              ))))
       ))
   

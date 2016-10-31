@@ -20,7 +20,7 @@
   (define w (find-id ownship warp? #f))
   (cond
     ((and w ((warp-e w) . > . 0.0) (equal? "release" (warp-mode w)))
-     (define xy_acc 120.0)
+     (define xy_acc 150.0)
      (define ddx (* xy_acc (cos (posvel-r pv))))
      (define ddy (* xy_acc (sin (posvel-r pv))))
      (set-posvel-dx! pv (+ (posvel-dx pv) (* ddx dt)))

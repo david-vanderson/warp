@@ -290,12 +290,18 @@
 ;  'disabled - draw button disabled and no clicks
 ;  'hidden-text - draw only text and respond to clicks
 ;  'hidden - draw nothing, respond to clicks
+;  'dmg - draw offline button, no clicks
 ; key is the hotkey for this button
 ; x y is bottom left corner
 ; if height is #f, then x y is center of circle with radius width
 ; label is what is written on the button
 ; f is function to call when the button is clicked or key pressed
 ;  - takes two args x y of where in the button the click was or <key-code> #f if key pressed
+
+(struct holdbutton button (frelease) #:mutable #:prefab)
+; button that responds to click-hold-release instead of click
+; button-f is run on mouse/key down
+; frelease is run on mouse/key up (or if you leave the pod)
 
 (struct dmgbutton button (frac fixing?) #:mutable #:prefab)
 ; frac is percentage fixed
