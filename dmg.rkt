@@ -5,6 +5,7 @@
 (require "defs.rkt"
          "utils.rkt"
          "warp.rkt"
+         "missile.rkt"
          "pbolt.rkt")
 
 (provide (all-defined-out))
@@ -79,6 +80,7 @@
     ((pbolt? t) (dmg-pbolt t))
     ((fthrust? t) (dmg-fthrust t))
     ((warp? t) (dmg-warp t))
+    ((mtube? t) (dmg-mtube t))
     ((steer? t) (dmg-steer t ship))
     ((shbolt? t) (dmg-shbolt t))
     ((dock? t) (dmg-dock t))))

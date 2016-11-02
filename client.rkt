@@ -13,6 +13,7 @@
          "ships.rkt"
          "dmg.rkt"
          "order.rkt"
+         "missile.rkt"
          "plasma.rkt")
 
 (provide start-client)
@@ -111,14 +112,17 @@
            (set! holding? (cons 'mouse (holdbutton-frelease b))))
          ))
       (my-stack
-       (define mypos (get-center my-stack))
+       (define mypos (get-center ownspace my-stack))
        (define-values (cx cy) (space->canon center (get-scale) (obj-x mypos) (obj-y mypos)))
+       (define a (angle-norm (atan0 (- y cy) (- x cx))))
        (define p (get-pod my-stack))
        (for ((t (in-list (pod-tools p))))
-         (cond ((and (steer? t)
+         (cond ((and (mtube? t) (find-id ownspace (mtube-mid t)))
+                (send-commands (command (mtube-mid t) a)))
+               ((and (steer? t)
                      (ship-flying? (get-ship my-stack))
                      (not (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t))))
-                (send-commands (command (ob-id t) (angle-norm (atan0 (- y cy) (- x cx)))))))))))
+                (send-commands (command (ob-id t) a))))))))
   
   
   (define (draw-screen canvas dc)
@@ -148,7 +152,8 @@
 
       (set! buttons '())
       
-      (when my-stack (draw-dmgfx dc my-stack))
+      (when (and (not DEBUG) my-stack)
+        (draw-dmgfx dc my-stack))
 
       (update-scale)
 
@@ -156,7 +161,7 @@
             (cond ((or (not ownspace) showsector?)
                    zerocenter)
                   ((and my-stack center-follow?)
-                   (get-center my-stack))
+                   (get-center ownspace my-stack))
                   (center-follow?
                    zerocenter)
                   (else
@@ -238,7 +243,8 @@
                 (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r)))))
           
           ; turn clipping back on for regular stuff
-          (send dc set-clipping-region fow)
+          (when (not DEBUG)
+            (send dc set-clipping-region fow))
           (draw-background-stars dc center (get-scale))
           (draw-objects dc ownspace meid)
 
@@ -494,9 +500,10 @@
           (define-values (x y) (screen->canon canvas wx wy))
           (when (not (in-button? buttons x y))
             (for ((t (in-list (pod-tools (get-pod my-stack)))))
-              (when (and (steer? t) (not (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t))))
+              (when (or (and (mtube? t) (find-id ownspace (mtube-mid t)))
+                        (and (steer? t) (not (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))))
                 (set! drawn #t)
-                (define mypos (get-center my-stack))
+                (define mypos (get-center ownspace my-stack))
                 (define-values (mx my) (space->canon center (get-scale) (obj-x mypos) (obj-y mypos)))
                 (define a (angle-norm (atan0 (- y my) (- x mx))))
                 (keep-transform dc
@@ -642,6 +649,7 @@
 
   (load-ships)
   (load-plasma)
+  (load-missile)
   
   (send frame show #t)
   

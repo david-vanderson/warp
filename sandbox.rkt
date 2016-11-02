@@ -44,7 +44,8 @@
    ,(pod (next-id) "W" #f ai? (degrees->radians 315.0) 12.0 (degrees->radians 330.0) (* 0.4 pi) 40.0 40.0
          (list (pbolt (next-id) '() 20.0)))
    ,(pod (next-id) "T" #f ai? (degrees->radians 0.0) 15.0 (degrees->radians 0.0) (* 0.8 pi) 50.0 50.0
-         (list (shbolt (next-id) '() 5.0)))
+         (list (shbolt (next-id) '() 5.0)
+               (mtube (next-id) '() 50.0 0.0 "load" #f)))
    ,(pod (next-id) "T" #f ai? (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0
          (list (shbolt (next-id) '() 20.0)))))
 

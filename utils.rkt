@@ -97,6 +97,7 @@
          (when (not multiple?) (esc)))
         ((or (player? o)
              (plasma? o)
+             (missile? o)
              (shield? o)
              (effect? o)
              (message? o)
@@ -179,13 +180,16 @@
   (define h (ship-hangar s))
   (if h (hangar-ships h) '()))
 
-(define (get-center stack)
+(define (get-center space stack)
   (define shipcenter (get-topship stack))
   (define spv (obj-posvel shipcenter))
   
   (define ship (get-ship stack))
   (define pod (get-pod stack))
+  (define mt (findf mtube? (pod-tools pod)))
+  (define m (if mt (find-id space (mtube-mid mt)) #f))
   (cond
+    (m m)
     ((equal? (ob-id ship) (ob-id shipcenter))
      (obj #f #f (posvel
                  0

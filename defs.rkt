@@ -105,6 +105,12 @@
 ; maxe is how much energy can be stored
 ; e is how much energy there is currently
 ; mode is "hold" (if charging) or "release" (if warping, default)
+(struct mtube tool (maxe e mode mid) #:mutable #:prefab)
+; maxe is how much energy can be stored
+; e is how much energy there is currently
+; mode is "load" (if loading a missile) or "unload" (sends energy back to pod)
+; mid is #f at start, but the id of the last missile we fired
+; - if we can find that missile in space, we are controlling it
 
 (struct stats ob (type name faction power bat maxbat con maxcon radius mass thrust rthrust radar start) #:mutable #:prefab)
 ; carries all the stats for a ship
@@ -146,6 +152,10 @@
 (struct plasma obj (e ownship-id) #:mutable #:prefab)
 ; e energy
 ; ownship is id of the ship that fired it, or #f if it belongs to no ship
+
+(struct missile obj (e course) #:mutable #:prefab)
+; e is how long the missile flies before automatically detonating
+; course is where the missile is steering towards
 
 (struct effect obj (size duration) #:mutable #:prefab)
 

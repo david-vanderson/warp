@@ -5,6 +5,7 @@
 (require "defs.rkt"
          "utils.rkt"
          "plasma.rkt"
+         "missile.rkt"
          "shield.rkt"
          "effect.rkt"
          "ships.rkt"
@@ -92,6 +93,23 @@
      (physics! pv dt)
      (when (plasma-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))
+    ((missile? o)
+     (physics! pv dt 0.4 #t)
+     (define racc 2.0)
+     (define course (missile-course o))
+     (define r (posvel-r pv))
+     (cond
+       (((abs (angle-frto r course)) . < . (* racc dt))
+        ;(printf "STOPPING missile\n")
+        (set-posvel-r! pv course)
+        (set-posvel-dr! pv 0.0))
+       (else
+        (set-posvel-dr! pv (if ((angle-frto r course) . > . 0.0) racc (- racc)))))
+     (define ma 100.0)
+     (define ddx (* ma (cos (posvel-r pv))))
+     (define ddy (* ma (sin (posvel-r pv))))
+     (set-posvel-dx! pv (+ (posvel-dx pv) (* ddx dt)))
+     (set-posvel-dy! pv (+ (posvel-dy pv) (* ddy dt))))
     ((shield? o)
      (physics! pv dt 0.4)
      (when (shield-dead? space o)
@@ -115,6 +133,7 @@
 ; return list of additional changes
 (define (damage-object! space o damage)
   (cond ((plasma? o) (reduce-plasma! space o damage) '())
+        ((missile? o) (reduce-missile! space o damage))
         ((shield? o) (reduce-shield! space o damage) '())
         ((ship? o) (reduce-ship! space o damage))))
 
@@ -272,6 +291,12 @@
     (when (and w ((warp-e w) . < . (warp-maxe w)) (equal? "hold" (warp-mode w)))
       (define xfer (min (* 15.0 dt) (- (warp-maxe w) (warp-e w)) (pod-energy p)))
       (set-warp-e! w (+ (warp-e w) xfer))
+      (set-pod-energy! p (- (pod-energy p) xfer)))
+
+    (define m (findf mtube? (pod-tools p)))
+    (when (and m ((mtube-e m) . < . (mtube-maxe m)) (equal? "load" (mtube-mode m)))
+      (define xfer (min (* 15.0 dt) (- (mtube-maxe m) (mtube-e m)) (pod-energy p)))
+      (set-mtube-e! m (+ (mtube-e m) xfer))
       (set-pod-energy! p (- (pod-energy p) xfer)))
     )
   

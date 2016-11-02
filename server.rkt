@@ -13,6 +13,7 @@
          "pilot.rkt"
          "weapons.rkt"
          "pbolt.rkt"
+         "missile.rkt"
          "plasma.rkt"
          "shield.rkt"
          "ships.rkt"
@@ -107,6 +108,40 @@
                       (plasma-radius space p) 300))
     (append! changes (list (chdam (ob-id p) damage)
                            (chdam (ob-id ship) damage)
+                           (chadd e #f))))
+  changes)
+
+
+; return a list of changes
+(define (missile-hit-plasma! space m p)
+  (define changes '())
+  (when (and (not (missile-dead? space m))
+             (not (plasma-dead? space p))
+             ((distance m p) . < . (+ (missile-radius m) (plasma-radius space p))))
+    (printf "missile hit plasma\n")
+
+    (define damage (plasma-energy space p))
+    (append! changes (chdam (ob-id m) -1)  ; missile should detonate
+             (chdam (ob-id p) damage)))
+  changes)
+
+
+; return a list of changes
+(define (missile-hit-ship! space ship m)
+  (define changes '())
+  (when (and (not ((ship-con ship) . <= . 0))
+             (not (missile-dead? space m))
+             ((distance ship m) . < . (+ (ship-radius ship) (missile-radius m))))
+    (printf "missile hit ship ~a\n" (ship-name ship))
+
+    (define damage 50.0)
+    (define e (effect (next-id) (space-time space)
+                      (struct-copy posvel (obj-posvel m)
+                                   (dx (posvel-dx (obj-posvel ship)))
+                                   (dy (posvel-dy (obj-posvel ship))))
+                      10.0 500))
+    (append! changes (list (chdam (ob-id ship) damage)
+                           (chdam (ob-id m) damage)
                            (chadd e #f))))
   changes)
 
@@ -243,6 +278,21 @@
   (define plasmas (filter plasma? objects))
   (define shields (filter shield? objects))
   (define upgrades (filter upgrade? objects))
+  (define missiles (filter missile? objects))
+
+  (for ((m missiles))
+    (when (missile-should-detonate? space m)
+      (define cs (apply-all-changes!
+                  space (list (chdam (ob-id m) -1)) (space-time space) "server"))
+      (append! changes cs))
+    (for ((p plasmas))
+      (define cs (apply-all-changes!
+                  space (missile-hit-plasma! space m p) (space-time space) "server"))
+      (append! changes cs))
+    (for ((ship spaceships))
+      (define cs (apply-all-changes!
+                  space (missile-hit-ship! space ship m) (space-time space) "server"))
+      (append! changes cs)))
   
   (for ((p plasmas))
     (for ((shield shields))

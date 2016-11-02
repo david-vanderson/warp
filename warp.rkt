@@ -32,7 +32,7 @@
   (define w (warp-maxe t))
   (define h 30)
   (define x (- (/ w 2.0)))
-  (define y -350)
+  (define y -370)
   (define z (clamp 0.0 1.0 (/ (warp-e t) (warp-maxe t))))
 
   ; outline

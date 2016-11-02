@@ -9,6 +9,7 @@
          "utils.rkt"
          "draw-utils.rkt"
          "plasma.rkt"
+         "missile.rkt"
          "shield.rkt"
          "effect.rkt"
          "ships.rkt"
@@ -145,6 +146,8 @@
               (draw-ship-info dc o space)))
            ((plasma? o)
             (draw-plasma dc o space))
+           ((missile? o)
+            (draw-missile dc o space))
            ((shield? o)
             (draw-shield dc space o))
            ((effect? o)
@@ -192,8 +195,7 @@
 
 (define (draw-ship dc s)
   (keep-transform dc
-    (send dc translate (obj-x s) (obj-y s))
-    (send dc rotate (- (obj-r s)))
+    (center-on dc s)
     (draw-ship-raw dc s)))
 
 
@@ -474,6 +476,7 @@ buttons)
   (cond
     ((pbolt? t) (append! buttons (draw-pbolt-ui! dc t stack send-commands)))
     ((warp? t) (append! buttons (draw-warp-ui! dc t stack send-commands)))
+    ((mtube? t) (append! buttons (draw-mtube-ui! dc t stack send-commands)))
     ((steer? t)
      (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))
      (when offline

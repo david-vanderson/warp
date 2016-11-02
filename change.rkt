@@ -8,6 +8,7 @@
          "pilot.rkt"
          "pbolt.rkt"
          "warp.rkt"
+         "missile.rkt"
          "order.rkt"
          "physics.rkt")
 
@@ -99,6 +100,11 @@
         (change-pbolt! (command-cmd c) space s who))
        ((warp? o)
         (change-warp! (command-cmd c) space s who))
+       ((mtube? o)
+        (change-mtube! (command-cmd c) space s who))
+       ((missile? o)
+        (set-missile-course! o (command-cmd c))
+        (values #t '()))
        ((or (dock? o) (steer? o) (fthrust? o) (shbolt? o))
         (change-pilot-tool! (command-cmd c) space s who))
        ((pod? o) (equal? (command-cmd c) "npc-off")
