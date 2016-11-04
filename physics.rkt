@@ -94,7 +94,7 @@
      (when (plasma-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))
     ((missile? o)
-     (physics! pv dt 0.4 #t)
+     (physics! pv dt 0.5 #t)
      (define racc 2.0)
      (define course (missile-course o))
      (define r (posvel-r pv))

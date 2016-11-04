@@ -320,7 +320,7 @@
         
           ; draw tool UI
           (for ((t (in-list (pod-tools (get-pod my-stack)))))
-            (define bs (draw-tool-ui dc t my-stack send-commands))
+            (define bs (draw-tool-ui dc ownspace t my-stack send-commands))
             (append! buttons bs))
 
           ) ; when my-stack

@@ -17,7 +17,7 @@
   (set! bitmap (load-bitmap "missile")))
 
 (define (missile-radius m)
-  8.0)
+  5.0)
 
 (define (missile-energy space m)
   (- (missile-e m) (obj-age space m)))
@@ -56,6 +56,7 @@
 (define (draw-missile dc m space)
   (keep-transform dc
     (center-on dc m)
+    (send dc scale 0.7 0.7)
     (send dc draw-bitmap
           bitmap
           (- (/ (send bitmap get-width) 2))
@@ -114,14 +115,14 @@
                                      (obj-dx ship)
                                      (obj-dy ship)
                                      0)
-                             4000 b))
+                             5000 b))
           (append! changes (chadd m #f) (command (ob-id tool) (ob-id m))))
         
         (values #t changes))))))
      
 
 ; return list of buttons
-(define (draw-mtube-ui! dc t stack send-commands)
+(define (draw-mtube-ui! dc space t stack send-commands)
   (define buttons '())
   (define ship (get-ship stack))
   (define pod (get-pod stack))
@@ -130,6 +131,8 @@
   (define x (- RIGHT w 10))
   (define y -370)
   (define z (clamp 0.0 1.0 (/ (mtube-e t) (mtube-maxe t))))
+
+  (define m (find-id space (mtube-mid t)))
 
   ; outline
   (send dc set-pen "white" 1 'solid)
@@ -154,13 +157,20 @@
   (define ob (add-offline-button! t loadb send-commands))
   (when ob (append! buttons ob))
   
-  (define b (button 'disabled #\space (- x 60) (+ BOTTOM 10) 50 50 "Fire [_]" #f))
-  (when (and (ship-flying? ship) ((mtube-e t) . = . (mtube-maxe t)))
+  (define b (button 'disabled #\f (- x 60) (+ BOTTOM 10) 50 50 "Fire [f]" #f))
+  (when (and (ship-flying? ship)
+             (not m)
+             ((mtube-e t) . = . (mtube-maxe t)))
     (set-button-f! b (lambda (x y) (send-commands (command (ob-id t) "fire"))))
     (set-button-draw! b 'normal))
 
   (append! buttons b)
   (define oob (add-offline-button! t b send-commands "nofire"))
   (when oob (append! buttons oob))
+
+  (when m
+    (define b (button 'normal #\d (- x 120) (+ BOTTOM 10) 50 50 "Det [d]"
+                      (lambda (x y) (send-commands (chdam (ob-id m) -1)))))
+    (append! buttons b))
   
   buttons)

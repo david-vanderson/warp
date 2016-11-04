@@ -471,12 +471,12 @@ buttons)
 
 
 ; drawn in canon transform (buttons, dmgs, warnings)
-(define (draw-tool-ui dc t stack send-commands)
+(define (draw-tool-ui dc space t stack send-commands)
   (define buttons '())
   (cond
     ((pbolt? t) (append! buttons (draw-pbolt-ui! dc t stack send-commands)))
     ((warp? t) (append! buttons (draw-warp-ui! dc t stack send-commands)))
-    ((mtube? t) (append! buttons (draw-mtube-ui! dc t stack send-commands)))
+    ((mtube? t) (append! buttons (draw-mtube-ui! dc space t stack send-commands)))
     ((steer? t)
      (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))
      (when offline
