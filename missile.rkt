@@ -169,6 +169,11 @@
   (when oob (append! buttons oob))
 
   (when m
+    (send dc set-pen nocolor 1 'transparent)
+    (send dc set-brush "red" 'solid)
+    (define life (/ (missile-energy space m) 10.0))
+    (send dc draw-rectangle (- (/ life 2.0)) (+ BOTTOM 2) life 6)
+    
     (define b (button 'normal #\d (- x 120) (+ BOTTOM 10) 50 50 "Det [d]"
                       (lambda (x y) (send-commands (chdam (ob-id m) -1)))))
     (append! buttons b))

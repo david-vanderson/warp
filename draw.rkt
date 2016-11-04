@@ -136,8 +136,11 @@
            ((upgrade? o)
             (send dc set-pen (upgrade-color o) (/ 1.5 ptsize) 'transparent)
             (send dc draw-point (obj-x o) (obj-y o)))
+           ((missile? o)
+            (send dc set-pen "red" (/ 2.5 (dc-point-size dc)) 'solid)
+            (send dc draw-point (obj-x o) (obj-y o)))
            ((plasma? o)
-            (send dc set-pen "red" (/ 2.0 (dc-point-size dc)) 'solid)
+            (send dc set-pen "orange" (/ 2.0 (dc-point-size dc)) 'solid)
             (send dc draw-point (obj-x o) (obj-y o)))))
     (else
      (cond ((ship? o)
