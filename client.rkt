@@ -246,7 +246,7 @@
           (when (not DEBUG)
             (send dc set-clipping-region fow))
           (draw-background-stars dc center (get-scale))
-          (draw-objects dc ownspace meid)
+          (draw-objects dc ownspace meid showtab)
 
           ; draw stuff specific to the ship you are on
           ; - stacked if we are on a ship inside another ship
@@ -266,11 +266,17 @@
                    (send dc set-brush (make-color 0 0 0 0.8) 'solid)
                    (define r (* 0.8 (ship-radius last-ship)))
                    (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))
-                   (draw-ship-up dc s))))
-              
+                   (when showtab (draw-playerlist dc s))
+                   (keep-transform dc
+                     (send dc rotate (- pi/2))
+                     (draw-ship-raw dc s)
+                     (draw-ship-info dc s ownspace))
+                   )))
+
               (define ship (get-ship my-stack))
               (define rot (if (ship-flying? ship) (obj-r ship) pi/2))
-              (send dc rotate (- rot))  ; rotate because we drew the ship pointing up
+              (send dc rotate (- rot))
+              
               (when (and (not (spacesuit? ship))
                          (not (hangar? (get-pod my-stack))))
                 (define bs
@@ -292,7 +298,7 @@
             ; draw hangar background
             (send dc set-pen fgcolor 1.0 'solid)
             (send dc set-brush (make-color 0 0 0 .8) 'solid)
-            (define size (* 0.9 (min WIDTH HEIGHT)))
+            (define size (* 0.8 (min WIDTH HEIGHT)))
             (send dc draw-rectangle (* -0.5 size) (* -0.5 size) size size)
             
             ; draw all the ships in the hangar
@@ -301,18 +307,24 @@
                   (i (in-naturals)))
               (keep-transform dc
                 (send dc translate
-                      (+ (* -0.5 size) 10 (/ shipmax 2))
-                      (- (* 0.5 size) 10 (* i 100) (/ shipmax 2)))
-                (draw-ship-up dc s)
+                      (+ (* -0.5 size) 10 (* (quotient i 4) 180) (/ shipmax 2))
+                      (- (* 0.5 size) 10 (* (remainder i 4) 150) (/ shipmax 2)))
+                (keep-transform dc
+                  (send dc rotate (- pi/2))
+                  (draw-ship-raw dc s)
+                  (draw-ship-info dc s ownspace))
                 (send dc translate (+ 10 (/ shipmax 2)) (/ shipmax 2))
-                (draw-text dc (format "~a" (ship-name s)) 0 -5)
-                (define-values (x y) (dc->canon canvas dc 0 -60))
+                (define-values (x y) (dc->canon canvas dc 0 -30))
                 (define bl (lambda (x y)
                              (send-commands (chrole meid (ob-id (ship-lounge s))))))
-                (append! buttons (button 'normal #f x y 65 30 "Board" bl))
-                (for ((p (in-list (find-all s player?)))
+                (append! buttons (button 'normal #f x y 105 30 (ship-name s) bl))
+
+                (send dc set-text-foreground "white")
+                (define players (find-all s player?))
+                ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
+                (for ((p (in-list players))
                       (i (in-naturals)))
-                  (draw-text dc (player-name p) 0 (- -70 (* i 20))))
+                  (draw-text dc (player-name p) 0 (- -32 (* i 20))))
                 )))
 
           ; draw pod UI

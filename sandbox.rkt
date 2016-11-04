@@ -16,6 +16,13 @@
        (make-ship "red-fighter" "Empire Fighter" "Empire")
        (make-ship "red-fighter" "Empire Fighter" "Empire")
        (make-ship "red-fighter" "Empire Fighter" "Empire")
+       (make-ship "red-fighter" "Empire Fighter" "Empire")
+       (make-ship "red-fighter" "Empire Fighter" "Empire")
+       (make-ship "red-fighter" "Empire Fighter" "Empire")
+       (make-ship "red-fighter" "Empire Fighter" "Empire")
+       (make-ship "red-fighter" "Empire Fighter" "Empire")
+       (make-ship "red-fighter" "Empire Fighter" "Empire")
+       (make-ship "red-fighter" "Empire Fighter" "Empire")
        )))
 
 ;(set-stats-con! (ship-stats enemy-base) 200)
@@ -80,7 +87,7 @@
   (for ((p (space-players space)))
       (when (not (player-faction p))
         ; new player
-        (append! changes (chfaction (ob-id p) "Rebel"))))
+        (append! changes (chfaction (ob-id p) "Empire"))))
   
 ;  (when (<= 1 (modulo (space-time space) 1800) TICK)
 ;    (set! commands (append commands (list (message (next-id) (space-time space) #f

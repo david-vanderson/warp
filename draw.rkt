@@ -107,7 +107,7 @@
         (define y (+ origy (* k height) (cdr s)))
         (send dc draw-point x y)))))
 
-(define (draw-object dc o space pid)
+(define (draw-object dc o space pid showplayers?)
   (define ptsize (dc-point-size dc))
   (cond       
     ((ptsize . < . 0.25)  ; "sector" view - ships are triangles
@@ -117,7 +117,6 @@
                   (linear-color "blue" "blue" 1.0
                                 (+ 0.5 (* 0.5 (cycletri (space-time space) 1500))))
                   "blue"))
-            (send dc set-pen col (/ 1.5 ptsize) 'solid)
             (define outline
               (cond ((spacesuit? o)
                      ; diamond, but small enough so it looks like a dot
@@ -131,7 +130,10 @@
                 (cons (* (car x) (ship-radius o) (/ 0.15 (sqrt ptsize)))
                       (* (cdr x) (ship-radius o) (/ 0.15 (sqrt ptsize))))))
             (keep-transform dc
-              (center-on dc o)
+              (center-on dc o #f)
+              (when showplayers? (draw-playerlist dc o))
+              (send dc rotate (- (obj-r o)))
+              (send dc set-pen col (/ 1.5 ptsize) 'solid)
               (send dc draw-lines zoutline)))
            ((upgrade? o)
             (send dc set-pen (upgrade-color o) (/ 1.5 ptsize) 'transparent)
@@ -144,9 +146,13 @@
             (send dc draw-point (obj-x o) (obj-y o)))))
     (else
      (cond ((ship? o)
-            (draw-ship dc o)
-            (when (spaceship? o)
-              (draw-ship-info dc o space)))
+            (keep-transform dc
+              (center-on dc o #f)
+              (when showplayers? (draw-playerlist dc o))
+              (send dc rotate (- (obj-r o)))
+              (draw-ship-raw dc o)
+              (when (spaceship? o)
+                (draw-ship-info dc o space))))
            ((plasma? o)
             (draw-plasma dc o space))
            ((missile? o)
@@ -157,6 +163,26 @@
             (draw-effect dc space o))
            ((upgrade? o)
             (draw-upgrade dc space o))))))
+
+
+(define (draw-playerlist dc ship)
+  (define players (find-all ship player?))
+  ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
+  (when (not (null? players))
+    (define ptsize (dc-point-size dc))
+    (send dc set-pen "blue" (/ 0.7 ptsize) 'solid)
+    (send dc set-text-foreground "blue")
+    (define r (ship-radius ship))
+    (send dc draw-line 0 0 r (- r))
+    (keep-transform dc
+      (send dc translate r (- r))
+      (send dc set-pen "blue" 1.0 'solid)
+      (send dc scale (/ 0.7 ptsize) (/ 0.7 ptsize))
+      (send dc draw-line 0 0 75 0)
+      (for ((p players) (i (in-naturals)))
+        (draw-text dc (player-name p) 10 (- (* i 16)))))))
+    
+   
 
 #;(define (draw-server-objects dc center space)
   (send dc set-pen "hotpink" 1 'solid)
@@ -171,7 +197,7 @@
         (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))))))
 
 
-(define (draw-objects dc space pid)
+(define (draw-objects dc space pid showplayers)
   (define objects (space-objects space))
   (define ships (filter ship? objects))
   (define effects (filter effect? objects))
@@ -181,7 +207,7 @@
   (set! effects (remove* backeffects effects))
   
   (for ((o (in-list (append backeffects ships other effects))))
-    (draw-object dc o space pid))
+    (draw-object dc o space pid showplayers))
   )
 
 (define (draw-ship-raw dc s)
@@ -190,16 +216,6 @@
         ship-bitmap
         (- (/ (send ship-bitmap get-width) 2))
         (- (/ (send ship-bitmap get-height) 2))))
-
-(define (draw-ship-up dc s)
-  (keep-transform dc
-    (send dc rotate (- pi/2))
-    (draw-ship-raw dc s)))
-
-(define (draw-ship dc s)
-  (keep-transform dc
-    (center-on dc s)
-    (draw-ship-raw dc s)))
 
 
 (define (draw-sector-lines dc space)
@@ -322,45 +338,42 @@
       (send dc set-clipping-region r))))
 
 
+; dc must be on ship center and rotated
 (define (draw-ship-info dc ship space)
-  (keep-transform dc
-    (send dc translate (obj-x ship) (obj-y ship))
+  (send dc set-pen nocolor 1 'transparent)
+  (define hpfrac (max 0.0 (/ (ship-con ship) (ship-maxcon ship))))
+  (when (hpfrac . < . 0.5)
+    (define cycletime (+ 200 (* 5000 hpfrac)))
+    (define z (cycletri (obj-age space ship) cycletime))
+    (define alpha (+ 0.0 (* 1.0 z (max 0.1 (- 0.8 hpfrac)))))
+    (define hpcolor (linear-color "red" "black" (max 0.2 (- hpfrac 0.2)) alpha))
+    (send dc set-brush hpcolor 'solid)
+    (define hpr (ship-radius ship))
+    (send dc draw-arc (- hpr) (- hpr) (* 2 hpr) (* 2 hpr) 0 2pi))
+  
+  (for ((p (in-list (ship-pods ship))))
+    (keep-transform dc
+      (send dc translate (* (pod-dist p) (cos (pod-angle p))) (* (pod-dist p) (sin (pod-angle p))))
+      (when (pod-facing p)
+        (send dc rotate (- (pod-facing p))))
+      (when ((pod-maxe p) . > . 0)
+        (send dc set-brush nocolor 'transparent)
+        (define height (+ 0.5 (* 1.0 (/ (pod-e p) (pod-maxe p)))))
+        (send dc set-pen (stoplight-color (pod-e p) (pod-maxe p)) height 'solid)
+        (define r 4.0)
+        (send dc draw-arc (- r) (- r) (* 2 r) (* 2 r) (- (/ pi 4)) (/ pi 4)))
+      (define ndmgs (length (search p dmg? #t #f)))
+      (when (ndmgs . > . 0)
+        (send dc set-pen "red" 3 'solid)
+        (define r 5.0)
+        (define da (degrees->radians 40.0))
+        (define a (- (* (- ndmgs 1) (/ da 2.0))))
+        (send dc rotate a)
+        (for ((i ndmgs))
+          (send dc draw-point r 0)
+          (send dc rotate da)))
+      )))
 
-    (send dc set-pen nocolor 1 'transparent)
-    (define hpfrac (max 0.0 (/ (ship-con ship) (ship-maxcon ship))))
-    (when (hpfrac . < . 0.5)
-      (define cycletime (+ 200 (* 5000 hpfrac)))
-      (define z (cycletri (obj-age space ship) cycletime))
-      (define alpha (+ 0.0 (* 1.0 z (max 0.1 (- 0.8 hpfrac)))))
-      (define hpcolor (linear-color "red" "black" (max 0.2 (- hpfrac 0.2)) alpha))
-      (send dc set-brush hpcolor 'solid)
-      (define hpr (ship-radius ship))
-      (send dc draw-arc (- hpr) (- hpr) (* 2 hpr) (* 2 hpr) 0 2pi))
-    
-    (send dc rotate (- (obj-r ship)))
-    (for ((p (in-list (ship-pods ship))))
-      (keep-transform dc
-        (send dc translate (* (pod-dist p) (cos (pod-angle p))) (* (pod-dist p) (sin (pod-angle p))))
-        (when (pod-facing p)
-          (send dc rotate (- (pod-facing p))))
-        (when ((pod-maxe p) . > . 0)
-          (send dc set-brush nocolor 'transparent)
-          (define height (+ 0.5 (* 1.0 (/ (pod-e p) (pod-maxe p)))))
-          (send dc set-pen (stoplight-color (pod-e p) (pod-maxe p)) height 'solid)
-          (define r 4.0)
-          (send dc draw-arc (- r) (- r) (* 2 r) (* 2 r) (- (/ pi 4)) (/ pi 4)))
-        (define ndmgs (length (search p dmg? #t #f)))
-        (when (ndmgs . > . 0)
-          (send dc set-pen "red" 3 'solid)
-          (define r 5.0)
-          (define da (degrees->radians 40.0))
-          (define a (- (* (- ndmgs 1) (/ da 2.0))))
-          (send dc rotate a)
-          (for ((i ndmgs))
-            (send dc draw-point r 0)
-            (send dc rotate da)))
-        ))))
-          
 
 
 (define (draw-pods dc ship rot stack send-commands canvas meid)
@@ -380,10 +393,6 @@
       (when (size . > . 0.5)
         
         (cond
-          ((pod-player p)
-           ;(send dc draw-rectangle (- 5) (- 5) 10 10)
-           ;(send dc draw-text (pod-name p) (- 5) (- 5))
-           )
           ((hangar? p)
            (define-values (x y) (dc->canon canvas dc (- size) (- size)))
            (define-values (x2 y2) (dc->canon canvas dc size size))
@@ -398,7 +407,10 @@
            (define b (button 'normal #f cx cy (abs (- rx cx)) #f (pod-name p)
                              (lambda (x y)
                                (send-commands (chrole meid (ob-id p))))))
-           (append! buttons (list b)))))))
+           (when (pod-player p)
+             (set-button-draw! b 'disabled)
+             (set-button-label! b (player-name (pod-player p))))
+           (append! buttons b))))))
 buttons)
 
 
