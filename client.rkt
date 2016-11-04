@@ -624,6 +624,12 @@
               (when ownspace
                 (send-commands (message (next-id) (space-time ownspace) #f
                                         (~a "message " (space-time ownspace))))))
+             ((wheel-up)
+              (when (and ownspace (not showsector?))
+                (set-scale (* (get-future-scale) 1.05))))
+             ((wheel-down)
+              (when (and ownspace (not showsector?))
+                (set-scale (/ (get-future-scale) 1.05))))
 ;             ((#\p)
 ;              (when ownspace
 ;                (send-commands (chadd (plasma (next-id) (space-time ownspace) (posvel -1 0 0 (random-between 0 2pi) (random 100) (random 100) 0) (random 100) #f) #f))))
