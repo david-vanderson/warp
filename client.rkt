@@ -624,10 +624,13 @@
           ))
       (define/override (on-char event)
         (define kc (send event get-key-code))
-        ;(printf "on-char ~v\n" kc)
         (define b (key-button? buttons kc))
+        ;(printf "on-char ~v ~v\n" kc b)
         
         (cond
+          ((not kc)
+           (printf "got #f for on-char get-key-code\n")
+           )
           ((and holding? (equal? kc (car holding?)))
            ; repeated keypress from holding the key down, drop it
            )
