@@ -4,7 +4,7 @@
 
 (provide (all-defined-out))
 
-(define DEBUG #t)
+(define DEBUG #f)
 (define PORT 22381)
 (define TICK 33)  ; ms time slice for physics, also determines max client frame rate
 (define AI_INTERVAL 1000)  ; ms between ai runs (at least)

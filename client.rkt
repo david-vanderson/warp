@@ -749,7 +749,7 @@
     
     (when (not server-in-port)
       (define newname
-        "Testing" #;(get-text-from-user "Player Name"
+        #;"Testing" (get-text-from-user "Player Name"
                             "Player Name"
                             #f
                             (or name "")))
@@ -759,7 +759,7 @@
       
       ; ask the user for address
       (define newip
-        "127.0.0.1" #;(get-text-from-user "IP of server"
+        #;"127.0.0.1" (get-text-from-user "IP of server"
                             "IP address of the Server"
                             #f
                             (or ip "")))
