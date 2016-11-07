@@ -45,7 +45,7 @@
                                    (theta ship ne))))
        (set! f (+ f (* 5.0 (min 0.8 (/ ad pi)))))
        ))
-    (("attack" "attack-only")
+    (("attack" "attack*" "attack-only")
      (define ne (find-top-id space (strategy-arg strat)))
      (when ne
        (define d (distance ship ne))
@@ -125,11 +125,12 @@
            ; done retreating
            ;(printf "done retreating\n")
            (set! changes (list (new-strat (ob-id ship) (cdr strats)))))))
-       (("attack")
+       (("attack" "attack*")
         (define e (find-top-id space (strategy-arg strat)))
         (cond
           ((or (not e) (return-to-base? ship)
-               ((distance ship e) . > . (* 2 (ship-radar ship))))
+               (and (equal? "attack" (strategy-name strat))
+                    ((distance ship e) . > . (* 2 (ship-radar ship)))))
            ; abort
            (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
           ((and ne (not (equal? (ob-id ne) (ob-id e))))

@@ -37,6 +37,9 @@
   ; car is keycode (or 'mouse) of the key that's being held
   ; cdr is the holdbutton-frelease function
   (define holding? #f)
+  ; if the mouse is over something (other than a button) that when clicked will
+  ; do some action, clickcmds is a list of commands we send
+  (define clickcmds #f)
   (define frames '())  ; list of last few frame times
   (define last-update-time #f)
 
@@ -111,18 +114,8 @@
          (when (holdbutton? b)
            (set! holding? (cons 'mouse (holdbutton-frelease b))))
          ))
-      (my-stack
-       (define mypos (get-center ownspace my-stack))
-       (define-values (cx cy) (space->canon center (get-scale) (obj-x mypos) (obj-y mypos)))
-       (define a (angle-norm (atan0 (- y cy) (- x cx))))
-       (define p (get-pod my-stack))
-       (for ((t (in-list (pod-tools p))))
-         (cond ((and (mtube? t) (find-id ownspace (mtube-mid t)))
-                (send-commands (command (mtube-mid t) a)))
-               ((and (steer? t)
-                     (ship-flying? (get-ship my-stack))
-                     (not (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t))))
-                (send-commands (command (ob-id t) a))))))))
+      (clickcmds
+       (send-commands clickcmds))))
   
   
   (define (draw-screen canvas dc)
@@ -151,6 +144,8 @@
       (send dc set-alpha 1.0)
 
       (set! buttons '())
+      (define cursordrawn #f)
+      (set! clickcmds #f)
       
       (when (and (not DEBUG) my-stack)
         (draw-dmgfx dc my-stack))
@@ -227,7 +222,20 @@
                                    (define r (ann-circle-radius a))
                                    (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))
                                    (send dc scale (/ 1.0 (get-scale)) (/ 1.0 (get-scale)))
-                                   (draw-text dc (ann-circle-text a) 0 0)))
+                                   (draw-text dc (ann-txt a) 0 0)))
+                                ((ann-ship? a)
+                                 (define st (find-stack ownspace (ann-ship-id a)))
+                                 (when st
+                                   (define s (get-topship st))
+                                   (define col (if highlight? bright dim))
+                                   (send dc set-pen col (/ 2.0 (dc-point-size dc)) 'solid)
+                                   (send dc set-brush nocolor 'transparent)
+                                   (define r (* 2.0 (ship-radius s)))
+                                   (keep-transform dc
+                                     (send dc translate (obj-x s) (obj-y s))
+                                     (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))
+                                     (send dc draw-line (- r) 0 r 0)
+                                     (send dc draw-line 0 (- r) 0 r))))
                                 (else
                                  (error "don't know how to draw annotation ~v" a))))))))
           
@@ -342,7 +350,7 @@
                 #:when (ann? a))
           (when (and (ann-button? a) (or (not (ann-showtab? a)) showtab))
             (define ab (button 'normal #f
-                               (obj-x a) (obj-y a) (obj-dx a) (obj-dy a) (ann-button-text a)
+                               (obj-x a) (obj-y a) (obj-dx a) (obj-dy a) (ann-txt a)
                                (lambda (k y) (send-commands (anncmd (ob-id a) #f)))))
             (append! buttons ab))
           (when (and (ann-text? a) (or (not (ann-showtab? a)) showtab))
@@ -355,7 +363,7 @@
                (send dc set-text-foreground cc))
               (else
                (send dc set-text-foreground "white")))
-            (define txts (string-split (ann-text-text a) "\n"))
+            (define txts (string-split (ann-txt a) "\n"))
             (for ((t (in-list txts))
                   (i (in-naturals)))
               (draw-text dc t (obj-x a) (- (obj-y a) (* i 20))))))
@@ -503,7 +511,6 @@
            (append! buttons leave-button)))
           
         ; draw mouse cursor
-        (define drawn #f)
         (when my-stack
           (define-values (p mods) (get-current-mouse-state))
           (define-values (wx wy) (send canvas screen->client
@@ -511,20 +518,41 @@
                                        (+ (send p get-y) top-inset)))
           (define-values (x y) (screen->canon canvas wx wy))
           (when (not (in-button? buttons x y))
-            (for ((t (in-list (pod-tools (get-pod my-stack)))))
-              (when (or (and (mtube? t) (find-id ownspace (mtube-mid t)))
-                        (and (steer? t) (not (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))))
-                (set! drawn #t)
-                (define mypos (get-center ownspace my-stack))
-                (define-values (mx my) (space->canon center (get-scale) (obj-x mypos) (obj-y mypos)))
-                (define a (angle-norm (atan0 (- y my) (- x mx))))
-                (keep-transform dc
-                  (send dc set-pen "blue" (/ 1.5 (dc-point-size dc)) 'solid)
-                  (send dc translate x y)
-                  (send dc rotate (- a))
-                  (send dc draw-lines '((0 . 0) (-15 . -5) (-15 . 5) (0 . 0))))))))
-          
-        (send canvas set-cursor (make-object cursor% (if drawn 'blank 'arrow)))
+            (define mypos (get-center ownspace my-stack))
+            (define-values (mx my) (space->canon center (get-scale) (obj-x mypos) (obj-y mypos)))
+            (define a (angle-norm (atan0 (- y my) (- x mx))))
+            (send dc set-pen "blue" (/ 1.5 (dc-point-size dc)) 'solid)
+            (send dc set-brush nocolor 'transparent)
+            
+            (define p (get-pod my-stack))
+            (define mt (findf mtube? (pod-tools p)))
+            (define st (findf steer? (pod-tools p)))
+            (define pb (findf pbolt? (pod-tools p)))
+            (define sb (findf shbolt? (pod-tools p)))
+            (cond
+              ((or (and mt (find-id ownspace (mtube-mid mt)))
+                   (and st (not (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs st)))))
+               (set! cursordrawn #t)
+               (set! clickcmds (command (if mt (mtube-mid mt) (ob-id st)) a))
+               (keep-transform dc
+                 (send dc translate x y)
+                 (send dc rotate (- a))
+                 (send dc draw-lines '((0 . 0) (-15 . -5) (-15 . 5) (0 . 0)))))
+              ((or (and pb (pbolt-aim pb)
+                        (not (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs pb))))
+                   (and sb (shbolt-aim sb)
+                        (not (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs sb)))))
+               (define s (get-ship my-stack))
+               (when (ship-flying? s)
+                 (define pf (angle-add (obj-r s) (pod-facing p)))
+                 (when ((abs (angle-frto pf a)) . < . (/ (pod-spread p) 2.0))
+                   (set! cursordrawn #t)
+                   (set! clickcmds (command (ob-id (or pb sb)) a))
+                   (keep-transform dc
+                     (send dc translate x y)
+                     (send dc draw-ellipse (- 10) (- 10) 20 20)
+                     (send dc draw-line -12 0 12 0)
+                     (send dc draw-line 0 -12 0 12))))))))
         
         (append! buttons
                  (button 'hidden #\tab 0 0 0 0 "Mission Info"
@@ -537,6 +565,7 @@
         
         ) ; when ownspace
 
+      (send canvas set-cursor (make-object cursor% (if cursordrawn 'blank 'arrow)))
       (draw-buttons dc buttons (if ownspace (space-time ownspace) 0))
     ))
     

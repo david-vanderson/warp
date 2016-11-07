@@ -53,6 +53,10 @@
          (when (not d) (set! highlight #f))
          (or doall? d))
        highlight)
+      ((equal? 'and (ordercomb-type ot))
+       (for/fold ((ret #t)) ((ot (in-list (ordercomb-orders ot))))
+         (define d (loop ot (+ depth 1) highlight))
+         (and ret d)))
       (else
        (error "client got an unknown order combinator\n")))))
 
@@ -82,6 +86,9 @@
       ((equal? 'seq (ordercomb-type ot))
        (for/and ((ot (in-list (ordercomb-orders ot))))
          (check space faction ot)))
+      ((equal? 'and (ordercomb-type ot))
+       (for/and ((ot (in-list (ordercomb-orders ot))))
+         (check space faction ot)))
       (else
        (error "check: got an unknown ord\n"))))
   (set-ord-done?! ot d)
@@ -92,13 +99,25 @@
 (define (scout-waypoint text x y r)
   (define pv (posvel 0 x y 0 0 0 0))
   (define pvobj (obj #f #f pv))
-  (order #f text (list (ann-circle (next-id) 0 pv #f r text))
+  (order #f text (list (ann-circle (next-id) 0 pv #f text r))
          (lambda (space faction o)
            (for/first ((s (in-list (space-objects space)))
                        #:when (and (ship? s) (equal? faction (ship-faction s))
                                    ((distance pvobj s) . < . r)))
              (set-order-f! o (lambda (s f o) #t))
              #t))))
+
+; kill a particular ship
+(define (kill text id)
+  (order #f text (list (ann-ship (next-id) 0 #f #f text id))
+         (lambda (space faction o)
+           (not (find-id space id)))))
+
+; keep alive
+(define (alive text id)
+  (order #f text (list (ann-ship (next-id) 0 #f #f text id))
+         (lambda (space faction o)
+           (find-id space id))))
 
 ; make a timout order
 (define (timeout text start total ot)

@@ -91,15 +91,15 @@
           ,@(for/list ((d (in-list (list 0 90 180 270))))
               (pod (next-id) "W" #f (and npc? npc-weapons?)
                    (degrees->radians d) 26.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
-                   (list (pbolt (next-id) '() 15.0))))
+                   (list (pbolt (next-id) '() 15.0 #t))))
           ,@(for/list ((d (in-list (list 45 135 225 315))))
               (pod (next-id) "T" #f (and npc? npc-tactical?)
                    (degrees->radians d) 28.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
-                   (list (shbolt (next-id) '() 50.0)))))))
+                   (list (shbolt (next-id) '() 50.0 #t)))))))
     (("blue-frigate" "red-frigate")
      (set-ship-stats! s (stats (next-id) type name faction
                                ;power bat maxbat con maxcon radius mass thrust rthrust
-                               5.0 50.0 50.0 100.0 100.0 18.0 100.0 20.0 0.3 250.0 start-ship?))
+                               10.0 50.0 50.0 100.0 100.0 18.0 100.0 20.0 0.3 250.0 start-ship?))
      (set-ship-pods!
       s `(,(normal-lounge)
           ,(normal-hangar pi 10.0 in-hangar)
@@ -107,10 +107,10 @@
                 (list (steer (next-id) '() r) (fthrust (next-id) '() #f) (dock (next-id) '() #f)))
           ,(pod (next-id) "W" #f (and npc? npc-weapons?)
                 (degrees->radians 21.8) 21.5 (/ pi 6) pi/2 100.0 100.0
-                (list (pbolt (next-id) '() 10.0)))
+                (list (pbolt (next-id) '() 5.0 #t)))
           ,(pod (next-id) "W" #f (and npc? npc-weapons?)
                 (degrees->radians -21.8) 21.5 (- (/ pi 6)) pi/2 100.0 100.0
-                (list (pbolt (next-id) '() 10.0))))))
+                (list (pbolt (next-id) '() 5.0 #t))))))
     (("blue-fighter" "red-fighter")
      (define mb 100.0)
      (set-ship-stats! s (stats (next-id) type name faction 1.0 mb mb 50.0 50.0 6.0 20.0 40.0 1.0 300.0 start-ship?))
@@ -118,6 +118,6 @@
       s `(,(normal-lounge)
           ,(pod (next-id) "Pilot" #f (and npc? npc-helm?) 0.0 5.0 0.0 (/ pi 6) 100.0 100.0
                 (list (steer (next-id) '() r) (fthrust (next-id) '() #f)
-                      (dock (next-id) '() #f) (pbolt (next-id) '() 5.0))))))
+                      (dock (next-id) '() #f) (pbolt (next-id) '() 5.0 #f))))))
     )
   s)

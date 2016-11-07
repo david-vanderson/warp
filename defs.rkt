@@ -4,7 +4,7 @@
 
 (provide (all-defined-out))
 
-(define DEBUG #f)
+(define DEBUG #t)
 (define PORT 22381)
 (define TICK 33)  ; ms time slice for physics, also determines max client frame rate
 (define AI_INTERVAL 1000)  ; ms between ai runs (at least)
@@ -97,10 +97,13 @@
 (struct dock tool (on) #:mutable #:prefab)
 ; on is whether to dock if we hit friendly ship
 ; dock also does launching
-(struct pbolt tool (plasma-size) #:mutable #:prefab)
+(struct pbolt tool (plasma-size aim) #:mutable #:prefab)
 ; plasma-size is how much we fire each time
-(struct shbolt tool (shield-size) #:mutable #:prefab)
+; aim is #t if player can click anywhere in firing arc
+; - #f means you can only shoot directly forward by clicking the button
+(struct shbolt tool (shield-size aim) #:mutable #:prefab)
 ; shield-size is how big of a shield we shoot
+; aim is like for pbolt
 (struct warp tool (maxe e mode) #:mutable #:prefab)
 ; maxe is how much energy can be stored
 ; e is how much energy there is currently
@@ -187,12 +190,12 @@
 ; energy is amount of energy contributed so far
 ; fixing is bool
 
-(struct ann obj (showtab?) #:mutable #:prefab)
+(struct ann obj (showtab? txt) #:mutable #:prefab)
 ; map annotation
 ; if showtab? annotation is only shown when client showtab?
 ;  - this doesn't affect annotations inside orders
 
-(struct ann-button ann (text msg) #:mutable #:prefab)
+(struct ann-button ann (msg) #:mutable #:prefab)
 ; clickable button
 ; obj-x/y is lower left-hand corner (in canon coords)
 ; obj-dx/dy is size of button (in canon coords)
@@ -200,13 +203,19 @@
 ; msg is what is sent to server when a player clicks it
 ;  - gets delivered to the scenario's on-message as a (anncmd ann-button-id #f) struct
 
-(struct ann-text ann (text life) #:mutable #:prefab)
+(struct ann-text ann (life) #:mutable #:prefab)
 ; text annotation
 ; obj-x/y is top-left corner (in canon coords)
 ; life is msec to show the text, then fade then remove
 ; - if life is #f, show forever
 
-(struct ann-circle ann (radius text) #:mutable #:prefab)
+(struct ann-circle ann (radius) #:mutable #:prefab)
+; circle on map
+; obj-x/y is center
+
+(struct ann-ship ann (id) #:mutable #:prefab)
+; annotation pointing out a particular ship
+
 
 (struct ord (done? text) #:mutable #:prefab)
 ; base order

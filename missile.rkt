@@ -103,7 +103,7 @@
         (define changes '())
         (set-mtube-e! tool 0)
         (when (server?)
-          (define d (+ (ship-radius ship) (missile-radius #f)))
+          (define d (+ (ship-radius ship) (* 2.0 (missile-radius #f))))
           (define a (angle-add (obj-r ship) (pod-angle pod)))
           (define b (angle-add (obj-r ship) (pod-facing pod)))
           

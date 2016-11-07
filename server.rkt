@@ -97,7 +97,7 @@
              ((distance ship p) . < . (+ (ship-radius ship) (plasma-radius space p))))
     ;(printf "plasma hit ship ~a (~a ~a)\n" (ship-name ship) (plasma-ownship-id p) (obj-id ship))
 
-    (when ((random) . > . 0.5)
+    (when ((random) . > . 0.8)
       (append! changes (dmg-ship ship (distance ship p) (angle-frto (obj-r ship) (theta ship p)))))
     
     (define damage (plasma-energy space p))
