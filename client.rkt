@@ -481,7 +481,7 @@
                                                frame '(default=2)))
                (when (equal? 1 ans)
                  (drop-connection "clicked exit")
-                 (exit 0))))
+                 (semaphore-post sema))))
            (append! buttons quit-button))
           ((and (lounge? (get-pod my-stack)) (spacesuit? (get-ship my-stack)))
            ; dying
@@ -894,11 +894,15 @@
   
   (queue-callback client-loop #f))
 
+(define sema (make-semaphore))
+
 (module+ main
   ;(require profile)
-  ;(profile #:threads #t
-  ;  (begin
+  ;(profile #:threads #t #:delay 0.0
+    ;(begin
     (start-client "127.0.0.1" PORT "Dave" #t #f)
-    (semaphore-wait (make-semaphore))
+    (semaphore-wait sema)
+    (custodian-shutdown-all (current-custodian))
     ;))
+  ;(exit 0)
   )
