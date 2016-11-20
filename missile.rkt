@@ -20,7 +20,7 @@
   5.0)
 
 (define (missile-energy space m)
-  (- (missile-e m) (obj-age space m)))
+  (max 0 (- (missile-e m) (obj-age space m))))
 
 (define (missile-dead? space m)
   ((missile-energy space m) . <= . 0))
