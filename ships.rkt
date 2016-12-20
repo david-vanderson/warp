@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require racket/class
-         racket/draw
+         mode-lambda/static
          racket/math)
 
 (require "defs.rkt")
@@ -18,16 +18,21 @@
 (define (load-ship type)
   (hash-set! shipshash type (load-bitmap type)))
 
-(define (load-ships)
-  (load-ship "space-suit")
-  (load-ship "blue-station")
-  (load-ship "red-station")
-  (load-ship "blue-frigate")
-  (load-ship "red-frigate")
-  (load-ship "blue-fighter")
-  (load-ship "red-fighter")
-  (load-ship "red-destroyer")
-  (load-ship "blue-cruiser")
+(define (load-ships sd)
+  (define shiplist
+    '("space-suit"
+      "blue-station"
+      "red-station"
+      "blue-frigate"
+      "red-frigate"
+      "blue-fighter"
+      "red-fighter"
+      "red-destroyer"
+      "blue-cruiser"))
+  (for ((name shiplist))
+    (add-sprite!/file sd
+                      (string->symbol name)
+                      (string-append "images/" name ".png")))
   )
 
 

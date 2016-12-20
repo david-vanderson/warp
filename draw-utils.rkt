@@ -1,12 +1,66 @@
 #lang racket/base
 
 (require racket/class
+         mode-lambda
          racket/draw)
 
-(require "defs.rkt")
+(require "defs.rkt"
+         "utils.rkt")
 
 (provide (all-defined-out))
 
+(define (xy->screen x y center scale)
+  (values (* (- x (obj-x center)) scale)
+          (* (- (obj-y center) y) scale)))
+
+(define (space->canon center zoom x y)
+  (values (* zoom (- x (obj-x center)))
+          (* zoom (- (obj-y center) y))))
+
+(define (obj->screen o center scale)
+  (xy->screen (obj-x o) (obj-y o) center scale))
+
+(define (xy-sprite x y csd scale layer sprsym size a r color)
+  (when (string? color)
+    (set! color (send the-color-database find-color color)))
+  
+  (define sprite-size (max (sprite-width csd (sprite-idx csd sprsym))
+                           (sprite-height csd (sprite-idx csd sprsym))))
+  (sprite x y (sprite-idx csd sprsym)
+          #:layer layer #:a (exact->inexact a) #:theta (exact->inexact (- r))
+          #:m (exact->inexact (/ (* size scale) sprite-size))
+          #:r (send color red) #:g (send color green) #:b (send color blue)))
+
+(define (obj-sprite o csd center scale layer sprsym size a r color)
+  (define-values (x y) (obj->screen o center scale))
+  (xy-sprite x y csd scale layer sprsym size a r color))
+
+(define (text-sprite textr txt x y layer (a 1.0) (color "white"))
+  (when (string? color)
+    (set! color (send the-color-database find-color color)))
+  (textr txt (exact->inexact (+ x (* 3.5 (string-length txt)))) (exact->inexact y) #:layer layer
+         #:r (send color red) #:g (send color green) #:b (send color blue) #:a a))
+
+(define (get-alpha x y fowlist)
+  (define a 0.0)
+  (for ((f fowlist))
+    (define dx (- x (car f)))
+    (define dy (- y (cadr f)))
+    (define r (caddr f))
+    (define d (sqrt (+ (* dx dx) (* dy dy))))
+    (define fa (linear-fade d r (* r 1.1)))
+    (set! a (max a fa)))
+  a)
+
+(define (get-red space ship)
+  (define hpfrac (max 0.0 (/ (ship-con ship) (ship-maxcon ship))))
+  (cond
+    ((hpfrac . < . 0.5)
+     (define cycletime (+ 200 (* 5000 hpfrac)))
+     (define z (cycletri (obj-age space ship) cycletime))
+     (define alpha (+ 0.0 (* 1.0 z (max 0.1 (- 0.8 hpfrac)))))
+     (inexact->exact (round (* alpha 255))))
+    (else 0)))
 
 (define-syntax-rule (keep-transform dc e ...)
   (begin
@@ -33,32 +87,7 @@
   (define cw (send canvas get-width))
   (define ch (send canvas get-height))
   (values (/ (- x (/ cw 2)) scale)
-          (/ (- (/ ch 2) y) scale)))
-
-
-(define (dc->canon canvas dc x y)
-  (define m (send dc get-initial-matrix))
-  (define sx (+ (* x (vector-ref m 0)) (* y (vector-ref m 1)) (vector-ref m 4)))
-  (define sy (+ (* x (vector-ref m 2)) (* y (vector-ref m 3)) (vector-ref m 5)))
-  (screen->canon canvas sx sy))
-
-
-(define (space->canon center zoom x y)
-  (values (* zoom (- x (obj-x center)))
-          (* zoom (- y (obj-y center)))))
-
-
-; only works with an unrotated dc transform
-(define (dc-point-size dc)
-  (define m (send dc get-initial-matrix))
-  (min (abs (vector-ref m 0)) (abs (vector-ref m 3))))
-
-
-(define (draw-text dc str x y)
-  (keep-transform dc
-    (send dc translate x y)
-    (send dc scale 1 -1)
-    (send dc draw-text str 0 0)))
+          (/ (- y (/ ch 2)) scale)))
 
 
 (define (linear-color color1 color2 z alpha)
@@ -77,7 +106,7 @@
     (offline
      (set-button-draw! b 'dmg)
      (dmgbutton 'normal #f
-                (button-x b) (+ (button-y b) (button-height b))
+                (button-x b) (- (button-y b) (button-height b))
                 (button-width b) (button-height b)
      "Offline"
      (lambda (x y) (send-commands (command (ob-id offline)

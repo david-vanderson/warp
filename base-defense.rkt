@@ -18,7 +18,13 @@
 
   (define ownspace (space 0 5000 2000 players '()
                           `(
-                            ,(ann-button (next-id) 0 (posvel 0 LEFT (- TOP 110) 0 100 50 0) #t "Quit Scenario" "quit-scenario")
+                            ,(ann-button (next-id) 0 (posvel 0 (+ LEFT 60) (+ TOP 110) 0 100 50 0) #t "Quit Scenario" "quit-scenario")
+                            ,(ann-text (next-id) 0 (posvel 0 -200 -100 0 0 0 0) #f
+                                       (string-append
+                                        "Defend your base from the incoming destroyer.\n"
+                                        "Use your cruiser to attack, dock on the station to repair.\n"
+                                        "Enemy frigates drop upgrades when killed.")
+                                       10000)
                             )))
   
   (define (new-blue-fighter)
@@ -181,11 +187,11 @@
                "Enemy Defeated, You Win")))
       
       (append! changes (chadd (ann-text (next-id) (space-time ownspace)
-                                        (posvel 0 -100 200 0 0 0 0) #f
+                                        (posvel 0 -200 -100 0 0 0 0) #f
                                         txt #f) #f))
       ; add end scenario button
       (append! changes (chadd (ann-button (next-id) (space-time ownspace)
-                                          (posvel 0 -100 260 0 100 50 0) #f
+                                          (posvel 0 -150 -160 0 100 50 0) #f
                                           "Quit Scenario" "quit-scenario") #f))
       )
 

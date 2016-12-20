@@ -1,6 +1,8 @@
 #lang racket/base
 
 (require racket/class
+         mode-lambda/static
+         mode-lambda
          racket/draw)
 
 (require "defs.rkt"
@@ -12,11 +14,6 @@
 
 (define PLASMA_LIFE 3000)  ; ms after which plasma starts fading
 (define PLASMA_FADE 2.0)  ; energy loss per second after PLASMA_LIFE
-
-(define plasma-bitmap #f)
-
-(define (load-plasma)
-  (set! plasma-bitmap (load-bitmap "plasma")))
 
 
 (define (plasma-energy space p)
@@ -37,18 +34,10 @@
     (set-space-objects! space (remove p (space-objects space)))))
 
 
-(define (draw-plasma dc p space)
-  (keep-transform dc
-    (center-on dc p)
-    (send dc scale
-          (/ (plasma-radius space p) (send plasma-bitmap get-width) 0.5)
-          (/ (plasma-radius space p) (send plasma-bitmap get-height) 0.5))
-    (define cycle 1000.0)
-    (define t (modulo (obj-age space p) cycle))
-    (define rot (* 2pi (/ t cycle)))
-    (send dc rotate rot)
-    (send dc draw-bitmap
-          plasma-bitmap
-          (- (/ (send plasma-bitmap get-width) 2))
-          (- (/ (send plasma-bitmap get-height) 2)))))
+(define (draw-plasma csd center scale p space fowa)
+  (define-values (x y) (obj->screen p center scale))
+  (define cycle 1000.0)
+  (define t (modulo (obj-age space p) cycle))
+  (define rot (* 2pi (/ t cycle)))
+  (obj-sprite p csd center scale LAYER_SHIPS 'plasma (* 2.0 (plasma-radius space p)) fowa rot "black"))
 

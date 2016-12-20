@@ -2,6 +2,7 @@
 
 (require racket/class
          racket/math
+         mode-lambda
          racket/draw)
 
 (require "defs.rkt"
@@ -10,11 +11,6 @@
 
 (provide (all-defined-out))
 
-
-(define bitmap #f)
-
-(define (load-missile)
-  (set! bitmap (load-bitmap "missile")))
 
 (define (missile-radius m)
   5.0)
@@ -53,14 +49,8 @@
 
 
 
-(define (draw-missile dc m space)
-  (keep-transform dc
-    (center-on dc m)
-    (send dc scale 0.7 0.7)
-    (send dc draw-bitmap
-          bitmap
-          (- (/ (send bitmap get-width) 2))
-          (- (/ (send bitmap get-height) 2)))))
+(define (draw-missile csd center scale m space fowa)
+  (obj-sprite m csd center scale LAYER_SHIPS 'missile 10.0 fowa (obj-r m) "black"))
 
 
 
@@ -122,33 +112,30 @@
      
 
 ; return list of buttons
-(define (draw-mtube-ui! dc space t stack send-commands)
+(define (draw-mtube-ui! csd center scale space t stack send-commands)
   (define buttons '())
+  (define spr '())
   (define ship (get-ship stack))
   (define pod (get-pod stack))
   (define w (mtube-maxe t))
-  (define h 30)
-  (define x (- RIGHT w 10))
-  (define y -370)
+  (define h 30.0)
+  (define x (- RIGHT (/ w 2.0) 10))
+  (define y (- BOTTOM 35.0))
   (define z (clamp 0.0 1.0 (/ (mtube-e t) (mtube-maxe t))))
 
   (define m (find-id space (mtube-mid t)))
-
-  ; outline
-  (send dc set-pen "white" 1 'solid)
-  (send dc set-brush "gray" 'solid)
-  (send dc draw-rectangle x y w h)
   
   ; fill
-  (send dc set-pen nocolor 1 'transparent)
-  (send dc set-brush (linear-color "red" "red" z (+ 0.5 (* z 0.5))) 'solid)
-  (send dc draw-rectangle x y (floor (* w z)) h)
+  (append! spr (sprite x y (sprite-idx csd 'square) #:layer LAYER_UI
+                       #:mx (/ (* w z) (sprite-width csd (sprite-idx csd 'square)) 1.0)
+                       #:my (/ h (sprite-height csd (sprite-idx csd 'square)) 1.0)
+                       #:r 255))
 
   (define loadb
-    (button 'hidden-text #\l x y w h (string-append (if (equal? (mtube-mode t) "load")
-                                                        "Unload"
-                                                        "Load")
-                                                    " [l]")
+    (button 'outline #\l x y w h (string-append (if (equal? (mtube-mode t) "load")
+                                                    "Unload"
+                                                    "Load")
+                                                " [l]")
             (lambda (x y) (send-commands (command (ob-id t) (if (equal? (mtube-mode t) "load")
                                                                 "unload"
                                                                 "load"))))))
@@ -157,7 +144,7 @@
   (define ob (add-offline-button! t loadb send-commands))
   (when ob (append! buttons ob))
   
-  (define b (button 'disabled #\f (- x 60) (+ BOTTOM 10) 50 50 "Fire [f]" #f))
+  (define b (button 'disabled #\f (- x 60) (- BOTTOM 35) 50 50 "Fire [f]" #f))
   (when (and (ship-flying? ship)
              (not m)
              ((mtube-e t) . = . (mtube-maxe t)))
@@ -169,13 +156,14 @@
   (when oob (append! buttons oob))
 
   (when m
-    (send dc set-pen nocolor 1 'transparent)
-    (send dc set-brush "red" 'solid)
     (define life (/ (missile-energy space m) 10.0))
-    (send dc draw-rectangle (- (/ life 2.0)) (+ BOTTOM 2) life 6)
+    (append! spr (sprite 0.0 (- BOTTOM 4) (sprite-idx csd 'square) #:layer LAYER_UI
+                         #:mx (/ life (sprite-width csd (sprite-idx csd 'square)) 1.0)
+                         #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square)) 1.0)
+                         #:r 255))
     
-    (define b (button 'normal #\d (- x 120) (+ BOTTOM 10) 50 50 "Det [d]"
+    (define b (button 'normal #\d (- x 120) (- BOTTOM 35) 50 50 "Det [d]"
                       (lambda (x y) (send-commands (chdam (ob-id m) -1)))))
     (append! buttons b))
   
-  buttons)
+  (values buttons spr))

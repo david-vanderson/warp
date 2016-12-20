@@ -33,11 +33,6 @@
     (set-space-objects! space (remove s (space-objects space)))))
 
 
-(define (draw-shield dc space s)
-  ;(define cc (linear-color "blue" "blue" 1.0 (linear-fade (obj-age space s) SHIELD_LIFE SHIELD_DEATH)))
-  (send dc set-pen "blue" (* 6.0 (shield-sigmoid space s)) 'solid)
-  (define len (shield-length space s))
-  (keep-transform dc
-    (center-on dc s)
-    (send dc draw-line 0 (* -0.5 len) 0 (* 0.5 len))))
+(define (draw-shield csd center scale space s fowa)
+  (obj-sprite s csd center scale LAYER_SHIPS 'shield (shield-length space s) fowa (obj-r s) "blue"))
 

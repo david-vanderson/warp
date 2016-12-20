@@ -43,11 +43,11 @@
 
 
 ; return list of buttons
-(define (draw-pbolt-ui! dc t stack send-commands)
+(define (draw-pbolt-ui! t stack send-commands)
   (define buttons '())
   (define ship (get-ship stack))
   (define pod (get-pod stack))
-  (define b (button 'disabled #\space (+ LEFT 40) (+ BOTTOM 10) 50 50 "Fire [_]" #f))
+  (define b (button 'disabled #\space (+ LEFT 65) (- BOTTOM 35) 50 50 "Fire [_]" #f))
   (when (and (ship-flying? ship) ((pod-energy pod) . > . (pbolt-plasma-size t)))
     (define a (+ (obj-r ship) (pod-facing (get-pod stack))))
     (set-button-f! b (lambda (x y) (send-commands (command (ob-id t) a))))

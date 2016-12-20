@@ -9,7 +9,7 @@
          "ships.rkt")
 
 (define enemy-base
-  (make-ship "red-station" "Empire Base" "Empire" #:x 0 #:y 0 #:r pi/2 #:start-ship? #t
+  (make-ship "red-station" "Empire Base" "Empire" #:x 0 #:y 100 #:r pi/2 #:start-ship? #t
       #:in-hangar
       (list
        (make-ship "red-fighter" "Empire Fighter" "Empire")
@@ -87,7 +87,7 @@
   (for ((p (space-players space)))
       (when (not (player-faction p))
         ; new player
-        (append! changes (chfaction (ob-id p) "Empire"))))
+        (append! changes (chfaction (ob-id p) "Rebel"))))
   
 ;  (when (<= 1 (modulo (space-time space) 1800) TICK)
 ;    (set! commands (append commands (list (message (next-id) (space-time space) #f
@@ -170,8 +170,11 @@
 (start-server PORT #;sc)
 ))
 
-(thread (lambda () (start-client "127.0.0.1" PORT "Dave" #t #f)))
-;(thread (lambda () (start-client "127.0.0.1" PORT "Andrea" #t #f)))
+(define sema (make-semaphore))
 
-(semaphore-wait (make-semaphore))
+(start-client "127.0.0.1" PORT "Dave" #t #f sema)
+;(start-client "127.0.0.1" PORT "Andrea" #t #f)
+
+(semaphore-wait sema)
+(custodian-shutdown-all (current-custodian))
 

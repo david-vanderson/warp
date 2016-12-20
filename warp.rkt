@@ -3,6 +3,7 @@
 (require "defs.rkt"
          "utils.rkt"
          racket/class
+         mode-lambda
          "draw-utils.rkt")
 
 (provide (all-defined-out))
@@ -25,25 +26,22 @@
 
 
 ; return list of buttons
-(define (draw-warp-ui! dc t stack send-commands)
+(define (draw-warp-ui! csd center scale t stack send-commands)
   (define buttons '())
+  (define spr '())
   (define ship (get-ship stack))
   (define pod (get-pod stack))
   (define w (warp-maxe t))
-  (define h 30)
-  (define x (- (/ w 2.0)))
-  (define y -370)
+  (define h 30.0)
+  (define x (- RIGHT (/ w 2.0) 10))
+  (define y (- BOTTOM 35.0))
   (define z (clamp 0.0 1.0 (/ (warp-e t) (warp-maxe t))))
 
-  ; outline
-  (send dc set-pen "white" 1 'solid)
-  (send dc set-brush "gray" 'solid)
-  (send dc draw-rectangle x y w h)
-  
   ; fill
-  (send dc set-pen nocolor 1 'transparent)
-  (send dc set-brush (linear-color "red" "red" z (+ 0.5 (* z 0.5))) 'solid)
-  (send dc draw-rectangle x y (floor (* w z)) h)
+  (append! spr (sprite x y (sprite-idx csd 'square) #:layer LAYER_UI
+                       #:mx (/ (* w z) (sprite-width csd (sprite-idx csd 'square)) 1.0)
+                       #:my (/ h (sprite-height csd (sprite-idx csd 'square)) 1.0)
+                       #:r 255))
 
   ; we always want the button on the screen so that the mouse cursor looks right
   ; only have the button-f function do something when allowed
@@ -51,10 +49,10 @@
   ; - player presses and holds the shortcut key
   ; - player clicks the button with the mouse (overwrites holding?)
   ; this means you can get multiple holdbutton-frelease calls
-  (define b (holdbutton 'hidden-text #\q x y w h (string-append "Warp [q]"
-                                                                (if (equal? (warp-mode t) "hold")
-                                                                    " Charging"
-                                                                    ""))
+  (define b (holdbutton 'outline #\q x y w h (string-append "Warp [q]"
+                                                            (if (equal? (warp-mode t) "hold")
+                                                                " Charging"
+                                                                ""))
                         (lambda (x y) (void))
                         (lambda () (send-commands (command (ob-id t) "release")))))
   
@@ -63,4 +61,4 @@
   (append! buttons b)
   (define ob (add-offline-button! t b send-commands))
   (when ob (append! buttons ob))
-  buttons)
+  (values buttons spr))

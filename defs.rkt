@@ -8,18 +8,33 @@
 (define PORT 22381)
 (define TICK 33)  ; ms time slice for physics, also determines max client frame rate
 (define AI_INTERVAL 1000)  ; ms between ai runs (at least)
-(define WIDTH 1024.0)  ; how many meters wide is the screen view
-(define HEIGHT 768.0)  ; how many meters tall is the screen view
+(define WIDTH 800.0)  ; how many meters wide is the screen view
+(define HEIGHT 600.0)  ; how many meters tall is the screen view
 (define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view
 (define RIGHT (/ WIDTH 2))
-(define TOP (/ HEIGHT 2))
-(define BOTTOM (/ (- HEIGHT) 2))
+(define TOP (/ (- HEIGHT) 2))
+(define BOTTOM (/ HEIGHT 2))
+(define TEXTH 12.0)
 (define 2pi (* 2 pi))
 (define pi/2 (* 0.5 pi))
 (define AI_GOTO_DIST 50.0)  ; if you are this close you've hit it
 (define bgcolor "black")
 (define fgcolor "white")
 (define nocolor "hotpink")  ; used with a transparent pen/brush
+
+(define LAYER_FOW_GRAY 0)
+(define LAYER_FOW_BLACK 1)
+(define LAYER_MAP 2)  ; map lines, annotations, stars, backeffects
+(define LAYER_SHIPS 3)  ; ships, plasmas, normal objects
+(define LAYER_EFFECTS 4)  ; explosions, pod energy arcs, damage dots
+(define LAYER_OVERLAY 5)  ; pod tool overlay
+; when your ship is on another ship, or when inside a hangar:
+; - normal effects are pushed down to LAYER_SHIPS
+; - hangar or circular background on LAYER_EFFECTS
+; - ships or hangar contents on LAYER_OVERLAY
+; - your ship's pod energy arcs/damage dots on LAYER_UI
+(define LAYER_UI 6)
+(define LAYER_UI_TEXT 7)
 
 (define PLASMA_SPEED 60.0)
 (define SHIELD_SPEED 60.0)
@@ -307,7 +322,7 @@
 ; draw is:
 ;  'normal - draw button and respond to clicks
 ;  'disabled - draw button disabled and no clicks
-;  'hidden-text - draw only text and respond to clicks
+;  'outline - draw button outline and text and respond to clicks
 ;  'hidden - draw nothing, respond to clicks
 ;  'dmg - draw offline button, no clicks
 ; key is the hotkey for this button

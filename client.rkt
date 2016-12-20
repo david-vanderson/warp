@@ -1,38 +1,47 @@
 #lang racket/gui
 
-(require "defs.rkt"
-         "utils.rkt"
-         "change.rkt"
-         "physics.rkt"
-         "draw-utils.rkt"
-         "draw.rkt"
-         "pilot.rkt"
-         "weapons.rkt"
-         "pbolt.rkt"
-         "effect.rkt"
-         "ships.rkt"
-         "dmg.rkt"
-         "order.rkt"
-         "missile.rkt"
-         "plasma.rkt")
+(require
+  racket/fixnum
+  mode-lambda
+  mode-lambda/static
+  mode-lambda/text
+  (prefix-in gl: mode-lambda/backend/gl)
+  "defs.rkt"
+  "utils.rkt"
+  "change.rkt"
+  "physics.rkt"
+  "draw-utils.rkt"
+  "draw.rkt"
+  "pilot.rkt"
+  "weapons.rkt"
+  "pbolt.rkt"
+  "effect.rkt"
+  "ships.rkt"
+  "upgrade.rkt"
+  "dmg.rkt"
+  "order.rkt"
+  "missile.rkt"
+  "plasma.rkt")
 
 (provide start-client)
 
 (define serverspace #f)
 
-(define (start-client ip port name new-eventspace? sspace)
+(define (start-client ip port name new-eventspace? sspace sema)
   (server? #f)
   (when sspace
     (set! serverspace sspace))
   (when new-eventspace?
     (current-eventspace (make-eventspace)))
-  
+
+  (define playing? #t)
   (define server-in-port #f)
   (define server-out-port #f)
   (define meid #f)  ; integer? or #f
   (define ownspace #f)
   (define my-stack #f)
   (define buttons #f)
+  (define sprites #f)
   ; if you are holding a key/mouse button (from a holdbutton?), this is a pair
   ; car is keycode (or 'mouse) of the key that's being held
   ; cdr is the holdbutton-frelease function
@@ -45,13 +54,13 @@
 
   (define showtab #f)  ; tab toggles an overlay showing players and goals
   (define showsector? #f)  ; tilde toggles showing the whole sector or the regular view
-  (define zerocenter (obj #f #f (posvel #f 0 0 #f #f #f #f)))
+  (define zerocenter (obj #f #f (posvel #f 0.0 0.0 #f #f #f #f)))
 
   (define center #f)  ; updated each frame for the click handler and mouse cursor drawing
   (define center-follow? #t)  ; show player position in the center?
 
   ; when (not center-follow?)
-  (define centerxy (obj #f #f (posvel #f 0 0 #f #f #f #f)))  ; center of the screen when panning
+  (define centerxy (obj #f #f (posvel #f 0.0 0.0 #f #f #f #f)))  ; center of the screen when panning
   (define dragxypx '(0 . 0))  ; last xy of drag in pixels
   (define dragstate "none")  ; "none", "start", "drag"
   
@@ -89,11 +98,11 @@
   (define (in-button? buttons x y)
     (for/first ((b (in-list buttons))
                 #:when (if (button-height b)
-                           (and (<= (button-x b) x (+ (button-x b) (button-width b)))
-                                (<= (button-y b) y (+ (button-y b) (button-height b))))
+                           (and (<= (abs (- (button-x b) x)) (/ (button-width b) 2.0))
+                                (<= (abs (- (button-y b) y)) (/ (button-height b) 2.0)))
                            (and (<= (sqrt (+ (* (- x (button-x b)) (- x (button-x b)))
                                              (* (- y (button-y b)) (- y (button-y b)))))
-                                    (button-width b)))))
+                                    (/ (button-width b) 2.0)))))
       b))
 
   (define (key-button? buttons key)
@@ -121,451 +130,432 @@
   (define (draw-screen canvas dc)
 ;    (when (and serverspace ownspace)
 ;      (printf "serverspace time ~a\n   ownspace time ~a\n" (space-time serverspace) (space-time ownspace)))
+
+    (set! buttons '())
+    (set! sprites '())
+    (define cursordrawn #f)
+    (set! clickcmds #f)
     
-    (send dc set-smoothing 'smoothed)
-    (send dc set-background bgcolor)
-
-    (send dc set-font normal-control-font)
+    (update-scale)
+    (define canvas-scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
     
-    (keep-transform dc
-      ; make sure whole screen is fog of war gray
-      (send dc set-clipping-region #f)
-      (send dc set-background (linear-color "black" "white" 0.13 1.0))
-      (send dc clear)
-
-      ; scale to canon
-      (send dc translate (/ (send canvas get-width) 2) (/ (send canvas get-height) 2))
-      (define scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
-      (send dc scale scale (- scale))
-      ; transformation is (center of screen, y up, WIDTHxHEIGHT logical units, rotation clockwise)
-      ; must reverse y axis when drawing text
+    (set! center
+          (cond ((or (not ownspace) showsector?)
+                 zerocenter)
+                ((and my-stack center-follow?)
+                 (get-center ownspace my-stack))
+                (center-follow?
+                 zerocenter)
+                (else
+                 centerxy)))
+    (when center-follow?
+      ; record the center so we start from there if center-follow? becomes #f
+      (set-posvel-x! (obj-posvel centerxy) (obj-x center))
+      (set-posvel-y! (obj-posvel centerxy) (obj-y center)))
+    
+    (when (not ownspace)
+      ; This screen is where you type in your name and the server IP
+      (append! sprites (textr "Intro Screen"
+                              0.0 0.0 #:layer LAYER_UI
+                              #:r 255 #:g 255 #:b 255)))
+    
+    (when ownspace
+      (define p (findfid meid (space-players ownspace)))
+      (define fac (if p (player-faction p) #f))
+      (when (and (not fac) my-stack)
+        (set! fac (ship-faction (get-ship my-stack))))
+      (define ordertree (get-space-orders-for ownspace fac))
       
-      ; reset alpha in case a damage effect changed it last frame
-      (send dc set-alpha 1.0)
+      ; make background be fog of war gray
+      (append! sprites (sprite 0.0 0.0 (sprite-idx csd 'lightgray) #:layer LAYER_FOW_GRAY
+                               #:m (* canvas-scale (min WIDTH HEIGHT)) #:a 0.6))
 
-      (set! buttons '())
-      (define cursordrawn #f)
-      (set! clickcmds #f)
+      ; put a black circle wherever we can see
+      (define fowlist
+        (for/list ((s (in-list (space-objects ownspace)))
+                   #:when (and fac (ship? s) (equal? (ship-faction s) fac)))
+          (list (obj-x s) (obj-y s) (ship-radar s))))
+
+      (for ((f fowlist))
+        (define rad (caddr f))
+        (define-values (x y) (obj->screen (obj #f #f (posvel 0 (car f) (cadr f) 0 0 0 0)) center (get-scale)))
+        (append! sprites (sprite x y (sprite-idx csd 'circle) #:layer LAYER_FOW_BLACK
+                                 #:m (* rad (get-scale) (/ 1.0 500)))))
+
+      (append! sprites (draw-sector-lines csd center (get-scale) ownspace))
+
+      ; map annotations
       
-      (when (and (not DEBUG) my-stack)
-        (draw-dmgfx dc my-stack))
-
-      (update-scale)
-
-      (set! center
-            (cond ((or (not ownspace) showsector?)
-                   zerocenter)
-                  ((and my-stack center-follow?)
-                   (get-center ownspace my-stack))
-                  (center-follow?
-                   zerocenter)
-                  (else
-                   centerxy)))
-      (when center-follow?
-        ; record the center so we start from there if center-follow? becomes #f
-        (set-posvel-x! (obj-posvel centerxy) (obj-x center))
-        (set-posvel-y! (obj-posvel centerxy) (obj-y center)))
-
-      (when (not ownspace)
-        ; This screen is where you type in your name and the server IP   
-        (draw-text dc "Intro Screen" 0 0))
-
-      (when ownspace
-        (define p (findfid meid (space-players ownspace)))
-        (define fac (if p (player-faction p) #f))
-        (when (and (not fac) my-stack)
-          (set! fac (ship-faction (get-ship my-stack))))
-        (define ordertree (get-space-orders-for ownspace fac))
-        
-        (keep-transform dc
-          (send dc scale (get-scale) (get-scale))
-          (send dc translate (- (obj-x center)) (- (obj-y center)))
-          
-          ; make fog of war region
-          (define fow (new region% (dc dc)))
-          (for ((s (in-list (space-objects ownspace)))
-                #:when (and fac (ship? s) (equal? (ship-faction s) fac)))
-            (define rad (ship-radar s))
-            (define reg (new region% (dc dc)))
-            (send reg set-ellipse (- (obj-x s) rad) (- (obj-y s) rad) (* 2 rad) (* 2 rad))
-            (send fow union reg))
-
-          ; make the background black for places you can see
-          (send dc set-clipping-region fow)
-          (send dc set-background "black")
-          (send dc clear)
-
-          ; turn off clipping for map stuff
-          (send dc set-clipping-region #f)
-          (draw-sector-lines dc ownspace)
-
-          ; map annotations
-          
-          
-          ; order annotations
-          (when ordertree
-            (define a (cycletri (space-time ownspace) 3000))
-            (define bright (linear-color "blue" "blue" 1.0 (+ 0.5 (* 0.5 a))))
-            (define dim (linear-color "blue" "blue" 1.0 0.5))
-            (for-orders ordertree showtab
-                        (lambda (ot depth highlight?)
-                          (when (order? ot)
-                            (for ((a (in-list (order-anns ot))))
-                              (cond
-                                ((ann-circle? a)
-                                 (keep-transform dc
-                                   (define col (if highlight? bright dim))
-                                   (send dc set-pen col (/ 2.0 (dc-point-size dc)) 'solid)
-                                   (send dc set-text-foreground col)
-                                   (send dc set-brush nocolor 'transparent)
-                                   (send dc translate (obj-x a) (obj-y a))
-                                   (define r (ann-circle-radius a))
-                                   (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))
-                                   (send dc scale (/ 1.0 (get-scale)) (/ 1.0 (get-scale)))
-                                   (draw-text dc (ann-txt a) 0 0)))
-                                ((ann-ship? a)
-                                 (define st (find-stack ownspace (ann-ship-id a)))
-                                 (when st
-                                   (define s (get-topship st))
-                                   (define col (if highlight? bright dim))
-                                   (send dc set-pen col (/ 2.0 (dc-point-size dc)) 'solid)
-                                   (send dc set-brush nocolor 'transparent)
-                                   (define r (* 2.0 (ship-radius s)))
-                                   (keep-transform dc
-                                     (send dc translate (obj-x s) (obj-y s))
-                                     (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))
-                                     (send dc draw-line (- r) 0 r 0)
-                                     (send dc draw-line 0 (- r) 0 r))))
-                                (else
-                                 (error "don't know how to draw annotation ~v" a))))))))
-          
-          ;; debug, show radar distance for all ships
-          (when DEBUG
-            (send dc set-brush nocolor 'transparent)
-            (send dc set-pen "pink" (/ 1.0 (dc-point-size dc)) 'solid)
-            (for ((s (in-list (space-objects ownspace)))
-                  #:when (ship? s))
-              (keep-transform dc
-                (define r (ship-radar s))
-                (send dc translate (obj-x s) (obj-y s))
-                (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r)))))
-          
-          ; turn clipping back on for regular stuff
-          (when (not DEBUG)
-            (send dc set-clipping-region fow))
-          (draw-background-stars dc center (get-scale))
-          (draw-objects dc ownspace meid showtab)
-
-          ; draw stuff specific to the ship you are on
-          ; - stacked if we are on a ship inside another ship
-          ; - pod buttons to change pods
-          (when my-stack
-            (keep-transform dc
-              (center-on dc (get-topship my-stack) #f)
-              
-              ; if we are on a ship inside another ship, draw our ships stacked
-              (define last-ship #f)
-              (for ((s (in-list (reverse (filter ship? my-stack))))
-                    (i (in-naturals)))
+      ; order annotations
+      (when ordertree
+        (define a (+ 0.9 (* 0.1 (cycletri (space-time ownspace) 2500))))
+        (define bright (linear-color "blue" "blue" 1.0 a))
+        (define dim (linear-color "blue" "blue" 1.0 0.9))
+        (for-orders ordertree showtab
+          (lambda (ot depth highlight?)
+            (when (order? ot)
+              (for ((a (in-list (order-anns ot))))
                 (cond
-                  ((= i 0) (set! last-ship s))
+                  ((ann-circle? a)
+                   (define col (if highlight? bright dim))
+                   (append! sprites
+                            (obj-sprite a csd center (get-scale) LAYER_MAP 'circle-outline
+                                        (* 2.0 (ann-circle-radius a)) (send col alpha) 0.0 col))
+                   (define-values (x y) (obj->screen a center (get-scale)))
+                   (append! sprites (textr (ann-txt a)
+                                           x y #:layer LAYER_MAP #:a (send col alpha)
+                                           #:r (send col red) #:g (send col green) #:b (send col blue))))
+                  ((ann-ship? a)
+                   (define st (find-stack ownspace (ann-ship-id a)))
+                   (when st
+                     (define s (get-topship st))
+                     (define col (if highlight? bright dim))
+                     (append! sprites (obj-sprite s csd center (get-scale) LAYER_MAP 'target
+                                                  (max (/ 35.0 (get-scale))
+                                                       (* 4.0 (ship-radius s))) (send col alpha) 0.0 col))))
                   (else
-                   (send dc set-pen nocolor 1 'transparent)
-                   (send dc set-brush (make-color 0 0 0 0.8) 'solid)
-                   (define r (* 0.8 (ship-radius last-ship)))
-                   (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r))
-                   (when showtab (draw-playerlist dc s))
-                   (keep-transform dc
-                     (send dc rotate (- pi/2))
-                     (draw-ship-raw dc s)
-                     (draw-ship-info dc s ownspace))
-                   )))
+                   (error "don't know how to draw annotation ~v" a))))))))
+      
+;          ;; debug, show radar distance for all ships
+;          (when DEBUG
+;            (send dc set-brush nocolor 'transparent)
+;            (send dc set-pen "pink" (/ 1.0 (dc-point-size dc)) 'solid)
+;            (for ((s (in-list (space-objects ownspace)))
+;                  #:when (ship? s))
+;              (keep-transform dc
+;                (define r (ship-radar s))
+;                (send dc translate (obj-x s) (obj-y s))
+;                (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r)))))
+;
 
-              (define ship (get-ship my-stack))
-              (define rot (if (ship-flying? ship) (obj-r ship) pi/2))
-              (send dc rotate (- rot))
-              
-              (when (and (not (spacesuit? ship))
-                         (not (hangar? (get-pod my-stack))))
-                (define bs
-                  (draw-pods dc ship rot my-stack send-commands canvas meid))
-                (set! buttons (append buttons bs))))
+      (define layer_effects LAYER_EFFECTS)
+      (when (and my-stack (or (not (ship-flying? (get-ship my-stack)))
+                              (hangar? (get-pod my-stack))))
+        ; when you are in a hangar or your ship is on another ship
+        ; we push normal effects down to get an extra layer
+        (set! layer_effects LAYER_SHIPS))
 
-            ; transform is back to scaled space
-            (for ((t (in-list (pod-tools (get-pod my-stack)))))
-              (draw-tool-overlay dc t my-stack)))
+      (append! sprites (draw-background-stars csd center (get-scale) fowlist))
+      (for ((o (in-list (space-objects ownspace))))
+        (define fowa (if (obj-posvel o) (get-alpha (obj-x o) (obj-y o) fowlist) 1.0))
+        (when (fowa . > . 0)
+          (append! sprites
+                   (draw-object csd textr center (get-scale) o ownspace meid showtab fowa layer_effects))))
+      
+      ; draw stuff specific to the ship you are on
+      ; - stacked if we are on a ship inside another ship
+      ; - pod buttons to change pods
+      (when my-stack
+        (define ship (get-ship my-stack))
+        (define topship (get-topship my-stack))
+        (cond 
+          ((hangar? (get-pod my-stack))
+           ; hangar background
+           (define size (* 0.8 (min WIDTH HEIGHT)))
+           (append! sprites (sprite 0.0 0.0 (sprite-idx csd 'square-outline) #:layer LAYER_SHIPS
+                         #:m (/ (+ size 2.0) (sprite-width csd (sprite-idx csd 'square-outline)))
+                         #:r 255 #:g 255 #:b 255))
+           (append! sprites (sprite 0.0 0.0 (sprite-idx csd 'square) #:layer LAYER_EFFECTS
+                                   #:m (/ size (sprite-width csd (sprite-idx csd 'square))) #:a 0.9))
+           ; draw all the ships in the hangar
+           (define shipmax 54)
+           (for ((s (in-list (hangar-ships (get-pod my-stack))))
+                 (i (in-naturals)))
+             (define x (+ (* -0.5 size) 10 (* (quotient i 4) 180) (/ shipmax 2)))
+             (define y (+ (* -0.5 size) 10 (* (remainder i 4) 150) (/ shipmax 2)))
+             (append! sprites (sprite x y (sprite-idx csd (string->symbol (ship-type s)))
+                                      #:layer LAYER_OVERLAY #:theta (- pi/2)
+                                      #:r (get-red ownspace s)))
 
-          )
-        ; now we are back to the canon transform
-
-        ; turn clipping off so we can draw all the UI stuff
-        (send dc set-clipping-region #f)
-
-        (when my-stack
-          (when (hangar? (get-pod my-stack))
-            ; draw hangar background
-            (send dc set-pen fgcolor 1.0 'solid)
-            (send dc set-brush (make-color 0 0 0 .8) 'solid)
-            (define size (* 0.8 (min WIDTH HEIGHT)))
-            (send dc draw-rectangle (* -0.5 size) (* -0.5 size) size size)
-            
-            ; draw all the ships in the hangar
-            (define shipmax 54)
-            (for ((s (in-list (hangar-ships (get-pod my-stack))))
-                  (i (in-naturals)))
-              (keep-transform dc
-                (send dc translate
-                      (+ (* -0.5 size) 10 (* (quotient i 4) 180) (/ shipmax 2))
-                      (- (* 0.5 size) 10 (* (remainder i 4) 150) (/ shipmax 2)))
-                (keep-transform dc
-                  (send dc rotate (- pi/2))
-                  (draw-ship-raw dc s)
-                  (draw-ship-info dc s ownspace))
-                (send dc translate (+ 10 (/ shipmax 2)) (/ shipmax 2))
-                (define-values (x y) (dc->canon canvas dc 0 -30))
-                (define bl (lambda (x y)
-                             (send-commands (chrole meid (ob-id (ship-lounge s))))))
-                (append! buttons (button 'normal #f x y 105 30 (ship-name s) bl))
-
-                (send dc set-text-foreground "white")
-                (define players (find-all s player?))
-                ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
-                (for ((p (in-list players))
-                      (i (in-naturals)))
-                  (draw-text dc (player-name p) 0 (- -32 (* i 20))))
-                )))
-
-          ; draw pod UI
-          (draw-pod-ui dc my-stack)
+             ; draw ship info
+             (append! sprites (draw-ship-info csd zerocenter 1.0 s x (- y) ownspace 1.0 LAYER_UI))
+             
+             (define b (button 'normal #f
+                               (+ x (/ shipmax 2) 60)
+                               (+ y (- (/ shipmax 2)) 15) 100 30 (ship-name s)
+                               (lambda (x y)
+                                 (send-commands (chrole meid (ob-id (ship-lounge s)))))))
+             (append! buttons b)
+             (define players (find-all s player?))
+             ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
+             (for ((p (in-list players))
+                   (i (in-naturals)))
+               (append! sprites (text-sprite textr (player-name p)
+                                             (+ x (/ shipmax 2) 10)
+                                             (+ y (- (/ shipmax 2)) 40 (* i 20)) LAYER_UI_TEXT)))))
+          ((not (ship-flying? ship))
+           ; our ship is inside another
+           ; draw black circle on top of topship
+           (append! sprites (obj-sprite topship csd center (get-scale) LAYER_EFFECTS 'circle
+                                        (* 2.2 (ship-radius topship)) 0.9 0.0 "black"))
+           ; draw our ship inside black circle
+           (define-values (x y) (obj->screen topship center (get-scale)))
+           (append! sprites (sprite x y (sprite-idx csd (string->symbol (ship-type ship)))
+                                    #:layer LAYER_OVERLAY #:m (get-scale) #:theta (- pi/2)
+                                    #:r (get-red ownspace ship)))
+           ; draw ship info on top
+           (append! sprites (draw-ship-info csd center (get-scale) ship
+                                            (obj-x topship) (obj-y topship) ownspace 1.0
+                                            LAYER_UI))))
         
-          ; draw tool UI
-          (for ((t (in-list (pod-tools (get-pod my-stack)))))
-            (define bs (draw-tool-ui dc ownspace t my-stack send-commands))
-            (append! buttons bs))
+        (when (and (not (spacesuit? ship))
+                   (not (hangar? (get-pod my-stack))))
+          (define bs
+            (draw-pods csd center (get-scale) ship (get-topship my-stack) my-stack send-commands canvas meid))
+          (set! buttons (append buttons bs)))
 
-          ) ; when my-stack
+        ; draw pod UI
+        (append! sprites (draw-pod-ui csd textr center (get-scale) my-stack))
+        
+        ; draw tool UI
+        (for ((t (in-list (pod-tools (get-pod my-stack)))))
+          (define-values (bs ss) (draw-tool-ui csd center (get-scale) ownspace t my-stack send-commands))
+          (append! buttons bs)
+          (append! sprites ss))
 
-        ; draw annotations that exist in canon space
-        (for ((a (in-list (space-objects ownspace)))
-                #:when (ann? a))
-          (when (and (ann-button? a) (or (not (ann-showtab? a)) showtab))
-            (define ab (button 'normal #f
-                               (obj-x a) (obj-y a) (obj-dx a) (obj-dy a) (ann-txt a)
-                               (lambda (k y) (send-commands (anncmd (ob-id a) #f)))))
-            (append! buttons ab))
-          (when (and (ann-text? a) (or (not (ann-showtab? a)) showtab))
+        ; tool overlay
+        (for ((t (in-list (pod-tools (get-pod my-stack)))))
+          (append! sprites (draw-tool-overlay csd center (get-scale) t my-stack)))
+        
+        ) ; when my-stack
+      
+      ; draw annotations that exist in canon space
+      (for ((a (in-list (space-objects ownspace)))
+            #:when (ann? a))
+        (when (and (ann-button? a) (or (not (ann-showtab? a)) showtab))
+          (define ab (button 'normal #f
+                             (obj-x a) (obj-y a) (obj-dx a) (obj-dy a) (ann-txt a)
+                             (lambda (k y) (send-commands (anncmd (ob-id a) #f)))))
+          (append! buttons ab))
+        (when (and (ann-text? a) (or (not (ann-showtab? a)) showtab))
+          (define z
             (cond
               ((ann-text-life a)
-               (define z (linear-fade (obj-age ownspace a)
-                                      (ann-text-life a)
-                                      (+ (ann-text-life a) MSG_FADE_TIME)))
-               (define cc (linear-color "white" "white" z z))
-               (send dc set-text-foreground cc))
-              (else
-               (send dc set-text-foreground "white")))
-            (define txts (string-split (ann-txt a) "\n"))
-            (for ((t (in-list txts))
-                  (i (in-naturals)))
-              (draw-text dc t (obj-x a) (- (obj-y a) (* i 20))))))
-
-        (send dc set-text-foreground "white")
-        
-        (when showtab
-          ; list all players
-          (draw-text dc "Players:" 200 (- TOP 80))
-          (for ((p (in-list (space-players ownspace)))
+               (linear-fade (obj-age ownspace a)
+                            (ann-text-life a)
+                            (+ (ann-text-life a) MSG_FADE_TIME)))
+              (else 1.0)))
+          (define txts (string-split (ann-txt a) "\n"))
+          (for ((t (in-list txts))
                 (i (in-naturals)))
-            (define str (if (player-faction p)
-                            (~a (player-name p) " " (player-faction p))
-                            (player-name p)))
-            (draw-text dc str 200 (- TOP 100 (* i 20)))))
+            (append! sprites (text-sprite textr t
+                                          (obj-x a) (+ (obj-y a) (* i 20)) LAYER_UI_TEXT z)))))
+
+      (when showtab
+        ; list all players
+        (append! sprites (text-sprite textr "Players:"
+                                      200 (+ TOP 80) LAYER_UI_TEXT))
+        (for ((p (in-list (space-players ownspace)))
+              (i (in-naturals)))
+          (define str (if (player-faction p)
+                          (~a (player-name p) " " (player-faction p))
+                          (player-name p)))
+          (append! sprites (text-sprite textr str
+                                        200 (+ TOP 100 (* i 20)) LAYER_UI_TEXT))))
+      
+      ; draw orders
+      (define line 0)
+      (when ordertree
+        (define left (+ LEFT 130))
+        (append! sprites (text-sprite textr "Orders:"
+                                      left TOP LAYER_UI_TEXT))
+        (set! left (+ left 50))
+        (define top TOP)
+        (for-orders ordertree showtab
+          (lambda (ot depth highlight?)
+            (when showtab
+              (define color (if (ord-done? ot) "green" "red"))
+              (append! sprites (xy-sprite (+ left (* 10 depth) 5) (+ top (* 20 line) 6)
+                                          csd (get-scale) LAYER_UI 'circle (/ 5.0 (get-scale))
+                                          1.0 0.0 color)))
+            (define color (if highlight? "white" "gray"))
+            (define txt (ord-text ot))
+            (when (and (ordertime? ot) (string-contains? txt "~a"))
+              (define secleft (ceiling (/ (- (ordertime-subtotal ot)
+                                             (- (space-time ownspace) (ordertime-start ot)))
+                                          1000)))
+              (define-values (min sec) (quotient/remainder secleft 60))
+              (set! txt (format (ord-text ot)
+                                (~a (~a min #:min-width 2 #:align 'right #:pad-string "0")
+                                    ":"
+                                    (~a sec #:min-width 2 #:align 'right #:pad-string "0")))))
+            (append! sprites (text-sprite textr txt
+                                      (+ left 12 (* 10 depth)) (+ top (* 20 line)) LAYER_UI_TEXT 1.0 color))
+            (set! line (+ line 1)))))
+      
+      (when (not my-stack)
+        (define start-stacks
+          (search ownspace (lambda (o) (and (ship? o)
+                                            (ship-flying? o)
+                                            (ship-start o)
+                                            (equal? fac (ship-faction o)))) #t))
         
-        ; draw orders
-        (define line 0)
-        (send dc set-pen nocolor 1 'transparent)
-        (when ordertree
-          (define left (+ LEFT 130))
-          (draw-text dc "Orders:" left TOP)
-          (set! left (+ left 50))
-          (define top TOP)
-          (for-orders ordertree showtab
-                      (lambda (ot depth highlight?)
-                        (when showtab
-                          (if (ord-done? ot)
-                              (send dc set-brush "green" 'solid)
-                              (send dc set-brush "red" 'solid))
-                          (send dc draw-ellipse (+ left (* 10 depth) 2) (- top (* 20 line) 9) 5 5))
-                        (if highlight?
-                            (send dc set-text-foreground "white")
-                            (send dc set-text-foreground "gray"))
-                        (define txt (ord-text ot))
-                        (when (and (ordertime? ot) (string-contains? txt "~a"))
-                          (define secleft (ceiling (/ (- (ordertime-subtotal ot)
-                                                         (- (space-time ownspace) (ordertime-start ot)))
-                                                      1000)))
-                          (define-values (min sec) (quotient/remainder secleft 60))
-                          (set! txt (format (ord-text ot)
-                                            (~a (~a min #:min-width 2 #:align 'right #:pad-string "0")
-                                                ":"
-                                                (~a sec #:min-width 2 #:align 'right #:pad-string "0")))))
-                        (draw-text dc txt (+ left 12 (* 10 depth)) (- top (* 20 line)))
-                        (set! line (+ line 1)))))
-
-        (when (not my-stack)
-          (define start-stacks
-            (search ownspace (lambda (o) (and (ship? o)
-                                              (ship-flying? o)
-                                              (ship-start o)
-                                              (equal? fac (ship-faction o)))) #t))
-
-          (when (not fac)
-            (draw-text dc "Waiting for faction assignment..." -100 0))
-          
-          (for ((s (in-list start-stacks))
-                (i (in-naturals)))
-            (define mp (car s)) 
-            (define b (button 'normal #f (+ LEFT 100 (* i 250)) (+ BOTTOM 60) 200 30
-                              (format "~a" (ship-name (get-ship s)))
-                              (lambda (x y)
-                                ; leaving sector overview, so center on ship and reset scale
-                                (set! scale-play 1.0)
-                                (set! center-follow? #t)
-                                (send-commands (chrole meid (ob-id (ship-lounge (get-ship s))))))))
-            (append! buttons b)))
+        (when (not fac)
+          (append! sprites (textr "Waiting for faction assignment..."
+                                  0.0 0.0 #:layer LAYER_UI
+                                  #:r 255 #:g 255 #:b 255)))
+        
+        (for ((s (in-list start-stacks))
+              (i (in-naturals)))
+          (define mp (car s)) 
+          (define b (button 'normal #f (+ LEFT 100 (* i 250) 100) (- BOTTOM 60 15) 200 30
+                            (format "~a" (ship-name (get-ship s)))
+                            (lambda (x y)
+                              ; leaving sector overview, so center on ship and reset scale
+                              (set! scale-play 1.0)
+                              (set! center-follow? #t)
+                              (send-commands (chrole meid (ob-id (ship-lounge (get-ship s))))))))
+          (append! buttons b)))
             
-        ; draw game UI
+      ; draw game UI
+      
+      ; zoom scale
+      (when (not showsector?)
+        (define zw 20)
+        (define zh 150)
+        (define zcx (- RIGHT 10 (/ zw 2)))
+        (define zcy (+ TOP 70 (/ zh 2)))
+        (append! sprites (sprite zcx (+ TOP 70) (sprite-idx csd 'blue)
+                                 #:layer LAYER_UI #:mx (/ 20.0 (sprite-width csd (sprite-idx csd 'blue)))))
+        (append! sprites (sprite zcx (+ TOP 70 150) (sprite-idx csd 'blue)
+                                 #:layer LAYER_UI #:mx (/ 20.0 (sprite-width csd (sprite-idx csd 'blue)))))
+        (append! sprites (sprite zcx (+ TOP 70 75) (sprite-idx csd 'blue)
+                                 #:layer LAYER_UI #:my (/ 150.0 (sprite-height csd (sprite-idx csd 'blue)))))
         
-        ; zoom scale
-        (when (not showsector?)
-          (define zw 20)
-          (define zh 150)
-          (define zx (- RIGHT 10 zw))
-          (define zy (- TOP 70 zh))
-          (send dc set-pen "blue" 1.5 'solid)
-          (send dc draw-line zx zy (+ zx zw) zy)
-          (send dc draw-line zx (+ zy zh) (+ zx zw) (+ zy zh))
-          (send dc draw-line (+ zx (/ zw 2.0)) zy (+ zx (/ zw 2.0)) (+ zy zh))
-          (define zfrac (/ (- (log (get-future-scale)) (log (min-scale)))
-                           (- (log (max-scale)) (log (min-scale)))))
-          (define zfracy (+ zy (* zfrac zh)))
-          (send dc draw-line (+ zx 2) zfracy (+ zx zw -2) zfracy)
-          (define zbutton (button 'hidden #f zx zy zw zh "Zoom"
-                                  (lambda (x y)
-                                    (define zfracy (/ y zh))
-                                    (define z (exp (+ (log (min-scale))
-                                                      (* zfracy (- (log (max-scale)) (log (min-scale)))))))
-                                    (set-scale z))))
-          (define zkeyb (button 'hidden #\z 0 0 0 0 "Zoom In"
-                                (lambda (k y) (set-scale (* (get-future-scale) 1.1)))))
-          
-          (define xkeyb (button 'hidden #\x 0 0 0 0 "Zoom Out"
-                                (lambda (k y) (set-scale (/ (get-future-scale) 1.1)))))
-          
-          (append! buttons zbutton zkeyb xkeyb))
+        (define zfrac (/ (- (log (get-future-scale)) (log (min-scale)))
+                         (- (log (max-scale)) (log (min-scale)))))
+        (append! sprites (sprite zcx (+ TOP 70 zh (- (* zfrac zh))) (sprite-idx csd 'blue)
+                                 #:layer LAYER_UI #:mx (/ 20.0 (sprite-width csd (sprite-idx csd 'blue)))))
+        (define zbutton (button 'hidden #f zcx zcy zw zh "Zoom"
+                                (lambda (x y)
+                                  (define zfracy (/ (+ (/ zh 2) (- y)) zh))
+                                  (define z (exp (+ (log (min-scale))
+                                                    (* zfracy (- (log (max-scale)) (log (min-scale)))))))
+                                  (set-scale z))))
+        (define zkeyb (button 'hidden #\z 0 0 0 0 "Zoom In"
+                              (lambda (k y) (set-scale (* (get-future-scale) 1.1)))))
+        
+        (define xkeyb (button 'hidden #\x 0 0 0 0 "Zoom Out"
+                              (lambda (k y) (set-scale (/ (get-future-scale) 1.1)))))
+        
+        (append! buttons zbutton zkeyb xkeyb))
 
         
-        (define leave-button (button 'normal 'escape LEFT (- TOP 50) 50 50 "Exit" #f))
-        (define quit-button (button 'normal 'escape (- RIGHT 50) BOTTOM 50 50 "Quit" #f))
-        (cond
-          ((not center-follow?)
-           (set-button-label! leave-button "Back")
-           (set-button-f! leave-button
-                          (lambda (x y)
-                            (set! center-follow? #t)))
-           (append! buttons leave-button))
-          ((not my-stack)
-           (set-button-f! quit-button
-             (lambda (x y)
-               (define ans (message-box/custom "Quit?" "Done Playing?"
-                                               "Quit" "Keep Playing" #f
-                                               frame '(default=2)))
-               (when (equal? 1 ans)
-                 (drop-connection "clicked exit")
-                 (semaphore-post sema))))
-           (append! buttons quit-button))
-          ((and (lounge? (get-pod my-stack)) (spacesuit? (get-ship my-stack)))
-           ; dying
-           (set-button-f! leave-button (lambda (x y)
-                                         ; reset scale so starting screen shows whole sector
-                                         (set! scale-play (min-scale))
-                                         (set! center-follow? #t)  ; sector centered
-                                         (send-commands (chrole meid #f))))
-           (append! buttons leave-button))
-          ((and (lounge? (get-pod my-stack)) (ship-flying? (get-ship my-stack)))
-           ; jumping ship
-           (set-button-label! quit-button "Jump")
-           (set-button-key! quit-button #f)  ; turn off keyboard shortcut
-           (set-button-f! quit-button (lambda (x y) (send-commands (chrole meid "spacesuit"))))
-           (append! buttons quit-button))
-          ((lounge? (get-pod my-stack))
-           ; leaving this ship into mothership hangar
-           (define ms (cadr (get-ships my-stack)))
-           (set-button-f! leave-button (lambda (x y)
-                                         (send-commands (chrole meid (ob-id (ship-hangar ms))))))
-           (append! buttons leave-button))
-          (else
-           ; move to lounge
-           (set-button-f! leave-button
-                          (lambda (x y)
-                            (send-commands (chrole meid (ob-id (ship-lounge (get-ship my-stack)))))))
-           (append! buttons leave-button)))
+      (define leave-button (button 'normal 'escape (+ LEFT 50) (+ TOP 25) 100 50 "Exit" #f))
+      (define quit-button (button 'normal 'escape (- RIGHT 50) (- BOTTOM 25) 100 50 "Quit" #f))
+      (cond
+        ((not center-follow?)
+         (set-button-label! leave-button "Back")
+         (set-button-f! leave-button
+                        (lambda (x y)
+                          (set! center-follow? #t)))
+         (append! buttons leave-button))
+        ((not my-stack)
+         (set-button-f! quit-button
+                        (lambda (x y)
+                          (define ans (message-box/custom "Quit?" "Done Playing?"
+                                                          "Quit" "Keep Playing" #f
+                                                          frame '(default=2)))
+                          (when (equal? 1 ans)
+                            (set! playing? #f)
+                            (drop-connection "clicked exit")
+                            (when sema (semaphore-post sema)))))
+         (append! buttons quit-button))
+        ((and (lounge? (get-pod my-stack)) (spacesuit? (get-ship my-stack)))
+         ; dying
+         (set-button-f! leave-button (lambda (x y)
+                                       ; reset scale so starting screen shows whole sector
+                                       (set! scale-play (min-scale))
+                                       (set! center-follow? #t)  ; sector centered
+                                       (send-commands (chrole meid #f))))
+         (append! buttons leave-button))
+        ((and (lounge? (get-pod my-stack)) (ship-flying? (get-ship my-stack)))
+         ; jumping ship
+         (set-button-label! quit-button "Jump")
+         (set-button-key! quit-button #f)  ; turn off keyboard shortcut
+         (set-button-f! quit-button (lambda (x y) (send-commands (chrole meid "spacesuit"))))
+         (append! buttons quit-button))
+        ((lounge? (get-pod my-stack))
+         ; leaving this ship into mothership hangar
+         (define ms (cadr (get-ships my-stack)))
+         (set-button-f! leave-button (lambda (x y)
+                                       (send-commands (chrole meid (ob-id (ship-hangar ms))))))
+         (append! buttons leave-button))
+        (else
+         ; move to lounge
+         (set-button-f! leave-button
+                        (lambda (x y)
+                          (send-commands (chrole meid (ob-id (ship-lounge (get-ship my-stack)))))))
+         (append! buttons leave-button)))
+      
+      ; draw mouse cursor
+      (when my-stack
+        (define-values (p mods) (get-current-mouse-state))
+        (define-values (wx wy) (send canvas screen->client
+                                     (+ (send p get-x) left-inset)
+                                     (+ (send p get-y) top-inset)))
+        (define-values (x y) (screen->canon canvas wx wy))
+        (when (not (in-button? buttons x y))
+          (define mypos (get-center ownspace my-stack))
+          (define-values (mx my) (obj->screen mypos center (get-scale)))
+          (define a (angle-norm (atan0 (- my y) (- x mx))))
           
-        ; draw mouse cursor
-        (when my-stack
-          (define-values (p mods) (get-current-mouse-state))
-          (define-values (wx wy) (send canvas screen->client
-                                       (+ (send p get-x) left-inset)
-                                       (+ (send p get-y) top-inset)))
-          (define-values (x y) (screen->canon canvas wx wy))
-          (when (not (in-button? buttons x y))
-            (define mypos (get-center ownspace my-stack))
-            (define-values (mx my) (space->canon center (get-scale) (obj-x mypos) (obj-y mypos)))
-            (define a (angle-norm (atan0 (- y my) (- x mx))))
-            (send dc set-pen "blue" (/ 1.5 (dc-point-size dc)) 'solid)
-            (send dc set-brush nocolor 'transparent)
-            
-            (define p (get-pod my-stack))
-            (define mt (findf mtube? (pod-tools p)))
-            (define st (findf steer? (pod-tools p)))
-            (define pb (findf pbolt? (pod-tools p)))
-            (define sb (findf shbolt? (pod-tools p)))
-            (cond
-              ((or (and mt (find-id ownspace (mtube-mid mt)))
-                   (and st (tool-online? st)))
-               (set! cursordrawn #t)
-               (set! clickcmds (command (if mt (mtube-mid mt) (ob-id st)) a))
-               (keep-transform dc
-                 (send dc translate x y)
-                 (send dc rotate (- a))
-                 (send dc draw-lines '((0 . 0) (-15 . -5) (-15 . 5) (0 . 0)))))
-              ((or (and pb (pbolt-aim pb) (tool-online? pb) ((pod-energy p) . > . (pbolt-plasma-size pb)))
-                   (and sb (shbolt-aim sb) (tool-online? sb) ((pod-energy p) . > . (shbolt-shield-size sb))))
-               (define s (get-ship my-stack))
-               (when (ship-flying? s)
-                 (define pf (angle-add (obj-r s) (pod-facing p)))
-                 (when ((abs (angle-frto pf a)) . < . (/ (pod-spread p) 2.0))
-                   (set! cursordrawn #t)
-                   (set! clickcmds (command (ob-id (or pb sb)) a))
-                   (keep-transform dc
-                     (send dc translate x y)
-                     (send dc draw-ellipse (- 10) (- 10) 20 20)
-                     (send dc draw-line -12 0 12 0)
-                     (send dc draw-line 0 -12 0 12))))))))
-        
-        (append! buttons
-                 (button 'hidden #\tab 0 0 0 0 "Mission Info"
-                         (lambda (k y) (set! showtab (not showtab))))
-                 (button 'hidden #\` 0 0 0 0 "Show Sector"
-                         (lambda (k y) (set! showsector? (not showsector?)))))
+          (define p (get-pod my-stack))
+          (define mt (findf mtube? (pod-tools p)))
+          (define st (findf steer? (pod-tools p)))
+          (define pb (findf pbolt? (pod-tools p)))
+          (define sb (findf shbolt? (pod-tools p)))
+          (cond
+            ((or (and mt (find-id ownspace (mtube-mid mt)))
+                 (and st (tool-online? st)))
+             (set! cursordrawn #t)
+             (set! clickcmds (command (if mt (mtube-mid mt) (ob-id st)) a))
+             (append! sprites (sprite (exact->inexact x) (exact->inexact y)
+                                      (sprite-idx csd 'arrowhead) #:layer LAYER_UI_TEXT
+                                      #:theta (- a) #:b 150)))
+            ((or (and pb (pbolt-aim pb) (tool-online? pb) ((pod-energy p) . > . (pbolt-plasma-size pb)))
+                 (and sb (shbolt-aim sb) (tool-online? sb) ((pod-energy p) . > . (shbolt-shield-size sb))))
+             (define s (get-ship my-stack))
+             (when (ship-flying? s)
+               (define pf (angle-add (obj-r s) (pod-facing p)))
+               (when ((abs (angle-frto pf a)) . < . (/ (pod-spread p) 2.0))
+                 (set! cursordrawn #t)
+                 (set! clickcmds (command (ob-id (or pb sb)) a))
+                 (append! sprites (sprite (exact->inexact x) (exact->inexact y)
+                                          (sprite-idx csd 'target) #:layer LAYER_UI_TEXT
+                                          #:b 150 #:m 0.05))))))))
+      
+      (append! buttons
+               (button 'hidden #\tab 0 0 0 0 "Mission Info"
+                       (lambda (k y) (set! showtab (not showtab))))
+               (button 'hidden #\` 0 0 0 0 "Show Sector"
+                       (lambda (k y) (set! showsector? (not showsector?)))))
 
-        (draw-overlay dc ownspace my-stack)
-        (draw-framerate dc frames)
-        
-        ) ; when ownspace
+      (append! sprites (draw-overlay textr ownspace my-stack))
+  
+      ) ; when ownspace
 
-      (send canvas set-cursor (make-object cursor% (if cursordrawn 'blank 'arrow)))
-      (draw-buttons dc buttons (if ownspace (space-time ownspace) 0))
-    ))
+    (send canvas set-cursor (make-object cursor% (if cursordrawn 'blank 'arrow)))
+
+    ; framerate
+    (when ((length frames) . > . 1)
+      (define start (list-ref frames (- (length frames) 1)))
+      (define end (first frames))
+      (define span (/ (- end start) 1000))
+      (define txt (format "FPS: ~a" (truncate (/ (- (length frames) 1) span))))
+      (append! sprites (textr txt (+ LEFT 100) TOP #:layer LAYER_UI
+                              #:r 255 #:g 255 #:b 255)))
+    
+    (append! sprites (button-sprites csd textr buttons (if ownspace (space-time ownspace) 0)))
+    
+    (define-values (dmgx dmgy)
+      (if (and (not DEBUG) my-stack)
+          (get-dmgfx my-stack)
+          (values 0.0 0.0)))
+    (define layers (for/vector ((i 8)) (layer (+ WIDTH dmgx) (+ HEIGHT dmgy))))
+    
+    (define r (render layers '() sprites))
+    (r (send canvas get-width) (send canvas get-height) dc))
     
   
   (define-values (left-inset top-inset) (get-display-left-top-inset))
@@ -575,8 +565,6 @@
   
   (define frame (new frame%
                      (label "Warp")
-                     (width (inexact->exact (round (/ WIDTH 1.5))))
-                     (height (inexact->exact (round (/ HEIGHT 1.5))))
                      ; use below instead for fullscreen
                      ; (x (- left-inset))
                      ; (y (- top-inset))
@@ -613,8 +601,8 @@
                (set! center-follow? #f)
                (define scale (* (get-scale) (min (/ (send this get-width) WIDTH)
                                                  (/ (send this get-height) HEIGHT))))
-               (define dx (/ (- (send event get-x) (car dragxypx)) scale))
-               (define dy (/ (- (send event get-y) (cdr dragxypx)) scale))
+               (define dx (/ (- (send event get-x) (car dragxypx)) (get-scale)))
+               (define dy (/ (- (send event get-y) (cdr dragxypx)) (get-scale)))
                (set-posvel-x! (obj-posvel centerxy) (- (obj-x centerxy) dx))
                (set-posvel-y! (obj-posvel centerxy) (+ (obj-y centerxy) dy))
                
@@ -648,8 +636,6 @@
              ))
           (else
            (case kc
-;             ((#\h)
-;              (printf "hello\n"))
              ((#\d)
               (when ownspace
                 (define cmds '())
@@ -672,6 +658,9 @@
              ((wheel-down)
               (when (and ownspace (not showsector?))
                 (set-scale (/ (get-future-scale) 1.05))))
+             ((#\u)
+              (when ownspace
+                (send-commands (chadd (random-upgrade ownspace (posvel -1 0 0 0 (random 100) (random 100) 0)) #f))))
 ;             ((#\p)
 ;              (when ownspace
 ;                (send-commands (chadd (plasma (next-id) (space-time ownspace) (posvel -1 0 0 (random-between 0 2pi) (random 100) (random 100) 0) (random 100) #f) #f))))
@@ -680,24 +669,95 @@
 ;                (define r (random-between 0 2pi))
 ;                (define s (random 100))
 ;                (send-commands (chadd (shield (next-id) (space-time ownspace) (posvel -1 0 0 r (* s (cos r)) (* s (sin r)) 0) (random 30)) #f)))) 
-;             ((#\j)
-;              (set-scale (* (get-scale) 1.1)))
-;             ((#\k)
-;              (set-scale (/ (get-scale) 1.1)))
 ;             ((#\n)
 ;              (new-stars))
              ))))
       ))
+
+
+  (define glconfig (new gl-config%))
+  (send glconfig set-legacy? #f)
   
   (define canvas
     (new my-canvas%
          (parent frame)
+         (min-width (inexact->exact (round (/ WIDTH 1.0))))
+         (min-height (inexact->exact (round (/ HEIGHT 1.0))))
          (paint-callback draw-screen)
-         (style '(no-autoclear))))
+         (gl-config glconfig)
+         (style '(no-autoclear gl))))
 
-  (load-ships)
-  (load-plasma)
-  (load-missile)
+  
+  (define sd (make-sprite-db))
+  (let ()
+    (local-require pict)
+    (add-sprite!/value sd 'button-normal
+                       (inset (filled-rectangle 1000 500 #:color "gray"
+                                                #:border-color "white" #:border-width 20) 10))
+    (add-sprite!/value sd 'button-outline
+                       (inset (rectangle 1000 500 #:border-color "gray" #:border-width 20) 10))
+    (add-sprite!/value sd 'button-disabled
+                       (inset (filled-rectangle 1000 500 #:color "black"
+                                                #:border-color "gray" #:border-width 20) 10))
+    (add-sprite!/value sd 'button-normal-circle
+                       (inset (filled-ellipse 1000 1000 #:color "gray"
+                                              #:border-color "white" #:border-width 20) 10))
+    (add-sprite!/value sd 'button-disabled-circle
+                       (inset (filled-ellipse 1000 1000 #:color "black"
+                                              #:border-color "gray" #:border-width 20) 10))
+    (add-sprite!/value sd 'dmgbutton-normal
+                       (inset (rectangle 1000 500 #:border-color "black" #:border-width 20) 10))
+    (add-sprite!/value sd 'dmgbutton-fill
+                       (inset (filled-rectangle 1000 500 #:color "black"
+                                                #:border-color "black" #:border-width 0) 20))
+    (add-sprite!/value sd 'blue
+                       (colorize (rectangle 2 2) "blue"))
+    (add-sprite!/value sd 'lightgray
+                       (colorize (rectangle 2 2) "lightgray"))
+    (add-sprite!/value sd 'circle
+                       (colorize (filled-ellipse 1000 1000) "black"))
+    (add-sprite!/value sd 'shield
+                       (colorize (filled-rounded-rectangle 100 1000 -.5 #:draw-border? #f) "black"))
+    (add-sprite!/value sd 'circle-outline
+                       (colorize (inset
+                                  (ellipse 1000 1000 #:border-color "black" #:border-width 20)
+                                  20) "black"))
+    (add-sprite!/value sd 'square
+                       (colorize (filled-rectangle 1000 1000) "black"))
+    (add-sprite!/value sd 'square-outline
+                       (colorize (rectangle 1000 1000 #:border-color "black" #:border-width 100) "black"))
+    (add-sprite!/value sd 'star
+                       (colorize (cc-superimpose (hline 1 1) (vline 1 1)) "white"))
+    (add-sprite!/value sd 'arrowhead
+                       (colorize (arrowhead 30 0) "black"))
+    (add-sprite!/value sd 'target
+                       (colorize (linewidth 25.0
+                                   (dc (lambda (dc dx dy)
+                                         (define b (send dc get-brush))
+                                         (send dc set-brush nocolor 'transparent)
+                                         (send dc draw-ellipse 50 50 1000 1000)
+                                         (send dc draw-line 550 50 550 1050)
+                                         (send dc draw-line 50 550 1050 550)
+                                         (send dc set-brush b))
+                                       1100 1100)) "black"))
+    (add-sprite!/value sd 'podarc
+                       (colorize (linewidth 100.0
+                                   (dc (lambda (dc dx dy)
+                                         (define b (send dc get-brush))
+                                         (send dc set-brush nocolor 'transparent)
+                                         (send dc draw-arc
+                                               50 50 1000 1000 (- (/ pi 4)) (/ pi 4))
+                                         (send dc set-brush b))
+                                       1100 1100)) "black"))
+    )
+  (define textfont (load-font! sd #:size TEXTH #:family 'modern #:weight 'bold))
+  (load-ships sd)
+  (add-sprite!/file sd 'plasma (string-append "images/plasma.png"))
+  (add-sprite!/file sd 'missile (string-append "images/missile.png"))
+  
+  (define csd (compile-sprite-db sd))
+  (define textr (make-text-renderer textfont csd))
+  (define render (gl:stage-draw/dc csd (fl->fx WIDTH) (fl->fx HEIGHT)))
   
   (send frame show #t)
   
@@ -890,17 +950,18 @@
     
     (flush-output)
     (collect-garbage 'incremental)
-    (client-loop))
+    (when playing? (client-loop)))
   
   (queue-callback client-loop #f))
 
-(define sema (make-semaphore))
+
 
 (module+ main
   ;(require profile)
   ;(profile #:threads #t #:delay 0.0
     ;(begin
-    (start-client "127.0.0.1" PORT "Dave" #t #f)
+    (define sema (make-semaphore))
+    (start-client "127.0.0.1" PORT "Dave" #t #f sema)
     (semaphore-wait sema)
     (custodian-shutdown-all (current-custodian))
     ;))
