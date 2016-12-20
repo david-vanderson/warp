@@ -578,6 +578,8 @@
   (define my-canvas%
     (class canvas%
       (super-new)
+      (define/override (on-size w h)
+        (printf "canvas on-size ~a ~a\n" w h))
       (define/override (on-event event)
         (case (send event get-event-type)
           ((left-down)
@@ -677,16 +679,32 @@
 
   (define glconfig (new gl-config%))
   (send glconfig set-legacy? #f)
+
+  ; make sure the real canvas is surrounded by black
+  (define bc (make-object color% "black"))
+  (define vpane (new vertical-pane% (parent frame)))
+  (define topblack (new canvas% (parent vpane)))
+  (send topblack set-canvas-background bc)
+
+  (define hpane (new horizontal-pane% (parent vpane) (stretchable-height #f)))
+  (define leftblack (new canvas% (parent hpane)))
+  (send leftblack set-canvas-background bc)
   
   (define canvas
     (new my-canvas%
-         (parent frame)
+         (parent hpane)
          (min-width (inexact->exact (round (/ WIDTH 1.0))))
          (min-height (inexact->exact (round (/ HEIGHT 1.0))))
+         (stretchable-width #f)
+         (stretchable-height #f)
          (paint-callback draw-screen)
          (gl-config glconfig)
          (style '(no-autoclear gl))))
 
+  (define rightblack (new canvas% (parent hpane)))
+  (send rightblack set-canvas-background bc)
+  (define botblack (new canvas% (parent vpane)))
+  (send botblack set-canvas-background bc)
   
   (define sd (make-sprite-db))
   (let ()

@@ -8,6 +8,7 @@
 (define PORT 22381)
 (define TICK 33)  ; ms time slice for physics, also determines max client frame rate
 (define AI_INTERVAL 1000)  ; ms between ai runs (at least)
+
 (define WIDTH 800.0)  ; how many meters wide is the screen view
 (define HEIGHT 600.0)  ; how many meters tall is the screen view
 (define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view
@@ -15,6 +16,7 @@
 (define TOP (/ (- HEIGHT) 2))
 (define BOTTOM (/ HEIGHT 2))
 (define TEXTH 12.0)
+
 (define 2pi (* 2 pi))
 (define pi/2 (* 0.5 pi))
 (define AI_GOTO_DIST 50.0)  ; if you are this close you've hit it
