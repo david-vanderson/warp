@@ -502,14 +502,22 @@
           
           (define p (get-pod my-stack))
           (define mt (findf mtube? (pod-tools p)))
+          (define pt (findf ptube? (pod-tools p)))
           (define st (findf steer? (pod-tools p)))
           (define pb (findf pbolt? (pod-tools p)))
           (define sb (findf shbolt? (pod-tools p)))
           (cond
             ((or (and mt (find-id ownspace (mtube-mid mt)))
+                 (and pt (find-id ownspace (ptube-pid pt)))
                  (and st (tool-online? st)))
              (set! cursordrawn #t)
-             (set! clickcmds (command (if mt (mtube-mid mt) (ob-id st)) a))
+             (set! clickcmds (command
+                              (cond (mt (mtube-mid mt))
+                                    (pt
+                                     (define probe (find-id ownspace (ptube-pid pt)))
+                                     (ob-id (findf steer? (pod-tools (car (ship-pods probe))))))
+                                    (else (ob-id st)))
+                              a))
              (append! sprites (sprite (exact->inexact x) (exact->inexact y)
                                       (sprite-idx csd 'arrowhead) #:layer LAYER_UI_TEXT
                                       #:theta (- a) #:b 150)))

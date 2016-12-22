@@ -9,6 +9,7 @@
          "pbolt.rkt"
          "warp.rkt"
          "missile.rkt"
+         "probe.rkt"
          "order.rkt"
          "physics.rkt")
 
@@ -102,6 +103,8 @@
         (change-warp! (command-cmd c) space s who))
        ((mtube? o)
         (change-mtube! (command-cmd c) space s who))
+       ((ptube? o)
+        (change-ptube! (command-cmd c) space s who))
        ((missile? o)
         (set-missile-course! o (command-cmd c))
         (values #t '()))

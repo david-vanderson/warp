@@ -188,8 +188,11 @@
   (define pod (get-pod stack))
   (define mt (findf mtube? (pod-tools pod)))
   (define m (if mt (find-id space (mtube-mid mt)) #f))
+  (define pt (findf ptube? (pod-tools pod)))
+  (define p (if pt (find-id space (ptube-pid pt)) #f))
   (cond
     (m m)
+    (p p)
     ((equal? (ob-id ship) (ob-id shipcenter))
      (obj #f #f (posvel
                  0

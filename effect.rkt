@@ -47,9 +47,10 @@
        ; charging warp drive
        )
       ((and ftstack (fthrust-on (car ftstack)))
-       (when (or (time-for (obj-age space o) 800)
+       (when (or (and (time-for (obj-age space o) 800)
+                      ((pod-energy (get-pod ftstack)) . > . 0.0))
                  (and (time-for (obj-age space o) 800 400)
-                      ((pod-energy (get-pod ftstack)) . > . 1)))
+                      ((pod-energy (get-pod ftstack)) . > . 1.0)))
          
          (define l (- (ship-radius o)))
          (define t (posvel-r (obj-posvel o)))

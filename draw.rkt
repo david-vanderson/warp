@@ -11,6 +11,7 @@
          "draw-utils.rkt"
          "plasma.rkt"
          "missile.rkt"
+         "probe.rkt"
          "shield.rkt"
          "effect.rkt"
          "ships.rkt"
@@ -464,6 +465,10 @@
      (append! spr ss))
     ((mtube? t)
      (define-values (bs ss) (draw-mtube-ui! csd center scale space t stack send-commands))
+     (append! buttons bs)
+     (append! spr ss))
+    ((ptube? t)
+     (define-values (bs ss) (draw-ptube-ui! csd center scale space t stack send-commands))
      (append! buttons bs)
      (append! spr ss))
     ((steer? t)

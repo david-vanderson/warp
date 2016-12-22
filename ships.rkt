@@ -21,6 +21,7 @@
 (define (load-ships sd)
   (define shiplist
     '("space-suit"
+      "probe"
       "blue-station"
       "red-station"
       "blue-frigate"
@@ -84,6 +85,11 @@
      ;type name faction power bat maxbat con maxcon radius mass thrust rthrust radar start?
      (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 1.0 1.0 5.0 1.0 0.0 0.0 200.0 start-ship?))
      (set-ship-pods! s (list (lounge (next-id) "Lounge" #f #f 0.0 0.0 #f #f 0.0 0.0 '() '()))))
+    (("probe")
+     ;type name faction power bat maxbat con maxcon radius mass thrust rthrust radar start?
+     (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 10.0 10.0 7.0 1.0 100.0 1.0 1000.0 #f))
+     (set-ship-pods! s (list (pod (next-id) "P" #f #f 0.0 3.0 #f #f 50.0 50.0
+                                  (list (steer (next-id) '() r) (fthrust (next-id) '() #t))))))
     (("blue-station" "red-station")
      (define mb 500.0)
      (define mc 500.0)

@@ -305,6 +305,12 @@
       (define xfer (min (* 15.0 dt) (- (mtube-maxe m) (mtube-e m)) (pod-energy p)))
       (set-mtube-e! m (+ (mtube-e m) xfer))
       (set-pod-energy! p (- (pod-energy p) xfer)))
+
+    (define pr (findf ptube? (pod-tools p)))
+    (when (and pr ((ptube-e pr) . < . (ptube-maxe pr)) (equal? "load" (ptube-mode pr)))
+      (define xfer (min (* 15.0 dt) (- (ptube-maxe pr) (ptube-e pr)) (pod-energy p)))
+      (set-ptube-e! pr (+ (ptube-e pr) xfer))
+      (set-pod-energy! p (- (pod-energy p) xfer)))
     )
   
   (for ((s (in-list (ship-ships ship))))

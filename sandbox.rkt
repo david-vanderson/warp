@@ -54,7 +54,8 @@
          (list (shbolt (next-id) '() 5.0 #t)
                (mtube (next-id) '() 50.0 0.0 "load" #f)))
    ,(pod (next-id) "T" #f ai? (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0
-         (list (shbolt (next-id) '() 20.0 #t)))))
+         (list (shbolt (next-id) '() 20.0 #t)
+               (ptube (next-id) '() 50.0 0.0 "load" #f)))))
 
 (define ownspace
   (space
