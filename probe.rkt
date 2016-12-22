@@ -102,7 +102,7 @@
   (define ob (add-offline-button! t loadb send-commands))
   (when ob (append! buttons ob))
   
-  (define b (button 'disabled #\l (- x 60) (- BOTTOM 35) 50 50 "Launch [l]" #f))
+  (define b (button 'disabled #\l (- x 60) (- BOTTOM 35) 50 50 "Launch [f]" #f))
   (when (and (ship-flying? ship)
              (not probe)
              ((ptube-e t) . = . (ptube-maxe t)))
@@ -115,7 +115,7 @@
 
   (when probe
     (define pod (car (ship-pods probe)))
-    (define life (pod-e pod))
+    (define life (* 10.0 (pod-e pod)))
     (append! spr (sprite 0.0 (- BOTTOM 4) (sprite-idx csd 'square) #:layer LAYER_UI
                          #:mx (/ life (sprite-width csd (sprite-idx csd 'square)) 1.0)
                          #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square)) 1.0)

@@ -275,12 +275,18 @@
   (define ships (filter ship? objects))
   
   (define spaceships (filter spaceship? ships))
-  (define spacesuits (filter spacesuit? ships))
   
   (define plasmas (filter plasma? objects))
   (define shields (filter shield? objects))
   (define upgrades (filter upgrade? objects))
   (define missiles (filter missile? objects))
+
+  (for ((p ships)
+        #:when (equal? "probe" (ship-type p)))
+    (when ((pod-e (car (ship-pods p))) . <= . 0.0)
+      (define ptube (find-id space (lambda (o) (and (ptube? o) (= (ptube-pid o) (ob-id p))))))
+      (when ptube
+        (append! changes (command (ob-id ptube) #f)))))
 
   (for ((m missiles))
     (when (missile-should-detonate? space m)
