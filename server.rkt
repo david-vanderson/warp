@@ -106,9 +106,9 @@
                                    (dx (posvel-dx (obj-posvel ship)))
                                    (dy (posvel-dy (obj-posvel ship))))
                       (plasma-radius space p) 300))
-    (append! changes (list (chdam (ob-id p) damage)
-                           (chdam (ob-id ship) damage)
-                           (chadd e #f))))
+    (append! changes (chdam (ob-id p) damage)
+                     (chdam (ob-id ship) damage)
+                     (chadd e #f)))
   changes)
 
 
@@ -117,7 +117,7 @@
   (define changes '())
   (when (and (not (missile-dead? space m))
              (not (plasma-dead? space p))
-             ((distance m p) . < . (+ (missile-radius m) (plasma-radius space p))))
+             ((distance m p) . < . (+ MISSILE_RADIUS (plasma-radius space p))))
     (printf "missile hit plasma\n")
 
     (define damage (plasma-energy space p))
@@ -131,7 +131,7 @@
   (define changes '())
   (when (and (not ((ship-con ship) . <= . 0))
              (not (missile-dead? space m))
-             ((distance ship m) . < . (+ (ship-radius ship) (missile-radius m))))
+             ((distance ship m) . < . (+ (ship-radius ship) MISSILE_RADIUS)))
     (printf "missile hit ship ~a\n" (ship-name ship))
 
     (define damage 50.0)
@@ -371,6 +371,9 @@
 
       (when (findf shbolt? (pod-tools p))
         (append! changes (shbolt-ai! space s)))
+
+      (when (findf mtube? (pod-tools p))
+        (append! changes (mtube-ai! space s)))
       ))
   
   changes)

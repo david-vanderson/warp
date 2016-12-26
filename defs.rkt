@@ -175,9 +175,11 @@
 ; e energy
 ; ownship is id of the ship that fired it, or #f if it belongs to no ship
 
-(struct missile obj (e course) #:mutable #:prefab)
+(define MISSILE_RADIUS 5.0)
+(struct missile obj (e course faction) #:mutable #:prefab)
 ; e is how long the missile flies before automatically detonating
 ; course is where the missile is steering towards
+; faction is so that the ai doesn't shoot at its own missiles
 
 (struct effect obj (size duration) #:mutable #:prefab)
 

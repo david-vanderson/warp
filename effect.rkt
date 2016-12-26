@@ -6,7 +6,6 @@
 
 (require "defs.rkt"
          "utils.rkt"
-         "missile.rkt"
          "draw-utils.rkt")
 
 (provide (all-defined-out))
@@ -16,8 +15,8 @@
   (when (and (missile? o) (time-for (obj-age space o) 200))
     (define be (backeffect 0 (space-time space)
                            (posvel 0
-                                   (- (obj-x o) (* (missile-radius o) (cos (obj-r o))))
-                                   (- (obj-y o) (* (missile-radius o) (sin (obj-r o))))
+                                   (- (obj-x o) (* MISSILE_RADIUS (cos (obj-r o))))
+                                   (- (obj-y o) (* MISSILE_RADIUS (sin (obj-r o))))
                                    0
                                    (- (* 16.0 (cos (obj-r o))))
                                    (- (* 16.0 (sin (obj-r o))))

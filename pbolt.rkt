@@ -66,10 +66,10 @@
   (define ownship (get-ship stack))
   (define pod (get-pod stack))
   (define pb (findf pbolt? (pod-tools pod)))
-  (define chance-per-sec (/ (pod-energy pod) (pod-maxe pod)))
+  (define chance-per-sec (/ (pod-e pod) (pod-maxe pod) 2.0))
   (when (and (ship-flying? ownship)
              (tool-online? pb)
-             ((pod-energy pod) . > . (pbolt-plasma-size pb))
+             ((pod-e pod) . > . (pbolt-plasma-size pb))
              ((random) . < . chance-per-sec))
 
     (define me (pod-obj pod ownship))
@@ -79,7 +79,8 @@
                 #:when (and (or (and (spaceship? o)
                                      ((ship-con o) . > . 0)
                                      (not (equal? (ship-faction o) (ship-faction ownship))))
-                                (missile? o))
+                                (and (missile? o)
+                                     (not (equal? (missile-faction o) (ship-faction ownship)))))
                             ((distance ownship o) . < . 400)))
 
       

@@ -5,7 +5,6 @@
 (require "defs.rkt"
          "utils.rkt"
          "plasma.rkt"
-         "missile.rkt"
          "shield.rkt"
          "effect.rkt"
          "ships.rkt"
@@ -137,13 +136,6 @@
        (set-space-objects! space (remove o (space-objects space)))))))
 
 
-; return list of additional changes
-(define (damage-object! space o damage)
-  (cond ((plasma? o) (reduce-plasma! space o damage) '())
-        ((missile? o) (reduce-missile! space o damage))
-        ((shield? o) (reduce-shield! space o damage) '())
-        ((ship? o) (reduce-ship! space o damage))))
-
 
 ; return list of additional changes
 ; when a damage is added to a tool, it might turn the tool off?
@@ -182,7 +174,7 @@
       (define pv (obj-posvel ship))
       (define energy (ship-mass ship))
       (define e (effect (next-id) (space-time space) (struct-copy posvel pv) (sqrt energy) 1000))
-      (set! changes (append changes (list (chadd e #f))))
+      (append! changes (chadd e #f))
       
       (for ((ps (in-list (search ship player? #t))))
         (define p (car ps))
@@ -195,7 +187,7 @@
                               (+ (posvel-dy pv) (random-between -50 50)) 0))
         (set-obj-posvel! u newpv)
         (set-obj-start-time! u (space-time space))
-        (set! changes (append changes (list (chadd u #f)))))
+        (append! changes (chadd u #f)))
       
       (define energy-left energy)
       (while (energy-left . > . 1)
@@ -209,7 +201,7 @@
                                   (+ (* s (sin t)) (posvel-dy pv))
                                   0)
                           e #f))
-        (set! changes (append changes (list (chadd p #f)))))
+        (append! changes (chadd p #f)))
       
       (define msg (message (next-id) (space-time space) #f
                            (format "~a Destroyed" (ship-name ship))))

@@ -9,6 +9,8 @@
          "pbolt.rkt"
          "warp.rkt"
          "missile.rkt"
+         "plasma.rkt"
+         "shield.rkt"
          "probe.rkt"
          "order.rkt"
          "physics.rkt")
@@ -232,8 +234,13 @@
      (values #t '()))
     ((chdam? c)
      (define o (find-id space (chdam-id c)))
+     (define d (chdam-damage c))
      (cond (o
-            (values #t (damage-object! space o (chdam-damage c))))
+            (values #t
+                    (cond ((plasma? o) (reduce-plasma! space o d) '())
+                          ((missile? o) (reduce-missile! space o d))
+                          ((shield? o) (reduce-shield! space o d) '())
+                          ((ship? o) (reduce-ship! space o d)))))
            (else
             (printf "~a chdam - couldn't find obj id ~a\n" who (chdam-id c))
             (values #t '()))))

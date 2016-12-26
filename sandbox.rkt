@@ -25,16 +25,31 @@
        (make-ship "red-fighter" "Empire Fighter" "Empire")
        )))
 
+(set-ship-stats! enemy-base (stats (next-id) "red-station" "Empire Base" "Empire"
+                                   100.0 100.0 100.0 100.0 100.0 26.0 1000.0 50.0 0.4 1000.0 #t))
+
+(set-ship-pods!
+ enemy-base `(,(normal-lounge)
+              ,@(for/list ((d (in-list (list #;0 #;90 180 #;270))))
+                  (pod (next-id) "W" #f #t
+                       (degrees->radians d) 26.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
+                       (list #;(pbolt (next-id) '() 15.0 #t)
+                             (mtube (next-id) '() 100.0 50.0 "load" #f))))
+              ,@(for/list ((d (in-list (list 45 135 225 315))))
+                  (pod (next-id) "T" #f #t
+                       (degrees->radians d) 28.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
+                       (list (shbolt (next-id) '() 50.0 #t))))))
+
 ;(set-stats-con! (ship-stats enemy-base) 200)
 
 (define f (make-ship "red-fighter" "Empire1" "Empire" #:start-ship? #t #:x 0 #:y -100))
 
 (define ai? #f)
 
-(define cruiser (make-ship "blue-cruiser" "z" "z" #:x -600 #:y -50))
+(define cruiser (make-ship "blue-cruiser" "z" "z" #:x 0 #:y -50))
 (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
                                 ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
-                                5.0 150.0 150.0 150.0 150.0 15.0 100.0 30.0 1.0 500.0 #t))
+                                5.0 150.0 150.0 1500.0 1500.0 15.0 100.0 30.0 1.0 500.0 #t))
 (set-ship-pods!
  cruiser
  `(,(normal-lounge)
@@ -62,7 +77,7 @@
    0 10000 10000 '() '()
    `(
      ,cruiser
-     ,f
+     #;,f
 
      #;,@(for/list ((i 30))
          (define x (random-between -1000 1000))
@@ -168,7 +183,7 @@
   (values ownspace on-tick on-message))
 
 (thread (lambda ()
-(start-server PORT #;sc)
+(start-server PORT sc)
 ))
 
 (define sema (make-semaphore))

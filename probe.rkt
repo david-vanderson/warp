@@ -102,7 +102,7 @@
   (define ob (add-offline-button! t loadb send-commands))
   (when ob (append! buttons ob))
   
-  (define b (button 'disabled #\l (- x 60) (- BOTTOM 35) 50 50 "Launch [f]" #f))
+  (define b (button 'disabled #\f (- x 60) (- BOTTOM 35) 50 50 "Launch [f]" #f))
   (when (and (ship-flying? ship)
              (not probe)
              ((ptube-e t) . = . (ptube-maxe t)))

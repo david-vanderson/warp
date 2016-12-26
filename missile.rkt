@@ -7,13 +7,11 @@
 
 (require "defs.rkt"
          "utils.rkt"
+         "physics.rkt"
          "draw-utils.rkt")
 
 (provide (all-defined-out))
 
-
-(define (missile-radius m)
-  5.0)
 
 (define (missile-energy space m)
   (max 0 (- (missile-e m) (obj-age space m))))
@@ -93,7 +91,7 @@
         (define changes '())
         (set-mtube-e! tool 0)
         (when (server?)
-          (define d (+ (ship-radius ship) (* 2.0 (missile-radius #f))))
+          (define d (+ (ship-radius ship) (* 2.0 MISSILE_RADIUS)))
           (define a (angle-add (obj-r ship) (pod-angle pod)))
           (define b (angle-add (obj-r ship) (pod-facing pod)))
           
@@ -105,7 +103,7 @@
                                      (obj-dx ship)
                                      (obj-dy ship)
                                      0)
-                             5000 b))
+                             5000 b (ship-faction ship)))
           (append! changes (chadd m #f) (command (ob-id tool) (ob-id m))))
         
         (values #t changes))))))
@@ -167,3 +165,91 @@
     (append! buttons b))
   
   (values buttons spr))
+
+
+; return a list of changes
+(define (mtube-ai! space stack)
+  (define changes '())
+  (define ownship (get-ship stack))
+  (define pod (get-pod stack))
+  (define t (findf mtube? (pod-tools pod)))
+  (define m (find-id space (mtube-mid t)))
+  (when (not m)
+    (define chance-per-sec .01)
+    (when (and (ship-flying? ownship)
+               (tool-online? t)
+               ((mtube-e t) . = . (mtube-maxe t))
+               ((random) . < . chance-per-sec))
+      
+      (for/first ((o (in-list (space-objects space)))
+                  #:when (and (spaceship? o)
+                              ((ship-con o) . > . 0)
+                              (not (equal? (ship-faction o) (ship-faction ownship)))
+                              ((distance ownship o) . < . (ship-radar ownship))))
+        ;(printf "firing\n")
+        (append! changes (command (ob-id t) "fire")))))
+  (when m
+    ; we are piloting the missile
+    (define origc (missile-course m))
+  
+    ; only worry about ships
+    (define ships (filter spaceship? (space-objects space)))
+  
+    ; search space around our original inputs
+    (define bestc origc)
+    (define bestfit #f)
+    (for* ((c (in-list '(0 -10 10 -50 50 -100 100 -150 150 180))))
+      (define origpv (struct-copy posvel (obj-posvel m)))
+      (set-missile-course! m (angle-add origc (degrees->radians c)))
+      (define maxfit -inf.0)
+      (define curfit 0.0)
+    
+      (define predict-secs (inexact->exact (round (/ (missile-energy space m) 1000.0))))
+      (for ((i (in-range predict-secs)))
+        (for ((s (in-list ships))) (physics! (obj-posvel s) 1.0))
+        (update-physics! space m 0.1)
+        (update-physics! space m 0.1)
+        (update-physics! space m 0.1)
+        (update-physics! space m 0.1)
+        (update-physics! space m 0.1)
+        (update-physics! space m 0.1)
+        (update-physics! space m 0.1)
+        (update-physics! space m 0.1)
+        (update-physics! space m 0.1)
+        (update-physics! space m 0.1)
+        (define f (missile-fitness space m))
+        (set! curfit (+ curfit f))
+        (set! maxfit (max maxfit (/ curfit (add1 i)))))
+    
+      (for ((s (in-list ships))) (physics! (obj-posvel s) (- predict-secs)))
+      (set-obj-posvel! m origpv)
+    
+      ;(printf "fit ~a ~a ~a\n" maxfit c predict-secs)
+      
+      (when (or (not bestfit)  ; first pass
+                (maxfit . > . (* 1.01 bestfit)))
+        ;(printf "better fit ~a ~a\n" maxfit (missile-course m))
+        (set! bestfit maxfit)
+        (set! bestc (missile-course m))))
+    
+    (set-missile-course! m origc)
+    (when (not (equal? origc bestc))
+      (append! changes (list (command (ob-id m) bestc)))))
+  changes)
+
+
+(define (missile-fitness space m)
+  (define f 0.0)
+  
+  (for ((o (in-list (space-objects space)))
+        #:when (spaceship? o))
+    (define d (distance o m))
+    (define hd (+ (ship-radius o) MISSILE_RADIUS))
+    (define foe? (not (equal? (ship-faction o) (missile-faction m))))
+    (cond ((d . < . hd)
+           (set! f (+ f (if foe? 1000.0 -1000.0))))
+          ((d . < . (* 2 hd))
+           (set! f (+ f (if foe? 250.0 -250.0))))
+          (else
+           (set! f (+ f (* (if foe? 10.0 -10.0) (- 1.0 (sigmoid d 100))))))))
+  f)
