@@ -118,7 +118,7 @@
   (when (and (not (missile-dead? space m))
              (not (plasma-dead? space p))
              ((distance m p) . < . (+ MISSILE_RADIUS (plasma-radius space p))))
-    (printf "missile hit plasma\n")
+    ;(printf "missile hit plasma\n")
 
     (define damage (plasma-energy space p))
     (append! changes (chdam (ob-id m) -1)  ; missile should detonate
@@ -132,7 +132,7 @@
   (when (and (not ((ship-con ship) . <= . 0))
              (not (missile-dead? space m))
              ((distance ship m) . < . (+ (ship-radius ship) MISSILE_RADIUS)))
-    (printf "missile hit ship ~a\n" (ship-name ship))
+    ;(printf "missile hit ship ~a\n" (ship-name ship))
 
     (define damage 50.0)
     (define e (effect (next-id) (space-time space)
@@ -284,7 +284,7 @@
   (for ((p ships)
         #:when (equal? "probe" (ship-type p)))
     (when ((pod-e (car (ship-pods p))) . <= . 0.0)
-      (define ptube (find-id space (lambda (o) (and (ptube? o) (= (ptube-pid o) (ob-id p))))))
+      (define ptube (find-id space (lambda (o) (and (ptube? o) (equal? (ptube-pid o) (ob-id p))))))
       (when ptube
         (append! changes (command (ob-id ptube) #f)))))
 

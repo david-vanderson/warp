@@ -175,7 +175,7 @@
   (define t (findf mtube? (pod-tools pod)))
   (define m (find-id space (mtube-mid t)))
   (when (not m)
-    (define chance-per-sec .01)
+    (define chance-per-sec .1)
     (when (and (ship-flying? ownship)
                (tool-online? t)
                ((mtube-e t) . = . (mtube-maxe t))
@@ -187,7 +187,9 @@
                               (not (equal? (ship-faction o) (ship-faction ownship)))
                               ((distance ownship o) . < . (ship-radar ownship))))
         ;(printf "firing\n")
-        (append! changes (command (ob-id t) "fire")))))
+        (append! changes (command (ob-id t) "fire"))
+        (set-pod-npc?! pod 0)  ; make sure we run the missile ai right away
+        )))
   (when m
     ; we are piloting the missile
     (define origc (missile-course m))
@@ -204,14 +206,9 @@
       (define maxfit -inf.0)
       (define curfit 0.0)
     
-      (define predict-secs (inexact->exact (round (/ (missile-energy space m) 1000.0))))
-      (for ((i (in-range predict-secs)))
-        (for ((s (in-list ships))) (physics! (obj-posvel s) 1.0))
-        (update-physics! space m 0.1)
-        (update-physics! space m 0.1)
-        (update-physics! space m 0.1)
-        (update-physics! space m 0.1)
-        (update-physics! space m 0.1)
+      (define predict-hsecs (inexact->exact (round (/ (missile-energy space m) 500.0))))
+      (for ((i (in-range predict-hsecs)))
+        (for ((s (in-list ships))) (physics! (obj-posvel s) 0.5))
         (update-physics! space m 0.1)
         (update-physics! space m 0.1)
         (update-physics! space m 0.1)
@@ -221,7 +218,7 @@
         (set! curfit (+ curfit f))
         (set! maxfit (max maxfit (/ curfit (add1 i)))))
     
-      (for ((s (in-list ships))) (physics! (obj-posvel s) (- predict-secs)))
+      (for ((s (in-list ships))) (physics! (obj-posvel s) (- (/ predict-hsecs 2.0))))
       (set-obj-posvel! m origpv)
     
       ;(printf "fit ~a ~a ~a\n" maxfit c predict-secs)
@@ -248,8 +245,6 @@
     (define foe? (not (equal? (ship-faction o) (missile-faction m))))
     (cond ((d . < . hd)
            (set! f (+ f (if foe? 1000.0 -1000.0))))
-          ((d . < . (* 2 hd))
-           (set! f (+ f (if foe? 250.0 -250.0))))
           (else
-           (set! f (+ f (* (if foe? 10.0 -10.0) (- 1.0 (sigmoid d 100))))))))
+           (set! f (+ f (* (if foe? 1000.0 -1000.0) (- 1.0 (sigmoid d 100))))))))
   f)

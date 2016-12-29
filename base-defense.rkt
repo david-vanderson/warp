@@ -127,7 +127,8 @@
               (list (pbolt (next-id) '() 10.0 #t))))
      ,@(for/list ((d (in-list (list -90 90))))
          (pod (next-id) "T" #f #t (degrees->radians d) 21.0 (degrees->radians d) (* 0.9 pi) 50.0 50.0
-              (list (shbolt (next-id) '() 20.0 #t))))))
+              (list (shbolt (next-id) '() 10.0 #t)
+                    (mtube (next-id) '() 100.0 100.0 "load" #f))))))
   
   (set-ship-ai-strategy! destroyer
                          (list (strategy (space-time ownspace) "attack-only" (ob-id base))))

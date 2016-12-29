@@ -167,7 +167,7 @@
 (define (draw-playerlist csd textr center scale ship)
   (define spr '())
   (define players (find-all ship player?))
-  (append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
+  ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
   (when (not (null? players))
     (define-values (sx sy) (obj->screen ship center scale))
     (append! spr (sprite (+ sx 25.0) (+ sy 25.0) (sprite-idx csd 'square) #:layer LAYER_MAP

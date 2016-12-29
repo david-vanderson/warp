@@ -42,14 +42,14 @@
 
 ;(set-stats-con! (ship-stats enemy-base) 200)
 
-(define f (make-ship "red-fighter" "Empire1" "Empire" #:start-ship? #t #:x 0 #:y -100))
+(define f (make-ship "red-fighter" "Empire1" "Empire" #:start-ship? #t #:x 0 #:y -100 #:npc? #f))
 
 (define ai? #f)
 
-(define cruiser (make-ship "blue-cruiser" "z" "z" #:x 0 #:y -50))
+(define cruiser (make-ship "blue-cruiser" "z" "z" #:x 0 #:y -500))
 (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
                                 ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
-                                5.0 150.0 150.0 1500.0 1500.0 15.0 100.0 30.0 1.0 500.0 #t))
+                                5.0 150.0 150.0 1500.0 1500.0 15.0 100.0 30.0 1.0 5000.0 #t))
 (set-ship-pods!
  cruiser
  `(,(normal-lounge)
@@ -77,7 +77,7 @@
    0 10000 10000 '() '()
    `(
      ,cruiser
-     #;,f
+     ,f
 
      #;,@(for/list ((i 30))
          (define x (random-between -1000 1000))
