@@ -34,6 +34,12 @@
 (define (time-toggle age repeat (div 2) (offset 0))
   (<= (modulo (+ age offset) repeat) (/ repeat div)))
 
+(define (faction-check my-faction other-faction)
+  (cond ((equal? my-faction other-faction) 1)
+        ((or (equal? "_neutral" my-faction)
+             (equal? "_neutral" other-faction)) 0)
+        (else -1)))
+
 (define (strategy-age space s)
   (- (space-time space) (strategy-t s)))
 
@@ -218,7 +224,7 @@
   (define d (find-id s1 dock? #f))
   (and d
        (dock-on d)
-       (equal? (ship-faction s1) (ship-faction s2))
+       ((faction-check (ship-faction s2) (ship-faction s1)) . > . 0)
        (ship-hangar s2)))
 
 
@@ -294,8 +300,7 @@
 (define (nearest-enemy space ownship)
   (define enemies (filter (lambda (o)
                             (and (spaceship? o)
-                                 ((ship-con o) . > . 0)
-                                 (not (equal? (ship-faction o) (ship-faction ownship)))))
+                                 ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)))
                           (space-objects space)))
   (define ne #f)
   (define ne-dist #f)
@@ -314,7 +319,6 @@
   (define ships (filter (lambda (o)
                           (and (spaceship? o)
                                (not (= (ob-id ship) (ob-id o)))
-                               ((ship-con o) . > . 0)
                                ((distance ship o) . < . max-dist)))
                         (space-objects space)))
   (define ns #f)

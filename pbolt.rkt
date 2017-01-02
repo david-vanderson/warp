@@ -77,10 +77,9 @@
 
     (for/first ((o (in-list (space-objects space)))
                 #:when (and (or (and (spaceship? o)
-                                     ((ship-con o) . > . 0)
-                                     (not (equal? (ship-faction o) (ship-faction ownship))))
+                                     ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0))
                                 (and (missile? o)
-                                     (not (equal? (missile-faction o) (ship-faction ownship)))))
+                                     ((faction-check (ship-faction ownship) (missile-faction o)) . < . 0)))
                             ((distance ownship o) . < . 400)))
 
       

@@ -102,7 +102,7 @@
   (order #f text (list (ann-circle (next-id) 0 pv #f text r))
          (lambda (space faction o)
            (for/first ((s (in-list (space-objects space)))
-                       #:when (and (ship? s) (equal? faction (ship-faction s))
+                       #:when (and (ship? s) ((faction-check faction (ship-faction s)) . > . 0)
                                    ((distance pvobj s) . < . r)))
              (set-order-f! o (lambda (s f o) #t))
              #t))))

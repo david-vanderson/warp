@@ -71,7 +71,7 @@
 ; return a list of changes
 (define (upgrade-hit-ship! space ship u)
   (define changes '())
-  (when (and (not ((ship-con ship) . <= . 0))
+  (when (and ((ship-con ship) . > . 0)
              ((distance ship u) . < . (+ (ship-radius ship) (upgrade-radius space u))))
     ;(printf "upgrade hit ship ~a (~a)\n" (ship-name ship) (obj-id ship))
     (define newstats (copy (ship-stats ship)))
@@ -91,7 +91,7 @@
 ; return a list of changes
 (define (plasma-hit-ship! space ship p)
   (define changes '())
-  (when (and (not ((ship-con ship) . <= . 0))
+  (when (and ((ship-con ship) . > . 0)
              (not (plasma-dead? space p))
              (not (equal? (plasma-ownship-id p) (ob-id ship)))
              ((distance ship p) . < . (+ (ship-radius ship) (plasma-radius space p))))
@@ -129,7 +129,7 @@
 ; return a list of changes
 (define (missile-hit-ship! space ship m)
   (define changes '())
-  (when (and (not ((ship-con ship) . <= . 0))
+  (when (and ((ship-con ship) . > . 0)
              (not (missile-dead? space m))
              ((distance ship m) . < . (+ (ship-radius ship) MISSILE_RADIUS)))
     ;(printf "missile hit ship ~a\n" (ship-name ship))
@@ -252,12 +252,12 @@
     (cond
       ((and (spacesuit? ship) (spacesuit? s))
        #f)
-      ((spacesuit? ship)
-       (when (and (equal? (ship-faction ship) (ship-faction s))
-                  (findf lounge? (ship-pods s)))
-         (append! changes (pickup! s ship))))
-      ((spacesuit? s)
-       (when (and (equal? (ship-faction ship) (ship-faction s))
+      ((or (spacesuit? ship) (spacesuit? s))
+       (when (spacesuit? ship)
+         (define temp ship)
+         (set! ship s)
+         (set! s temp))
+       (when (and ((faction-check (ship-faction ship) (ship-faction s)) . > . 0)
                   (findf lounge? (ship-pods ship)))
          (append! changes (pickup! ship s))))
       ((will-dock? ship s)
@@ -286,7 +286,9 @@
     (when ((pod-e (car (ship-pods p))) . <= . 0.0)
       (define ptube (find-id space (lambda (o) (and (ptube? o) (equal? (ptube-pid o) (ob-id p))))))
       (when ptube
-        (append! changes (command (ob-id ptube) #f)))))
+        (define cs (apply-all-changes!
+                    space (list (command (ob-id ptube) #f)) (space-time space) "server"))
+        (append! changes cs))))
 
   (for ((m missiles))
     (when (missile-should-detonate? space m)

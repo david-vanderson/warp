@@ -183,8 +183,7 @@
       
       (for/first ((o (in-list (space-objects space)))
                   #:when (and (spaceship? o)
-                              ((ship-con o) . > . 0)
-                              (not (equal? (ship-faction o) (ship-faction ownship)))
+                              ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)
                               ((distance ownship o) . < . (ship-radar ownship))))
         ;(printf "firing\n")
         (append! changes (command (ob-id t) "fire"))
@@ -242,7 +241,7 @@
         #:when (spaceship? o))
     (define d (distance o m))
     (define hd (+ (ship-radius o) MISSILE_RADIUS))
-    (define foe? (not (equal? (ship-faction o) (missile-faction m))))
+    (define foe? ((faction-check (missile-faction m) (ship-faction o)) . < . 0))
     (cond ((d . < . hd)
            (set! f (+ f (if foe? 1000.0 -1000.0))))
           (else
