@@ -90,7 +90,7 @@
   (define pv (obj-posvel o))
   (cond
     ((ship? o)
-     (physics! pv dt 0.4 (steer! o dt))
+     (physics! pv dt (ship-drag o) (steer! o dt))
      (push-back! space o dt))
     ((plasma? o)
      (physics! pv dt)

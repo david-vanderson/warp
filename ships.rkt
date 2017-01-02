@@ -82,18 +82,21 @@
   
   (case type
     (("space-suit")
-     ;type name faction power bat maxbat con maxcon radius mass thrust rthrust radar start?
-     (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 1.0 1.0 5.0 1.0 0.0 0.0 200.0 start-ship?))
+     ;type name faction power bat maxbat con maxcon radius mass thrust rthrust radar drag start?
+     (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 1.0 1.0 5.0 1.0 0.0 0.0 200.0 0.4 start-ship?))
      (set-ship-pods! s (list (lounge (next-id) "Lounge" #f #f 0.0 0.0 #f #f 0.0 0.0 '() '()))))
     (("probe")
-     ;type name faction power bat maxbat con maxcon radius mass thrust rthrust radar start?
-     (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 10.0 10.0 7.0 1.0 100.0 1.0 1000.0 #f))
+     ;type name faction power bat maxbat con maxcon radius mass thrust rthrust radar drag start?
+     (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 10.0 10.0 7.0 1.0 100.0 1.0 1000.0 0.4 #f))
      (set-ship-pods! s (list (pod (next-id) "P" #f #f 0.0 3.0 #f #f 50.0 50.0
                                   (list (steer (next-id) '() r) (fthrust (next-id) '() #t))))))
+    (("asteroid")
+     (set-ship-stats! s (stats (next-id) "red-station" name faction 0.0 0.0 0.0 10000.0 10000.0 26.0 10000.0 0.0 0.0 200.0 0.0 start-ship?))
+     (set-ship-pods! s `(,(normal-lounge))))
     (("blue-station" "red-station")
      (define mb 500.0)
      (define mc 500.0)
-     (set-ship-stats! s (stats (next-id) type name faction 10.0 mb mb mc mc 26.0 1000.0 50.0 0.4 200.0 start-ship?))
+     (set-ship-stats! s (stats (next-id) type name faction 10.0 mb mb mc mc 26.0 1000.0 50.0 0.4 200.0 0.4 start-ship?))
      (set-ship-pods!
       s `(,(normal-lounge)
           ,(normal-hangar pi 13.0 in-hangar)
@@ -109,8 +112,8 @@
                    (list (shbolt (next-id) '() 50.0 #t)))))))
     (("blue-frigate" "red-frigate")
      (set-ship-stats! s (stats (next-id) type name faction
-                               ;power bat maxbat con maxcon radius mass thrust rthrust
-                               10.0 50.0 50.0 100.0 100.0 18.0 100.0 20.0 0.3 250.0 start-ship?))
+                               ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start
+                               10.0 50.0 50.0 100.0 100.0 18.0 100.0 20.0 0.3 250.0 0.4 start-ship?))
      (set-ship-pods!
       s `(,(normal-lounge)
           ,(normal-hangar pi 10.0 in-hangar)
@@ -124,7 +127,7 @@
                 (list (pbolt (next-id) '() 5.0 #t))))))
     (("blue-fighter" "red-fighter")
      (define mb 100.0)
-     (set-ship-stats! s (stats (next-id) type name faction 1.0 mb mb 50.0 50.0 6.0 20.0 40.0 1.0 300.0 start-ship?))
+     (set-ship-stats! s (stats (next-id) type name faction 1.0 mb mb 50.0 50.0 6.0 20.0 40.0 1.0 300.0 0.4 start-ship?))
      (set-ship-pods!
       s `(,(normal-lounge)
           ,(pod (next-id) "Pilot" #f (and npc? npc-helm?) 0.0 5.0 0.0 (/ pi 6) 100.0 100.0

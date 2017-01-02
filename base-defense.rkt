@@ -30,8 +30,8 @@
   (define (new-blue-fighter)
     (define s (make-ship "blue-fighter" "a" "a"))
     (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
-                              ;power bat maxbat con maxcon radius mass thrust rthrust radar start-ship?
-                              1.0 150.0 150.0 50.0 50.0 6.0 20.0 50.0 1.5 300.0 #f))
+                              ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start-ship?
+                              1.0 150.0 150.0 50.0 50.0 6.0 20.0 50.0 1.5 300.0 0.4 #f))
     (set-ship-pods!
      s `(,(normal-lounge)
          ,(pod (next-id) "Pilot" #f ai? 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0
@@ -43,8 +43,8 @@
   (define (new-red-fighter)
     (define s (make-ship "red-fighter" "a" "a"))
     (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
-                              ;power bat maxbat con maxcon radius mass thrust rthrust
-                              1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5 300.0 #f))
+                              ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start
+                              1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5 300.0 0.4 #f))
     (set-ship-pods!
      s `(,(normal-lounge)
          ,(pod (next-id) "Pilot" #f #t 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0
@@ -56,8 +56,8 @@
   
   (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50))
   (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
-                                  ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
-                                  8.0 150.0 150.0 150.0 150.0 15.0 100.0 30.0 1.0 500.0 #t))
+                                  ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start?
+                                  8.0 150.0 150.0 150.0 150.0 15.0 100.0 30.0 1.0 500.0 0.4 #t))
   (set-ship-pods!
    cruiser
    `(,(normal-lounge)
@@ -85,8 +85,8 @@
   
   (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100))
   (set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
-                               ;power bat maxbat con maxcon radius mass thrust rthrust radar start-ship?
-                               5.0 500.0 500.0 1000.0 1000.0 26.0 1000.0 0.0 0.0 1000.0 #t))
+                               ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start-ship?
+                               5.0 500.0 500.0 1000.0 1000.0 26.0 1000.0 0.0 0.0 1000.0 0.4 #t))
   (set-ship-pods!
    base
    `(,(normal-lounge)
@@ -105,8 +105,8 @@
   (set-ship-stats! destroyer (stats (next-id)
                                     ;type name faction
                                     "red-destroyer" "Empire Destroyer" "Empire"
-                                    ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
-                                    15.0 500.0 500.0 1000.0 1000.0 23.0 500.0 6.0 0.1 1000.0 #f))
+                                    ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start?
+                                    15.0 500.0 500.0 1000.0 1000.0 23.0 500.0 6.0 0.1 1000.0 0.4 #f))
   (set-ship-pods!
    destroyer
    `(,(normal-lounge)

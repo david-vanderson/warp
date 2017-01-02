@@ -134,7 +134,7 @@
 (struct ptube tool (maxe e mode pid) #:mutable #:prefab)
 ; same as mtube but shoots probes
 
-(struct stats ob (type name faction power bat maxbat con maxcon radius mass thrust rthrust radar start) #:mutable #:prefab)
+(struct stats ob (type name faction power bat maxbat con maxcon radius mass thrust rthrust radar drag start) #:mutable #:prefab)
 ; carries all the stats for a ship
 ; name is the name of the ship
 ; faction is the name that this ship belongs to
@@ -146,6 +146,7 @@
 ; thrust is how much force your main engines produce
 ; rthrust is how much force your turning engines produce
 ; radar is fog of war radius for this ship, also agro distance
+; drag is the coeffecient for how fast this ship slows down
 ; start is if you can start on this ship
 
 (struct ship obj (stats pods ai-strategy dmgfx cargo) #:mutable #:prefab)
@@ -166,6 +167,7 @@
 (define (ship-mass s) (stats-mass (ship-stats s)))
 (define (ship-strategy s) (if (null? (ship-ai-strategy s)) #f (car (ship-ai-strategy s))))
 (define (ship-radar s) (stats-radar (ship-stats s)))
+(define (ship-drag s) (stats-drag (ship-stats s)))
 (define (ship-start s) (stats-start (ship-stats s)))
 
 (struct spacesuit ship () #:mutable #:prefab)

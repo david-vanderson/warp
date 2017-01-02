@@ -88,8 +88,8 @@
     (define s (make-ship "red-fighter" faction faction #:npc? #f
                          #:x (random-between -100 100) #:y (random-between -100 100)))
     (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                              ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
-                              1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5 300.0 #t))
+                              ;power bat maxbat con maxcon radius mass thrust rthrust drag radar start?
+                              1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5 300.0 0.4 #t))
     s)
   
   (define (on-tick space change-scenario!)

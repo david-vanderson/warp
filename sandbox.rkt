@@ -26,7 +26,7 @@
        )))
 
 (set-ship-stats! enemy-base (stats (next-id) "red-station" "Empire Base" "Empire"
-                                   100.0 100.0 100.0 100.0 100.0 26.0 1000.0 50.0 0.4 1000.0 #t))
+                                   100.0 100.0 100.0 100.0 100.0 26.0 1000.0 50.0 0.4 1000.0 0.4 #t))
 
 (set-ship-pods!
  enemy-base `(,(normal-lounge)
@@ -48,8 +48,8 @@
 
 (define cruiser (make-ship "blue-cruiser" "z" "z" #:x 0 #:y -500))
 (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
-                                ;power bat maxbat con maxcon radius mass thrust rthrust radar start?
-                                5.0 150.0 150.0 1500.0 1500.0 15.0 100.0 30.0 1.0 5000.0 #t))
+                                ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start?
+                                5.0 150.0 150.0 1500.0 1500.0 15.0 100.0 30.0 1.0 5000.0 0.4 #t))
 (set-ship-pods!
  cruiser
  `(,(normal-lounge)
