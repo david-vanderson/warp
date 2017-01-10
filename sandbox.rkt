@@ -74,22 +74,24 @@
 
 (define ownspace
   (space
-   0 10000 10000 '() '()
+   0 10000 6000 '() '()
    `(
      ,cruiser
-     ,f
+     #;,f
 
-     #;,@(for/list ((i 30))
-         (define x (random-between -1000 1000))
-         (define y (random-between -1000 1000))
-         (make-ship "blue-fighter" "Blue 6" "Rebel" #:x x #:y y #:r 0 #:start-ship? #t))
-    #;(make-ship "blue-frigate" "Blue Frigate" "Rebel" #:x 400 #:y 0 #:r 0 #:start-ship? #t #:npc? #t
-               #:in-hangar
-               (list (make-ship "blue-fighter" "Rebel Fighter" "Rebel")))
+     ,@(for/list ((i 50))
+         (define x (+ -2500.0 (* i 100.0)))
+         (define y (random-between -3000 3000))
+         (define dx 0.0)
+         (define dy (random-between -150.0 150.0))
+         (define dr (random-between -1.0 1.0))
+         (make-ship "asteroid" "Asteroid" "Rebel2" #:x x #:y y #:r 0 #:dx dx #:dy dy #:dr dr #:start-ship? #t #:npc? #t))
+     ;(make-ship "blue-fighter" "Blue 6" "Rebel" #:x x #:y y #:r 0 #:start-ship? #t))
+    ;,(make-ship "asteroid" "Asteroid" "Rebel" #:x 100 #:y 0 #:r 0 #:dx 100.0 #:dy 100.0 #:dr 1.0 #:start-ship? #t #:npc? #t)
     ;(make-ship "red-frigate" "Red Frigate" "Empire" #:x 0 #:y 0 #:r pi #:start-ship? #t)
     ;(make-ship "blue-station" "Rebel Base" "Rebel" #:x 0 #:y 0 #:start-ship? #t)
     
-    ,enemy-base
+    #;,enemy-base
     )))
 
 (define next-enemy-count 0)

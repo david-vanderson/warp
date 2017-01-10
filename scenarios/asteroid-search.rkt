@@ -2,56 +2,59 @@
 
 (require racket/math)
 
-(require "defs.rkt"
-         "utils.rkt"
-         "ships.rkt"
-         "order.rkt"
-         "upgrade.rkt")
+(require "../defs.rkt"
+         "../utils.rkt"
+         "../ships.rkt"
+         "../order.rkt"
+         "../upgrade.rkt")
 
 (provide (all-defined-out))
 
-(define ai? #t)
-
-(define (base-defense-scenario oldspace oldtick oldmessage)
+(define (asteroid-search-scenario oldspace oldtick oldmessage)
+  (define ai? #t)
   (define players (if oldspace (space-players oldspace) '()))
-  (for ((p players)) (set-player-faction! p "Rebel"))
+  (for ((p players)) (set-player-faction! p "Empire"))
 
-  (define ownspace (space 0 5000 2000 players '()
-                          `(
-                            ,(ann-button (next-id) 0 (posvel 0 (+ LEFT 60) (+ TOP 110) 0 100 50 0) #t "Quit Scenario" "quit-scenario")
-                            ,(ann-text (next-id) 0 (posvel 0 -200 -100 0 0 0 0) #f
-                                       (string-append
-                                        "Defend your base from the incoming destroyer.\n"
-                                        "Use your cruiser to attack, dock on the station to repair.\n"
-                                        "Enemy frigates drop upgrades when killed.")
-                                       10000)
-                            )))
-  
-  (define (new-blue-fighter)
-    (define s (make-ship "blue-fighter" "a" "a"))
-    (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
-                              ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start-ship?
-                              1.0 150.0 150.0 50.0 50.0 6.0 20.0 50.0 1.5 300.0 0.4 #f))
-    (set-ship-pods!
-     s `(,(normal-lounge)
-         ,(pod (next-id) "Pilot" #f ai? 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0
-               (list (steer (next-id) '() 0.0) (fthrust (next-id) '() #f)
-                     (dock (next-id) '() #f) (pbolt (next-id) '() 5.0 #f)))))
-    (set-obj-posvel! s #f)
-    s)
-  
+  (define hidden-base-id #f)
+
+  (define ownspace
+    (space 0 10000 6000 players '()
+           `(
+             ,(ann-button (next-id) 0 (posvel 0 (+ LEFT 60) (+ TOP 110) 0 100 50 0) #t "Quit Scenario" "quit-scenario")
+             ,(ann-text (next-id) 0 (posvel 0 -200 -100 0 0 0 0) #f
+                        (string-append
+                         "On mission to destroy a rebel outpost your engines have failed.\n"
+                         "Use your fighters to search the asteroid field for a hidden cache.\n"
+                         "Bring replacement parts back to the ship.\n"
+                         "Once mobile again, destroy the outpost on the far side of the field.\n")
+                        10000)
+             ,@(for/list ((i 50))
+                 (define x (+ -2500.0 (* i 100.0)))
+                 (define y (random-between -3000 3000))
+                 (define dx 0.0)
+                 (define dy (random-between -150.0 150.0))
+                 (define dr (random-between -1.0 1.0))
+                 (define s (make-ship "asteroid" "Asteroid" "_neutral" #:x x #:y y #:r 0
+                                      #:dx dx #:dy dy #:dr dr #:start-ship? #t #:npc? #t))
+                 (when (not hidden-base-id) (set! hidden-base-id (ob-id s)))
+                 s)
+             )))
+
+  ; the good guys in this scenario
   (define (new-red-fighter)
-    (define s (make-ship "red-fighter" "a" "a"))
-    (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
-                              ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start
-                              1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5 300.0 0.4 #f))
-    (set-ship-pods!
-     s `(,(normal-lounge)
-         ,(pod (next-id) "Pilot" #f #t 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0
-               (list (steer (next-id) '() 0.0) (fthrust (next-id) '() #f)
-                     (dock (next-id) '() #f) (pbolt (next-id) '() 5.0 #f)))))
+    (define s (make-ship "red-fighter" "Empire Fighter" "Empire"
+                         #:bat 200.0 #:con 50.0))
     (set-obj-posvel! s #f)
     s)
+
+  ; the bad guys
+  (define (new-blue-fighter)
+    (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel"))
+    (set-obj-posvel! s #f)
+    s)
+
+
+
   
   
   (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50))

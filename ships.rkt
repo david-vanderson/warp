@@ -66,6 +66,9 @@
                    #:helm-fore? (helm-fore? #f)
                    #:npc-weapons? (npc-weapons? #t)
                    #:npc-tactical? (npc-tactical? #t)
+                   #:power (power #f)
+                   #:bat (bat #f)
+                   #:con (con #f)
                    #:in-hangar (in-hangar '())
                    #:cargo (cargo '()))
   (define s ((if (equal? "space-suit" type) spacesuit spaceship)
@@ -126,8 +129,10 @@
                 (degrees->radians -21.8) 21.5 (- (/ pi 6)) pi/2 100.0 100.0
                 (list (pbolt (next-id) '() 5.0 #t))))))
     (("blue-fighter" "red-fighter")
-     (define mb 100.0)
-     (set-ship-stats! s (stats (next-id) type name faction 1.0 mb mb 50.0 50.0 6.0 20.0 40.0 1.0 300.0 0.4 start-ship?))
+     (define p (if power power 1.0))
+     (define b (if bat bat 100.0))
+     (define c (if con con 20.0))
+     (set-ship-stats! s (stats (next-id) type name faction p b b c c 6.0 20.0 40.0 1.0 300.0 0.4 start-ship?))
      (set-ship-pods!
       s `(,(normal-lounge)
           ,(pod (next-id) "Pilot" #f (and npc? npc-helm?) 0.0 5.0 0.0 (/ pi 6) 100.0 100.0
