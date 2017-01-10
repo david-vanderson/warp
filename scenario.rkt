@@ -28,6 +28,7 @@
            `(
              ,(ann-button (next-id) 0 (posvel 0 -200 -200 0 200 100 0) #f "Pilot Training" "pilot-training")
              ,(ann-button (next-id) 0 (posvel 0 -200 0 0 200 100 0) #f "Base Defense" "base-defense")
+             ,(ann-button (next-id) 0 (posvel 0 -200 200 0 200 100 0) #f "Asteroid Search" "asteroid-search")
              )))
   (define (on-tick space change-scenario!)
     (define changes '())

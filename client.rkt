@@ -188,9 +188,9 @@
       
       ; order annotations
       (when ordertree
-        (define a (+ 0.9 (* 0.1 (cycletri (space-time ownspace) 2500))))
+        (define a (+ 0.85 (* 0.15 (cycletri (space-time ownspace) 2000))))
         (define bright (linear-color "blue" "blue" 1.0 a))
-        (define dim (linear-color "blue" "blue" 1.0 0.9))
+        (define dim (linear-color "blue" "blue" 1.0 0.85))
         (for-orders ordertree showtab
           (lambda (ot depth highlight?)
             (when (order? ot)

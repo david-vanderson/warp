@@ -47,6 +47,11 @@
     (set-obj-posvel! s #f)
     s)
 
+  (define goodship (make-ship "red-frigate" "Empire Frigate" "Empire" #:x -4500.0 #:y -2000.0
+                              #:in-hangar (for/list ((i 2))
+                                            (new-red-fighter))))
+  
+
   ; the bad guys
   (define (new-blue-fighter)
     (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel"))

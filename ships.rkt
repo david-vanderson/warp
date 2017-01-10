@@ -22,6 +22,8 @@
   (define shiplist
     '("space-suit"
       "probe"
+      "asteroid_87"
+      "asteroid_43"
       "blue-station"
       "red-station"
       "blue-frigate"
@@ -74,8 +76,8 @@
   (define s ((if (equal? "space-suit" type) spacesuit spaceship)
              ;(stats pods hangar crew ai-strategy dmgfx cargo)
              (next-id) 0 (if posvel? (posvel 0 x y r dx dy dr) #f)
-             #f  ; fill the stats later
-             #f  ; fill pods later
+             #f  ; must fill the stats later
+             '()  ; fill pods later if any
              '()  ; empty ai-strategy
              '()  ; empty dmgfx
              cargo))
@@ -93,9 +95,10 @@
      (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 10.0 10.0 7.0 1.0 100.0 1.0 1000.0 0.4 #f))
      (set-ship-pods! s (list (pod (next-id) "P" #f #f 0.0 3.0 #f #f 50.0 50.0
                                   (list (steer (next-id) '() r) (fthrust (next-id) '() #t))))))
-    (("asteroid")
-     (set-ship-stats! s (stats (next-id) "red-station" name faction 0.0 0.0 0.0 10000.0 10000.0 26.0 10000.0 0.0 0.0 200.0 0.0 start-ship?))
-     (set-ship-pods! s `(,(normal-lounge))))
+    (("asteroid_87")
+     (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 10000.0 10000.0 43.0 10000.0 0.0 0.0 200.0 0.0 start-ship?)))
+    (("asteroid_43")
+     (set-ship-stats! s (stats (next-id) type name faction 0.0 0.0 0.0 5000.0 5000.0 21.0 5000.0 0.0 0.0 200.0 0.0 start-ship?)))
     (("blue-station" "red-station")
      (define mb 500.0)
      (define mc 500.0)
@@ -110,7 +113,7 @@
                    (degrees->radians d) 26.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
                    (list (pbolt (next-id) '() 15.0 #t))))
           ,@(for/list ((d (in-list (list 45 135 225 315))))
-              (pod (next-id) "T" #f (and npc? npc-tactical?)
+              (pod (next-id) "S" #f (and npc? npc-tactical?)
                    (degrees->radians d) 28.0 (degrees->radians d) (* 0.8 pi) 100.0 100.0
                    (list (shbolt (next-id) '() 50.0 #t)))))))
     (("blue-frigate" "red-frigate")
