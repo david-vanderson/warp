@@ -11,16 +11,16 @@
 (provide (all-defined-out))
 
 (define (asteroid-search-scenario oldspace oldtick oldmessage)
-  (define ai? #t)
+  (define ai? #f)
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "Empire"))
 
-  (define hidden-base-id #f)
+  (define hidden-base #f)
 
   (define ownspace
-    (space 0 10000 6000 players '()
+    (space 0 6000 4000 players '()
            `(
-             ,(ann-button (next-id) 0 (posvel 0 (+ LEFT 60) (+ TOP 110) 0 100 50 0) #t "Quit Scenario" "quit-scenario")
+             ,(standard-quit-scenario-tab-button)
              ,(ann-text (next-id) 0 (posvel 0 -200 -100 0 0 0 0) #f
                         (string-append
                          "On mission to destroy a rebel outpost your engines have failed.\n"
@@ -28,150 +28,117 @@
                          "Bring replacement parts back to the ship.\n"
                          "Once mobile again, destroy the outpost on the far side of the field.\n")
                         10000)
-             ,@(for/list ((i 50))
-                 (define x (+ -2500.0 (* i 100.0)))
-                 (define y (random-between -3000 3000))
+             ,@(for/list ((i 30))
+                 (define x (+ -1500.0 (* i 100.0)))
+                 (define y (random-between -2000 2000))
                  (define dx 0.0)
                  (define dy (random-between -150.0 150.0))
                  (define dr (random-between -1.0 1.0))
-                 (define s (make-ship "asteroid" "Asteroid" "_neutral" #:x x #:y y #:r 0
-                                      #:dx dx #:dy dy #:dr dr #:start-ship? #t #:npc? #t))
-                 (when (not hidden-base-id) (set! hidden-base-id (ob-id s)))
+                 (define s (make-ship (if ((random) . > . 0.5) "asteroid_43" "asteroid_87")
+                                      "Asteroid" "_neutral" #:x x #:y y
+                                      #:dx dx #:dy dy #:dr dr))
+                 (set-ship-cargo! s (list (upgrade (next-id) 0 #f "unscouted")))
+                 (when (not hidden-base)
+                   (set! hidden-base s)
+                   (set-ship-pods! s (append (ship-pods s) (list (normal-hangar 0.0 0.0 '())))))
                  s)
              )))
+
+  ; put the spare parts upgrade in the hidden base
+  (define parts (upgrade (next-id) (space-time ownspace) #f "parts"))
 
   ; the good guys in this scenario
   (define (new-red-fighter)
     (define s (make-ship "red-fighter" "Empire Fighter" "Empire"
                          #:bat 200.0 #:con 50.0))
+    (set-stats-thrust! (ship-stats s) 55.0)
     (set-obj-posvel! s #f)
     s)
 
-  (define goodship (make-ship "red-frigate" "Empire Frigate" "Empire" #:x -4500.0 #:y -2000.0
-                              #:in-hangar (for/list ((i 2))
-                                            (new-red-fighter))))
+  (define goodship (make-ship "red-frigate" "a" "a" #:x -2500.0 #:y -200.0 #:r 0.0))
+  (set-ship-stats! goodship (stats (next-id) "red-frigate" "Empire Frigate" "Empire"
+                                   ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start
+                                   10.0 100.0 100.0 500.0 500.0 18.0 100.0 20.0 0.3 300.0 0.4 #t))
+
+  ; ship starts with pilot tools damaged beyond repair
+  ; we will manually remove the dmgs when the engine parts are recovered
+  (define steerdmgid (next-id))
+  (define fthrustdmgid (next-id))
+  (define warpdmgid (next-id))
+  (set-ship-pods!
+   goodship `(,(normal-lounge)
+              ,(normal-hangar pi 10.0 (list (new-red-fighter)
+                                            (new-red-fighter)
+                                            (new-red-fighter)))
+              ,(pod (next-id) "Pilot" #f #f 0.0 3.0 #f #f 100.0 100.0
+                    (list (steer (next-id) (list (dmg steerdmgid "offline" 10000.0 0 #f)) (obj-r goodship))
+                          (fthrust (next-id) (list (dmg fthrustdmgid "offline" 10000.0 0 #f)) #f)
+                          (warp (next-id) (list (dmg warpdmgid "offline" 10000.0 0 #f)) 300.0 0.0 "release")))
+              ,(pod (next-id) "WM" #f ai?
+                    (degrees->radians 21.8) 21.5 (/ pi 6) pi/2 100.0 100.0
+                    (list (pbolt (next-id) '() 5.0 #t)
+                          (mtube (next-id) '() 100.0 100.0 "load" #f)))
+              ,(pod (next-id) "WM" #f ai?
+                    (degrees->radians -21.8) 21.5 (- (/ pi 6)) pi/2 100.0 100.0
+                    (list (pbolt (next-id) '() 5.0 #t)
+                          (mtube (next-id) '() 100.0 100.0 "load" #f)))
+              ,(pod (next-id) "WP" #f ai?
+                    (degrees->radians 130) 21.0 pi/2 pi 100.0 100.0
+                    (list (pbolt (next-id) '() 5.0 #t)
+                          (ptube (next-id) '() 100.0 100.0 "load" #f 120.0)))
+              ,(pod (next-id) "WP" #f ai?
+                    (degrees->radians -130) 21.0 (- pi/2) pi 100.0 100.0
+                    (list (pbolt (next-id) '() 5.0 #t)
+                          (ptube (next-id) '() 100.0 100.0 "load" #f 120.0)))))
   
 
   ; the bad guys
   (define (new-blue-fighter)
-    (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel"))
+    (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:npc? ai?))
     (set-obj-posvel! s #f)
     s)
 
-
-
-  
-  
-  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50))
-  (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
-                                  ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start?
-                                  8.0 150.0 150.0 150.0 150.0 15.0 100.0 30.0 1.0 500.0 0.4 #t))
-  (set-ship-pods!
-   cruiser
-   `(,(normal-lounge)
-     ,(normal-hangar pi 5.0 (list (new-blue-fighter)))
-     ,(pod (next-id) "Pilot" #f #f 0.0 6.0 #f #f 100.0 100.0
-           (list (steer (next-id) '() pi/2) (fthrust (next-id) '() #f) (dock (next-id) '() #f)
-                 (warp (next-id) '() 300.0 0.0 "release")))
-     ,(pod (next-id) "W" #f ai? (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.9 pi) 60.0 60.0
-           (list (pbolt (next-id) '() 5.0 #t)
-                 (ptube (next-id) '() 100.0 100.0 "load" #f)))
-     ,(pod (next-id) "W" #f ai? (degrees->radians 45.0) 12.0 (degrees->radians 30.0) (* 0.5 pi) 60.0 60.0
-           (list (pbolt (next-id) '() 10.0 #t)))
-     ,(pod (next-id) "W" #f ai? (degrees->radians 270.0) 10.0 (degrees->radians 285.0) (* 0.9 pi) 60.0 60.0
-           (list (pbolt (next-id) '() 5.0 #t)
-                 (ptube (next-id) '() 100.0 100.0 "load" #f)))
-     ,(pod (next-id) "W" #f ai? (degrees->radians 315.0) 12.0 (degrees->radians 330.0) (* 0.5 pi) 60.0 60.0
-           (list (pbolt (next-id) '() 10.0 #t)))
-     ,(pod (next-id) "T" #f ai? (degrees->radians 0.0) 15.0 (degrees->radians 0.0) (* 0.8 pi) 50.0 50.0
-           (list (shbolt (next-id) '() 10.0 #t)
-                 (mtube (next-id) '() 100.0 100.0 "load" #f)))
-     ,(pod (next-id) "T" #f ai? (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0
-           (list (shbolt (next-id) '() 20.0 #t)
-                 (mtube (next-id) '() 100.0 100.0 "load" #f)))))
-  
-  
-  (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100))
-  (set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
+  (define enemy-base (make-ship "blue-station" "a" "a" #:x 2500.0 #:y 200.0))
+  (set-ship-stats! enemy-base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
                                ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start-ship?
-                               5.0 500.0 500.0 1000.0 1000.0 26.0 1000.0 0.0 0.0 1000.0 0.4 #t))
+                               10.0 500.0 500.0 750.0 750.0 26.0 1000.0 0.0 0.0 600.0 0.4 #t))
   (set-ship-pods!
-   base
+   enemy-base
    `(,(normal-lounge)
      ,(normal-hangar pi 13.0 '())
      ,@(for/list ((d (in-list (list 0 90 180 270))))
          (pod (next-id) "W" #f #t (degrees->radians d) 26.0 (degrees->radians d) (* 0.9 pi) 50.0 50.0
               (list (pbolt (next-id) '() 10.0 #t)
-                    (ptube (next-id) '() 100.0 100.0 "load" #f))))
+                    (ptube (next-id) '() 100.0 100.0 "load" #f 100.0))))
      ,@(for/list ((d (in-list (list 45 135 225 315))))
          (pod (next-id) "T" #f #t (degrees->radians d) 28.0 (degrees->radians d) (* 0.9 pi) 100.0 100.0
               (list (shbolt (next-id) '() 20.0 #t)
                     (mtube (next-id) '() 100.0 100.0 "load" #f))))))
   
-  
-  (define destroyer (make-ship "red-destroyer" "b" "b" #:x 2400 #:y 100 #:r pi))
-  (set-ship-stats! destroyer (stats (next-id)
-                                    ;type name faction
-                                    "red-destroyer" "Empire Destroyer" "Empire"
-                                    ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start?
-                                    15.0 500.0 500.0 1000.0 1000.0 23.0 500.0 6.0 0.1 1000.0 0.4 #f))
-  (set-ship-pods!
-   destroyer
-   `(,(normal-lounge)
-     ,(normal-hangar pi 10.0 '())
-     ,(pod (next-id) "Pilot" #f #t 0.0 10.0 #f #f 100.0 100.0
-           (list (steer (next-id) '() pi) (fthrust (next-id) '() #t)))
-     ,@(for/list ((d (in-list (list -10 10))))
-         (pod (next-id) "W" #f #t (degrees->radians d) 23.0 0.0 (* 0.4 pi) 200.0 200.0
-              (list (pbolt (next-id) '() 10.0 #t))))
-     ,@(for/list ((d (in-list (list -62 62))))
-         (pod (next-id) "W" #f #t (degrees->radians d) 23.0 (degrees->radians (/ d 2.0)) (* 0.8 pi) 100.0 100.0
-              (list (pbolt (next-id) '() 10.0 #t))))
-     ,@(for/list ((d (in-list (list -130 130))))
-         (pod (next-id) "W" #f #t (degrees->radians d) 21.0 (degrees->radians d) (* 0.9 pi) 100.0 100.0
-              (list (pbolt (next-id) '() 10.0 #t))))
-     ,@(for/list ((d (in-list (list -35 35))))
-         (pod (next-id) "W" #f #t (degrees->radians d) 24.0 (degrees->radians d) (* 0.7 pi) 150.0 150.0
-              (list (pbolt (next-id) '() 10.0 #t))))
-     ,@(for/list ((d (in-list (list -90 90))))
-         (pod (next-id) "T" #f #t (degrees->radians d) 21.0 (degrees->radians d) (* 0.9 pi) 50.0 50.0
-              (list (shbolt (next-id) '() 10.0 #t)
-                    (mtube (next-id) '() 100.0 100.0 "load" #f))))))
-  
-  (set-ship-ai-strategy! destroyer
-                         (list (strategy (space-time ownspace) "attack-only" (ob-id base))))
-  
-  
-  (define special (new-blue-fighter))
-  (set-obj-posvel! special (posvel 0 -2100.0 -100.0 0.0 0.0 0.0 0.0))
-  (set-ship-cargo! special (list (random-upgrade ownspace #f) (random-upgrade ownspace #f)))
-  ;(define special2 (new-red-fighter))
-  ;(set-obj-posvel! special2 (posvel 0 1000.0 0.0 0.0 0.0 0.0 0.0))
-  
-  
-  (set-space-objects! ownspace (append (space-objects ownspace) (list cruiser base destroyer #;special)))
+  (set-space-objects! ownspace (append (space-objects ownspace)
+                                       (list goodship enemy-base)))
 
-  (define rebel-orders
-    (ordercomb #f "Do All:" 'and
-               (list (alive "Keep Base Alive" (ob-id base))
-                     (alive "Keep Cruiser Alive" (ob-id cruiser))
-                     (kill "Kill Enemy Destroyer" (ob-id destroyer)))))
+  (define playing? #t)
+  (define time-limit (* 1000 60 15))  ; 15 min
+  (define found-base? #f)
+  (define dock-base? #f)
+  (define parts-returned? #f)
+  
+  (define orders
+    (timeout "Within ~a" 0 time-limit
+             (ordercomb #f "" 'and
+               (list (alive "Keep Frigate Alive" (ob-id goodship))
+                     (ordercomb #f "" 'seq
+                                (list (order #f "Find Asteroid Base with Fighters" '()
+                                             (lambda (s f o) found-base?))
+                                      (order #f "Dock Fighter with Asteroid" '()
+                                             (lambda (s f o) dock-base?))
+                                      (order #f "Return Parts to Frigate" '()
+                                             (lambda (s f o) parts-returned?))
+                                      (kill "Destroy Enemy Outpost" (ob-id enemy-base))))))))
   
   (define real-orders (space 0 0 0 '() '() '()))  ; only care about orders
-  (set-space-orders-for! real-orders "Rebel" rebel-orders)
-
-  
-  ;(for ((i 10) (t (in-cycle '("power" "thrust" "bat" "con"))))
-  ;  (define u (upgrade (next-id) (space-time ownspace)
-  ;                     (posvel (space-time ownspace) -1700 (+ -250 (* i 50)) 0 0 0 0)
-  ;                     t))      
-  ;  (set-space-objects! ownspace (cons u (space-objects ownspace))))
-  
-  
-  (define next-enemy-count 0)
-  (define last-base-con 10000)
-  (define last-enemy-base-con 10000)
-  (define playing? #t)
+  (set-space-orders-for! real-orders "Empire" orders)
   
   ; return a list of changes
   (define (on-tick ownspace change-scenario!)
@@ -180,24 +147,23 @@
     (for ((p (space-players ownspace)))
       (when (not (player-faction p))
         ; new player
-        (append! changes (chfaction (ob-id p) "Rebel"))))
+        (append! changes (chfaction (ob-id p) "Empire"))))
 
     (for ((fo (space-orders real-orders)))
       (check ownspace (car fo) (cadr fo)))
     
-    (define hb (find-id ownspace (ob-id base)))
-    (define eb (find-id ownspace (ob-id destroyer)))
-    (define c (find-id ownspace (ob-id cruiser)))
+    (define frig (find-id ownspace (ob-id goodship)))
+    (define eb (find-id ownspace (ob-id enemy-base)))
 
-    (when (and playing? (or (not hb) (not eb) (not c)))
-      (set! playing? #f)
+    (when (and playing? (or (not frig) (not eb) ((space-time ownspace) . > . time-limit)))
+      (set! playing? #f)  ; end scenario
       (define txt
-        (cond ((not hb)
-               "Base Destroyed, Rebels Defeated, You Lose")
-              ((not c)
-               "Cruiser Destroyed, Rebels Defeated, You Lose")
+        (cond ((not frig)
+               "Frigate Destroyed, You Lose")
+              ((not eb)
+               "Enemy Outpost Destroyed, You Win!")
               (else
-               "Enemy Defeated, You Win")))
+               "Ran Out of Time, You Lose")))
       
       (append! changes (chadd (ann-text (next-id) (space-time ownspace)
                                         (posvel 0 -200 -100 0 0 0 0) #f
@@ -208,40 +174,59 @@
                                           "Quit Scenario" "quit-scenario") #f))
       )
 
-    (when (and playing? hb eb)
+    (when playing?
       (when (time-for (space-time ownspace) 55000 0000)
         (define m (message (next-id) (space-time ownspace) #f "New Fighter at Outpost"))
         (define f (new-blue-fighter))
-        (append! changes (chadd f (ob-id (ship-hangar base))) m))
+        (set-ship-ai-strategy! f
+          (list (strategy (space-time ownspace) "attack*" (ob-id goodship))
+                (strategy (space-time ownspace) "return" (ob-id enemy-base))))
+        (append! changes (chadd f (ob-id (ship-hangar enemy-base))) m))
+
+      (define hb (find-id ownspace (ob-id hidden-base)))
       
-      (when (time-for (space-time ownspace) 65000 20000)
-        (define f (new-red-fighter))
-        (append! changes (chadd f (ob-id (ship-hangar destroyer)))))
+      ; update scouted status of asteroids
+      (define (unscouted-cargo o)
+        (and (upgrade? o) (equal? "unscouted" (upgrade-type o))))
       
-      (when (time-for (space-time ownspace) 90000 10000)
-        (define m (message (next-id) (space-time ownspace) #f "Empire Frigate Incoming"))
-        (define x (+ (/ (space-width ownspace) 2) 100))
-        (define y (random-between (- (/ (space-height ownspace) 2)) (/ (space-height ownspace) 2)))
-        (define fighters (for/list ((i (random 3)))
-                           (make-ship "red-fighter" "Empire Fighter" "Empire")))
-        (define f (make-ship "red-frigate" "Empire Frigate" "Empire" #:x x #:y y #:r pi
-                             #:in-hangar fighters #:cargo (list (random-upgrade ownspace #f)
-                                                                (random-upgrade ownspace #f))))
-        (set-ship-ai-strategy! f (list (strategy (space-time ownspace) "attack*" (ob-id base))))
-        (append! changes (chadd f #f) m))
-      
-      
-      
-      (when ((ship-con hb) . < . (- last-base-con 100))
-        (define m (message (next-id) (space-time ownspace) #f (format "Outpost Health: ~a" (inexact->exact (round (ship-con hb))))))
-        (append! changes m)
-        (set! last-base-con (ship-con hb)))
-      
-      
-      (when (< (ship-con eb) (- last-enemy-base-con 50))
-        (define m (message (next-id) (space-time ownspace) #f (format "Empire Destroyer Health: ~a" (inexact->exact (round (ship-con eb))))))
-        (append! changes m)
-        (set! last-enemy-base-con (ship-con eb))))
+      (for ((s (space-objects ownspace))
+            #:when (and (spaceship? s)
+                        (equal? "Empire" (ship-faction s))
+                        (not (equal? "probe" (ship-type s))))
+            (a (space-objects ownspace))
+            #:when (and (spaceship? a)
+                        ((distance s a) . < . (ship-radar s))
+                        (find-id a unscouted-cargo)))
+        ; remove the unscouted cargo
+        (append! changes (chrm (ob-id (find-id a unscouted-cargo))))
+        ; check if this was the hidden base
+        (when (and (not found-base?) (equal? (ob-id hb) (ob-id a)))
+          (set! found-base? #t)
+          (define newstats (copy (ship-stats hb)))
+          (set-stats-faction! newstats "Empire")
+          (append! changes (chstats (ob-id hb) newstats)
+                   (chadd parts (ob-id hb))
+                   (message (next-id) (space-time ownspace) #f "Discovered Hidden Base!"))))
+
+      ; check if the good guys docked
+      (when (and found-base? (not dock-base?))
+        (define s (find-id (ship-hangar hb) spaceship?))
+        (when s
+          (set! dock-base? #t)
+          (append! changes (chmov (ob-id parts) (ob-id hb) (ob-id s) #f)
+                   (message (next-id) (space-time ownspace) #f "Parts Transferred to Fighter"))))
+
+      ; check if the parts got back to goodship
+      (when (and found-base? dock-base? (not parts-returned?))
+        (define gs (find-id ownspace (ob-id goodship)))
+        (define p (find-stack gs (ob-id parts)))
+        (when p
+          (set! parts-returned? #t)
+          ; need to actually repair the engine somehow...
+          (append! changes (chrm (ob-id parts))
+                   (chrm steerdmgid) (chrm fthrustdmgid) (chrm warpdmgid)
+                   (message (next-id) (space-time ownspace) #f "Frigate Engine Repaired!"))))
+      )
 
     (append! changes (order-changes ownspace real-orders))
     

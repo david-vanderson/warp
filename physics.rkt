@@ -136,22 +136,6 @@
        (set-space-objects! space (remove o (space-objects space)))))))
 
 
-
-; return list of additional changes
-; when a damage is added to a tool, it might turn the tool off?
-; when a damage is added, should the pod lose any energy directly?
-(define (add-dmg! space t dmg)
-  (define changes '())
-  (printf "add-dmg! ~v\n" dmg)
-  (cond
-    ((ormap (lambda (d) (equal? (dmg-type dmg) (dmg-type d)))
-            (tool-dmgs t))
-     (printf "add-dmg! already had dmg of type ~a\n" (dmg-type dmg)))
-    (else
-     (set-tool-dmgs! t (append (tool-dmgs t) (list dmg)))))
-  changes)
-
-
 ; return list of additional changes
 (define (reduce-ship! space ship damage)
   (define changes '())
@@ -181,7 +165,8 @@
         (define ss (make-spacesuit (player-name p) ship))
         (append! changes (chadd ss #f) (chrole (ob-id p) (ob-id (ship-lounge ss)))))
       
-      (for ((u (in-list (ship-cargo ship))))
+      (for ((u (in-list (ship-cargo ship)))
+            #:when (upgrade-color u))  ; if no color, then it's not meant to exist outside the ship
         (define newpv (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
                               (+ (posvel-dx pv) (random-between -50 50))
                               (+ (posvel-dy pv) (random-between -50 50)) 0))

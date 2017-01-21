@@ -54,7 +54,7 @@
         (when (server?)
           (define a (angle-add (obj-r ship) (pod-angle pod)))
           (define b (angle-add (obj-r ship) (pod-facing pod)))
-          (define p (make-ship "probe" "Probe" (ship-faction ship) #:r b))
+          (define p (make-ship "probe" "Probe" (ship-faction ship) #:r b #:e (ptube-pe tool)))
           (define d (+ (ship-radius ship) (* 2.0 (ship-radius p))))
           (set-obj-posvel! p (posvel (space-time space)
                                      (+ (obj-x ship) (* d (cos a)))
@@ -101,8 +101,10 @@
   (append! buttons loadb)
   (define ob (add-offline-button! t loadb send-commands))
   (when ob (append! buttons ob))
+
+  (set! x (- x (/ w 2) 10 35))
   
-  (define b (button 'disabled #\f (- x 60) (- BOTTOM 35) 50 50 "Launch [f]" #f))
+  (define b (button 'disabled #\f x y 70 50 "Launch [f]" #f))
   (when (and (ship-flying? ship)
              (not probe)
              ((ptube-e t) . = . (ptube-maxe t)))
@@ -113,6 +115,8 @@
   (define oob (add-offline-button! t b send-commands "nofire"))
   (when oob (append! buttons oob))
 
+  (set! x (- x 35 10 35))
+
   (when probe
     (define pod (car (ship-pods probe)))
     (define life (* 10.0 (pod-e pod)))
@@ -121,7 +125,7 @@
                          #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square)) 1.0)
                          #:r 255))
     
-    (define b (button 'normal #\s (- x 120) (- BOTTOM 35) 50 50 "Stop [s]"
+    (define b (button 'normal #\s x y 70 50 "Stop [s]"
                       (lambda (x y)
                         (send-commands (list (command (ob-id (findf fthrust? (pod-tools pod))) #f)
                                              (command (ob-id t) #f))))))

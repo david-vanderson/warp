@@ -230,7 +230,16 @@
         (set-space-players! space (remove-id (chrm-id c) (space-players space))))
        (else
         ;(printf "~a removing ~v\n" who (find-id space (chrm-id c)))
-        (set-space-objects! space (remove-id (chrm-id c) (space-objects space)))))
+        (define s (find-stack space (chrm-id c)))
+        (cond ((space? (cadr s))
+               (set-space-objects! space (remove-id (chrm-id c) (space-objects space))))
+              ((ship? (cadr s))
+               (set-ship-cargo! (cadr s) (remove-id (chrm-id c) (ship-cargo (cadr s)))))
+              ((tool? (cadr s))
+               (set-tool-dmgs! (cadr s) (remove-id (chrm-id c) (tool-dmgs (cadr s)))))
+              (else
+               (printf "~a chrm - hit else clause for obj id ~a\n" who (chrm-id c)))
+               )))
      (values #t '()))
     ((chdam? c)
      (define o (find-id space (chdam-id c)))

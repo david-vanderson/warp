@@ -39,7 +39,8 @@
 ; client
 (define (for-orders ot doall? f)
   (let loop ((ot ot) (depth 0) (highlight #t))
-    (when (or doall? (not (ord-done? ot)))
+    (when (and (or doall? (not (ord-done? ot)))
+               ((string-length (ord-text ot)) . > . 0))
       (f ot depth (and highlight (not (ord-done? ot)))))
     (cond
       ((ordertime? ot)

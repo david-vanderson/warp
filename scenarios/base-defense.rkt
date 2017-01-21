@@ -17,7 +17,7 @@
 
   (define ownspace (space 0 5000 2000 players '()
                           `(
-                            ,(ann-button (next-id) 0 (posvel 0 (+ LEFT 60) (+ TOP 110) 0 100 50 0) #t "Quit Scenario" "quit-scenario")
+                            ,(standard-quit-scenario-tab-button)
                             ,(ann-text (next-id) 0 (posvel 0 -200 -100 0 0 0 0) #f
                                        (string-append
                                         "Defend your base from the incoming destroyer.\n"
@@ -66,12 +66,12 @@
                  (warp (next-id) '() 300.0 0.0 "release")))
      ,(pod (next-id) "WP" #f ai? (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.9 pi) 60.0 60.0
            (list (pbolt (next-id) '() 5.0 #t)
-                 (ptube (next-id) '() 100.0 100.0 "load" #f)))
+                 (ptube (next-id) '() 100.0 100.0 "load" #f 50.0)))
      ,(pod (next-id) "W" #f ai? (degrees->radians 45.0) 12.0 (degrees->radians 30.0) (* 0.5 pi) 60.0 60.0
            (list (pbolt (next-id) '() 10.0 #t)))
      ,(pod (next-id) "WP" #f ai? (degrees->radians 270.0) 10.0 (degrees->radians 285.0) (* 0.9 pi) 60.0 60.0
            (list (pbolt (next-id) '() 5.0 #t)
-                 (ptube (next-id) '() 100.0 100.0 "load" #f)))
+                 (ptube (next-id) '() 100.0 100.0 "load" #f 50.0)))
      ,(pod (next-id) "W" #f ai? (degrees->radians 315.0) 12.0 (degrees->radians 330.0) (* 0.5 pi) 60.0 60.0
            (list (pbolt (next-id) '() 10.0 #t)))
      ,(pod (next-id) "SM" #f ai? (degrees->radians 0.0) 15.0 (degrees->radians 0.0) (* 0.8 pi) 50.0 50.0
@@ -93,7 +93,7 @@
      ,@(for/list ((d (in-list (list 0 90 180 270))))
          (pod (next-id) "WP" #f #t (degrees->radians d) 26.0 (degrees->radians d) (* 0.9 pi) 50.0 50.0
               (list (pbolt (next-id) '() 10.0 #t)
-                    (ptube (next-id) '() 100.0 100.0 "load" #f))))
+                    (ptube (next-id) '() 100.0 100.0 "load" #f 100.0))))
      ,@(for/list ((d (in-list (list 45 135 225 315))))
          (pod (next-id) "SM" #f #t (degrees->radians d) 28.0 (degrees->radians d) (* 0.9 pi) 100.0 100.0
               (list (shbolt (next-id) '() 20.0 #t)

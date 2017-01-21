@@ -131,8 +131,9 @@
 ; mode is "load" (if loading a missile) or "unload" (sends energy back to pod)
 ; mid is #f at start, but the id of the last missile we fired
 ; - if we can find that missile in space, we are controlling it
-(struct ptube tool (maxe e mode pid) #:mutable #:prefab)
+(struct ptube tool (maxe e mode pid pe) #:mutable #:prefab)
 ; same as mtube but shoots probes
+; pe is the energy that each probe has (how far it can go)
 
 (struct stats ob (type name faction power bat maxbat con maxcon radius mass thrust rthrust radar drag start) #:mutable #:prefab)
 ; carries all the stats for a ship

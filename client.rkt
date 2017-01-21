@@ -173,7 +173,7 @@
       ; put a black circle wherever we can see
       (define fowlist
         (for/list ((s (in-list (space-objects ownspace)))
-                   #:when (and fac (ship? s) (equal? (ship-faction s) fac)))
+                   #:when (and fac (ship? s) ((faction-check fac (ship-faction s)) . > . 0)))
           (list (obj-x s) (obj-y s) (ship-radar s))))
 
       (for ((f fowlist))
@@ -215,18 +215,6 @@
                                                        (* 4.0 (ship-radius s))) (send col alpha) 0.0 col))))
                   (else
                    (error "don't know how to draw annotation ~v" a))))))))
-      
-;          ;; debug, show radar distance for all ships
-;          (when DEBUG
-;            (send dc set-brush nocolor 'transparent)
-;            (send dc set-pen "pink" (/ 1.0 (dc-point-size dc)) 'solid)
-;            (for ((s (in-list (space-objects ownspace)))
-;                  #:when (ship? s))
-;              (keep-transform dc
-;                (define r (ship-radar s))
-;                (send dc translate (obj-x s) (obj-y s))
-;                (send dc draw-ellipse (- r) (- r) (* 2 r) (* 2 r)))))
-;
 
       (define layer_effects LAYER_EFFECTS)
       (when (and my-stack (or (not (ship-flying? (get-ship my-stack)))
@@ -240,7 +228,7 @@
         (define fowa (if (obj-posvel o) (get-alpha (obj-x o) (obj-y o) fowlist) 1.0))
         (when (fowa . > . 0)
           (append! sprites
-                   (draw-object csd textr center (get-scale) o ownspace meid showtab fowa layer_effects))))
+                   (draw-object csd textr center (get-scale) o ownspace meid showtab fowa layer_effects fac))))
       
       ; draw stuff specific to the ship you are on
       ; - stacked if we are on a ship inside another ship

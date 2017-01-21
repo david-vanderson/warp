@@ -105,7 +105,7 @@
         )))
   spr)
 
-(define (draw-object csd textr center scale o space pid showplayers? fowa layer_effects)
+(define (draw-object csd textr center scale o space pid showplayers? fowa layer_effects faction)
   (define spr '())
   (cond       
     #;((ptsize . < . 0.25)  ; "sector" view - ships are triangles
@@ -150,7 +150,12 @@
                                  #:a fowa #:r (get-red space o)))
             (append! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
             (when showplayers?
-              (append! spr (draw-playerlist csd textr center scale o))))
+              (define colstr (faction-check-color faction (ship-faction o)))
+              (define players (find-all o player?))
+              ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
+              (append! spr (draw-cargolist csd textr center scale o colstr fowa
+                                           (cons (ship-name o) (map upgrade-type (ship-cargo o)))
+                                           (map player-name players)))))
            ((plasma? o)
             (append! spr (draw-plasma csd center scale o space fowa)))
            ((missile? o)
@@ -160,28 +165,34 @@
            ((effect? o)
             (append! spr (draw-effect csd center scale space o fowa layer_effects)))
            ((upgrade? o)
-            (append! spr (draw-upgrade csd center scale space o fowa))))))
+            (append! spr (draw-upgrade csd center scale space o fowa))
+            (when showplayers?
+              (append! spr (draw-cargolist csd textr center scale o "gray" fowa
+                                           (list (upgrade-type o)) '())))))))
   spr)
 
 
-(define (draw-playerlist csd textr center scale ship)
+(define (draw-cargolist csd textr center scale obj colstr fowa text-above text-below)
   (define spr '())
-  (define players (find-all ship player?))
-  ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
-  (when (not (null? players))
-    (define-values (sx sy) (obj->screen ship center scale))
-    (append! spr (sprite (+ sx 25.0) (+ sy 25.0) (sprite-idx csd 'square) #:layer LAYER_MAP
-                         #:mx (/ 71.0 (sprite-width csd (sprite-idx csd 'square)))
-                         #:my (/ 2.0 (sprite-height csd (sprite-idx csd 'square)))
-                         #:b 255 #:theta (/ pi 4)))
-    (append! spr (sprite (+ sx 85.0) (+ sy 50.0) (sprite-idx csd 'square) #:layer LAYER_MAP
-                         #:mx (/ 70.0 (sprite-width csd (sprite-idx csd 'square)))
-                         #:my (/ 2.0 (sprite-height csd (sprite-idx csd 'square)))
-                         #:b 255))
-    (for ((p players) (i (in-naturals)))
-      (append! spr (text-sprite textr (player-name p)
-                                (+ sx 55.0) (+ sy 55.0 (* i 20))
-                                LAYER_MAP 1.0 "blue"))))
+  (define col (send the-color-database find-color colstr))
+  (define-values (sx sy) (obj->screen obj center scale))
+  (append! spr (sprite (+ sx 25.0) (+ sy 25.0) (sprite-idx csd 'square) #:layer LAYER_MAP
+                       #:mx (/ 71.0 (sprite-width csd (sprite-idx csd 'square)))
+                       #:my (/ 2.0 (sprite-height csd (sprite-idx csd 'square)))
+                       #:r (send col red) #:g (send col green) #:b (send col blue)
+                       #:theta (/ pi 4) #:a fowa))
+  (append! spr (sprite (+ sx 85.0) (+ sy 50.0) (sprite-idx csd 'square) #:layer LAYER_MAP
+                       #:mx (/ 70.0 (sprite-width csd (sprite-idx csd 'square)))
+                       #:my (/ 2.0 (sprite-height csd (sprite-idx csd 'square)))
+                       #:r (send col red) #:g (send col green) #:b (send col blue) #:a fowa))
+  (for ((t text-above) (i (in-naturals)))
+    (append! spr (text-sprite textr t
+                              (+ sx 55.0) (+ sy 50.0 (- (* (+ i 1) 14)))
+                              LAYER_MAP fowa colstr)))
+  (for ((t text-below) (i (in-naturals)))
+    (append! spr (text-sprite textr t
+                              (+ sx 55.0) (+ sy 55.0 (* i 14))
+                              LAYER_MAP fowa colstr)))
   spr)
     
    

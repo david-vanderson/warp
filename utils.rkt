@@ -9,6 +9,9 @@
 
 (provide (all-defined-out))
 
+(define (standard-quit-scenario-tab-button)
+  (ann-button (next-id) 0 (posvel 0 (+ LEFT 50) (+ TOP 80) 0 100 50 0) #t "Quit Scenario" "quit-scenario"))
+
 (define-syntax-rule (append! lst e ...)
   (set! lst (append lst (flatten (list e ...)))))
 
@@ -39,6 +42,12 @@
         ((or (equal? "_neutral" my-faction)
              (equal? "_neutral" other-faction)) 0)
         (else -1)))
+
+(define (faction-check-color my-faction other-faction)
+  (define fc (faction-check my-faction other-faction))
+  (cond ((fc . > . 0) "blue")
+        ((fc . < . 0) "red")
+        (else "gray")))
 
 (define (strategy-age space s)
   (- (space-time space) (strategy-t s)))

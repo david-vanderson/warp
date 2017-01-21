@@ -14,7 +14,7 @@
 
 
 (define (missile-energy space m)
-  (max 0 (- (missile-e m) (obj-age space m))))
+  (max 0.0 (- (missile-e m) (obj-age space m))))
 
 (define (missile-dead? space m)
   ((missile-energy space m) . <= . 0))
@@ -141,8 +141,10 @@
   (append! buttons loadb)
   (define ob (add-offline-button! t loadb send-commands))
   (when ob (append! buttons ob))
+
+  (set! x (- x (/ w 2) 10 35))
   
-  (define b (button 'disabled #\f (- x 60) (- BOTTOM 35) 50 50 "Fire [f]" #f))
+  (define b (button 'disabled #\f x y 70 50 "Fire [f]" #f))
   (when (and (ship-flying? ship)
              (not m)
              ((mtube-e t) . = . (mtube-maxe t)))
@@ -153,6 +155,8 @@
   (define oob (add-offline-button! t b send-commands "nofire"))
   (when oob (append! buttons oob))
 
+  (set! x (- x 35 10 35))
+
   (when m
     (define life (/ (missile-energy space m) 10.0))
     (append! spr (sprite 0.0 (- BOTTOM 4) (sprite-idx csd 'square) #:layer LAYER_UI
@@ -160,7 +164,7 @@
                          #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square)) 1.0)
                          #:r 255))
     
-    (define b (button 'normal #\d (- x 120) (- BOTTOM 35) 50 50 "Det [d]"
+    (define b (button 'normal #\d x y 70 50 "Det [d]"
                       (lambda (x y) (send-commands (chdam (ob-id m) -1)))))
     (append! buttons b))
   

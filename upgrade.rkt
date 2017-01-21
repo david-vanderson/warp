@@ -17,7 +17,9 @@
   5)
 
 (define (upgrade-dead? space u)
-  ((obj-age space u) . > . UPGRADE_LIFE))
+  (if (equal? "parts" (upgrade-type u))
+      #f
+      ((obj-age space u) . > . UPGRADE_LIFE)))
 
 (define (upgrade-color u)
   (case (upgrade-type u)
@@ -25,7 +27,10 @@
     (("thrust") "yellow")
     (("bat") "blue")
     (("con") "green")
-    (("radar") "cyan")))
+    (("radar") "cyan")
+    (("parts") "orange")
+    (else #f)
+    ))
 
 (define (draw-upgrade csd center scale space u fowa)
   (obj-sprite u csd center scale LAYER_SHIPS 'circle (* 2.0 (upgrade-radius space u)) fowa 0.0 (upgrade-color u)))

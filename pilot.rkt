@@ -71,7 +71,7 @@
 ;; server
 
 (define (return-to-base? ship)
-  (and ((ship-bat ship) . <= . 0)    ; out of reserves
+  (and ((ship-bat ship) . <= . 1.0)    ; out of reserves
        ; we have a return strategy somewhere
        (for/first ((s (ship-ai-strategy ship))
                    #:when (equal? "return" (strategy-name s))) #t)))
@@ -168,6 +168,12 @@
              (else
               ; we successfully docked with our real mothership, remove the strat
               (set! changes (list (new-strat (ob-id ship) (cdr strats)))))))
+          (strat
+           (when (and (tool-online? d "nolaunch")
+                      (= (ship-bat ship) (ship-maxbat ship))
+                      (not (ship-behind? space mothership)))
+             ; we have a strat to do and ready to go, launch
+             (set! changes (list (command (ob-id d) "launch")))))
           (else
            (define ne (nearest-enemy space mothership))
            (when (and ne
@@ -221,8 +227,8 @@
   (define bestf origf)
   (define bestc origc)
   (define bestfit #f)
-  (for* ((f (in-list (if (and ft (tool-online? ft)) '(#f #t) '(#f))))
-         (c (in-list (if (and st (tool-online? st)) '(0 -10 10 -40 40 180) '(0)))))
+  (for* ((f (in-list (if (and ft (tool-online? ft)) (list origf (not origf)) '(#f))))
+         (c (in-list (if (and st (tool-online? st)) '(0 -10 10 -40 40 -170 170) '(0)))))
     (define origpv (struct-copy posvel (obj-posvel ownship)))
     (when ft (set-fthrust-on! ft f))
     (when st (set-steer-course! st (angle-add origc (degrees->radians c))))
