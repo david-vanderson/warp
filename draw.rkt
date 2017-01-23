@@ -432,13 +432,12 @@
 
   ; ship hp
   (define s (get-ship stack))
-  (define mc (ship-maxcon s))
   (append! spr (sprite (- RIGHT 45 (/ (ship-maxcon s) 2)) (+ TOP 20) (sprite-idx csd 'square-outline)
                          #:layer LAYER_UI
                          #:mx (/ (+ 2.0 (ship-maxcon s)) (sprite-width csd (sprite-idx csd 'square-outline)) 1.0)
                          #:my (/ 22.0 (sprite-height csd (sprite-idx csd 'square-outline)))
                          #:r 255 #:g 255 #:b 255))
-  (define col (send the-color-database find-color (stoplight-color (ship-con s) mc)))
+  (define col (send the-color-database find-color (stoplight-color (ship-con s) (ship-maxcon s))))
   (append! spr (sprite (- RIGHT 45 (/ (ship-con s) 2)) (+ TOP 20) (sprite-idx csd 'square)
                          #:layer LAYER_UI #:my (/ 20.0 (sprite-height csd (sprite-idx csd 'square)))
                          #:mx (/ (ship-con s) (sprite-width csd (sprite-idx csd 'square)) 1.0)
@@ -449,9 +448,9 @@
   ; ship reserves
   (define mb (ship-maxbat s))
   (when (mb . > . 0)
-    (append! spr (sprite (- RIGHT 45 (/ (ship-maxbat s) 2)) (+ TOP 50) (sprite-idx csd 'square-outline)
+    (append! spr (sprite (- RIGHT 45 (/ mb 2)) (+ TOP 50) (sprite-idx csd 'square-outline)
                          #:layer LAYER_UI
-                         #:mx (/ (+ 2.0 (ship-maxbat s)) (sprite-width csd (sprite-idx csd 'square-outline)) 1.0)
+                         #:mx (/ (+ 2.0 mb) (sprite-width csd (sprite-idx csd 'square-outline)) 1.0)
                          #:my (/ 22.0 (sprite-height csd (sprite-idx csd 'square-outline)))
                          #:r 255 #:g 255 #:b 255))
     (define col (send the-color-database find-color (stoplight-color (ship-bat s) mb)))

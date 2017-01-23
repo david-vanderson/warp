@@ -255,6 +255,44 @@
                                       #:layer LAYER_OVERLAY #:theta (- pi/2)
                                       #:r (get-red ownspace s)))
 
+             ; draw ship hp/res
+             (define con (/ (ship-con s) 10.0))
+             (define mcon (/ (ship-maxcon s) 10.0))
+             (define concol (send the-color-database find-color (stoplight-color con mcon)))
+             (append! sprites (sprite (+ x (* 0.5 shipmax) (- (/ mcon 2.0)))
+                                      (- y (* 0.5 shipmax))
+                                      (sprite-idx csd 'square-outline)
+                                      #:layer LAYER_OVERLAY
+                                      #:mx (/ (+ 2.0 mcon) (sprite-width csd (sprite-idx csd 'square-outline)))
+                                      #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square-outline)))
+                                      #:r 255 #:g 255 #:b 255))
+             (append! sprites (sprite (+ x (* 0.5 shipmax) (- (/ con 2.0)))
+                                      (+ y (* -0.5 shipmax))
+                                      (sprite-idx csd 'square)
+                                      #:layer LAYER_UI
+                                      #:mx (/ con (sprite-width csd (sprite-idx csd 'square)) 1.0)
+                                      #:my (/ 4.0 (sprite-height csd (sprite-idx csd 'square)))
+                                      #:r (send concol red) #:g (send concol green) #:b (send concol blue)))
+             
+             (define bat (/ (ship-bat s) 10.0))
+             (define mbat (/ (ship-maxbat s) 10.0))
+             (when (mbat . > . 0)
+               (define batcol (send the-color-database find-color (stoplight-color bat mbat)))
+               (append! sprites (sprite (+ x (* 0.5 shipmax) (- (/ mbat 2.0)))
+                                        (+ y (* -0.5 shipmax) 8.0)
+                                        (sprite-idx csd 'square-outline)
+                                        #:layer LAYER_OVERLAY
+                                        #:mx (/ (+ 2.0 mbat) (sprite-width csd (sprite-idx csd 'square-outline)))
+                                        #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square-outline)))
+                                        #:r 255 #:g 255 #:b 255))
+               (append! sprites (sprite (+ x (* 0.5 shipmax) (- (/ bat 2.0)))
+                                        (+ y (* -0.5 shipmax) 8.0)
+                                        (sprite-idx csd 'square)
+                                        #:layer LAYER_UI
+                                        #:mx (/ bat (sprite-width csd (sprite-idx csd 'square)) 1.0)
+                                        #:my (/ 4.0 (sprite-height csd (sprite-idx csd 'square)))
+                                        #:r (send batcol red) #:g (send batcol green) #:b (send batcol blue)))    )
+
              ; draw ship info
              (append! sprites (draw-ship-info csd zerocenter 1.0 s x (- y) ownspace 1.0 LAYER_UI))
              
