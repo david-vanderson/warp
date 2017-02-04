@@ -3,6 +3,8 @@ warp
 
 Coop Networked Game in Racket
 
+Depends on mode-lambda: raco pkg install mode-lambda
+
 Start a server: racket server.rkt
 
 Start each client: racket client.rkt

@@ -37,6 +37,7 @@
 ; - your ship's pod energy arcs/damage dots on LAYER_UI
 (define LAYER_UI 6)
 (define LAYER_UI_TEXT 7)
+(define LAYER_NUM 8)
 
 (define PLASMA_SPEED 60.0)
 (define SHIELD_SPEED 60.0)

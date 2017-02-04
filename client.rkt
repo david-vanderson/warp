@@ -809,7 +809,7 @@
   
   (define csd (compile-sprite-db sd))
   (define textr (make-text-renderer textfont csd))
-  (define render (gl:stage-draw/dc csd (fl->fx WIDTH) (fl->fx HEIGHT)))
+  (define render (gl:stage-draw/dc csd (fl->fx WIDTH) (fl->fx HEIGHT) LAYER_NUM))
   
   (send frame show #t)
   
