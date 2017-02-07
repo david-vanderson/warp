@@ -9,6 +9,8 @@
 
 (provide (all-defined-out))
 
+(define txtsize (box 5))
+
 (define (xy->screen x y center scale)
   (values (* (- x (obj-x center)) scale)
           (* (- (obj-y center) y) scale)))
@@ -38,7 +40,7 @@
 (define (text-sprite textr txt x y layer (a 1.0) (color "white"))
   (when (string? color)
     (set! color (send the-color-database find-color color)))
-  (textr txt (exact->inexact (+ x (* 3.5 (string-length txt)))) (exact->inexact y) #:layer layer
+  (textr txt (exact->inexact (+ x (* 0.5 (unbox txtsize) (string-length txt)))) (exact->inexact y) #:layer layer
          #:r (send color red) #:g (send color green) #:b (send color blue) #:a a))
 
 (define (get-alpha x y fowlist)
