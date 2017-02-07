@@ -1,6 +1,7 @@
 #lang racket/base
 
-(require racket/math)
+(require racket/math
+         racket/gui)
 
 (require "defs.rkt"
          "utils.rkt"
@@ -85,7 +86,7 @@
          (define dx 0.0)
          (define dy (random-between -150.0 150.0))
          (define dr (random-between -1.0 1.0))
-         (make-ship "asteroid" "Asteroid" "Rebel2" #:x x #:y y #:r 0 #:dx dx #:dy dy #:dr dr #:start-ship? #t #:npc? #t))
+         (make-ship "asteroid_43" "Asteroid" "Rebel2" #:x x #:y y #:r 0 #:dx dx #:dy dy #:dr dr #:start-ship? #t #:npc? #t))
      ;(make-ship "blue-fighter" "Blue 6" "Rebel" #:x x #:y y #:r 0 #:start-ship? #t))
     ;,(make-ship "asteroid" "Asteroid" "Rebel" #:x 100 #:y 0 #:r 0 #:dx 100.0 #:dy 100.0 #:dr 1.0 #:start-ship? #t #:npc? #t)
     ;(make-ship "red-frigate" "Red Frigate" "Empire" #:x 0 #:y 0 #:r pi #:start-ship? #t)
@@ -188,11 +189,8 @@
 (start-server PORT sc)
 ))
 
-(define sema (make-semaphore))
+(start-client "127.0.0.1" PORT "Dave" #f #f)
+;(start-client "127.0.0.1" PORT "Andrea" #f #f)
 
-(start-client "127.0.0.1" PORT "Dave" #t #f sema)
-;(start-client "127.0.0.1" PORT "Andrea" #t #f)
-
-(semaphore-wait sema)
-(custodian-shutdown-all (current-custodian))
+(yield 'wait)
 

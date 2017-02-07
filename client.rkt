@@ -27,7 +27,7 @@
 
 (define serverspace #f)
 
-(define (start-client ip port name new-eventspace? sspace sema)
+(define (start-client ip port name new-eventspace? sspace)
   (server? #f)
   (when sspace
     (set! serverspace sspace))
@@ -483,9 +483,9 @@
                                                           "Quit" "Keep Playing" #f
                                                           frame '(default=2)))
                           (when (equal? 1 ans)
-                            (set! playing? #f)
                             (drop-connection "clicked exit")
-                            (when sema (semaphore-post sema)))))
+                            (set! playing? #f)
+                            (send frame show #f))))
          (append! buttons quit-button))
         ((and (lounge? (get-pod my-stack)) (spacesuit? (get-ship my-stack)))
          ; dying
@@ -1012,10 +1012,8 @@
   ;(require profile)
   ;(profile #:threads #t #:delay 0.0
     ;(begin
-    (define sema (make-semaphore))
-    (start-client "127.0.0.1" PORT "Dave" #t #f sema)
-    (semaphore-wait sema)
-    (custodian-shutdown-all (current-custodian))
+    (start-client "127.0.0.1" PORT "Dave" #f #f)
+    (yield 'wait)
     ;))
   ;(exit 0)
   )

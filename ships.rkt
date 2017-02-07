@@ -144,5 +144,9 @@
           ,(pod (next-id) "Pilot" #f (and npc? npc-helm?) 0.0 5.0 0.0 (/ pi 6) 100.0 100.0
                 (list (steer (next-id) '() r) (fthrust (next-id) '() #f)
                       (dock (next-id) '() #f) (pbolt (next-id) '() 5.0 #f))))))
+    (("blue-cruiser")
+     (void))
+    (else
+     (error (string-append "Tried to create an unknown ship type " type "\n")))
     )
   s)
