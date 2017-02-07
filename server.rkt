@@ -241,10 +241,6 @@
   (when f (append! changes (list (command (ob-id f) #f))))
   changes)
 
-(define (pickup! ship suit)
-  (define rc (chrole (ob-id (car (lounge-crew (ship-lounge suit)))) (ob-id (ship-lounge ship))))
-  (define rm (chrm (ob-id suit)))
-  (list rc rm))
 
 (define (ship-hit-ship! space ship s)
   (define changes '())
@@ -263,7 +259,9 @@
          (set! s temp))
        (when (and ((faction-check (ship-faction ship) (ship-faction s)) . > . 0)
                   (findf lounge? (ship-pods ship)))
-         (append! changes (pickup! ship s))))
+         ; don't need to explicitly remove the spacesuit because chrole does that
+         (append! changes (chrole (ob-id (car (lounge-crew (ship-lounge s))))
+                                  (ob-id (ship-lounge ship))))))
       ((will-dock? ship s)
        (append! changes (dock! ship s)))
       ((will-dock? s ship)
