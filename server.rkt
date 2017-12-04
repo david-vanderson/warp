@@ -538,7 +538,7 @@
     (send-to-client c ownspace)))
 
 
-(define (start-server port (scenario sc-pick))
+(define (start-server (port PORT) (scenario sc-pick))
   (change-scenario! scenario)
   (set! server-listener (tcp-listen port 4 #t))
   (printf "waiting for clients...\n")
@@ -546,4 +546,4 @@
 
 
 (module+ main
-  (start-server PORT))
+  (start-server))
