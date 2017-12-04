@@ -180,7 +180,7 @@
         (define rad (caddr f))
         (define-values (x y) (obj->screen (obj #f #f (posvel 0 (car f) (cadr f) 0 0 0 0)) center (get-scale)))
         (append! sprites (sprite x y (sprite-idx csd 'circle) #:layer LAYER_FOW_BLACK
-                                 #:m (* rad (get-scale) (/ 1.0 500)))))
+                                 #:m (* rad (get-scale) (/ 1.0 50)))))
 
       (append! sprites (draw-sector-lines csd center (get-scale) ownspace))
 
@@ -744,63 +744,63 @@
   (let ()
     (local-require pict)
     (add-sprite!/value sd 'button-normal
-                       (inset (filled-rectangle 1000 500 #:color "gray"
-                                                #:border-color "white" #:border-width 20) 10))
+                       (inset (filled-rectangle 100 50 #:color "gray"
+                                                #:border-color "white" #:border-width 2) 1))
     (add-sprite!/value sd 'button-outline
-                       (inset (rectangle 1000 500 #:border-color "gray" #:border-width 20) 10))
+                       (inset (rectangle 100 50 #:border-color "gray" #:border-width 2) 1))
     (add-sprite!/value sd 'button-disabled
-                       (inset (filled-rectangle 1000 500 #:color "black"
-                                                #:border-color "gray" #:border-width 20) 10))
+                       (inset (filled-rectangle 100 50 #:color "black"
+                                                #:border-color "gray" #:border-width 2) 1))
     (add-sprite!/value sd 'button-normal-circle
-                       (inset (filled-ellipse 1000 1000 #:color "gray"
-                                              #:border-color "white" #:border-width 20) 10))
+                       (inset (filled-ellipse 100 100 #:color "gray"
+                                              #:border-color "white" #:border-width 2) 1))
     (add-sprite!/value sd 'button-disabled-circle
-                       (inset (filled-ellipse 1000 1000 #:color "black"
-                                              #:border-color "gray" #:border-width 20) 10))
+                       (inset (filled-ellipse 100 100 #:color "black"
+                                              #:border-color "gray" #:border-width 2) 1))
     (add-sprite!/value sd 'dmgbutton-normal
-                       (inset (rectangle 1000 500 #:border-color "black" #:border-width 20) 10))
+                       (inset (rectangle 100 50 #:border-color "black" #:border-width 2) 1))
     (add-sprite!/value sd 'dmgbutton-fill
-                       (inset (filled-rectangle 1000 500 #:color "black"
-                                                #:border-color "black" #:border-width 0) 20))
+                       (inset (filled-rectangle 100 50 #:color "black"
+                                                #:border-color "black" #:border-width 0) 2))
     (add-sprite!/value sd 'blue
                        (colorize (rectangle 2 2) "blue"))
     (add-sprite!/value sd 'lightgray
                        (colorize (rectangle 2 2) "lightgray"))
     (add-sprite!/value sd 'circle
-                       (colorize (filled-ellipse 1000 1000) "black"))
+                       (colorize (filled-ellipse 100 100) "black"))
     (add-sprite!/value sd 'shield
-                       (colorize (filled-rounded-rectangle 100 1000 -.5 #:draw-border? #f) "black"))
+                       (colorize (filled-rounded-rectangle 10 100 -.5 #:draw-border? #f) "black"))
     (add-sprite!/value sd 'circle-outline
                        (colorize (inset
-                                  (ellipse 1000 1000 #:border-color "black" #:border-width 20)
-                                  20) "black"))
+                                  (ellipse 100 100 #:border-color "black" #:border-width 2)
+                                  2) "black"))
     (add-sprite!/value sd 'square
-                       (colorize (filled-rectangle 1000 1000) "black"))
+                       (colorize (filled-rectangle 100 100) "black"))
     (add-sprite!/value sd 'square-outline
-                       (colorize (rectangle 1000 1000 #:border-color "black" #:border-width 100) "black"))
+                       (colorize (rectangle 100 100 #:border-color "black" #:border-width 10) "black"))
     (add-sprite!/value sd 'star
                        (colorize (cc-superimpose (hline 1 1) (vline 1 1)) "white"))
     (add-sprite!/value sd 'arrowhead
                        (colorize (arrowhead 30 0) "black"))
     (add-sprite!/value sd 'target
-                       (colorize (linewidth 25.0
+                       (colorize (linewidth 2.5
                                    (dc (lambda (dc dx dy)
                                          (define b (send dc get-brush))
                                          (send dc set-brush nocolor 'transparent)
-                                         (send dc draw-ellipse 50 50 1000 1000)
-                                         (send dc draw-line 550 50 550 1050)
-                                         (send dc draw-line 50 550 1050 550)
+                                         (send dc draw-ellipse 5 5 100 100)
+                                         (send dc draw-line 55 5 55 105)
+                                         (send dc draw-line 5 55 105 55)
                                          (send dc set-brush b))
-                                       1100 1100)) "black"))
+                                       110 110)) "black"))
     (add-sprite!/value sd 'podarc
-                       (colorize (linewidth 100.0
+                       (colorize (linewidth 10.0
                                    (dc (lambda (dc dx dy)
                                          (define b (send dc get-brush))
                                          (send dc set-brush nocolor 'transparent)
                                          (send dc draw-arc
-                                               50 50 1000 1000 (- (/ pi 4)) (/ pi 4))
+                                               5 5 100 100 (- (/ pi 4)) (/ pi 4))
                                          (send dc set-brush b))
-                                       1100 1100)) "black"))
+                                       110 110)) "black"))
     )
   (define textfont (load-font! sd #:size TEXTH #:family 'modern #:weight 'bold))
   (load-ships sd)
@@ -808,8 +808,10 @@
   (add-sprite!/file sd 'missile (string-append "images/missile.png"))
   
   (define csd (compile-sprite-db sd))
+  ;(save-csd! csd "csd" #:debug? #t)
   (define textr (make-text-renderer textfont csd))
   (set-box! txtsize (sprite-width csd (font-char-idx textfont csd #\W)))
+  (gl:gl-smoothing? #t)
   (define render (gl:stage-draw/dc csd (fl->fx WIDTH) (fl->fx HEIGHT) LAYER_NUM))
   
   (send frame show #t)
