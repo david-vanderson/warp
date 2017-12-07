@@ -74,7 +74,7 @@
   (when (and ((ship-con ship) . > . 0)
              ((distance ship u) . < . (+ (ship-radius ship) (upgrade-radius space u))))
     ;(printf "upgrade hit ship ~a (~a)\n" (ship-name ship) (obj-id ship))
-    (define newstats (copy (ship-stats ship)))
+    (define newstats (struct-copy stats (ship-stats ship)))
     (define which
       (case (upgrade-type u)
         (("power") (set-stats-power! newstats (* 1.1 (stats-power newstats))) "reactor")

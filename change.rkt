@@ -302,5 +302,5 @@
       (apply append
              (for/list ((c (in-list changes)))
                (define-values (forward? new-changes) (apply-change! space c ctime who))
-               (append (if forward? (list (copy c)) '())
+               (append (if forward? (list (copy-prefab c)) '())
                        (apply-all-changes! space new-changes ctime who))))))

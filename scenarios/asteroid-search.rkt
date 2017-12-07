@@ -202,7 +202,7 @@
         ; check if this was the hidden base
         (when (and (not found-base?) (equal? (ob-id hb) (ob-id a)))
           (set! found-base? #t)
-          (define newstats (copy (ship-stats hb)))
+          (define newstats (struct-copy stats (ship-stats hb)))
           (set-stats-faction! newstats "Empire")
           (append! changes (chstats (ob-id hb) newstats)
                    (chadd parts (ob-id hb))

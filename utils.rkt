@@ -22,8 +22,9 @@
 (define (findfid id list)
   (findf (lambda (o) (= id (ob-id o))) list))
 
-(define (copy s)
-  (read (open-input-string (with-output-to-string (lambda () (write s))))))
+(define (copy-prefab s)
+  (call-with-values (lambda () (vector->values (struct->vector s) 1))
+                    (lambda args (apply make-prefab-struct (prefab-struct-key s) args))))
 
 (define (load-bitmap name)
   (read-bitmap (string-append "images/" name ".png")))
