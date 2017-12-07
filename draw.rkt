@@ -322,7 +322,7 @@
     (define y (+ wy (* (pod-dist p) (sin r))))
     (define rr (angle-add shipr (if (pod-facing p) (pod-facing p) 0)))
     (define-values (sx sy) (xy->screen x y center scale))
-    (define m (* scale (/ (pod-e p) (pod-maxe p) 75.0)))
+    (define m (* scale (/ (pod-e p) (pod-maxe p) 7.5)))
     (define col (send the-color-database find-color (stoplight-color (pod-e p) (pod-maxe p))))
     (append! spr (sprite sx sy (sprite-idx csd 'podarc)
                          #:layer layer #:m m #:theta (- rr) #:a a
@@ -337,7 +337,7 @@
         (define dy (+ y (* 8.0 (sin dr))))
         (define-values (sx sy) (xy->screen dx dy center scale))
         (append! spr (sprite sx sy (sprite-idx csd 'circle) #:r 255
-                             #:layer layer #:m (/ scale 500.0) #:a a)))))
+                             #:layer layer #:m (/ scale 50.0) #:a a)))))
   spr)
 
 
