@@ -3,6 +3,7 @@
 (require racket/math
          racket/port
          racket/list
+         racket/struct
          racket/draw)
 
 (require "defs.rkt")
@@ -23,8 +24,7 @@
   (findf (lambda (o) (= id (ob-id o))) list))
 
 (define (copy-prefab s)
-  (call-with-values (lambda () (vector->values (struct->vector s) 1))
-                    (lambda args (apply make-prefab-struct (prefab-struct-key s) args))))
+  (apply make-prefab-struct (prefab-struct-key s) (struct->list s)))
 
 (define (load-bitmap name)
   (read-bitmap (string-append "images/" name ".png")))
