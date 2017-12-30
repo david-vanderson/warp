@@ -3,9 +3,11 @@
 (require "defs.rkt"
          "utils.rkt"
          "change.rkt"
+         "scenarios/testing.rkt"
          "scenarios/pilot-training.rkt"
          "scenarios/base-defense.rkt"
-         "scenarios/asteroid-search.rkt")
+         "scenarios/asteroid-search.rkt"
+         )
 
 (provide (all-defined-out))
 
@@ -26,6 +28,7 @@
            players
            '()
            `(
+             ,(ann-button (next-id) 0 (posvel 0 200 -200 0 200 100 0) #f "Testing" "testing")
              ,(ann-button (next-id) 0 (posvel 0 -200 -200 0 200 100 0) #f "Pilot Training" "pilot-training")
              ,(ann-button (next-id) 0 (posvel 0 -200 0 0 200 100 0) #f "Base Defense" "base-defense")
              ,(ann-button (next-id) 0 (posvel 0 -200 200 0 200 100 0) #f "Asteroid Search" "asteroid-search")
@@ -41,6 +44,7 @@
     (define o (find-id space (command-id cmd)))
     (when (and o (ann-button? o))
       (case (ann-button-msg o)
+        (("testing") (change-scenario! testing-scenario))
         (("pilot-training") (change-scenario! pilot-training-scenario))
         (("base-defense") (change-scenario! base-defense-scenario))
         (("asteroid-search") (change-scenario! asteroid-search-scenario))

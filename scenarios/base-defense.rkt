@@ -29,35 +29,53 @@
   (define (new-blue-fighter)
     (define s (make-ship "blue-fighter" "a" "a"))
     (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
-                              ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start-ship?
-                              1.0 150.0 150.0 50.0 50.0 6.0 20.0 50.0 1.5 300.0 0.4 #f))
-    (set-ship-pods!
-     s `(,(normal-lounge)
-         ,(pod (next-id) "Pilot" #f ai? 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0
-               (list (steer (next-id) '() 0.0) (fthrust (next-id) '() #f)
-                     (dock (next-id) '() #f) (pbolt (next-id) '() 5.0 #f)))))
+                              ;con maxcon radius mass radar drag start-ship?
+                              50.0 50.0 6.0 20.0 300.0 0.4 #f))
+    (set-ship-tools!
+     s (list (tool (next-id) 'engine 50.0 #f '())
+             (tool (next-id) 'turnleft 1.5 #f '())
+             (tool (next-id) 'turnright 1.5 #f '())
+             (tool (next-id) 'steer 1.5 #f '())
+             (tool (next-id) 'pbolt 5.0 #f '())
+             (tool (next-id) 'dock #f #t '())
+             ))
     (set-obj-posvel! s #f)
     s)
   
   (define (new-red-fighter)
     (define s (make-ship "red-fighter" "a" "a"))
     (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
-                              ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start
-                              1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5 300.0 0.4 #f))
-    (set-ship-pods!
-     s `(,(normal-lounge)
-         ,(pod (next-id) "Pilot" #f #t 0.0 6.5 0.0 (* 0.2 pi) 150.0 150.0
-               (list (steer (next-id) '() 0.0) (fthrust (next-id) '() #f)
-                     (dock (next-id) '() #f) (pbolt (next-id) '() 5.0 #f)))))
+                              ;con maxcon radius mass radar drag start
+                              20.0 20.0 6.0 20.0 300.0 0.4 #f))
+    (set-ship-tools!
+     s (list (tool (next-id) 'engine 50.0 #f '())
+             (tool (next-id) 'turnleft 1.5 #f '())
+             (tool (next-id) 'turnright 1.5 #f '())
+             (tool (next-id) 'steer 1.5 #f '())
+             (tool (next-id) 'pbolt 5.0 #f '())
+             (tool (next-id) 'dock #f #t '())
+             ))
     (set-obj-posvel! s #f)
     s)
   
   
-  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50))
+  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50
+                             #:hangar (list (new-blue-fighter))))
   (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
-                                  ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start?
-                                  8.0 150.0 150.0 150.0 150.0 15.0 100.0 30.0 1.0 500.0 0.4 #t))
-  (set-ship-pods!
+                                  ;con maxcon radius mass radar drag start?
+                                  150.0 150.0 15.0 100.0 500.0 0.4 #t))
+  (set-ship-tools!
+   cruiser (list (tool (next-id) 'engine 30.0 #f '())
+                 (tool (next-id) 'turnleft 1.0 #f '())
+                 (tool (next-id) 'turnright 1.0 #f '())
+                 (tool (next-id) 'pbolt 5.0 #f '())
+                 (tool (next-id) 'dock #f #t '())
+                 (tool (next-id) 'probe 10.0 #f '())
+                 (tool (next-id) 'missile 5.0 #f '())
+                 (tool (next-id) 'warp '(150.0 100.0 0.0) #f '())
+                 ))
+
+  #;(set-ship-pods!
    cruiser
    `(,(normal-lounge)
      ,(normal-hangar pi 5.0 (list (new-blue-fighter)))
@@ -82,11 +100,17 @@
                  (mtube (next-id) '() 100.0 100.0 "load" #f)))))
   
   
-  (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100))
+  (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:hangar '()))
   (set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
-                               ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start-ship?
-                               5.0 500.0 500.0 1000.0 1000.0 26.0 1000.0 0.0 0.0 1000.0 0.4 #t))
-  (set-ship-pods!
+                               ;con maxcon radius mass radar drag start-ship?
+                               1000.0 1000.0 26.0 1000.0 1000.0 0.4 #t))
+  (set-ship-tools!
+   base (list (tool (next-id) 'pbolt 5.0 #f '())
+              (tool (next-id) 'probe 30.0 #f '())
+              (tool (next-id) 'missile 5.0 #f '())
+          ))
+
+  #;(set-ship-pods!
    base
    `(,(normal-lounge)
      ,(normal-hangar pi 13.0 '())
@@ -100,13 +124,23 @@
                     (mtube (next-id) '() 100.0 100.0 "load" #f))))))
   
   
-  (define destroyer (make-ship "red-destroyer" "b" "b" #:x 2400 #:y 100 #:r pi))
+  (define destroyer (make-ship "red-destroyer" "b" "b" #:x 2400 #:y 100 #:r pi
+                               #:hangar '()))
   (set-ship-stats! destroyer (stats (next-id)
                                     ;type name faction
                                     "red-destroyer" "Empire Destroyer" "Empire"
-                                    ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start?
-                                    15.0 500.0 500.0 1000.0 1000.0 23.0 500.0 6.0 0.1 1000.0 0.4 #f))
-  (set-ship-pods!
+                                    ;con maxcon radius mass radar drag start?
+                                    1000.0 1000.0 23.0 500.0 1000.0 0.4 #f))
+  (set-ship-tools!
+   destroyer `(,(tool (next-id) 'engine 6.0 #f '())
+               ,(tool (next-id) 'turnleft 0.1 #f '())
+               ,(tool (next-id) 'turnright 0.1 #f '())
+               ,(tool (next-id) 'steer 0.1 #f '())
+               ,(tool (next-id) 'pbolt 5.0 #f '())
+               ,(tool (next-id) 'missile 5.0 #f '())
+               ))
+
+  #;(set-ship-pods!
    destroyer
    `(,(normal-lounge)
      ,(normal-hangar pi 10.0 '())
@@ -133,9 +167,9 @@
                          (list (strategy (space-time ownspace) "attack-only" (ob-id base))))
   
   
-  (define special (new-blue-fighter))
-  (set-obj-posvel! special (posvel 0 -2100.0 -100.0 0.0 0.0 0.0 0.0))
-  (set-ship-cargo! special (list (random-upgrade ownspace #f) (random-upgrade ownspace #f)))
+  ;(define special (new-blue-fighter))
+  ;(set-obj-posvel! special (posvel 0 -2100.0 -100.0 0.0 0.0 0.0 0.0))
+  ;(set-ship-cargo! special (list (random-upgrade ownspace #f) (random-upgrade ownspace #f)))
   ;(define special2 (new-red-fighter))
   ;(set-obj-posvel! special2 (posvel 0 1000.0 0.0 0.0 0.0 0.0 0.0))
   
@@ -203,11 +237,11 @@
       (when (time-for (space-time ownspace) 55000 0000)
         (define m (message (next-id) (space-time ownspace) #f "New Fighter at Outpost"))
         (define f (new-blue-fighter))
-        (append! changes (chadd f (ob-id (ship-hangar base))) m))
+        (append! changes (chadd f (ob-id base)) m))
       
       (when (time-for (space-time ownspace) 65000 20000)
         (define f (new-red-fighter))
-        (append! changes (chadd f (ob-id (ship-hangar destroyer)))))
+        (append! changes (chadd f (ob-id destroyer))))
       
       (when (time-for (space-time ownspace) 90000 10000)
         (define m (message (next-id) (space-time ownspace) #f "Empire Frigate Incoming"))
@@ -216,7 +250,7 @@
         (define fighters (for/list ((i (random 3)))
                            (make-ship "red-fighter" "Empire Fighter" "Empire")))
         (define f (make-ship "red-frigate" "Empire Frigate" "Empire" #:x x #:y y #:r pi
-                             #:in-hangar fighters #:cargo (list (random-upgrade ownspace #f)
+                             #:hangar fighters #:cargo (list (random-upgrade ownspace #f)
                                                                 (random-upgrade ownspace #f))))
         (set-ship-ai-strategy! f (list (strategy (space-time ownspace) "attack*" (ob-id base))))
         (append! changes (chadd f #f) m))

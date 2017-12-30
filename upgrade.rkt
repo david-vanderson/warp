@@ -23,11 +23,10 @@
 
 (define (upgrade-color u)
   (case (upgrade-type u)
-    (("power") "red")
-    (("thrust") "yellow")
-    (("bat") "blue")
-    (("con") "green")
-    (("radar") "cyan")
+    (("engines") "red")
+    (("turning") "yellow")
+    (("hull") "green")
+    (("radar") "blue")
     (("parts") "orange")
     (else #f)
     ))
@@ -35,7 +34,7 @@
 (define (draw-upgrade csd center scale space u fowa)
   (obj-sprite u csd center scale LAYER_SHIPS 'circle (* 2.0 (upgrade-radius space u)) fowa 0.0 (upgrade-color u)))
 
-(define types '("power" "thrust" "bat" "con" "radar"))
+(define types '("engines" "turning" "hull" "radar"))
 
 (define (random-upgrade ownspace pv)
   (upgrade (next-id) (space-time ownspace) pv (list-ref types (random (length types)))))

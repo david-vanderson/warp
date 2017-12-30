@@ -32,6 +32,7 @@
 (define (obj-age space o)
   (- (space-time space) (obj-start-time o)))
 
+; should only be used for things called every TICK
 (define (time-for age repeat (offset 0))
   (<= (+ 1 offset) (modulo age repeat) (+ offset TICK)))
 
@@ -105,12 +106,12 @@
   (define search-return '())  ; found stacks
   (let/ec esc
     (let search-internal ((o o) (stack '()))
+      (when (and (not (space? o))
+                 (or (and (number? id) (= id (ob-id o)))
+                     (and (procedure? id) (id o))))
+        (set! search-return (cons (cons o stack) search-return))
+        (when (not multiple?) (esc)))
       (cond
-        ((and (not (space? o))
-              (or (and (number? id) (= id (ob-id o)))
-                  (and (procedure? id) (id o))))
-         (set! search-return (cons (cons o stack) search-return))
-         (when (not multiple?) (esc)))
         ((or (player? o)
              (plasma? o)
              (missile? o)
@@ -125,24 +126,15 @@
          (for ((x (in-list (space-objects o))))
            (search-internal x (cons o stack))))
         ((ship? o)
-         (for ((x (in-list (ship-pods o))))
+         (for ((x (in-list (ship-tools o))))
+           (search-internal x (cons o stack)))
+         (for ((x (in-list (ship-players o))))
            (search-internal x (cons o stack)))
          (for ((x (in-list (ship-cargo o))))
-           (search-internal x (cons o stack))))
-        ((lounge? o)
-         (for ((x (in-list (lounge-crew o))))
-           (search-internal x (cons o stack))))
-        ((hangar? o)
-         (for ((x (in-list (hangar-crew o))))
            (search-internal x (cons o stack)))
-         (when subships?
-           (for ((x (in-list (hangar-ships o))))
+         (when (and subships? (ship-hangar o))
+           (for ((x (in-list (ship-hangar o))))
              (search-internal x (cons o stack)))))
-        ((pod? o)
-         (when (pod-player o)
-           (search-internal (pod-player o) (cons o stack)))
-         (for ((x (in-list (pod-tools o))))
-           (search-internal x (cons o stack))))
         ((tool? o)
          (for ((x (in-list (tool-dmgs o))))
            (search-internal x (cons o stack))))
@@ -168,15 +160,6 @@
 (define (ship-flying? ship)
   (obj-posvel ship))
 
-(define (ai-pod? o)
-  (and (pod? o) (pod-npc? o) (not (pod-player o))))
-
-(define (npc-ship? s)
-  (find-id s (lambda (o) (and (pod? o) (pod-npc? o))) #f))
-
-(define (get-pod stack)
-  (findf pod? stack))
-
 (define (get-ship stack)
   (findf ship? stack))
 
@@ -186,40 +169,23 @@
 (define (get-topship stack)
   (get-ship (reverse stack)))
 
-(define (ship-lounge s)
-  (findf lounge? (ship-pods s)))
-
-(define (ship-hangar s)
-  (findf hangar? (ship-pods s)))
-
 (define (ship-ships s)
   (define h (ship-hangar s))
-  (if h (hangar-ships h) '()))
+  (if h h '()))
 
 (define (get-center space stack)
   (define shipcenter (get-topship stack))
-  (define spv (obj-posvel shipcenter))
-  
-  (define ship (get-ship stack))
-  (define pod (get-pod stack))
-  (define mt (findf mtube? (pod-tools pod)))
-  (define m (if mt (find-id space (mtube-mid mt)) #f))
-  (define pt (findf ptube? (pod-tools pod)))
-  (define p (if pt (find-id space (ptube-pid pt)) #f))
+  (define p (car stack))
+  (define rcobj (if (player-rcid p) (find-id space (player-rcid p)) #f))
   (cond
-    (m m)
-    (p p)
-    ((equal? (ob-id ship) (ob-id shipcenter))
-     (obj #f #f (posvel
-                 0
-                 (+ (posvel-x spv) (* (pod-dist pod) (cos (+ (posvel-r spv) (pod-angle pod)))))
-                 (+ (posvel-y spv) (* (pod-dist pod) (sin (+ (posvel-r spv) (pod-angle pod)))))
-                 (posvel-r spv) 0 0 0)))
+    (rcobj rcobj)
     (else shipcenter)))
 
 (define (get-space stack)
   (car (reverse stack)))
 
+(define (ai-ship? o)
+  (and (ship? o) (ship-ai? o) (null? (ship-players o))))
 
 (define (can-launch? stack)
   (define ships (get-ships stack))
@@ -227,13 +193,28 @@
        (not (null? (cdr ships)))
        (ship-flying? (cadr ships))))
 
+(define (ship-tool ship sym)
+  (findf (lambda (t) (equal? sym (tool-name t))) (ship-tools ship)))
+
+(define (tool-count t ship)
+  (cond
+    ((not t) 0)
+    ((empty? (ship-players ship))
+     (if (tool-rc t) 1 0))
+    (else
+     (count (lambda (p)
+              (findf (lambda (c)
+                       (equal? c (tool-name t)))
+                     (player-commands p)))
+            (ship-players ship)))))
+
 (define (tool-online? t (dmgtype "offline"))
   (not (findf (lambda (d) (equal? dmgtype (dmg-type d))) (tool-dmgs t))))
 
 (define (will-dock? s1 s2)
-  (define d (find-id s1 dock? #f))
+  (define d (ship-tool s1 'dock))
   (and d
-       (dock-on d)
+       (tool-rc d)
        ((faction-check (ship-faction s2) (ship-faction s1)) . > . 0)
        (ship-hangar s2)))
 
@@ -290,19 +271,6 @@
 (define (hit-distance ship1 ship2)
   (+ (ship-radius ship1)
      (ship-radius ship2)))
-
-(define (pod-obj pod ship)
-  (define ps (obj-posvel ship))
-  (define pa (+ (posvel-r ps) (pod-angle pod)))
-  (define pf (pod-facing pod))
-  (obj #f #f (posvel #f
-                     (+ (posvel-x ps) (* (pod-dist pod) (cos pa)))
-                     (+ (posvel-y ps) (* (pod-dist pod) (sin pa)))
-                     (+ (posvel-r ps) (if pf pf (pod-angle pod)))
-                     ; add rotational velocity
-                     (+ (posvel-dx ps) (* -1 (* (pod-dist pod) (posvel-dr ps)) (sin pa)))
-                     (+ (posvel-dy ps) (* 1 (* (pod-dist pod) (posvel-dr ps)) (cos pa)))
-                     (posvel-dr ps))))
 
 
 ;; ai utils

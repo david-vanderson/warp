@@ -26,29 +26,33 @@
       (update-physics! space o (/ TICK 1000.0))
       (set! pvutime (+ pvutime TICK)))))
 
+(define (adj! o fto who rem?)
+  (define-values (ss! ss)
+    (cond ((ship? fto)
+           (cond ((player? o) (values set-ship-players! ship-players))
+                 ((upgrade? o) (values set-ship-cargo! ship-cargo))
+                 ((dmgfx? o) (values set-ship-dmgfx! ship-dmgfx))
+                 (else (values set-ship-hangar! ship-hangar))))
+          ((space? fto)
+           (cond ((player? o) (values set-space-players! space-players))
+                 (else (values set-space-objects! space-objects))))
+          ((tool? fto) (values set-tool-dmgs! tool-dmgs))
+          (else
+           (error "adj! hit else" o fto))))
+  #;(printf "~a ~a ~v\n-- ~v\n"
+          who
+          (if rem? "rem!" "add!")
+          (prefab-struct-key o)
+          (prefab-struct-key fto))
+  (if rem?
+      (ss! fto (remove-id (ob-id o) (ss fto)))
+      (ss! fto (cons o (ss fto)))))
 
-(define (moveout space o from-id)
-  (define from (find-id space from-id))
-  (cond
-    (from
-     (when (hangar? from)
-       (set-hangar-ships! from (remove o (hangar-ships from))))
-     (when (spaceship? from)
-       (set-ship-cargo! from (remove o (ship-cargo from)))))
-    (else
-     (set-space-objects! space (remove o (space-objects space))))))
+(define (rem! o from who)
+  (adj! o from who #t))
 
-(define (movein space o dest-id)
-  (define to (find-id space dest-id))
-  (cond
-    (to
-     (when (hangar? to)
-       (set-hangar-ships! to (append (hangar-ships to) (list o))))
-     (when (spaceship? to)
-       (set-ship-cargo! to (append (ship-cargo to) (list o)))))
-    (else
-     (set-space-objects! space (append (space-objects space) (list o))))))
-
+(define (add! o to who)
+  (adj! o to who #f))
 
 ; make the change in space
 ; return 2 values:
@@ -91,98 +95,142 @@
   (cond
     ((command? c)
      (define s (find-stack space (command-id c)))
-     (define o (if s (car s) #f))
+     (define p (if (and s (player? (car s))) (car s) #f))
+     (define ship (if s (get-ship s) #f))
+     (define rcship (if p (find-id space (player-rcid p)) #f))
+     (define tool (if s (ship-tool (or rcship ship) (command-cmd c)) #f))
      (cond
-       ((not o)
-        (printf "~a dropping command ~v\n" who c)
+       ((not s)
+        (printf "~a dropping command (no stack) ~v\n" who c)
         (values #f '()))
-       ((dmg? o)
-        (set-dmg-fixing?! o (command-cmd c))
-        (values #t '()))
-       ((pbolt? o)
-        (change-pbolt! (command-cmd c) space s who))
-       ((warp? o)
-        (change-warp! (command-cmd c) space s who))
-       ((mtube? o)
-        (change-mtube! (command-cmd c) space s who))
-       ((ptube? o)
-        (change-ptube! (command-cmd c) space s who))
-       ((missile? o)
-        (set-missile-course! o (command-cmd c))
-        (values #t '()))
-       ((or (dock? o) (steer? o) (fthrust? o) (shbolt? o))
-        (change-pilot-tool! (command-cmd c) space s who))
-       ((pod? o) (equal? (command-cmd c) "npc-off")
-        (set-pod-npc?! o #f)
-        (values #t '()))
+       ((not tool)
+        (printf "~a dropping command (no tool) ~v\n" who c)
+        (values #f '()))
        (else
-        (error 'apply-change! "~a hit ELSE clause for command ~v\n" who c)))) 
-    ((and (chrole? c) (equal? (chrole-to c) "spacesuit"))
-     (define changes '())
-     (define pid (chrole-playerid c))
-     (define oldstack (find-stack space pid))
-     (cond
-       (oldstack
-        (define p (car oldstack))
-        (define s (get-ship (reverse oldstack)))
-        (when (and s (not (spacesuit? s)))
-          (define ss (make-spacesuit (player-name p) s))
-          (define sspv (obj-posvel ss))
-          ; push spacesuit away from parent ship
-          (define t (atan0 (posvel-dy sspv) (posvel-dx sspv)))
-          (define r (+ 3 (hit-distance s ss)))
-          (set-posvel-x! sspv (+ (posvel-x sspv) (* r (cos t))))
-          (set-posvel-y! sspv (+ (posvel-y sspv) (* r (sin t))))
-          (append! changes (chadd ss #f) (chrole pid (ob-id (ship-lounge ss))))))
-       (else
-        (printf "~a dropping chrole ~v\n" who c)))
-     (values #f changes))
-    ((chrole? c)
-     (define changes '())
-     (define pid (chrole-playerid c))
-     (define oldstack (find-stack space pid))  ; stack before removing player
-     (define o (find-id space (chrole-to c)))
-     (cond
-       ((or (not (chrole-to c))  ; moving to starting screen
-            (and (pod? o) (not (pod-player o))))  ; moving to empty pod
-        
-        ; remove existing player struct
-        (when oldstack
-          (define pod (get-pod oldstack))
-          (cond
-            ((lounge? pod)
-             (set-lounge-crew! pod (remove-id pid (lounge-crew pod)))
-             (when (and (server?) (spacesuit? (get-ship oldstack)))
-               ; leaving a space suit, remove the suit
-               (append! changes (chrm (ob-id (get-ship oldstack))))))
-            ((hangar? pod)
-             (set-hangar-crew! pod (remove-id pid (hangar-crew pod))))
-            ((pod? pod)
-             (set-pod-player! pod #f))
-            (else
-             (error 'apply-change "~a hit ELSE clause for removing player ~v\n" who c))))
-        
-        ; put player in new place
-        (define p (findfid pid (space-players space)))
-        (cond
-          ((not p)
-           (printf "~a chrole - couldn't find player struct to place ~v\n" who pid))
-          ((not (chrole-to c))
-           ; moving to starting screen - nothing
-           )
-          ((lounge? o)
-           (set-lounge-crew! o (append (lounge-crew o) (list p))))
-          ((hangar? o)
-           (set-hangar-crew! o (append (hangar-crew o) (list p))))
-          ((pod? o)
-           (set-pod-player! o p))
+        (case (tool-name tool)
+          ((pbolt)
+           (change-pbolt! c space s (command-arg c) who))
+          ((dock)
+           (cond
+             ((equal? 'launch (command-arg c))
+              (launch! c space s who))
+             (else
+              (set-tool-rc! tool (command-arg c))
+              (values #t '()))))
+          ((endrc)
+           (cond (p
+                  (define o (find-id space (player-rcid p)))
+                  (set-player-rcid! p #f)
+                  (define changes '())
+                  (when (and (server?) (missile? o))
+                    ; -1 means missile explodes
+                    (append! changes (chdam (ob-id o) -1)))
+                  (when (and (server?) (probe? o))
+                    (append! changes
+                             (command (ob-id o) 'engine #f)
+                             (command (ob-id o) 'turnleft #f)
+                             (command (ob-id o) 'turnright #f)))
+                  (values #t changes))
+                 (else
+                  (set-tool-rc! tool (command-arg c))
+                  (values #t '()))))
+          ((probe)
+           (launch-probe! c space s who))
+          ((missile)
+           (launch-missile! c space s who))
           (else
-           (error 'apply-change "~a hit ELSE clause for placing player ~v\n" who c)))
-        
-        (values #t changes))
+           (cond ((or rcship (not p))
+                  ; either we are remote controlling something
+                  ; or this command is not coming from a player
+                  (set-tool-rc! tool (command-arg c))
+                  (values #t '()))
+                 (else
+                  (define cmds (remove* (list (command-cmd c)) (player-commands p)))
+                  (when (command-arg c)
+                    (set! cmds (cons (command-cmd c) cmds)))
+                  (set-player-commands! p cmds)
+                  ;(printf "~a player ~a ~v\n" who (player-name p) (player-commands p))
+                  (values #t '())))
+           )))))
+    ((chrc? c)
+     (define p (find-id space (chrc-pid c)))
+     (cond
+       ((not p)
+        (printf "~a dropping command (can't find player) ~v\n" who c)
+        (values #f '()))
        (else
-        (printf "~a dropping chrole ~v\n" who c)
+        (set-player-rcid! p (chrc-rcid c))
+        (values #t '()))))
+    ((chadd? c)
+     (define to (if (chadd-to c)
+                    (find-id space (chadd-to c))
+                    space))
+     (cond
+       (to
+        (define o (chadd-o c))
+        (add! o to who)
+        (while (and (ctime . < . (space-time space))
+                    (obj-posvel o))  ; some objs have a #f posvel when inside other things
+               ;(printf "~a ticking forward ~v\n" who (chadd-o c))
+               (update-physics! space o (/ TICK 1000.0))
+               (set! ctime (+ ctime TICK)))
+        (values #t '()))
+       (else
+        (printf "~a dropping chadd (can't find chadd-to) ~v\n" who c)
         (values #f '()))))
+    ((chrm? c)
+     ; have to manage space-players specially
+     (define p (findfid (chrm-id c) (space-players space)))
+     (when p (rem! p space who))
+
+     (define s (find-stack space (chrm-id c)))
+     (cond
+       (s
+        (rem! (car s) (cadr s) who)
+        (values #t '()))
+       (else
+        (printf "~a dropping chrm (can't find chrm-id) ~v\n" who c)
+        (values #f '()))))
+    ((chmov? c)
+     (define to (if (chmov-to c)
+                    (find-id space (chmov-to c))
+                    space))
+     (cond
+       ((not to)
+        (printf "~a dropping chmov (can't find chmov-to) ~v\n" who c)
+        (values #f '()))
+       (else
+        (define p (findfid (chmov-id c) (space-players space)))
+        (define s (find-stack space (chmov-id c)))
+        (cond
+          (s
+           (define changes '())
+           (rem! (car s) (cadr s) who)
+           (when (and (server?) (player? (car s)) (spacesuit? (cadr s)))
+             ; leaving a space suit, remove the suit
+             (append! changes (chrm (ob-id (cadr s)))))
+           (cond ((and (player? (car s)) (space? to))
+                  (when (and (server?) (not (spacesuit? (get-ship s))))
+                    ; jumping into spacesuit
+                    (define ship (get-topship s))
+                    (define ss (make-spacesuit (player-name p) ship))
+                    (define sspv (obj-posvel ss))
+                    ; push spacesuit away from parent ship
+                    (define t (atan0 (posvel-dy sspv) (posvel-dx sspv)))
+                    (define r (+ 3 (hit-distance ship ss)))
+                    (set-posvel-x! sspv (+ (posvel-x sspv) (* r (cos t))))
+                    (set-posvel-y! sspv (+ (posvel-y sspv) (* r (sin t))))
+                    (append! changes (chadd ss #f) (chmov (ob-id p) (ob-id ss) #f))))
+                 (else
+                  (add! (car s) to who)
+                  (when (obj? (car s)) (set-obj-posvel! (car s) (chmov-pv c)))))
+           (values #t changes))
+          (p
+           (add! p to who)
+           (values #t '()))
+          (else
+           (printf "~a dropping chmov (can't find chmov-id) ~v\n" who c)
+           (values #f '()))))))
     ((chfaction? c)
      (define pid (chfaction-playerid c))
      (define p (findfid pid (space-players space)))
@@ -192,55 +240,8 @@
      ;(printf "~a chorders ~v\n" who c)
      (set-space-orders-for! space (chorders-faction c) (chorders-ot c))
      (values #t '()))
-    ((chadd? c)
-     (define o (chadd-o c))
-     ;(printf "~a adding ~v\n" who o)
-     (cond
-       ((dmg? o)
-        (define tool (find-id space (chadd-to c)))
-        (cond (tool
-               (set-tool-dmgs! tool (cons o (tool-dmgs tool)))
-               (values #t '()))
-              (else
-               (printf "~a chadd - couldn't find tool id ~a\n" who (chadd-to c))
-               (values #f '()))))
-       ((player? o)
-        (define ep (findfid (ob-id o) (space-players space)))
-        (cond
-          (ep
-           (printf "~a chadd - trying to add an existing player ~v\n" who o)
-           (values #f '()))
-          (else
-           (printf "~a adding player ~v\n" who o)
-           (set-space-players! space (cons o (space-players space)))
-           (values #t '()))))
-       (else
-        (while (and (ctime . < . (space-time space))
-                    (obj-posvel o))  ; some objs have a #f posvel when inside other things
-               ;(printf "~a ticking forward ~v\n" who (chadd-o c))
-               (update-physics! space o (/ TICK 1000.0))
-               (set! ctime (+ ctime TICK)))
-        (movein space o (chadd-to c))
-        (values #t '()))))
-    ((chrm? c)
-     (define p (findfid (chrm-id c) (space-players space)))
-     (cond
-       (p
-        (printf "~a removing player ~v\n" who p)
-        (set-space-players! space (remove-id (chrm-id c) (space-players space))))
-       (else
-        ;(printf "~a removing ~v\n" who (find-id space (chrm-id c)))
-        (define s (find-stack space (chrm-id c)))
-        (cond ((space? (cadr s))
-               (set-space-objects! space (remove-id (chrm-id c) (space-objects space))))
-              ((ship? (cadr s))
-               (set-ship-cargo! (cadr s) (remove-id (chrm-id c) (ship-cargo (cadr s)))))
-              ((tool? (cadr s))
-               (set-tool-dmgs! (cadr s) (remove-id (chrm-id c) (tool-dmgs (cadr s)))))
-              (else
-               (printf "~a chrm - hit else clause for obj id ~a\n" who (chrm-id c)))
-               )))
-     (values #t '()))
+    
+    
     ((chdam? c)
      (define o (find-id space (chdam-id c)))
      (define d (chdam-damage c))
@@ -252,24 +253,6 @@
                           ((ship? o) (reduce-ship! space o d)))))
            (else
             (printf "~a chdam - couldn't find obj id ~a\n" who (chdam-id c))
-            (values #t '()))))
-    ((chmov? c)
-     (define o (find-id space (chmov-id c)))
-     (cond (o
-            (set-obj-posvel! o (chmov-pv c))
-            (moveout space o (chmov-from c))
-            (movein space o (chmov-to c))
-            (values #t '()))
-           (else
-            (printf "~a chmov - couldn't find obj id ~a\n" who (chmov-id c))
-            (values #t '()))))
-    ((cherg? c)
-     (define o (find-id space (cherg-id c)))
-     (cond (o
-            (set-pod-energy! o (+ (pod-energy o) (cherg-e c)))
-            (values #t '()))
-           (else
-            (printf "~a cherg - couldn't find obj id ~a\n" who (cherg-id c))
             (values #t '()))))
     ((new-strat? c)
      (define o (find-id space (new-strat-ship-id c)))
@@ -288,6 +271,28 @@
            (else
             (printf "~a chstats - couldn't find obj id ~a\n" who (chstats-id c))
             (values #t '()))))
+    ((chstat? c)
+     (define o (find-id space (chstat-id c)))
+     (cond
+       (o
+        (case (chstat-what c)
+          ((ai)
+           (set-ship-ai?! o (chstat-val c))
+           (printf "ship ~a turned off ai\n")
+           (values #t '()))
+          ((toolval)
+           (define t (ship-tool o (car (chstat-val c))))
+           (cond (t (set-tool-val! t (cadr (chstat-val c)))
+                    (values #t '()))
+                 (else
+                  (printf "~a chstat - couldn't find tool ~v\n" c)
+                  (values #f '()))))
+          (else
+           (printf "~a chstat - didn't understand chstat-what ~v\n" c)
+           (values #f '()))))
+       (else
+        (printf "~a chstat - couldn't find obj id ~a\n" who (chstat-id c))
+        (values #f '()))))
     ((message? c)
      (set-obj-start-time! c (space-time space))
      (set-space-objects! space (cons c (space-objects space)))

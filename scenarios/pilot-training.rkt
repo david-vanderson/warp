@@ -35,7 +35,7 @@
                             #:dx dx #:dy dy #:dr dr #:start-ship? #t))
              )))
 
-  (define time-limit (* 1000 90))  ; 90 seconds for the whole scenario
+  (define time-limit (* 1000 60 5))  ; 90 seconds for the whole scenario
   (define inside-time-limit? #t)
 
   (define (new-orders)
@@ -55,11 +55,11 @@
         (format "Trainer ~a" i))))
   
   (define (new-trainer faction)
-    (define s (make-ship "red-fighter" faction faction #:npc? #f
+    (define s (make-ship "red-fighter" faction faction #:ai? #f
                          #:x (random-between -100 100) #:y (random-between -100 100)))
     (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                              ;power bat maxbat con maxcon radius mass thrust rthrust drag radar start?
-                              1.0 100.0 100.0 20.0 20.0 6.0 20.0 50.0 1.5 300.0 0.4 #t))
+                              ;con maxcon radius mass drag radar start?
+                              20.0 20.0 6.0 20.0 300.0 0.4 #t))
     s)
   
   (define (on-tick space change-scenario!)

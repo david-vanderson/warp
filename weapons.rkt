@@ -12,7 +12,7 @@
 
 ;; server
 
-(define (shbolt-ai! space stack)
+#;(define (shbolt-ai! space stack)
   (define changes '())
   (define ownship (get-ship stack))
   (define pod (get-pod stack))

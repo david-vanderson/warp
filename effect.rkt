@@ -12,22 +12,12 @@
 
 
 (define (add-backeffects! space o)
-  (when (and (missile? o) (time-for (obj-age space o) 200))
-    (define be (backeffect 0 (space-time space)
-                           (posvel 0
-                                   (- (obj-x o) (* MISSILE_RADIUS (cos (obj-r o))))
-                                   (- (obj-y o) (* MISSILE_RADIUS (sin (obj-r o))))
-                                   0
-                                   (- (* 16.0 (cos (obj-r o))))
-                                   (- (* 16.0 (sin (obj-r o))))
-                                   0) #f 200))
-    (set-space-objects! space (cons be (space-objects space))))
-  
   (when (ship? o)
-    (define w (find-id o warp? #f))
-    (define ftstack (find-stack o fthrust? #f))
+    (define w (ship-tool o 'warp))
+    (define wc (if w (tool-count w o) 0))
+    (define eng (ship-tool o 'engine))
     (cond
-      ((and w ((warp-e w) . > . 0.0) (equal? "release" (warp-mode w)))
+      ((and w (= wc 0) ((caddr (tool-val w)) . > . 0))
        (when (time-for (obj-age space o) 100)
          (define l (- (ship-radius o)))
          (define t (posvel-r (obj-posvel o)))
@@ -42,13 +32,12 @@
                                         (- (* 1.5 (posvel-dy (obj-posvel o))))
                                         0) #f 1000))
          (set-space-objects! space (cons be (space-objects space)))))
-      ((and w ((warp-e w) . < . (warp-maxe w)) (equal? "hold" (warp-mode w)))
-       ; charging warp drive
-       )
-      ((and ftstack (fthrust-on (car ftstack)))
-       (when (or (and (time-for (obj-age space o) 800)
-                      ((pod-energy (get-pod ftstack)) . > . 0.0))
-                 (and (time-for (obj-age space o) 800 400)
+      (eng
+       (define c (tool-count eng o))
+       (when (or (and (missile? o) (time-for (obj-age space o) 200))
+                 (and (time-for (obj-age space o) 800)
+                      (c . > . 0))
+                 #;(and (time-for (obj-age space o) 800 400)
                       ((pod-energy (get-pod ftstack)) . > . 1.0)))
          
          (define l (- (ship-radius o)))
@@ -58,9 +47,15 @@
                                         (+ (posvel-x (obj-posvel o)) (* l (cos t)))
                                         (+ (posvel-y (obj-posvel o)) (* l (sin t)))
                                         0
-                                        (- (posvel-dx (obj-posvel o)))
-                                        (- (posvel-dy (obj-posvel o)))
-                                        0) #f 1000))
+                                        (if (missile? o)
+                                            (- (* 16.0 (cos (obj-r o))))
+                                            (- (posvel-dx (obj-posvel o))))
+                                        (if (missile? o)
+                                            (- (* 16.0 (sin (obj-r o))))
+                                            (- (posvel-dy (obj-posvel o))))
+                                        0)
+                                #f
+                                (if (missile? o) 200 1000)))
          (set-space-objects! space (cons be (space-objects space))))))))
 
 

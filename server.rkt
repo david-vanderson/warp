@@ -11,15 +11,12 @@
          "change.rkt"
          "physics.rkt"
          "pilot.rkt"
-         "weapons.rkt"
+         "plasma.rkt"
          "pbolt.rkt"
          "missile.rkt"
-         "plasma.rkt"
          "shield.rkt"
-         "ships.rkt"
-         "dmg.rkt"
-         "order.rkt"
          "scenario.rkt"
+         "scenarios/testing.rkt"
          "upgrade.rkt")
 
 (provide start-server)
@@ -75,19 +72,30 @@
              ((distance ship u) . < . (+ (ship-radius ship) (upgrade-radius space u))))
     ;(printf "upgrade hit ship ~a (~a)\n" (ship-name ship) (obj-id ship))
     (define newstats (struct-copy stats (ship-stats ship)))
+    (define sendstats #t)
     (define which
       (case (upgrade-type u)
-        (("power") (set-stats-power! newstats (* 1.1 (stats-power newstats))) "reactor")
-        (("thrust") (set-stats-thrust! newstats (* 1.1 (stats-thrust newstats))) "engines")
-        (("bat") (set-stats-maxbat! newstats (* 1.1 (stats-maxbat newstats))) "reserve")
-        (("con") (set-stats-maxcon! newstats (* 1.1 (stats-maxcon newstats))) "hull")
+        (("engines")
+         (set! sendstats #f)
+         (define t (ship-tool ship 'engine))
+         (when t (append! changes (chstat (ob-id ship) 'toolval (list 'engine (* 1.1 (tool-val t))))))
+         "engines")
+        (("turning")
+         (set! sendstats #f)
+         (for ((tname '(turnleft turnright steer)))
+           (define t (ship-tool ship tname))
+           (when t
+             (append! changes (chstat (ob-id ship) 'toolval (list tname (* 1.1 (tool-val t)))))))
+         "turn speed")
+        (("hull") (set-stats-maxcon! newstats (* 1.1 (stats-maxcon newstats))) "hull")
         (("radar") (set-stats-radar! newstats (* 1.1 (stats-radar newstats))) "radar")
         (else #f)))
     (cond (which
            (define m (message (next-id) (space-time space) #f (format "~a upgraded ~a" (ship-name ship) which)))
-           (append! changes (list (chstats (ob-id ship) newstats) m (chrm (ob-id u)))))
+           (when sendstats (append! changes (chstats (ob-id ship) newstats)))
+           (append! changes (list m (chrm (ob-id u)))))
           (else
-           (append! changes (chmov (ob-id u) #f (ob-id ship) #f)))))
+           (append! changes (chmov (ob-id u) (ob-id ship) #f)))))
    
   changes)
 
@@ -100,9 +108,6 @@
              (not (equal? (plasma-ownship-id p) (ob-id ship)))
              ((distance ship p) . < . (+ (ship-radius ship) (plasma-radius space p))))
     ;(printf "plasma hit ship ~a (~a ~a)\n" (ship-name ship) (plasma-ownship-id p) (obj-id ship))
-
-    (when ((random) . > . 0.8)
-      (append! changes (dmg-ship ship (distance ship p) (angle-frto (obj-r ship) (theta ship p)))))
     
     (define damage (plasma-energy space p))
     (define e (effect (next-id) (space-time space)
@@ -119,13 +124,13 @@
 ; return a list of changes
 (define (missile-hit-plasma! space m p)
   (define changes '())
-  (when (and (not (missile-dead? space m))
+  (when (and ((ship-con m) . > . 0)
              (not (plasma-dead? space p))
-             ((distance m p) . < . (+ MISSILE_RADIUS (plasma-radius space p))))
+             ((distance m p) . < . (+ (ship-radius m) (plasma-radius space p))))
     ;(printf "missile hit plasma\n")
 
     (define damage (plasma-energy space p))
-    (append! changes (chdam (ob-id m) -1)  ; missile should detonate
+    (append! changes (chdam (ob-id m) -1)  ; -1 means missile explodes
              (chdam (ob-id p) damage)))
   changes)
 
@@ -134,8 +139,8 @@
 (define (missile-hit-ship! space ship m)
   (define changes '())
   (when (and ((ship-con ship) . > . 0)
-             (not (missile-dead? space m))
-             ((distance ship m) . < . (+ (ship-radius ship) MISSILE_RADIUS)))
+             ((ship-con m) . > . 0)
+             ((distance ship m) . < . (+ (ship-radius ship) (ship-radius m))))
     ;(printf "missile hit ship ~a\n" (ship-name ship))
 
     (define damage 50.0)
@@ -144,7 +149,8 @@
                                    (dx (posvel-dx (obj-posvel ship)))
                                    (dy (posvel-dy (obj-posvel ship))))
                       10.0 500))
-    (append! changes (list (chdam (ob-id ship) damage)
+    (append! changes (list (chadd (dmgfx (next-id) (space-time space) #f "translation" damage) (ob-id ship))
+                           (chdam (ob-id ship) damage)
                            (chdam (ob-id m) damage)
                            (chadd e #f))))
   changes)
@@ -233,12 +239,7 @@
 ; return a list of changes
 (define (dock! s1 s2)
   (define changes '())
-  (define hangar (ship-hangar s2))
-  (append! changes (list (chmov (ob-id s1) #f (ob-id hangar) #f)))
-  (define d (find-id s1 dock? #f))
-  (append! changes (list (command (ob-id d) #f)))
-  (define f (find-id s1 fthrust? #f))
-  (when f (append! changes (list (command (ob-id f) #f))))
+  (append! changes (list (chmov (ob-id s1) (ob-id s2) #f)))
   changes)
 
 
@@ -257,11 +258,10 @@
          (define temp ship)
          (set! ship s)
          (set! s temp))
-       (when (and ((faction-check (ship-faction ship) (ship-faction s)) . > . 0)
-                  (findf lounge? (ship-pods ship)))
-         ; don't need to explicitly remove the spacesuit because chrole does that
-         (append! changes (chrole (ob-id (car (lounge-crew (ship-lounge s))))
-                                  (ob-id (ship-lounge ship))))))
+       (when ((faction-check (ship-faction ship) (ship-faction s)) . > . 0)
+         ; don't need to explicitly remove the spacesuit because chmov does that
+         (append! changes (chmov (ob-id (car (ship-players s)))
+                                 (ob-id ship) #f))))
       ((will-dock? ship s)
        (append! changes (dock! ship s)))
       ((will-dock? s ship)
@@ -277,31 +277,37 @@
   (define ships (filter ship? objects))
   
   (define spaceships (filter spaceship? ships))
+  (define probes (filter probe? ships))
   
   (define plasmas (filter plasma? objects))
   (define shields (filter shield? objects))
   (define upgrades (filter upgrade? objects))
   (define missiles (filter missile? objects))
 
-  (for ((p ships)
-        #:when (equal? "probe" (ship-type p)))
-    (when ((pod-e (car (ship-pods p))) . <= . 0.0)
-      (define ptube (find-id space (lambda (o) (and (ptube? o) (equal? (ptube-pid o) (ob-id p))))))
-      (when ptube
-        (define cs (apply-all-changes!
-                    space (list (command (ob-id ptube) #f)) (space-time space) "server"))
-        (append! changes cs))))
+  (for ((p probes))
+    (define t (ship-tool p 'endrc))
+    (when (and (tool-rc t) ((tool-rc t) . <= . (/ (obj-age space p) 1000.0)))
+      (define changes1 '())      
+      (define player (find-id space (lambda (o) (and (player? o) (equal? (player-rcid o) (ob-id p))))))
+      (when player
+        (append! changes1 (command (ob-id player) 'endrc #f)))
+      (append! changes1 (command (ob-id p) 'endrc #f))
+      (define cs (apply-all-changes!
+                  space changes1 (space-time space) "server"))
+      (append! changes cs)))
 
   (for ((m missiles))
-    (when (missile-should-detonate? space m)
+    (define t (ship-tool m 'endrc))
+    (when ((tool-rc t) . <= . (/ (obj-age space m) 1000.0))
       (define cs (apply-all-changes!
+                  ; -1 means missile explodes
                   space (list (chdam (ob-id m) -1)) (space-time space) "server"))
       (append! changes cs))
     (for ((p plasmas))
       (define cs (apply-all-changes!
                   space (missile-hit-plasma! space m p) (space-time space) "server"))
       (append! changes cs))
-    (for ((ship spaceships))
+    (for ((ship (append spaceships probes)))
       (define cs (apply-all-changes!
                   space (missile-hit-ship! space ship m) (space-time space) "server"))
       (append! changes cs)))
@@ -311,7 +317,7 @@
       (define cs (apply-all-changes!
                   space (plasma-hit-shield! space shield p) (space-time space) "server"))
       (append! changes cs))
-    (for ((ship spaceships))
+    (for ((ship (append spaceships probes)))
       (define cs (apply-all-changes!
                   space (plasma-hit-ship! space ship p) (space-time space) "server"))
       (append! changes cs)))
@@ -336,48 +342,41 @@
 (define (run-ai! space)
   (define changes '())
   
-  (define stacks (search space ai-pod? #t))
+  (define stacks (search space ai-ship? #t))
 
-  ; if we haven't seen this pod before, set ai runtime to 0
-  (for ((s stacks))
-    (when (equal? #t (pod-npc? (get-pod s)))
-      (set-pod-npc?! (get-pod s) 0)))
+  ; if we haven't seen this ship before, set ai runtime to 0
+  (for ((s stacks)
+        #:when (equal? #t (ship-ai? (car s))))
+    (set-ship-ai?! (car s) 0))
 
   ; sort stacks by last ai runtime
   (define sorted-stacks
-    (sort stacks (lambda (s1 s2) (< (pod-npc? (get-pod s1))
-                                    (pod-npc? (get-pod s2))))))
+    (sort stacks (lambda (s1 s2) (< (ship-ai? (car s1))
+                                    (ship-ai? (car s2))))))
 
   (when (not (null? sorted-stacks))
     (define s (car sorted-stacks))  ; get first one
-    (define p (get-pod s))
+    (define ship (car s))
     ; don't run ai faster than AI_INTERVAL ms, could be slower
-    (when ((- (space-time space) (pod-npc? p)) . > . AI_INTERVAL)
-      (set-pod-npc?! p (space-time space))  ; set runtime
+    (when ((- (space-time space) (ship-ai? ship)) . > . AI_INTERVAL)
+      (set-ship-ai?! ship (space-time space))  ; set runtime
 
-      ;(printf "running ai for pod ~a\n" (ob-id (get-pod s)))
-
-      ; ai always fixes all the dmgs
-      (for* ((t (in-list (pod-tools p)))
-             (d (in-list (tool-dmgs t)))
-            #:when (not (dmg-fixing? d)))
-        (append! changes (list (command (ob-id d) #t))))
+      ;(printf "running ai for ship ~a\n" (ship-name ship))
       
-      ; run this pod's ai
-      (when (and (findf fthrust? (pod-tools p)) (findf steer? (pod-tools p)))
+      ; run this ship's ai
+      (when (and (ship-tool ship 'engine) (ship-tool ship 'steer))
         (append! changes (pilot-ai-strategy! space s))
-        
         (when (ship-flying? (get-ship s))
           (append! changes (pilot-ai-fly! space s))))
 
-      (when (findf pbolt? (pod-tools p))
+      #;(when (ship-tool ship 'pbolt)
         (append! changes (pbolt-ai! space s)))
 
-      (when (findf shbolt? (pod-tools p))
+      #;(when (findf shbolt? (pod-tools p))
         (append! changes (shbolt-ai! space s)))
 
-      (when (findf mtube? (pod-tools p))
-        (append! changes (mtube-ai! space s)))
+      (when (ship-tool ship 'missile)
+        (append! changes (missile-ai! space s)))
       ))
   
   changes)
@@ -388,9 +387,13 @@
 (define (remove-client c msg)
   (printf "removing client ~v ~a\n" (client-player c) msg)
   (define s (find-stack ownspace (client-id c)))
+  (define changes '())
+  (when (and s (player-rcid (car s)))
+    (append! changes (command (client-id c) 'endrc #f)))
+  (append! changes (chrm (client-id c)))
   (append! updates
            (apply-all-changes! ownspace
-                               (list (chrole (client-id c) #f) (chrm (client-id c)))
+                               changes
                                (space-time ownspace) "server"))
   
   (close-input-port (client-in c))
@@ -432,7 +435,7 @@
     (printf "server accept-ready\n")
     (define-values (in out) (tcp-accept server-listener))
     (set-tcp-nodelay! out #t)
-    (define c (client (player (next-id) #f #f) in out))
+    (define c (client (player (next-id) #f #f '() #f) in out))
     (append! clients (list c))
     (define p (car (read-from-client c)))
     (set-player-name! (client-player c) (player-name p))
@@ -467,7 +470,8 @@
     (set-space-time! ownspace (+ (space-time ownspace) TICK))
     (for ((o (space-objects ownspace)))
       (update-physics! ownspace o (/ TICK 1000.0))
-      (when (ship? o) (update-energy! (/ TICK 1000.0) o 0.0)))
+      (when (ship? o) (repair-subships! (/ TICK 1000.0) o)))
+      
 
     ; collisions
     ; update-effects! returns already-applied changes
@@ -513,7 +517,7 @@
   ; client-disconnect updates if there's an error
   (set! updates '())
   
-  ;(printf "server sending ~v\n" u)
+  ;(printf "server sending time ~v\n" (update-time u))
   (for ((c clients))
     (send-to-client c u))
   
@@ -538,7 +542,7 @@
     (send-to-client c ownspace)))
 
 
-(define (start-server (port PORT) (scenario sc-pick))
+(define (start-server (port PORT) #:scenario (scenario sc-pick))
   (change-scenario! scenario)
   (set! server-listener (tcp-listen port 4 #t))
   (printf "waiting for clients...\n")
@@ -546,4 +550,6 @@
 
 
 (module+ main
-  (start-server))
+  (start-server
+   #:scenario testing-scenario
+   ))

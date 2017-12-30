@@ -58,7 +58,7 @@
 ; pod chosen so that pods closer to r,t are more likely to be damaged
 ; r is dist from ship center
 ; t is angle with respect to ship
-(define (dmg-ship ship r t)
+#;(define (dmg-ship ship r t)
   ; order pods with closest first
   (define (pod< a b)
     (define da (dist-polar r t (pod-dist a) (pod-angle a)))
@@ -76,7 +76,7 @@
   (if ret ret '()))
 
 
-(define (dmg-tool t ship)
+#;(define (dmg-tool t ship)
   (cond
     ((pbolt? t) (dmg-pbolt t))
     ((fthrust? t) (dmg-fthrust t))

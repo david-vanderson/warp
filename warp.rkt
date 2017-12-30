@@ -19,10 +19,16 @@
 
 ;; client/server
 
-(define (change-warp! cmd space stack who)
-  (define tool (car stack))
-  (set-warp-mode! tool cmd)  ; "release" or "hold"
-  (values #t '()))
+(define (warping? ship)
+  (define w (ship-tool ship 'warp))
+  (and w
+       (= 0 (tool-count w ship))
+       ((caddr (tool-val w)) . > . 0)))
+
+(define (warp-charging? ship)
+  (define w (ship-tool ship 'warp))
+  (and w
+       ((tool-count w ship) . > . 0)))
 
 
 ; return list of buttons
@@ -30,12 +36,13 @@
   (define buttons '())
   (define spr '())
   (define ship (get-ship stack))
-  (define pod (get-pod stack))
-  (define w (warp-maxe t))
+  (define vals (tool-val t))
+  (define maxw (* 2.0 (cadr vals)))
+  (define w (* 2.0 (caddr vals)))
   (define h 30.0)
-  (define x (- RIGHT (/ w 2.0) 10))
-  (define y (- BOTTOM 35.0))
-  (define z (clamp 0.0 1.0 (/ (warp-e t) (warp-maxe t))))
+  (define x 0.0)
+  (define y (- BOTTOM 135.0))
+  (define z (clamp 0.0 1.0 (/ w maxw)))
 
   ; fill
   (append! spr (sprite x y (sprite-idx csd 'square) #:layer LAYER_UI
@@ -49,15 +56,20 @@
   ; - player presses and holds the shortcut key
   ; - player clicks the button with the mouse (overwrites holding?)
   ; this means you can get multiple holdbutton-frelease calls
-  (define b (holdbutton 'outline #\q x y w h (string-append "Warp [q]"
-                                                            (if (equal? (warp-mode t) "hold")
-                                                                " Charging"
-                                                                ""))
+  (define b (holdbutton 'outline #\q x y maxw h "Warp [q]"
                         (lambda (x y) (void))
-                        (lambda () (send-commands (command (ob-id t) "release")))))
+                        (lambda ()
+                          (send-commands (command (ob-id (car stack)) (tool-name t) #f)))))
+
+  (cond
+    ((warping? ship)
+     (set-button-label! b "Warping!"))
+    (else
+     (when (warp-charging? ship)
+       (set-button-label! b "Warp [q] Charging"))
+     (set-button-f! b (lambda (x y)
+                        (send-commands (command (ob-id (car stack)) (tool-name t) #t))))))
   
-  (when (and (equal? "release" (warp-mode t)) ((warp-e t) . = . 0))
-    (set-button-f! b (lambda (x y) (send-commands (command (ob-id t) "hold")))))
   (append! buttons b)
   (define ob (add-offline-button! t b send-commands))
   (when ob (append! buttons ob))

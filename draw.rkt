@@ -148,7 +148,7 @@
             (append! spr (sprite x y (sprite-idx csd (string->symbol (ship-type o)))
                                  #:layer LAYER_SHIPS #:m scale #:theta (- (obj-r o))
                                  #:a fowa #:r (get-red space o)))
-            (append! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
+            ;(append! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
             (when showplayers?
               (define colstr (faction-check-color faction (ship-faction o)))
               (define players (find-all o player?))
@@ -239,10 +239,11 @@
   (define spr '())
   ; string saying where you are
   (when stack
-    (define p (get-pod stack))
-    (define str (format "~a" (if p (pod-name p) "Crew")))
+    (define str #f)
     (for ((s (in-list (get-ships stack))))
-      (set! str (format "~a on ~a" str (ship-name s))))
+      (if str
+          (set! str (format "~a on ~a" str (ship-name s)))
+          (set! str (ship-name s))))
     (append! spr (textr str 0.0 (- 5.0 (/ HEIGHT 2.0)) #:layer LAYER_UI_TEXT
                         #:r 255 #:g 255 #:b 255)))
 
@@ -313,62 +314,6 @@
   spr)
 
 
-(define (draw-ship-info csd center scale ship wx wy space a layer)
-  (define spr '())
-  (define shipr (if (ship-flying? ship) (obj-r ship) pi/2))
-  (for ((p (in-list (ship-pods ship))))
-    (define r (angle-add shipr (pod-angle p)))
-    (define x (+ wx (* (pod-dist p) (cos r))))
-    (define y (+ wy (* (pod-dist p) (sin r))))
-    (define rr (angle-add shipr (if (pod-facing p) (pod-facing p) 0)))
-    (define-values (sx sy) (xy->screen x y center scale))
-    (define m (* scale (/ (pod-e p) (pod-maxe p) 7.5)))
-    (define col (send the-color-database find-color (stoplight-color (pod-e p) (pod-maxe p))))
-    (append! spr (sprite sx sy (sprite-idx csd 'podarc)
-                         #:layer layer #:m m #:theta (- rr) #:a a
-                         #:r (send col red) #:g (send col green) #:b (send col blue)))
-    (define ndmgs (length (search p dmg? #t #f)))
-    (when (ndmgs . > . 0)
-      (define da (degrees->radians 40.0))
-      (define sa (- (* (- ndmgs 1) (/ da 2.0))))
-      (for ((i ndmgs))
-        (define dr (angle-add rr (angle-add sa (* i da))))
-        (define dx (+ x (* 8.0 (cos dr))))
-        (define dy (+ y (* 8.0 (sin dr))))
-        (define-values (sx sy) (xy->screen dx dy center scale))
-        (append! spr (sprite sx sy (sprite-idx csd 'circle) #:r 255
-                             #:layer layer #:m (/ scale 50.0) #:a a)))))
-  spr)
-
-
-
-(define (draw-pods csd center scale ship where stack send-commands canvas meid)
-  (define buttons '())
-  (define shipr (if (ship-flying? ship) (obj-r ship) pi/2))
-  (for ((p (in-list (ship-pods ship)))
-        #:when (not (lounge? p)))
-    (define r (angle-add shipr (pod-angle p)))
-    (define x (+ (obj-x where) (* (pod-dist p) (cos r))))
-    (define y (+ (obj-y where) (* (pod-dist p) (sin r))))
-    (define-values (sx sy) (xy->screen x y center scale))
-    (define size (min (* scale 10.0) (* scale scale 1.0)))
-    (when (size . > . 12.0)
-      (cond
-        ((hangar? p)
-         (define b (button 'normal #f sx sy size size (pod-name p)
-                           (lambda (x y)
-                             (send-commands (chrole meid (ob-id p))))))
-         (append! buttons (list b)))
-        (else
-         (define b (button 'normal #f sx sy size #f (pod-name p)
-                           (lambda (x y)
-                             (send-commands (chrole meid (ob-id p))))))
-         (when (pod-player p)
-           (set-button-draw! b 'disabled)
-           (set-button-label! b (player-name (pod-player p))))
-         (append! buttons b)))))
-  buttons)
-
 
 (define (draw-docking csd center scale space stack)
   (define spr '())
@@ -385,50 +330,17 @@
   spr)
 
 
-(define (draw-tool-overlay csd center scale t stack)
+#;(define (draw-tool-overlay csd center scale t stack)
   (cond
     ((dock? t)
      (when (dock-on t)
        (draw-docking csd center scale (get-space stack) stack)))
-    ((pbolt? t)
-     (define spr '())
-     (define s (get-ship stack))
-     (when (ship-flying? s)
-       (define p (get-pod stack))
-       (when (pod-facing p)
-         (define r (angle-add (obj-r s) (pod-angle p)))
-         (define x (+ (obj-x s) (* (pod-dist p) (cos r))))
-         (define y (+ (obj-y s) (* (pod-dist p) (sin r))))
-         (define rr (angle-add (obj-r s) (pod-facing p)))
-         (define len 50.0)
-         (for ((a (list (angle-add rr (/ (pod-spread p) 2))
-                        (angle-add rr (- (/ (pod-spread p) 2))))))
-           (define-values (lx ly) (xy->screen (+ x (* len (cos a))) (+ y (* len (sin a)))
-                                              center scale))
-           (append! spr (sprite lx ly (sprite-idx csd 'square) #:layer LAYER_OVERLAY
-                         #:mx (/ (* len scale) 0.5 (sprite-width csd (sprite-idx csd 'square)))
-                         #:my (/ 2.0 (sprite-height csd (sprite-idx csd 'square)))
-                         #:r 255 #:theta (- a))))))
-     spr)))
+    ))
 
 
 ; drawn in canon transform
-(define (draw-pod-ui csd textr center scale stack)
+(define (draw-ship-hp csd textr center scale stack)
   (define spr '())
-  
-  ; pod energy
-  (define p (get-pod stack))
-  (when ((pod-maxe p) . > . 0)
-    (append! spr (sprite (+ LEFT 20) (- BOTTOM 10 (/ (pod-maxe p) 2)) (sprite-idx csd 'square-outline)
-                         #:layer LAYER_UI
-                         #:mx (/ 22.0 (sprite-width csd (sprite-idx csd 'square-outline)))
-                         #:my (/ (+ 2.0 (pod-maxe p)) (sprite-height csd (sprite-idx csd 'square-outline)) 1.0)
-                         #:r 255 #:g 255 #:b 255))
-    (define col (send the-color-database find-color (stoplight-color (pod-e p) (pod-maxe p))))
-    (append! spr (sprite (+ LEFT 20) (- BOTTOM 10 (/ (pod-e p) 2)) (sprite-idx csd 'square)
-                         #:layer LAYER_UI #:mx (/ 20.0 (sprite-width csd (sprite-idx csd 'square)))
-                         #:my (/ (pod-e p) (sprite-height csd (sprite-idx csd 'square)) 1.0)
-                         #:r (send col red) #:g (send col green) #:b (send col blue))))
 
   ; ship hp
   (define s (get-ship stack))
@@ -444,44 +356,66 @@
                          #:r (send col red) #:g (send col green) #:b (send col blue)))
   (append! spr (textr "Hull" (- RIGHT 20) (+ TOP 10) #:layer LAYER_UI
                       #:r 255 #:g 255 #:b 255))
-
-  ; ship reserves
-  (define mb (ship-maxbat s))
-  (when (mb . > . 0)
-    (append! spr (sprite (- RIGHT 45 (/ mb 2)) (+ TOP 50) (sprite-idx csd 'square-outline)
-                         #:layer LAYER_UI
-                         #:mx (/ (+ 2.0 mb) (sprite-width csd (sprite-idx csd 'square-outline)) 1.0)
-                         #:my (/ 22.0 (sprite-height csd (sprite-idx csd 'square-outline)))
-                         #:r 255 #:g 255 #:b 255))
-    (define col (send the-color-database find-color (stoplight-color (ship-bat s) mb)))
-    (append! spr (sprite (- RIGHT 45 (/ (ship-bat s) 2)) (+ TOP 50) (sprite-idx csd 'square)
-                         #:layer LAYER_UI #:my (/ 20.0 (sprite-height csd (sprite-idx csd 'square)))
-                         #:mx (/ (ship-bat s) (sprite-width csd (sprite-idx csd 'square)) 1.0)
-                         #:r (send col red) #:g (send col green) #:b (send col blue)))
-    (append! spr (textr "Res" (- RIGHT 25) (+ TOP 40) #:layer LAYER_UI
-                        #:r 255 #:g 255 #:b 255)))
   spr)
 
 
 ; drawn in canon transform (buttons, dmgs, warnings)
-(define (draw-tool-ui csd center scale space t stack send-commands)
+(define (draw-tool-ui csd center scale space pid rcship t stack send-commands active-mouse-tool)
   (define buttons '())
   (define spr '())
-  (cond
-    ((pbolt? t) (append! buttons (draw-pbolt-ui! t stack send-commands)))
-    ((warp? t)
+  (case (tool-name t)
+    ((engine turnleft turnright)
+     (define-values (str key x)
+       (case (tool-name t)
+         ((engine) (values "Go [w]" #\w 0))
+         ((turnleft) (values "Left [a]" #\a -100))
+         ((turnright) (values "Right [d]" #\d 100))))
+     (define b (holdbutton 'normal key x (- BOTTOM 35) 80 30 str
+                           (lambda (x y) (send-commands (command pid (tool-name t) #t)))
+                           (lambda () (send-commands (command pid (tool-name t) #f)))))
+     (when (not (ship-flying? (get-ship stack)))
+       (set-button-draw! b 'disabled))
+     (append! buttons (list b))
+     (define ob (add-offline-button! t b send-commands))
+     (when ob (append! buttons (list ob))))
+    ((pbolt)
+     (define b (button 'disabled #f (+ LEFT 65) (- BOTTOM 35) 100 50 "Plasma" #f))
+     (when (and (not (equal? 'pbolt (unbox active-mouse-tool)))
+                (ship-flying? (get-ship stack)))
+       (set-button-draw! b 'normal)
+       (set-button-f! b (lambda (x y) (set-box! active-mouse-tool 'pbolt))))
+     (append! buttons b)
+     (define ob (add-offline-button! t b send-commands))
+     (when ob (append! buttons (list ob))))
+    ((warp)
      (define-values (bs ss) (draw-warp-ui! csd center scale t stack send-commands))
      (append! buttons bs)
      (append! spr ss))
-    ((mtube? t)
-     (define-values (bs ss) (draw-mtube-ui! csd center scale space t stack send-commands))
-     (append! buttons bs)
-     (append! spr ss))
-    ((ptube? t)
-     (define-values (bs ss) (draw-ptube-ui! csd center scale space t stack send-commands))
-     (append! buttons bs)
-     (append! spr ss))
-    ((steer? t)
+    ((missile)
+     (define b (button 'normal #\p (- RIGHT 80) (- BOTTOM 350) 70 50 "Missile [m]"
+                       (lambda (x y) (send-commands (command pid (tool-name t) #t)))))
+     (append! buttons b)
+     (define ob (add-offline-button! t b send-commands))
+     (when ob (append! buttons ob)))
+    ((probe)
+     (define b (button 'normal #\p (- RIGHT 80) (- BOTTOM 250) 70 50 "Probe [p]"
+                       (lambda (x y) (send-commands (command pid (tool-name t) #t)))))
+     (append! buttons b)
+     (define ob (add-offline-button! t b send-commands))
+     (when ob (append! buttons ob)))
+    ((endrc)
+     (when rcship
+       (define life (max 0 ((tool-rc t) . - . (/ (obj-age space rcship) 1000.0))))
+       (append! spr (sprite 0.0 (- BOTTOM 4) (sprite-idx csd 'square) #:layer LAYER_UI
+                            #:mx (/ life .1 (sprite-width csd (sprite-idx csd 'square)) 1.0)
+                            #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square)) 1.0)
+                            #:r 255))
+       
+       (define b (button 'normal #\s (+ LEFT 50) 0 70 50 "Stop [s]"
+                         (lambda (x y)
+                           (send-commands (command pid (tool-name t) #t)))))
+       (append! buttons b)))
+    #;((steer? t)
      (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))
      (when offline
        (define ob (dmgbutton 'normal #f
@@ -490,31 +424,22 @@
                              (lambda (x y) (send-commands (command (ob-id offline)
                                                                    (not (dmg-fixing? offline)))))
                              (/ (dmg-energy offline) (dmg-size offline)) (dmg-fixing? offline)))
-       (append! buttons (list ob))))
-    ((fthrust? t)
-     (define b (button 'normal #\w 0.0 (- BOTTOM 35) 80 30 (if (fthrust-on t) "Stop [W]" "Go [W]")
-                       (lambda (x y) (send-commands (command (ob-id t) (not (fthrust-on t)))))))
-     (when (not (ship-flying? (get-ship stack)))
-       (set-button-draw! b 'disabled))
-     (append! buttons (list b))
-     (define ob (add-offline-button! t b send-commands))
-     (when ob (append! buttons (list ob))))
-     
-    ((dock? t)
-     (define b (button 'normal #\c -130.0 (- BOTTOM 35) 120.0 30.0 (if (dock-on t) "Docking... [C]" "Dock [C]")
-                       (lambda (x y) (send-commands (command (ob-id t) (not (dock-on t)))))))
+       (append! buttons (list ob))))     
+    ((dock)
+     (define b (button 'normal #\c (- RIGHT 80) (- BOTTOM 100) 120.0 30.0 (if (tool-rc t) "Dock On [C]" "Dock Off [C]")
+                       (lambda (x y) (send-commands (command pid (tool-name t) (not (tool-rc t)))))))
      (when (not (ship-flying? (get-ship stack)))
        (set-button-draw! b 'disabled))
      (append! buttons (list b))
      (define ob (add-offline-button! t b send-commands))
      (when ob (append! buttons (list ob)))
-     (define lb (button (if (can-launch? stack) 'normal 'disabled) #\l -250.0 (- BOTTOM 35) 80.0 30.0 "Launch [L]"
-                       (lambda (x y) (send-commands (command (ob-id t) "launch")))))
+     (define lb (button (if (can-launch? stack) 'normal 'disabled) #\l (- RIGHT 80) (- BOTTOM 150) 80.0 30.0 "Launch [L]"
+                       (lambda (x y) (send-commands (command pid (tool-name t) 'launch)))))
      (append! buttons (list lb))
      (define lob (add-offline-button! t lb send-commands "nolaunch"))
      (when lob (append! buttons (list lob))))
     
-    ((shbolt? t)
+    #;((shbolt? t)
      (define ship (get-ship stack))
      (define pod (get-pod stack))
      (define b (button 'normal #\space (+ LEFT 65) (- BOTTOM 35) 50.0 50.0 "Shield [_]" #f))

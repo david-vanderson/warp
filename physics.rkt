@@ -8,6 +8,7 @@
          "shield.rkt"
          "effect.rkt"
          "ships.rkt"
+         "warp.rkt"
          "upgrade.rkt")
 
 (provide (all-defined-out))
@@ -16,45 +17,65 @@
 (define (steer! ownship dt)
   (define trying? #f)
   (define pv (obj-posvel ownship))
-
-  (define w (find-id ownship warp? #f))
+  ;(printf "steer! for ~a\n" (ship-name ownship))
+  
   (cond
-    ((and w ((warp-e w) . > . 0.0) (equal? "release" (warp-mode w)))
-     (define xy_acc 150.0)
+    ((warping? ownship)
+     (define w (ship-tool ownship 'warp))
+     (set-tool-val! w (list (car (tool-val w))
+                            (cadr (tool-val w))
+                            (max 0 (- (caddr (tool-val w)) (* 25.0 dt)))))
+     (define xy_acc (car (tool-val w)))
      (define ddx (* xy_acc (cos (posvel-r pv))))
      (define ddy (* xy_acc (sin (posvel-r pv))))
      (set-posvel-dx! pv (+ (posvel-dx pv) (* ddx dt)))
      (set-posvel-dy! pv (+ (posvel-dy pv) (* ddy dt)))
      (set! trying? #t))
-    ((and w ((warp-e w) . < . (warp-maxe w)) (equal? "hold" (warp-mode w)))
-     ; charging the warp drive
-     (set-posvel-dr! pv 0.0)
-     )
     (else
-     (define cstack (find-stack ownship steer? #f))
-     (when cstack
-       (define course (steer-course (car cstack)))
-       (define r (posvel-r pv))
-       
-       (define racc (stats-rthrust (ship-stats ownship)))
-       (cond
-         (((abs (angle-frto r course)) . < . (* racc dt))
-          ;(printf "STOPPING\n")
-          (set-posvel-r! pv course)
-          (set-posvel-dr! pv 0.0))
-         (((pod-energy (get-pod cstack)) . > . 0.0)
-          (set-posvel-dr! pv (if ((angle-frto r course) . > . 0.0) racc (- racc)))
-          (set! trying? #t))))
+     (when (warp-charging? ownship)
+       (define w (ship-tool ownship 'warp))
+       (define wc (tool-count w ownship))
+       (set-tool-val! w (list (car (tool-val w))
+                              (cadr (tool-val w))
+                              (min (cadr (tool-val w))
+                                   (+ (caddr (tool-val w)) (* 10.0 dt wc))))))
+
+     (define st (ship-tool ownship 'steer))
+     (define tl (ship-tool ownship 'turnleft))
+     (define tr (ship-tool ownship 'turnright))
+     (when (or st tl tr)
+       (set-posvel-dr! pv 0.0))  ; ignore whatever we had before
+
+     (cond
+       ((and st (ai-ship? ownship))
+        (define course (tool-rc st))
+        (define r (posvel-r pv))
+        (define racc (tool-val st))
+        (cond
+          (((abs (angle-frto r course)) . < . (* racc dt))
+           ;(printf "STOPPING\n")
+           (set-posvel-r! pv course)
+           (set-posvel-dr! pv 0.0))
+          (else
+           (set-posvel-dr! pv (if ((angle-frto r course) . > . 0.0) racc (- racc)))
+           (set! trying? #t))))
+       ((or tl tr)
+        (define cl (tool-count tl ownship))
+        (define cr (tool-count tr ownship))
+        (define racc (- (* cl (if tl (tool-val tl) 0.0))
+                        (* cr (if tr (tool-val tr) 0.0))))
+        (set-posvel-dr! pv racc)))
      
-     (define ftstack (find-stack ownship fthrust? #f))
-     (when (and ftstack (fthrust-on (car ftstack))
-                ((pod-energy (get-pod ftstack)) . > . 0.0))
-       (define xy_acc (stats-thrust (ship-stats ownship)))
-       (define ddx (* xy_acc (cos (posvel-r pv))))
-       (define ddy (* xy_acc (sin (posvel-r pv))))
-       (set-posvel-dx! pv (+ (posvel-dx pv) (* ddx dt)))
-       (set-posvel-dy! pv (+ (posvel-dy pv) (* ddy dt)))
-       (set! trying? #t))))
+     (define eng (ship-tool ownship 'engine))
+     (when eng
+       (define c (tool-count eng ownship))
+       (when (c . > . 0)
+         (define xy_acc (* c (tool-val eng)))
+         (define ddx (* xy_acc (cos (posvel-r pv))))
+         (define ddy (* xy_acc (sin (posvel-r pv))))
+         (set-posvel-dx! pv (+ (posvel-dx pv) (* ddx dt)))
+         (set-posvel-dy! pv (+ (posvel-dy pv) (* ddy dt)))
+         (set! trying? #t)))))
   
   trying?)
 
@@ -97,24 +118,6 @@
      (push-back! space o dt)
      (when (plasma-dead? space o)
        (set-space-objects! space (remove o (space-objects space)))))
-    ((missile? o)
-     (physics! pv dt 0.5 #t)
-     (push-back! space o dt)
-     (define racc 2.0)
-     (define course (missile-course o))
-     (define r (posvel-r pv))
-     (cond
-       (((abs (angle-frto r course)) . < . (* racc dt))
-        ;(printf "STOPPING missile\n")
-        (set-posvel-r! pv course)
-        (set-posvel-dr! pv 0.0))
-       (else
-        (set-posvel-dr! pv (if ((angle-frto r course) . > . 0.0) racc (- racc)))))
-     (define ma 100.0)
-     (define ddx (* ma (cos (posvel-r pv))))
-     (define ddy (* ma (sin (posvel-r pv))))
-     (set-posvel-dx! pv (+ (posvel-dx pv) (* ddx dt)))
-     (set-posvel-dy! pv (+ (posvel-dy pv) (* ddy dt))))
     ((shield? o)
      (physics! pv dt 0.4)
      (push-back! space o dt)
@@ -141,17 +144,6 @@
   (define changes '())
   (set-stats-con! (ship-stats ship) (- (ship-con ship) damage))
   
-  (when (damage . > . 0)
-    (define types '("translation"
-                    ;"shear"
-                    ;"rotation"
-                    ;"fade"
-                    ;"flicker"
-                    ))
-    (define type (list-ref types (random (length types))))
-    (define d (dmgfx (next-id) (space-time space) #f type damage))
-    (set-ship-dmgfx! ship (append (ship-dmgfx ship) (list d))))
-  
   (when ((ship-con ship) . <= . 0)
     (set-space-objects! space (remove ship (space-objects space)))
     (when (server?)
@@ -163,7 +155,7 @@
       (for ((ps (in-list (search ship player? #t))))
         (define p (car ps))
         (define ss (make-spacesuit (player-name p) ship))
-        (append! changes (chadd ss #f) (chrole (ob-id p) (ob-id (ship-lounge ss)))))
+        (append! changes (chadd ss #f) (chmov (ob-id p) (ob-id ss) #f)))
       
       (for ((u (in-list (ship-cargo ship)))
             #:when (upgrade-color u))  ; if no color, then it's not meant to exist outside the ship
@@ -194,117 +186,10 @@
   changes)
 
 
-(define (pod-need p) (max 0.0 (- (pod-maxe p) (max 0.0 (pod-energy p)))))
-(define (ship-need s) (max 0.0 (- (ship-maxcon s) (ship-con s))))
-
-
-(define (update-energy! dt ship extra)
-  ;(printf "update-energy! ship ~a extra: ~a bat: ~a\n" (ship-name ship) extra (ship-bat ship))
-
-  (define podpow (* 10.0 dt))  ; how much e can go to each pod
-  (define batpow (* 20.0 dt))  ; how much e can flow out of reserve
-  (define repairpow (* 10.0 dt))  ; how much e can go to repair each ship
-  (define repairratio 0.5)  ; how many hp you get for each e
-  (define fixpow (* 5.0 dt))  ; how much e can go to each fixing dmg
-  
-  ; remove energy for stateful things
-  (when (ship-flying? ship)
-    (define w (find-id ship warp? #f))
-    (cond
-      ((and w ((warp-e w) . > . 0.0) (equal? "release" (warp-mode w)))
-       (set-warp-e! w (max 0.0 (- (warp-e w) (* 25.0 dt)))))
-      (else
-    
-       (define ftstack (find-stack ship fthrust? #f))
-       (define p (if ftstack (get-pod ftstack) #f))
-       (when (and p ((pod-energy p) . > . 0.0) (fthrust-on (car ftstack)))
-         (set-pod-energy! p (- (pod-energy p) (* 3.0 dt))))
-       
-       (define sstack (find-stack ship steer? #f))
-       (define sp (if sstack (get-pod sstack) #f))
-       (when (and sp ((pod-energy sp) . > . 0.0) (not (= (steer-course (car sstack))
-                                                         (posvel-r (obj-posvel ship)))))
-         (set-pod-energy! sp (- (pod-energy sp) (* 2.0 dt))))))
-    )
-
-  ; remove energy for fixing stuff
-  (define dstacks (search ship dmg? #t #f))
-  (for ((ds (in-list dstacks))
-        #:when (dmg-fixing? (car ds)))
-    (define d (car ds))
-    (define tool (cadr ds))
-    (define p (get-pod ds))
-    (when ((pod-energy p) . > . 0.0)
-      (set-pod-energy! p (- (pod-energy p) fixpow))
-      (set-dmg-energy! d (+ (dmg-energy d) fixpow))
-      (when ((dmg-energy d) . >= . (dmg-size d))
-        (set-tool-dmgs! tool (remove-id (ob-id d) (tool-dmgs tool))))))
-  
-  ; take out battery energy
-  (define bate (min batpow (ship-bat ship)))
-  (set-stats-bat! (ship-stats ship) (- (ship-bat ship) bate))
-  
-  ; total energy we have to give
-  (define e (+ (* dt (ship-power ship)) bate extra))
-  
-  ; try to give half to docked ships
-  (define e-to-ships (/ e 2))
-  (set! e (- e e-to-ships))
+(define (repair-subships! dt ship)
   (for ((s (in-list (ship-ships ship))))
-    (set! e-to-ships (update-energy! dt s e-to-ships)))
-  (set! e (+ e e-to-ships))
-  
-  ; split remaining half (plus whatever docked ships didn't use) between pods and repairing ships
-  ; figure out how much total power is requested (limited by e)
-  ; distribute power proportionally
-  (define maxreq 0.0001)
-  (define espent 0.0)
-  (for ((p (in-list (ship-pods ship))))
-    (set! maxreq (+ maxreq (min e podpow (pod-need p)))))
-  (for ((s (in-list (ship-ships ship))))
-    (set! maxreq (+ maxreq (min e repairpow (ship-need s)))))
-  
-  (for ((p (in-list (ship-pods ship))))
-    (define xfer (min podpow (pod-need p) (* e (/ (min e podpow (pod-need p)) maxreq))))
-    ;(printf "xfer: ~a, ~a, ~a\n" (pod-need p) maxreq xfer)
-    (set-pod-energy! p (+ (pod-energy p) xfer))
-    (set! espent (+ espent xfer))
-
-    ; transfer pod energy to tools
-    (define w (findf warp? (pod-tools p)))
-    (when (and w ((warp-e w) . < . (warp-maxe w)) (equal? "hold" (warp-mode w)))
-      (define xfer (min (* 15.0 dt) (- (warp-maxe w) (warp-e w)) (pod-energy p)))
-      (set-warp-e! w (+ (warp-e w) xfer))
-      (set-pod-energy! p (- (pod-energy p) xfer)))
-
-    (define m (findf mtube? (pod-tools p)))
-    (when (and m ((mtube-e m) . < . (mtube-maxe m)) (equal? "load" (mtube-mode m)))
-      (define xfer (min (* 15.0 dt) (- (mtube-maxe m) (mtube-e m)) (pod-energy p)))
-      (set-mtube-e! m (+ (mtube-e m) xfer))
-      (set-pod-energy! p (- (pod-energy p) xfer)))
-
-    (define pr (findf ptube? (pod-tools p)))
-    (when (and pr ((ptube-e pr) . < . (ptube-maxe pr)) (equal? "load" (ptube-mode pr)))
-      (define xfer (min (* 15.0 dt) (- (ptube-maxe pr) (ptube-e pr)) (pod-energy p)))
-      (set-ptube-e! pr (+ (ptube-e pr) xfer))
-      (set-pod-energy! p (- (pod-energy p) xfer)))
-    )
-  
-  (for ((s (in-list (ship-ships ship))))
-    (define xfer (min repairpow (ship-need s) (* e (/ (min e repairpow (ship-need s)) maxreq))))
     (define stats (ship-stats s))
-    (set-stats-con! stats (+ (stats-con stats) (* repairratio xfer)))
-    (set! espent (+ espent xfer)))
-  
-  ;(printf "update-energy: ~a, ~a\n" e espent)
-  (set! e (- e espent))
-  
-  ; put back in battery energy we didn't use
-  ; and also possibly more from reactor
-  (define batback (min e (- (ship-maxbat ship) (ship-bat ship))))
-  (set! e (- e batback))
-  (set-stats-bat! (ship-stats ship) (+ (ship-bat ship) batback))
-  
-  ; if a ship doesn't use all it's own energy, it still can't give any to its parent
-  (min extra e))
+    (set-stats-con! stats (min (stats-maxcon stats)
+                               (+ (stats-con stats) (* 5.0 dt))))
+    (repair-subships! dt s)))
 

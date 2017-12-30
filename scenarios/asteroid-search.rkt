@@ -40,7 +40,7 @@
                  (set-ship-cargo! s (list (upgrade (next-id) 0 #f "unscouted")))
                  (when (not hidden-base)
                    (set! hidden-base s)
-                   (set-ship-pods! s (append (ship-pods s) (list (normal-hangar 0.0 0.0 '())))))
+                   (set-ship-hangar! s '()))
                  s)
              )))
 
@@ -50,70 +50,53 @@
   ; the good guys in this scenario
   (define (new-red-fighter)
     (define s (make-ship "red-fighter" "Empire Fighter" "Empire"
-                         #:bat 200.0 #:con 50.0))
-    (set-stats-thrust! (ship-stats s) 55.0)
+                         #:con 50.0))
+    (define e (ship-tool s 'engine))
+    (set-tool-val! e 55.0)
     (set-obj-posvel! s #f)
     s)
 
   (define goodship (make-ship "red-frigate" "a" "a" #:x -2500.0 #:y -200.0 #:r 0.0))
   (set-ship-stats! goodship (stats (next-id) "red-frigate" "Empire Frigate" "Empire"
-                                   ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start
-                                   10.0 100.0 100.0 500.0 500.0 18.0 100.0 20.0 0.3 300.0 0.4 #t))
+                                   ;con maxcon radius mass radar drag start
+                                   500.0 500.0 18.0 100.0 300.0 0.4 #t))
 
   ; ship starts with pilot tools damaged beyond repair
   ; we will manually remove the dmgs when the engine parts are recovered
   (define steerdmgid (next-id))
-  (define fthrustdmgid (next-id))
+  (define turnleftdmgid (next-id))
+  (define turnrightdmgid (next-id))
   (define warpdmgid (next-id))
-  (set-ship-pods!
-   goodship `(,(normal-lounge)
-              ,(normal-hangar pi 10.0 (list (new-red-fighter)
-                                            (new-red-fighter)
-                                            (new-red-fighter)))
-              ,(pod (next-id) "Pilot" #f #f 0.0 3.0 #f #f 100.0 100.0
-                    (list (steer (next-id) (list (dmg steerdmgid "offline" 10000.0 0 #f)) (obj-r goodship))
-                          (fthrust (next-id) (list (dmg fthrustdmgid "offline" 10000.0 0 #f)) #f)
-                          (warp (next-id) (list (dmg warpdmgid "offline" 10000.0 0 #f)) 300.0 0.0 "release")))
-              ,(pod (next-id) "WM" #f ai?
-                    (degrees->radians 21.8) 21.5 (/ pi 6) pi/2 100.0 100.0
-                    (list (pbolt (next-id) '() 5.0 #t)
-                          (mtube (next-id) '() 100.0 100.0 "load" #f)))
-              ,(pod (next-id) "WM" #f ai?
-                    (degrees->radians -21.8) 21.5 (- (/ pi 6)) pi/2 100.0 100.0
-                    (list (pbolt (next-id) '() 5.0 #t)
-                          (mtube (next-id) '() 100.0 100.0 "load" #f)))
-              ,(pod (next-id) "WP" #f ai?
-                    (degrees->radians 130) 21.0 pi/2 pi 100.0 100.0
-                    (list (pbolt (next-id) '() 5.0 #t)
-                          (ptube (next-id) '() 100.0 100.0 "load" #f 120.0)))
-              ,(pod (next-id) "WP" #f ai?
-                    (degrees->radians -130) 21.0 (- pi/2) pi 100.0 100.0
-                    (list (pbolt (next-id) '() 5.0 #t)
-                          (ptube (next-id) '() 100.0 100.0 "load" #f 120.0)))))
+  (set-ship-hangar! goodship (list (new-red-fighter)
+                                   (new-red-fighter)
+                                   (new-red-fighter)))
+  (set-ship-tools!
+   goodship (list (tool (next-id) 'engine 20.0 #f (list (dmg steerdmgid "offline" 10000.0 0 #f)))
+                  (tool (next-id) 'turnleft 0.3 #f (list (dmg turnleftdmgid "offline" 10000.0 0 #f)))
+                  (tool (next-id) 'turnright 0.3 #f (list (dmg turnrightdmgid "offline" 10000.0 0 #f)))
+                  (tool (next-id) 'warp '(150.0 100.0 0.0) #f (list (dmg warpdmgid "offline" 10000.0 0 #f)))
+                  (tool (next-id) 'pbolt 5.0 #f '())
+                  (tool (next-id) 'probe 10.0 #f '())
+                  (tool (next-id) 'missile 5.0 #f '())
+                  (tool (next-id) 'dock #f #t '())
+                  ))
   
 
   ; the bad guys
   (define (new-blue-fighter)
-    (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:npc? ai?))
+    (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:ai? ai?))
     (set-obj-posvel! s #f)
     s)
 
-  (define enemy-base (make-ship "blue-station" "a" "a" #:x 2500.0 #:y 200.0))
+  (define enemy-base (make-ship "blue-station" "a" "a" #:x 2500.0 #:y 200.0 #:hangar '()))
   (set-ship-stats! enemy-base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
-                               ;power bat maxbat con maxcon radius mass thrust rthrust radar drag start-ship?
-                               10.0 500.0 500.0 750.0 750.0 26.0 1000.0 0.0 0.0 600.0 0.4 #t))
-  (set-ship-pods!
+                               ;con maxcon radius mass radar drag start-ship?
+                               750.0 750.0 26.0 1000.0 600.0 0.4 #t))
+  (set-ship-tools!
    enemy-base
-   `(,(normal-lounge)
-     ,(normal-hangar pi 13.0 '())
-     ,@(for/list ((d (in-list (list 0 90 180 270))))
-         (pod (next-id) "W" #f #t (degrees->radians d) 26.0 (degrees->radians d) (* 0.9 pi) 50.0 50.0
-              (list (pbolt (next-id) '() 10.0 #t)
-                    (ptube (next-id) '() 100.0 100.0 "load" #f 100.0))))
-     ,@(for/list ((d (in-list (list 45 135 225 315))))
-         (pod (next-id) "T" #f #t (degrees->radians d) 28.0 (degrees->radians d) (* 0.9 pi) 100.0 100.0
-              (list (shbolt (next-id) '() 20.0 #t)
-                    (mtube (next-id) '() 100.0 100.0 "load" #f))))))
+   (list
+    (tool (next-id) 'pbolt 5.0 #f '())
+    (tool (next-id) 'missile 5.0 #f '())))
   
   (set-space-objects! ownspace (append (space-objects ownspace)
                                        (list goodship enemy-base)))
@@ -181,7 +164,7 @@
         (set-ship-ai-strategy! f
           (list (strategy (space-time ownspace) "attack*" (ob-id goodship))
                 (strategy (space-time ownspace) "return" (ob-id enemy-base))))
-        (append! changes (chadd f (ob-id (ship-hangar enemy-base))) m))
+        (append! changes (chadd f (ob-id enemy-base)) m))
 
       (define hb (find-id ownspace (ob-id hidden-base)))
       
@@ -224,7 +207,7 @@
           (set! parts-returned? #t)
           ; need to actually repair the engine somehow...
           (append! changes (chrm (ob-id parts))
-                   (chrm steerdmgid) (chrm fthrustdmgid) (chrm warpdmgid)
+                   (chrm steerdmgid) (chrm turnleftdmgid) (chrm turnrightdmgid) (chrm warpdmgid)
                    (message (next-id) (space-time ownspace) #f "Frigate Engine Repaired!"))))
       )
 

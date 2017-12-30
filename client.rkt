@@ -42,10 +42,14 @@
   (define my-stack #f)
   (define buttons #f)
   (define sprites #f)
-  ; if you are holding a key/mouse button (from a holdbutton?), this is a pair
+  (define active-mouse-tool (box #f))
+  (define in-hangar? (box #f))
+
+  (define holding '())
+  ; if you are holding a key/mouse button (from a holdbutton?), this is a list of pairs
   ; car is keycode (or 'mouse) of the key that's being held
   ; cdr is the holdbutton-frelease function
-  (define holding? #f)
+  
   ; if the mouse is over something (other than a button) that when clicked will
   ; do some action, clickcmds is a list of commands we send
   (define clickcmds #f)
@@ -64,31 +68,22 @@
   (define dragxypx '(0 . 0))  ; last xy of drag in pixels
   (define dragstate "none")  ; "none", "start", "drag"
   
-  (define scale-play 1.0)  ; scale when we are in a normal pod
-  (define scale-ship 10.0)  ; scale when we are in a lounge/hangar
-  (define (scale-ship?)
-    (cond (my-stack
-           (define pod (get-pod my-stack))
-           (define ship (get-ship my-stack))
-           (if (and (spaceship? ship) (or (lounge? pod) (hangar? pod)))
-               #t #f))
-          (else #f)))
+  (define scale-play 1.0)  ; scale for zooming
+  
   (define (min-scale)
     (if ownspace
         (min (/ WIDTH (space-width ownspace)) (/ HEIGHT (space-height ownspace)))
         .01))
   (define (max-scale) 30.0)
     
-  (define (get-future-scale)
-    (if (scale-ship?) scale-ship scale-play))
   (define (set-scale z)
     (define newz (clamp (min-scale) (max-scale) z))
-    (if (scale-ship?) (set! scale-ship newz) (set! scale-play newz)))
+    (set! scale-play newz))
   
-  (define shown-scale (get-future-scale))  ; scale that is actually used
+  (define shown-scale scale-play)  ; scale that is actually used
   (define (get-scale) (if showsector? (min-scale) shown-scale))
   (define (update-scale)  ; move shown-scale towards the scale we want
-    (define target (get-future-scale))
+    (define target scale-play)
     (define diff (abs (- target shown-scale)))
     (if (shown-scale . < . target)
         (set! shown-scale (min target (+ shown-scale (max 0.1 (* 0.4 diff)))))
@@ -121,7 +116,7 @@
          ;(printf "clicked button ~v\nship is ~v\n" b (if my-stack (get-ship my-stack) #f))
          ((button-f b) (- x (button-x b)) (- y (button-y b)))
          (when (holdbutton? b)
-           (set! holding? (cons 'mouse (holdbutton-frelease b))))
+           (set! holding (cons (cons 'mouse (holdbutton-frelease b)) holding)))
          ))
       (clickcmds
        (send-commands clickcmds))))
@@ -167,8 +162,8 @@
       (define ordertree (get-space-orders-for ownspace fac))
       
       ; make background be fog of war gray
-      (append! sprites (sprite 0.0 0.0 (sprite-idx csd 'lightgray) #:layer LAYER_FOW_GRAY
-                               #:m (* canvas-scale (min WIDTH HEIGHT)) #:a 0.6))
+      (append! sprites (sprite 0.0 0.0 (sprite-idx csd 'gray) #:layer LAYER_FOW_GRAY
+                               #:m (* canvas-scale (min WIDTH HEIGHT))))
 
       ; put a black circle wherever we can see
       (define fowlist
@@ -216,28 +211,24 @@
                   (else
                    (error "don't know how to draw annotation ~v" a))))))))
 
-      (define layer_effects LAYER_EFFECTS)
-      (when (and my-stack (or (not (ship-flying? (get-ship my-stack)))
-                              (hangar? (get-pod my-stack))))
-        ; when you are in a hangar or your ship is on another ship
-        ; we push normal effects down to get an extra layer
-        (set! layer_effects LAYER_SHIPS))
-
       (append! sprites (draw-background-stars csd center (get-scale) fowlist))
       (for ((o (in-list (space-objects ownspace))))
         (define fowa (if (obj-posvel o) (get-alpha (obj-x o) (obj-y o) fowlist) 1.0))
         (when (fowa . > . 0)
           (append! sprites
-                   (draw-object csd textr center (get-scale) o ownspace meid showtab fowa layer_effects fac))))
+                   (draw-object csd textr center (get-scale) o ownspace meid showtab fowa LAYER_EFFECTS fac))))
       
       ; draw stuff specific to the ship you are on
       ; - stacked if we are on a ship inside another ship
-      ; - pod buttons to change pods
       (when my-stack
+        (define p (car my-stack))
+        (define rcship (if (player-rcid p) (find-id ownspace (player-rcid p)) #f))
         (define ship (get-ship my-stack))
         (define topship (get-topship my-stack))
+        (when (and (unbox in-hangar?) (not (ship-hangar ship)))
+          (set-box! in-hangar? #f))
         (cond 
-          ((hangar? (get-pod my-stack))
+          ((unbox in-hangar?)
            ; hangar background
            (define size (* 0.8 (min WIDTH HEIGHT)))
            (append! sprites (sprite 0.0 0.0 (sprite-idx csd 'square-outline) #:layer LAYER_SHIPS
@@ -247,7 +238,7 @@
                                    #:m (/ size (sprite-width csd (sprite-idx csd 'square))) #:a 0.9))
            ; draw all the ships in the hangar
            (define shipmax 54)
-           (for ((s (in-list (hangar-ships (get-pod my-stack))))
+           (for ((s (in-list (ship-hangar ship)))
                  (i (in-naturals)))
              (define x (+ (* -0.5 size) 10 (* (quotient i 4) 180) (/ shipmax 2)))
              (define y (+ (* -0.5 size) 10 (* (remainder i 4) 150) (/ shipmax 2)))
@@ -273,34 +264,13 @@
                                       #:mx (/ con (sprite-width csd (sprite-idx csd 'square)) 1.0)
                                       #:my (/ 4.0 (sprite-height csd (sprite-idx csd 'square)))
                                       #:r (send concol red) #:g (send concol green) #:b (send concol blue)))
-             
-             (define bat (/ (ship-bat s) 10.0))
-             (define mbat (/ (ship-maxbat s) 10.0))
-             (when (mbat . > . 0)
-               (define batcol (send the-color-database find-color (stoplight-color bat mbat)))
-               (append! sprites (sprite (+ x (* 0.5 shipmax) (- (/ mbat 2.0)))
-                                        (+ y (* -0.5 shipmax) 8.0)
-                                        (sprite-idx csd 'square-outline)
-                                        #:layer LAYER_OVERLAY
-                                        #:mx (/ (+ 2.0 mbat) (sprite-width csd (sprite-idx csd 'square-outline)))
-                                        #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square-outline)))
-                                        #:r 255 #:g 255 #:b 255))
-               (append! sprites (sprite (+ x (* 0.5 shipmax) (- (/ bat 2.0)))
-                                        (+ y (* -0.5 shipmax) 8.0)
-                                        (sprite-idx csd 'square)
-                                        #:layer LAYER_UI
-                                        #:mx (/ bat (sprite-width csd (sprite-idx csd 'square)) 1.0)
-                                        #:my (/ 4.0 (sprite-height csd (sprite-idx csd 'square)))
-                                        #:r (send batcol red) #:g (send batcol green) #:b (send batcol blue)))    )
 
-             ; draw ship info
-             (append! sprites (draw-ship-info csd zerocenter 1.0 s x (- y) ownspace 1.0 LAYER_UI))
-             
              (define b (button 'normal #f
                                (+ x (/ shipmax 2) 60)
                                (+ y (- (/ shipmax 2)) 15) 100 30 (ship-name s)
                                (lambda (x y)
-                                 (send-commands (chrole meid (ob-id (ship-lounge s)))))))
+                                 (set-box! in-hangar? #f)
+                                 (send-commands (chmov meid (ob-id s) #f)))))
              (append! buttons b)
              (define players (find-all s player?))
              ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
@@ -318,30 +288,38 @@
            (define-values (x y) (obj->screen topship center (get-scale)))
            (append! sprites (sprite x y (sprite-idx csd (string->symbol (ship-type ship)))
                                     #:layer LAYER_OVERLAY #:m (get-scale) #:theta (- pi/2)
-                                    #:r (get-red ownspace ship)))
-           ; draw ship info on top
-           (append! sprites (draw-ship-info csd center (get-scale) ship
-                                            (obj-x topship) (obj-y topship) ownspace 1.0
-                                            LAYER_UI))))
-        
-        (when (and (not (spacesuit? ship))
-                   (not (hangar? (get-pod my-stack))))
-          (define bs
-            (draw-pods csd center (get-scale) ship (get-topship my-stack) my-stack send-commands canvas meid))
-          (set! buttons (append buttons bs)))
+                                    #:r (get-red ownspace ship)))))
 
-        ; draw pod UI
-        (append! sprites (draw-pod-ui csd textr center (get-scale) my-stack))
+        ; draw ship UI
+        (append! sprites (draw-ship-hp csd textr center (get-scale) my-stack))
         
         ; draw tool UI
-        (for ((t (in-list (pod-tools (get-pod my-stack)))))
-          (define-values (bs ss) (draw-tool-ui csd center (get-scale) ownspace t my-stack send-commands))
-          (append! buttons bs)
-          (append! sprites ss))
+        (when (not (unbox in-hangar?))
+          (define tools
+            (cond
+              (rcship
+               (filter-not (lambda (t) (equal? 'engine (tool-name t)))
+                           (ship-tools rcship)))
+              (else
+               (ship-tools ship))))
+          (for ((t (in-list tools)))
+            (define-values (bs ss)
+              (draw-tool-ui csd center (get-scale) ownspace meid rcship t my-stack send-commands active-mouse-tool))
+            (append! buttons bs)
+            (append! sprites ss)))
+
+        (when (and (not rcship) (ship-hangar ship) (not (unbox in-hangar?)))
+          (define b (button 'normal #\h (- RIGHT 80) (+ TOP 70) 120 40
+                            (~a "Hangar [h] " (length (ship-hangar ship)))
+                            (lambda (x y)
+                              (set-box! in-hangar? #t))))
+          (append! buttons b))
 
         ; tool overlay
-        (for ((t (in-list (pod-tools (get-pod my-stack)))))
-          (append! sprites (draw-tool-overlay csd center (get-scale) t my-stack)))
+        ; XXX when we have dock on
+        ;(dock? t)
+        ;(when (dock-on t)
+        ;(draw-docking csd center (get-scale) (get-space my-stack) my-stack)))
         
         ) ; when my-stack
       
@@ -351,7 +329,7 @@
         (when (and (ann-button? a) (or (not (ann-showtab? a)) showtab))
           (define ab (button 'normal #f
                              (obj-x a) (obj-y a) (obj-dx a) (obj-dy a) (ann-txt a)
-                             (lambda (k y) (send-commands (anncmd (ob-id a) #f)))))
+                             (lambda (k y) (send-commands (anncmd (ob-id a) #f #f)))))
           (append! buttons ab))
         (when (and (ann-text? a) (or (not (ann-showtab? a)) showtab))
           (define z
@@ -410,27 +388,26 @@
             (set! line (+ line 1)))))
       
       (when (not my-stack)
-        (define start-stacks
-          (search ownspace (lambda (o) (and (ship? o)
-                                            (ship-flying? o)
-                                            (ship-start o)
-                                            (equal? fac (ship-faction o)))) #t))
+        (define start-ships
+          (find-all ownspace (lambda (o) (and (ship? o)
+                                              (ship-flying? o)
+                                              (ship-start o)
+                                              (equal? fac (ship-faction o))))))
         
         (when (not fac)
           (append! sprites (textr "Waiting for faction assignment..."
                                   0.0 0.0 #:layer LAYER_UI
                                   #:r 255 #:g 255 #:b 255)))
         
-        (for ((s (in-list start-stacks))
+        (for ((s (in-list start-ships))
               (i (in-naturals)))
-          (define mp (car s)) 
           (define b (button 'normal #f (+ LEFT 100 (* i 250) 100) (- BOTTOM 60 15) 200 30
-                            (format "~a" (ship-name (get-ship s)))
+                            (format "~a" (ship-name s))
                             (lambda (x y)
                               ; leaving sector overview, so center on ship and reset scale
                               (set! scale-play 1.0)
                               (set! center-follow? #t)
-                              (send-commands (chrole meid (ob-id (ship-lounge (get-ship s))))))))
+                              (send-commands (chmov meid (ob-id s) #f)))))
           (append! buttons b)))
             
       ; draw game UI
@@ -448,7 +425,7 @@
         (append! sprites (sprite zcx (+ TOP 70 75) (sprite-idx csd 'blue)
                                  #:layer LAYER_UI #:my (/ 150.0 (sprite-height csd (sprite-idx csd 'blue)))))
         
-        (define zfrac (/ (- (log (get-future-scale)) (log (min-scale)))
+        (define zfrac (/ (- (log scale-play) (log (min-scale)))
                          (- (log (max-scale)) (log (min-scale)))))
         (append! sprites (sprite zcx (+ TOP 70 zh (- (* zfrac zh))) (sprite-idx csd 'blue)
                                  #:layer LAYER_UI #:mx (/ 20.0 (sprite-width csd (sprite-idx csd 'blue)))))
@@ -459,10 +436,10 @@
                                                     (* zfracy (- (log (max-scale)) (log (min-scale)))))))
                                   (set-scale z))))
         (define zkeyb (button 'hidden #\z 0 0 0 0 "Zoom In"
-                              (lambda (k y) (set-scale (* (get-future-scale) 1.1)))))
+                              (lambda (k y) (set-scale (* scale-play 1.1)))))
         
         (define xkeyb (button 'hidden #\x 0 0 0 0 "Zoom Out"
-                              (lambda (k y) (set-scale (/ (get-future-scale) 1.1)))))
+                              (lambda (k y) (set-scale (/ scale-play 1.1)))))
         
         (append! buttons zbutton zkeyb xkeyb))
 
@@ -487,53 +464,52 @@
                             (set! playing? #f)
                             (send frame show #f))))
          (append! buttons quit-button))
-        ((and (lounge? (get-pod my-stack)) (spacesuit? (get-ship my-stack)))
+        ((spacesuit? (get-ship my-stack))
          ; dying
          (set-button-f! leave-button (lambda (x y)
                                        ; reset scale so starting screen shows whole sector
                                        (set! scale-play (min-scale))
                                        (set! center-follow? #t)  ; sector centered
-                                       (send-commands (chrole meid #f))))
+                                       (send-commands (chmov meid #f #f))))
          (append! buttons leave-button))
-        ((and (lounge? (get-pod my-stack)) (ship-flying? (get-ship my-stack)))
-         ; jumping ship
-         (set-button-label! quit-button "Jump")
-         (set-button-key! quit-button #f)  ; turn off keyboard shortcut
-         (set-button-f! quit-button (lambda (x y) (send-commands (chrole meid "spacesuit"))))
-         (append! buttons quit-button))
-        ((lounge? (get-pod my-stack))
-         ; leaving this ship into mothership hangar
+        ((and (player-rcid (car my-stack)) (find-id ownspace (player-rcid (car my-stack))))
+         ; remote controlling something
+         )
+        ((ship-flying? (get-ship my-stack))
+         (cond
+           ((unbox in-hangar?)
+            (set-button-f! leave-button (lambda (x y) (set-box! in-hangar? #f)))
+            (append! buttons leave-button))
+           (else
+            ; jumping ship
+            (set-button-label! quit-button "Jump")
+            (set-button-key! quit-button #f)  ; turn off keyboard shortcut
+            (set-button-f! quit-button (lambda (x y) (send-commands (chmov meid #f #f))))
+            (append! buttons quit-button))))
+        (else
+         ; leaving this ship into mothership
          (define ms (cadr (get-ships my-stack)))
          (set-button-f! leave-button (lambda (x y)
-                                       (send-commands (chrole meid (ob-id (ship-hangar ms))))))
-         (append! buttons leave-button))
-        (else
-         ; move to lounge
-         (set-button-f! leave-button
-                        (lambda (x y)
-                          (send-commands (chrole meid (ob-id (ship-lounge (get-ship my-stack)))))))
+                                       (send-commands (chmov meid (ob-id ms) #f))))
          (append! buttons leave-button)))
       
       ; draw mouse cursor
       (when my-stack
+        (define player (car my-stack))
+        (define rcship (if (player-rcid player) (find-id ownspace (player-rcid player)) #f))
+        (define ship (or rcship (get-ship my-stack)))
         (define-values (p mods) (get-current-mouse-state))
         (define-values (wx wy) (send canvas screen->client
                                      (+ (send p get-x) left-inset)
                                      (+ (send p get-y) top-inset)))
         (define-values (x y) (screen->canon canvas wx wy))
-        (when (not (in-button? buttons x y))
+        (when (and (not (in-button? buttons x y))
+                   (not (unbox in-hangar?)))
           (define mypos (get-center ownspace my-stack))
           (define-values (mx my) (obj->screen mypos center (get-scale)))
           (define a (angle-norm (atan0 (- my y) (- x mx))))
-          
-          (define p (get-pod my-stack))
-          (define mt (findf mtube? (pod-tools p)))
-          (define pt (findf ptube? (pod-tools p)))
-          (define st (findf steer? (pod-tools p)))
-          (define pb (findf pbolt? (pod-tools p)))
-          (define sb (findf shbolt? (pod-tools p)))
           (cond
-            ((or (and mt (find-id ownspace (mtube-mid mt)))
+            #;((or (and mt (find-id ownspace (mtube-mid mt)))
                  (and pt (find-id ownspace (ptube-pid pt)))
                  (and st (tool-online? st)))
              (set! cursordrawn #t)
@@ -547,17 +523,14 @@
              (append! sprites (sprite (exact->inexact x) (exact->inexact y)
                                       (sprite-idx csd 'arrowhead) #:layer LAYER_UI_TEXT
                                       #:theta (- a) #:b 150)))
-            ((or (and pb (pbolt-aim pb) (tool-online? pb) ((pod-energy p) . > . (pbolt-plasma-size pb)))
-                 (and sb (shbolt-aim sb) (tool-online? sb) ((pod-energy p) . > . (shbolt-shield-size sb))))
-             (define s (get-ship my-stack))
-             (when (ship-flying? s)
-               (define pf (angle-add (obj-r s) (pod-facing p)))
-               (when ((abs (angle-frto pf a)) . < . (/ (pod-spread p) 2.0))
-                 (set! cursordrawn #t)
-                 (set! clickcmds (command (ob-id (or pb sb)) a))
-                 (append! sprites (sprite (exact->inexact x) (exact->inexact y)
-                                          (sprite-idx csd 'target) #:layer LAYER_UI_TEXT
-                                          #:b 150 #:m 0.05))))))))
+            ((and (equal? 'pbolt (unbox active-mouse-tool))
+                  (ship-tool ship 'pbolt)
+                  (ship-flying? ship))
+             (set! cursordrawn #t)
+             (set! clickcmds (command meid 'pbolt a))
+             (append! sprites (sprite (exact->inexact x) (exact->inexact y)
+                                      (sprite-idx csd 'target) #:layer LAYER_UI_TEXT
+                                      #:b 150 #:m 0.5))))))
       
       (append! buttons
                (button 'hidden #\tab 0 0 0 0 "Mission Info"
@@ -619,10 +592,9 @@
           ((left-down)
            (click this event))
           ((left-up)
-           (when (and holding? (equal? (car holding?) 'mouse))
-             ((cdr holding?))  ; run the release function
-             (set! holding? #f)  ; cancel the hold
-             ))
+           (define v (assoc 'mouse holding))
+           (when v ((cdr v)))  ; run the release function
+           (set! holding (remove v holding)))  ; cancel hold
           ((right-down)
            (when (not showsector?)
              (set! dragstate "start")
@@ -650,26 +622,26 @@
         (define kc (send event get-key-code))
         (define b (key-button? buttons kc))
         ;(printf "on-char ~v ~v\n" kc b)
-        
+        (define v (assoc kc holding))
         (cond
           ((not kc)
            (printf "got #f for on-char get-key-code\n")
            )
-          ((and holding? (equal? kc (car holding?)))
+          (v
            ; repeated keypress from holding the key down, drop it
            )
-          ((and holding? (equal? kc 'release)
-                (equal? (car holding?) (send event get-key-release-code)))
-           ; released the key being held
-           ((cdr holding?))  ; run the release function
-           (set! holding? #f)  ; cancel the hold
-           )
+          ((equal? kc 'release)
+           (set! kc (send event get-key-release-code))
+           (define v (assoc kc holding))
+           (when v
+             ; released the key being held
+             ((cdr v))  ; run the release function
+             (set! holding (remove v holding))))  ; cancel the hold
           (b
            (when (not (member (button-draw b) '(disabled dmg)))
              ((button-f b) kc #f)
              (when (holdbutton? b)
-               (set! holding? (cons kc (holdbutton-frelease b))))
-             ))
+               (set! holding (cons (cons kc (holdbutton-frelease b)) holding)))))
           (else
            (case kc
              ((#\d)
@@ -679,7 +651,7 @@
                       #:when (spaceship? s))
                   (append! cmds (list (chdam (ob-id s) 10))))
 
-                (when my-stack
+                #;(when my-stack
                   (define s (get-ship my-stack))
                   (append! cmds (dmg-ship s 20 (- pi/2))))
                 
@@ -690,16 +662,16 @@
                                         (~a "message " (space-time ownspace))))))
              ((wheel-up)
               (when (and ownspace (not showsector?))
-                (set-scale (* (get-future-scale) 1.05))))
+                (set-scale (* scale-play 1.05))))
              ((wheel-down)
               (when (and ownspace (not showsector?))
-                (set-scale (/ (get-future-scale) 1.05))))
+                (set-scale (/ scale-play 1.05))))
              ((#\u)
               (when ownspace
                 (send-commands (chadd (random-upgrade ownspace (posvel -1 0 0 0 (random 100) (random 100) 0)) #f))))
-;             ((#\p)
-;              (when ownspace
-;                (send-commands (chadd (plasma (next-id) (space-time ownspace) (posvel -1 0 0 (random-between 0 2pi) (random 100) (random 100) 0) (random 100) #f) #f))))
+             ((#\p)
+              (when ownspace
+                (send-commands (chadd (plasma (next-id) (space-time ownspace) (posvel -1 0 0 (random-between 0 2pi) (random 100) (random 100) 0) (random 10) #f) #f))))
 ;             ((#\s)
 ;              (when ownspace
 ;                (define r (random-between 0 2pi))
@@ -764,8 +736,8 @@
                                                 #:border-color "black" #:border-width 0) 2))
     (add-sprite!/value sd 'blue
                        (colorize (rectangle 2 2) "blue"))
-    (add-sprite!/value sd 'lightgray
-                       (colorize (rectangle 2 2) "lightgray"))
+    (add-sprite!/value sd 'gray
+                       (colorize (rectangle 2 2) "gray"))
     (add-sprite!/value sd 'circle
                        (colorize (filled-ellipse 100 100) "black"))
     (add-sprite!/value sd 'shield
@@ -826,7 +798,7 @@
     (set-space-time! space (+ (space-time space) TICK))
     (for ((o (in-list (space-objects space))))
       (update-physics! space o (/ TICK 1000.0))
-      (when (ship? o) (update-energy! (/ TICK 1000.0) o 0.0))
+      (when (ship? o) (repair-subships! (/ TICK 1000.0) o))
       (add-backeffects! space o)))
   
   
@@ -901,7 +873,7 @@
         
         (when server-out-port
           ; send our name to the server
-          (send-commands (player #f name #f)))
+          (send-commands (player #f name #f '() #f)))
         
         (when server-in-port
           ; read a player struct that has our unique id
@@ -967,6 +939,18 @@
     
     (when ownspace
       (set! my-stack (find-stack ownspace meid))
+      (when (and my-stack (get-ship my-stack))
+        (define tools (map tool-name (ship-tools (get-ship my-stack))))
+        (cond
+          ((member (unbox active-mouse-tool) tools)
+            ; our tool exists in whatever ship we find ourselves in
+           )
+          (else
+           ; our tool doesn't exist, default to the first available
+           (set-box! active-mouse-tool (for/first ((t tools)
+                                                   #:when (member t MOUSE_TOOLS))
+                                         t)))))
+        
       
       ; physics prediction
       (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))
@@ -981,7 +965,7 @@
     ;rendering
     ;(printf "client render ~a" (current-milliseconds))
     (set! frames (add-frame-time (current-milliseconds) frames))
-    (send canvas refresh-now)
+    (send canvas refresh-now #:flush? #f)
     ;(printf "  ~a\n" (current-milliseconds))
     
 ;    (when (time-for (current-milliseconds) 1000)
