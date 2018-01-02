@@ -19,7 +19,7 @@
                           `(,(standard-quit-scenario-tab-button))))
   
   (define (new-blue-fighter)
-    (define s (make-ship "blue-fighter" "a" "a"))
+    (define s (make-ship "blue-fighter" "a" "a" #:ai? #t))
     (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
                               ;con maxcon radius mass radar drag start-ship?
                               5.0 50.0 6.0 20.0 300.0 0.4 #f))
@@ -35,7 +35,7 @@
     s)
   
   (define (new-red-fighter)
-    (define s (make-ship "red-fighter" "a" "a"))
+    (define s (make-ship "red-fighter" "a" "a" #:ai? #t))
     (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
                               ;con maxcon radius mass radar drag start
                               20.0 20.0 6.0 20.0 300.0 0.4 #f))
@@ -50,13 +50,14 @@
     s)
   
   
-  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x 0 #:y 0
+  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x 0 #:y 0 #:ai? #t
                              #:hangar (list (new-blue-fighter))))
   (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
                                   ;con maxcon radius mass radar drag start?
                                   150.0 150.0 15.0 100.0 500.0 0.4 #t))
   (set-ship-tools!
    cruiser (list (tool (next-id) 'engine 30.0 #f '())
+                 (tool (next-id) 'steer 1.0 #f '())
                  (tool (next-id) 'turnleft 1.0 #f '())
                  (tool (next-id) 'turnright 1.0 #f '())
                  (tool (next-id) 'pbolt 5.0 #f '())
@@ -66,7 +67,7 @@
                  (tool (next-id) 'warp '(150.0 100.0 0.0) #f '())
                  ))
   
-  (define base (make-ship "blue-station" "a" "a" #:x -1000 #:y 0 #:hangar '()))
+  (define base (make-ship "blue-station" "a" "a" #:x -1000 #:y 0  #:ai? #t #:hangar '()))
   (set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
                                ;con maxcon radius mass radar drag start-ship?
                                1000.0 1000.0 26.0 1000.0 10000.0 0.4 #t))
@@ -77,7 +78,7 @@
           ))
   
   
-  (define destroyer (make-ship "red-destroyer" "b" "b" #:x 100 #:y 0 #:r pi
+  (define destroyer (make-ship "red-destroyer" "b" "b" #:x 100 #:y 0 #:r pi #:ai? #t
                                #:hangar '()))
   (set-ship-stats! destroyer (stats (next-id)
                                     ;type name faction

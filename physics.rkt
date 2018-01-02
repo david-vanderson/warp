@@ -47,7 +47,7 @@
        (set-posvel-dr! pv 0.0))  ; ignore whatever we had before
 
      (cond
-       ((and st (ai-ship? ownship))
+       ((and st (ai-ship? ownship) (tool-rc st))
         (define course (tool-rc st))
         (define r (posvel-r pv))
         (define racc (tool-val st))

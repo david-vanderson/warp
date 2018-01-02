@@ -392,7 +392,7 @@
      (append! buttons bs)
      (append! spr ss))
     ((missile)
-     (define b (button 'normal #\p (- RIGHT 80) (- BOTTOM 350) 70 50 "Missile [m]"
+     (define b (button 'normal #\m (- RIGHT 80) (- BOTTOM 350) 70 50 "Missile [m]"
                        (lambda (x y) (send-commands (command pid (tool-name t) #t)))))
      (append! buttons b)
      (define ob (add-offline-button! t b send-commands))

@@ -269,7 +269,6 @@
                                (+ x (/ shipmax 2) 60)
                                (+ y (- (/ shipmax 2)) 15) 100 30 (ship-name s)
                                (lambda (x y)
-                                 (set-box! in-hangar? #f)
                                  (send-commands (chmov meid (ob-id s) #f)))))
              (append! buttons b)
              (define players (find-all s player?))
@@ -486,6 +485,11 @@
             (set-button-key! quit-button #f)  ; turn off keyboard shortcut
             (set-button-f! quit-button (lambda (x y) (send-commands (chmov meid #f #f))))
             (append! buttons quit-button))))
+        ((unbox in-hangar?)
+         ; looking into a hangar, just stop looking
+         (set-button-f! leave-button (lambda (x y)
+                                       (set-box! in-hangar? #f)))
+         (append! buttons leave-button))
         (else
          ; leaving this ship into mothership
          (define ms (cadr (get-ships my-stack)))
@@ -644,7 +648,7 @@
                (set! holding (cons (cons kc (holdbutton-frelease b)) holding)))))
           (else
            (case kc
-             ((#\d)
+             #;((#\d)
               (when ownspace
                 (define cmds '())
                 (for ((s (in-list (space-objects ownspace)))
@@ -656,7 +660,7 @@
                   (append! cmds (dmg-ship s 20 (- pi/2))))
                 
                 (send-commands cmds)))
-             ((#\m)
+             #;((#\m)
               (when ownspace
                 (send-commands (message (next-id) (space-time ownspace) #f
                                         (~a "message " (space-time ownspace))))))
@@ -666,10 +670,10 @@
              ((wheel-down)
               (when (and ownspace (not showsector?))
                 (set-scale (/ scale-play 1.05))))
-             ((#\u)
+             #;((#\u)
               (when ownspace
                 (send-commands (chadd (random-upgrade ownspace (posvel -1 0 0 0 (random 100) (random 100) 0)) #f))))
-             ((#\p)
+             #;((#\p)
               (when ownspace
                 (send-commands (chadd (plasma (next-id) (space-time ownspace) (posvel -1 0 0 (random-between 0 2pi) (random 100) (random 100) 0) (random 10) #f) #f))))
 ;             ((#\s)
@@ -920,6 +924,8 @@
                ;(printf "client applying change ~v\n" c)
                (define-values (forward? useless-changes)
                  (apply-change! ownspace c (update-time input) "client"))
+               (when (and (chmov? c) (equal? meid (chmov-id c)))
+                 (set-box! in-hangar? #f))
                (when (not (null? useless-changes))
                  (printf "client produced useless changes:\n  ~v\n" useless-changes))
                )

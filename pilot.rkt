@@ -218,7 +218,8 @@
   (define st (ship-tool ownship 'steer))
   (define ft (ship-tool ownship 'engine))
   (define origf (if ft (tool-rc ft) #f))
-  (define origc (if st (tool-rc st) (obj-r ownship)))
+  (define origc (if st (tool-rc st) #f))
+  (define basec (or origc (obj-r ownship)))
   
   ; only worry about ships
   (define ships (filter (lambda (o)
@@ -233,7 +234,7 @@
         (if (and ft (tool-online? ft))
                     (list origf (not origf))
                     '(#f))))
-  (define bestc origc)
+  (define bestc (tool-rc st))
   (define clist (if (and st (tool-online? st))
                     '(0 -10 10 -40 40 -100 100 -170 170)
                     '(0)))
@@ -242,7 +243,7 @@
          (c (in-list clist)))
     (define origpv (struct-copy posvel (obj-posvel ownship)))
     (when ft (set-tool-rc! ft f))
-    (when st (set-tool-rc! st (angle-add origc (degrees->radians c))))
+    (when st (set-tool-rc! st (angle-add basec (degrees->radians c))))
     (define maxfit -inf.0)
     (define curfit 0.0)
     

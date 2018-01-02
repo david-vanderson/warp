@@ -27,7 +27,7 @@
                             )))
   
   (define (new-blue-fighter)
-    (define s (make-ship "blue-fighter" "a" "a"))
+    (define s (make-ship "blue-fighter" "a" "a" #:ai? #t))
     (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
                               ;con maxcon radius mass radar drag start-ship?
                               50.0 50.0 6.0 20.0 300.0 0.4 #f))
@@ -43,7 +43,7 @@
     s)
   
   (define (new-red-fighter)
-    (define s (make-ship "red-fighter" "a" "a"))
+    (define s (make-ship "red-fighter" "a" "a" #:ai? #t))
     (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
                               ;con maxcon radius mass radar drag start
                               20.0 20.0 6.0 20.0 300.0 0.4 #f))
@@ -59,7 +59,7 @@
     s)
   
   
-  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50
+  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50 #:ai? #t
                              #:hangar (list (new-blue-fighter))))
   (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
                                   ;con maxcon radius mass radar drag start?
@@ -74,33 +74,9 @@
                  (tool (next-id) 'missile 5.0 #f '())
                  (tool (next-id) 'warp '(150.0 100.0 0.0) #f '())
                  ))
-
-  #;(set-ship-pods!
-   cruiser
-   `(,(normal-lounge)
-     ,(normal-hangar pi 5.0 (list (new-blue-fighter)))
-     ,(pod (next-id) "Pilot" #f #f 0.0 6.0 #f #f 100.0 100.0
-           (list (steer (next-id) '() pi/2) (fthrust (next-id) '() #f) (dock (next-id) '() #f)
-                 (warp (next-id) '() 300.0 0.0 "release")))
-     ,(pod (next-id) "WP" #f ai? (degrees->radians 90.0) 10.0 (degrees->radians 75.0) (* 0.9 pi) 60.0 60.0
-           (list (pbolt (next-id) '() 5.0 #t)
-                 (ptube (next-id) '() 100.0 100.0 "load" #f 50.0)))
-     ,(pod (next-id) "W" #f ai? (degrees->radians 45.0) 12.0 (degrees->radians 30.0) (* 0.5 pi) 60.0 60.0
-           (list (pbolt (next-id) '() 10.0 #t)))
-     ,(pod (next-id) "WP" #f ai? (degrees->radians 270.0) 10.0 (degrees->radians 285.0) (* 0.9 pi) 60.0 60.0
-           (list (pbolt (next-id) '() 5.0 #t)
-                 (ptube (next-id) '() 100.0 100.0 "load" #f 50.0)))
-     ,(pod (next-id) "W" #f ai? (degrees->radians 315.0) 12.0 (degrees->radians 330.0) (* 0.5 pi) 60.0 60.0
-           (list (pbolt (next-id) '() 10.0 #t)))
-     ,(pod (next-id) "SM" #f ai? (degrees->radians 0.0) 15.0 (degrees->radians 0.0) (* 0.8 pi) 50.0 50.0
-           (list (shbolt (next-id) '() 10.0 #t)
-                 (mtube (next-id) '() 100.0 100.0 "load" #f)))
-     ,(pod (next-id) "SM" #f ai? (degrees->radians 180.0) 12.0 (degrees->radians 180.0) (* 0.8 pi) 50.0 50.0
-           (list (shbolt (next-id) '() 20.0 #t)
-                 (mtube (next-id) '() 100.0 100.0 "load" #f)))))
   
   
-  (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:hangar '()))
+  (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:ai? #t #:hangar '()))
   (set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
                                ;con maxcon radius mass radar drag start-ship?
                                1000.0 1000.0 26.0 1000.0 1000.0 0.4 #t))
@@ -109,22 +85,9 @@
               (tool (next-id) 'probe 30.0 #f '())
               (tool (next-id) 'missile 5.0 #f '())
           ))
-
-  #;(set-ship-pods!
-   base
-   `(,(normal-lounge)
-     ,(normal-hangar pi 13.0 '())
-     ,@(for/list ((d (in-list (list 0 90 180 270))))
-         (pod (next-id) "WP" #f #t (degrees->radians d) 26.0 (degrees->radians d) (* 0.9 pi) 50.0 50.0
-              (list (pbolt (next-id) '() 10.0 #t)
-                    (ptube (next-id) '() 100.0 100.0 "load" #f 100.0))))
-     ,@(for/list ((d (in-list (list 45 135 225 315))))
-         (pod (next-id) "SM" #f #t (degrees->radians d) 28.0 (degrees->radians d) (* 0.9 pi) 100.0 100.0
-              (list (shbolt (next-id) '() 20.0 #t)
-                    (mtube (next-id) '() 100.0 100.0 "load" #f))))))
   
   
-  (define destroyer (make-ship "red-destroyer" "b" "b" #:x 2400 #:y 100 #:r pi
+  (define destroyer (make-ship "red-destroyer" "b" "b" #:x 2400 #:y 100 #:r pi #:ai? #t
                                #:hangar '()))
   (set-ship-stats! destroyer (stats (next-id)
                                     ;type name faction
@@ -139,29 +102,6 @@
                ,(tool (next-id) 'pbolt 5.0 #f '())
                ,(tool (next-id) 'missile 5.0 #f '())
                ))
-
-  #;(set-ship-pods!
-   destroyer
-   `(,(normal-lounge)
-     ,(normal-hangar pi 10.0 '())
-     ,(pod (next-id) "Pilot" #f #t 0.0 10.0 #f #f 100.0 100.0
-           (list (steer (next-id) '() pi) (fthrust (next-id) '() #t)))
-     ,@(for/list ((d (in-list (list -10 10))))
-         (pod (next-id) "W" #f #t (degrees->radians d) 23.0 0.0 (* 0.4 pi) 200.0 200.0
-              (list (pbolt (next-id) '() 10.0 #t))))
-     ,@(for/list ((d (in-list (list -62 62))))
-         (pod (next-id) "W" #f #t (degrees->radians d) 23.0 (degrees->radians (/ d 2.0)) (* 0.8 pi) 100.0 100.0
-              (list (pbolt (next-id) '() 10.0 #t))))
-     ,@(for/list ((d (in-list (list -130 130))))
-         (pod (next-id) "W" #f #t (degrees->radians d) 21.0 (degrees->radians d) (* 0.9 pi) 100.0 100.0
-              (list (pbolt (next-id) '() 10.0 #t))))
-     ,@(for/list ((d (in-list (list -35 35))))
-         (pod (next-id) "W" #f #t (degrees->radians d) 24.0 (degrees->radians d) (* 0.7 pi) 150.0 150.0
-              (list (pbolt (next-id) '() 10.0 #t))))
-     ,@(for/list ((d (in-list (list -90 90))))
-         (pod (next-id) "SM" #f #t (degrees->radians d) 21.0 (degrees->radians d) (* 0.9 pi) 50.0 50.0
-              (list (shbolt (next-id) '() 10.0 #t)
-                    (mtube (next-id) '() 100.0 100.0 "load" #f))))))
   
   (set-ship-ai-strategy! destroyer
                          (list (strategy (space-time ownspace) "attack-only" (ob-id base))))
@@ -249,7 +189,7 @@
         (define y (random-between (- (/ (space-height ownspace) 2)) (/ (space-height ownspace) 2)))
         (define fighters (for/list ((i (random 3)))
                            (make-ship "red-fighter" "Empire Fighter" "Empire")))
-        (define f (make-ship "red-frigate" "Empire Frigate" "Empire" #:x x #:y y #:r pi
+        (define f (make-ship "red-frigate" "Empire Frigate" "Empire" #:x x #:y y #:r pi #:ai? #t
                              #:hangar fighters #:cargo (list (random-upgrade ownspace #f)
                                                                 (random-upgrade ownspace #f))))
         (set-ship-ai-strategy! f (list (strategy (space-time ownspace) "attack*" (ob-id base))))

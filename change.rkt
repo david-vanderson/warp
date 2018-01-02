@@ -278,7 +278,7 @@
         (case (chstat-what c)
           ((ai)
            (set-ship-ai?! o (chstat-val c))
-           (printf "ship ~a turned off ai\n")
+           (printf "ship ~a turned off ai\n" (ship-name o))
            (values #t '()))
           ((toolval)
            (define t (ship-tool o (car (chstat-val c))))

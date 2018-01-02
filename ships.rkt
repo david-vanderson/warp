@@ -56,7 +56,7 @@
                    #:x (x 0.0) #:y (y 0.0) #:r (r pi/2)
                    #:dx (dx 0.0) #:dy (dy 0.0) #:dr (dr 0.0)
                    #:start-ship? (start-ship? #f)
-                   #:ai? (ai? #t)
+                   #:ai? (ai? #f)
                    #:con (con #f)
                    #:start-time (start-time 0)
                    #:life (life #f)
@@ -147,6 +147,7 @@
                                100.0 100.0 18.0 100.0 300.0 0.4 start-ship?))
      (set-ship-tools!
       s (list (tool (next-id) 'engine 20.0 #f '())
+              (tool (next-id) 'steer 0.3 #f '())
               (tool (next-id) 'turnleft 0.3 #f '())
               (tool (next-id) 'turnright 0.3 #f '())
               (tool (next-id) 'pbolt 5.0 #f '())

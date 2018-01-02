@@ -55,7 +55,7 @@
         (format "Trainer ~a" i))))
   
   (define (new-trainer faction)
-    (define s (make-ship "red-fighter" faction faction #:ai? #f
+    (define s (make-ship "red-fighter" faction faction
                          #:x (random-between -100 100) #:y (random-between -100 100)))
     (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
                               ;con maxcon radius mass drag radar start?

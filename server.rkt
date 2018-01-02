@@ -369,7 +369,7 @@
         (when (ship-flying? (get-ship s))
           (append! changes (pilot-ai-fly! space s))))
 
-      #;(when (ship-tool ship 'pbolt)
+      (when (ship-tool ship 'pbolt)
         (append! changes (pbolt-ai! space s)))
 
       #;(when (findf shbolt? (pod-tools p))
@@ -477,15 +477,15 @@
     ; update-effects! returns already-applied changes
     (append! updates (update-effects! ownspace))
 
+    ; scenario hook
+    (append! updates (apply-all-changes! ownspace (scenario-on-tick ownspace change-scenario!)
+                                       (space-time ownspace) "server"))
+
     ; ai
     (append! updates (apply-all-changes! ownspace (run-ai! ownspace)
                                          (space-time ownspace) "server"))
     )
   
-  
-  ; scenario hook
-  (append! updates (apply-all-changes! ownspace (scenario-on-tick ownspace change-scenario!)
-                                       (space-time ownspace) "server"))
   
   ; send any 0-time posvels and least-recently sent
   (define oldest #f)
@@ -551,5 +551,5 @@
 
 (module+ main
   (start-server
-   #:scenario testing-scenario
+   ;#:scenario testing-scenario
    ))
