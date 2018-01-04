@@ -322,10 +322,16 @@
                   space (plasma-hit-ship! space ship p) (space-time space) "server"))
       (append! changes cs)))
   
-  (for* ((u upgrades) (ship spaceships))
-    (define cs (apply-all-changes!
-                space (upgrade-hit-ship! space ship u) (space-time space) "server"))
-    (append! changes cs))
+  (for ((u upgrades))
+    (define done? #f)
+    (for ((ship spaceships)
+          #:when (not done?))
+      (define precs (upgrade-hit-ship! space ship u))
+      (when precs
+        (set! done? #t)
+        (define cs (apply-all-changes!
+                    space precs (space-time space) "server"))
+        (append! changes cs))))
   
   (let loop ((ships ships))
     (when (not (null? ships))

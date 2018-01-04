@@ -111,8 +111,7 @@
                 (button-x b) (- (button-y b) (button-height b))
                 (button-width b) (button-height b)
      "Offline"
-     (lambda (x y) (send-commands (command (ob-id offline)
-                                           (not (dmg-fixing? offline)))))
+     (lambda (x y) (void))
      (/ (dmg-energy offline) (dmg-size offline)) (dmg-fixing? offline)))
     (else
      #f)))

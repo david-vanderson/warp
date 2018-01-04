@@ -193,12 +193,11 @@
 
       ; check if the good guys docked
       (when (and found-base? (not dock-base?))
-        (define s (find-id (ship-hangar hb) spaceship?))
-        (when s
+        (for/first ((s (in-list (ship-hangar hb))))
           (set! dock-base? #t)
-          (append! changes (chmov (ob-id parts) (ob-id hb) (ob-id s) #f)
+          (append! changes (chmov (ob-id parts) (ob-id s) #f)
                    (message (next-id) (space-time ownspace) #f "Parts Transferred to Fighter"))))
-
+      
       ; check if the parts got back to goodship
       (when (and found-base? dock-base? (not parts-returned?))
         (define gs (find-id ownspace (ob-id goodship)))
