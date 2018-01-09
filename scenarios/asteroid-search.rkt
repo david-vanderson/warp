@@ -88,7 +88,7 @@
     (set-obj-posvel! s #f)
     s)
 
-  (define enemy-base (make-ship "blue-station" "a" "a" #:x 2500.0 #:y 200.0 #:hangar '()))
+  (define enemy-base (make-ship "blue-station" "a" "a" #:x 2500.0 #:y 200.0 #:ai? #t #:hangar '()))
   (set-ship-stats! enemy-base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
                                ;con maxcon radius mass radar drag start-ship?
                                750.0 750.0 26.0 1000.0 600.0 0.4 #t))

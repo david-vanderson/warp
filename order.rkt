@@ -83,7 +83,10 @@
 (define (check space faction ot)
   (define d
     (cond
-      ((order? ot) ((order-f ot) space faction ot))
+      ((order? ot)
+       (if ((order-f ot) space faction ot)
+           #t
+           #f))
       ((equal? 'seq (ordercomb-type ot))
        (for/and ((ot (in-list (ordercomb-orders ot))))
          (check space faction ot)))
