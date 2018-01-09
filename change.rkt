@@ -223,10 +223,15 @@
                     (append! changes (chadd ss #f) (chmov (ob-id p) (ob-id ss) #f))))
                  (else
                   (add! (car s) to who)
+                  ; whenever a player moves somewhere, need to clear out all existing commands
+                  (when (player? (car s))
+                    (set-player-commands! (car s) '()))
                   (when (obj? (car s)) (set-obj-posvel! (car s) (chmov-pv c)))))
            (values #t changes))
           (p
            (add! p to who)
+           ; player could have had commands from a previous ship/scenario
+           (set-player-commands! p '())
            (values #t '()))
           (else
            (printf "~a dropping chmov (can't find chmov-id) ~v\n" who c)
