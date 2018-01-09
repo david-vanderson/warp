@@ -9,6 +9,7 @@
   mode-lambda/shot
   (prefix-in gl: mode-lambda/backend/gl)
   ;(prefix-in soft: mode-lambda/backend/software)
+  "draw-utils.rkt"
   )
 
 (define gl? #t)
@@ -39,10 +40,10 @@
   (add-sprite!/value sd 'red (colorize (filled-rectangle 1 1) "red"))
   (add-sprite!/value sd 'blue (colorize (filled-rectangle 1 2) "blue"))
   (add-sprite!/value sd 'green (colorize (filled-rectangle 2 2) "green")))
-(define textfont (load-font! sd #:size 14.0
-                             ;#:family 'modern
-                             #:face "Verdana"
-                             ;#:weight 'bold
+(define textfont (load-font! sd #:size 12.0
+                             #:family 'modern
+                             ;#:face "Verdana"
+                             #:weight 'bold
                              ;#:smoothing 'smoothed
                              ;#:hinting 'aligned
                              ))
@@ -56,6 +57,7 @@
 (define csd (compile-sprite-db sd))
 (save-csd! csd "csd" #:debug? #t)
 (define textr (make-text-renderer textfont csd))
+(define textar (make-text-aligned-renderer textfont csd))
 
 (define NLAYERS 20)
 (define (layers)
@@ -88,11 +90,15 @@
   (define bg (sprite 250.0 250.0 (sprite-idx csd 'white) #:m scale #:a 1.0))
   (define ss (sprite 215.0 215.0 (sprite-idx csd 'one) #:layer 0))
   (set! s (append (list #;ss #;bg rs bs gs #;ss) null s))
-   (define t (textr "I"
+  (define t (textr "IIIII"
                     (+ 200.0 tx) (+ 200.0 ty) #:layer 1
                     #:r 255 #:g 255 #:b 255
                     #:mx tm #:my tm))
-   (define r (render (layers) '() (append s (list t))))
+  (define t2 (textar "IIIII"
+                    (+ 200.0 tx) (+ 210.0 ty) #:layer 1
+                    #:r 255 #:g 255 #:b 255
+                    #:mx tm #:my tm))
+   (define r (render (layers) '() (append s (list t t2))))
    (r (send canvas get-width) (send canvas get-height) dc)
   )
 

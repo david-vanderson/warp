@@ -1,7 +1,11 @@
 #lang racket/base
 
 (require racket/class
+         racket/match
          mode-lambda
+         (submod mode-lambda/text/runtime private)
+         racket/fixnum
+         racket/flonum
          racket/draw)
 
 (require "defs.rkt"
@@ -36,6 +40,61 @@
 (define (obj-sprite o csd center scale layer sprsym size a r color)
   (define-values (x y) (obj->screen o center scale))
   (xy-sprite x y csd scale layer sprsym size a r color))
+
+(define (make-text-aligned-sizer f csd)
+  (match-define (*ml-font char->char-id) f)
+  (λ (text #:mx [mx 1.0]
+           #:my [my 1.0])
+    (define idxs
+      (for/list ([c (in-string text)])
+        (define ci (hash-ref char->char-id c))
+        (define idx (sprite-idx csd ci))
+        (unless idx
+          (local-require mode-lambda/core)
+          (error 'make-text-aligned-sizer "Cannot find sprite ~v" ci))
+        idx))
+    (define-values (width height)
+      (for/fold ([w 0.0] [h 0.0]) ([i (in-list idxs)])
+        (values (fl+   w (ceiling (fl* mx (fx->fl (sprite-width csd i)))))
+                (flmax h (ceiling (fl* my (fx->fl (sprite-height csd i))))))))
+    (values width height)))
+
+(define (make-text-aligned-renderer f csd)
+  (match-define (*ml-font char->char-id) f)
+  (λ (text tx ty
+           #:layer [layer 0]
+           #:mx [mx 1.0]
+           #:my [my 1.0]
+           #:r [r 0]
+           #:g [g 0]
+           #:b [b 0]
+           #:a [a 1.0])
+    (define idxs
+      (for/list ([c (in-string text)])
+        (define ci (hash-ref char->char-id c))
+        (define idx (sprite-idx csd ci))
+        (unless idx
+          (local-require mode-lambda/core)
+          (error 'make-text-renderer "Cannot find sprite ~v" ci))
+        idx))
+    (define-values (width height)
+      (for/fold ([w 0.0] [h 0.0]) ([i (in-list idxs)])
+        (values (fl+   w (ceiling (fl* mx (fx->fl (sprite-width csd i)))))
+                (flmax h (ceiling (fl* my (fx->fl (sprite-height csd i))))))))
+    (define sx (round (fl- tx (fl/ width 2.0))))
+    (define  y (round (fl+ ty (fl/ height 2.0))))
+    (define-values (lx st)
+      (for/fold ([sx sx] [st #f])
+                ([i (in-list idxs)])
+        (define w (ceiling (fl* mx (fx->fl (sprite-width csd i)))))
+        (define x (fl+ sx (fl/ w 2.0)))
+        (values (fl+ sx w)
+                (cons (sprite x y i
+                              #:layer layer
+                              #:mx mx #:my my
+                              #:r r #:g g #:b b #:a a)
+                      st))))
+    st))
 
 (define (text-sprite textr txt x y layer (a 1.0) (color "white"))
   (when (string? color)
