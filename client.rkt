@@ -563,7 +563,13 @@
       (if (and (not DEBUG) my-stack)
           (get-dmgfx my-stack)
           (values 0.0 0.0)))
-    (define layers (for/vector ((i 8)) (layer (+ WIDTH dmgx) (+ HEIGHT dmgy))))
+
+    (define width (+ WIDTH dmgx))
+    (define height (+ HEIGHT dmgy))
+    ; some machines show visual artifacts sometimes when the layers are exactly aligned?
+    (when (equal? width (round width)) (set! width (+ width 0.00005)))
+    (when (equal? height (round height)) (set! height (+ height 0.00005)))
+    (define layers (for/vector ((i 8)) (layer width height)))
     
     (define r (render layers '() sprites))
     (r (send canvas get-width) (send canvas get-height) dc))
