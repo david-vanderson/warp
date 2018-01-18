@@ -15,7 +15,7 @@
 (define RIGHT (/ WIDTH 2))
 (define TOP (/ (- HEIGHT) 2))
 (define BOTTOM (/ HEIGHT 2))
-(define TEXTH (if (equal? 'windows (system-type)) 9.0 12.0))
+(define TEXTH (if (equal? 'windows (system-type)) 12.0 16.0))
 
 (define 2pi (* 2 pi))
 (define pi/2 (* 0.5 pi))

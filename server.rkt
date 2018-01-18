@@ -70,7 +70,7 @@
   (define changes '())
   (when (and ((ship-con ship) . > . 0)
              ((distance ship u) . < . (+ (ship-radius ship) (upgrade-radius space u))))
-    ;(printf "upgrade hit ship ~a (~a)\n" (ship-name ship) (obj-id ship))
+    ;(printf "upgrade hit ship ~a ~a\n" (ship-name ship) (upgrade-type u))
     (define newstats (struct-copy stats (ship-stats ship)))
     (define sendstats #t)
     (define which
@@ -327,7 +327,7 @@
     (for ((ship spaceships)
           #:when (not done?))
       (define precs (upgrade-hit-ship! space ship u))
-      (when precs
+      (when (not (null? precs))
         (set! done? #t)
         (define cs (apply-all-changes!
                     space precs (space-time space) "server"))

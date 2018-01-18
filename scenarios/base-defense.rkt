@@ -169,7 +169,7 @@
                                         txt #f) #f))
       ; add end scenario button
       (append! changes (chadd (ann-button (next-id) (space-time ownspace)
-                                          (posvel 0 -150 -160 0 100 50 0) #f
+                                          (posvel 0 -150 -160 0 120 50 0) #f
                                           "Quit Scenario" "quit-scenario") #f))
       )
 

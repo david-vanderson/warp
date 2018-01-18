@@ -11,7 +11,7 @@
 (provide (all-defined-out))
 
 (define (standard-quit-scenario-tab-button)
-  (ann-button (next-id) 0 (posvel 0 (+ LEFT 50) (+ TOP 80) 0 100 50 0) #t "Quit Scenario" "quit-scenario"))
+  (ann-button (next-id) 0 (posvel 0 (+ LEFT 90) (+ TOP 80) 0 180 50 0) #t "Quit Scenario" "quit-scenario"))
 
 (define-syntax-rule (append! lst e ...)
   (set! lst (append lst (flatten (list e ...)))))

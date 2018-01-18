@@ -13,8 +13,6 @@
 
 (provide (all-defined-out))
 
-(define txtsize (box 5))
-
 (define (xy->screen x y center scale)
   (values (* (- x (obj-x center)) scale)
           (* (- (obj-y center) y) scale)))
@@ -82,12 +80,15 @@
         (values (fl+   w (ceiling (fl* mx (fx->fl (sprite-width csd i)))))
                 (flmax h (ceiling (fl* my (fx->fl (sprite-height csd i))))))))
     (define sx (round (fl- tx (fl/ width 2.0))))
-    (define  y (round (fl+ ty (fl/ height 2.0))))
+    (define  y (if (even? height)
+                   (round ty)
+                   (- (round (+ ty 0.5)) 0.5)))
     (define-values (lx st)
       (for/fold ([sx sx] [st #f])
                 ([i (in-list idxs)])
         (define w (ceiling (fl* mx (fx->fl (sprite-width csd i)))))
         (define x (fl+ sx (fl/ w 2.0)))
+        ;(printf "w x,y ~a ~a,~a\n" w x y)
         (values (fl+ sx w)
                 (cons (sprite x y i
                               #:layer layer
@@ -96,10 +97,11 @@
                       st))))
     st))
 
-(define (text-sprite textr txt x y layer (a 1.0) (color "white"))
+(define (text-sprite textr textsr txt x y layer (a 1.0) (color "white"))
   (when (string? color)
     (set! color (send the-color-database find-color color)))
-  (textr txt (exact->inexact (+ x (* 0.5 (unbox txtsize) (string-length txt)))) (exact->inexact y) #:layer layer
+  (define-values (width height) (textsr txt))
+  (textr txt (exact->inexact (+ x (* 0.5 width))) (exact->inexact (+ y (* 0.5 height))) #:layer layer
          #:r (send color red) #:g (send color green) #:b (send color blue) #:a a))
 
 (define (get-alpha x y fowlist)

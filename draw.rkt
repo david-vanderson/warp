@@ -105,7 +105,7 @@
         )))
   spr)
 
-(define (draw-object csd textr center scale o space pid showplayers? fowa layer_effects faction)
+(define (draw-object csd textr textsr center scale o space pid showplayers? fowa layer_effects faction)
   (define spr '())
   (cond       
     #;((ptsize . < . 0.25)  ; "sector" view - ships are triangles
@@ -153,7 +153,7 @@
               (define colstr (faction-check-color faction (ship-faction o)))
               (define players (find-all o player?))
               ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
-              (append! spr (draw-cargolist csd textr center scale o colstr fowa
+              (append! spr (draw-cargolist csd textr textsr center scale o colstr fowa
                                            (cons (ship-name o) (map upgrade-type (ship-cargo o)))
                                            (map player-name players)))))
            ((plasma? o)
@@ -167,12 +167,12 @@
            ((upgrade? o)
             (append! spr (draw-upgrade csd center scale space o fowa))
             (when showplayers?
-              (append! spr (draw-cargolist csd textr center scale o "gray" fowa
+              (append! spr (draw-cargolist csd textr textsr center scale o "gray" fowa
                                            (list (upgrade-type o)) '())))))))
   spr)
 
 
-(define (draw-cargolist csd textr center scale obj colstr fowa text-above text-below)
+(define (draw-cargolist csd textr textsr center scale obj colstr fowa text-above text-below)
   (define spr '())
   (define col (send the-color-database find-color colstr))
   (define-values (sx sy) (obj->screen obj center scale))
@@ -186,11 +186,11 @@
                        #:my (/ 2.0 (sprite-height csd (sprite-idx csd 'square)))
                        #:r (send col red) #:g (send col green) #:b (send col blue) #:a fowa))
   (for ((t text-above) (i (in-naturals)))
-    (append! spr (text-sprite textr t
+    (append! spr (text-sprite textr textsr t
                               (+ sx 55.0) (+ sy 50.0 (- (* (+ i 1) 14)))
                               LAYER_MAP fowa colstr)))
   (for ((t text-below) (i (in-naturals)))
-    (append! spr (text-sprite textr t
+    (append! spr (text-sprite textr textsr t
                               (+ sx 55.0) (+ sy 55.0 (* i 14))
                               LAYER_MAP fowa colstr)))
   spr)
@@ -235,7 +235,7 @@
 
 
 
-(define (draw-overlay textr space stack)
+(define (draw-overlay textr textsr space stack)
   (define spr '())
   ; string saying where you are
   (when stack
@@ -244,7 +244,7 @@
       (if str
           (set! str (format "~a on ~a" str (ship-name s)))
           (set! str (ship-name s))))
-    (append! spr (textr str 0.0 (- 5.0 (/ HEIGHT 2.0)) #:layer LAYER_UI_TEXT
+    (append! spr (textr str 0.0 (+ TOP 10) #:layer LAYER_UI_TEXT
                         #:r 255 #:g 255 #:b 255)))
 
   ; messages
@@ -257,7 +257,7 @@
           (define m (car l))
           (set! num (+ num 1))
           (define z (linear-fade (obj-age space m) (/ MSG_FADE_TIME 2) MSG_FADE_TIME))
-          (append! spr (text-sprite textr (message-msg m)
+          (append! spr (text-sprite textr textsr (message-msg m)
                                     (- 5.0 (/ WIDTH 2.0)) (+ -200.0 (* num 20))
                                     LAYER_UI_TEXT z)))
         (loop (cdr l)))))
@@ -309,7 +309,7 @@
                          #:mx (/ w (sprite-width csd (sprite-idx csd sprname)) 1.0)
                          #:my (/ (if h h w) (sprite-height csd (sprite-idx csd sprname)) 1.0)
                          #:r br))
-    (append! spr (textr (button-label b) x (- y (/ TEXTH 2.0)) #:layer LAYER_UI_TEXT
+    (append! spr (textr (button-label b) x y #:layer LAYER_UI_TEXT
                         #:r txtcol #:g txtcol #:b txtcol)))
   spr)
 
@@ -344,17 +344,17 @@
 
   ; ship hp
   (define s (get-ship stack))
-  (append! spr (sprite (- RIGHT 45 (/ (ship-maxcon s) 2)) (+ TOP 20) (sprite-idx csd 'square-outline)
+  (append! spr (sprite (- RIGHT 45 (/ (ship-maxcon s) 2)) (+ TOP 30) (sprite-idx csd 'square-outline)
                          #:layer LAYER_UI
                          #:mx (/ (+ 2.0 (ship-maxcon s)) (sprite-width csd (sprite-idx csd 'square-outline)) 1.0)
                          #:my (/ 22.0 (sprite-height csd (sprite-idx csd 'square-outline)))
                          #:r 255 #:g 255 #:b 255))
   (define col (send the-color-database find-color (stoplight-color (ship-con s) (ship-maxcon s))))
-  (append! spr (sprite (- RIGHT 45 (/ (ship-con s) 2)) (+ TOP 20) (sprite-idx csd 'square)
+  (append! spr (sprite (- RIGHT 45 (/ (ship-con s) 2)) (+ TOP 30) (sprite-idx csd 'square)
                          #:layer LAYER_UI #:my (/ 20.0 (sprite-height csd (sprite-idx csd 'square)))
                          #:mx (/ (ship-con s) (sprite-width csd (sprite-idx csd 'square)) 1.0)
                          #:r (send col red) #:g (send col green) #:b (send col blue)))
-  (append! spr (textr "Hull" (- RIGHT 20) (+ TOP 10) #:layer LAYER_UI
+  (append! spr (textr "Hull" (- RIGHT 20) (+ TOP 30) #:layer LAYER_UI
                       #:r 255 #:g 255 #:b 255))
   spr)
 
@@ -392,13 +392,13 @@
      (append! buttons bs)
      (append! spr ss))
     ((missile)
-     (define b (button 'normal #\m (- RIGHT 80) (- BOTTOM 350) 70 50 "Missile [m]"
+     (define b (button 'normal #\m (- RIGHT 80) (- BOTTOM 350) 100 50 "Missile [m]"
                        (lambda (x y) (send-commands (command pid (tool-name t) #t)))))
      (append! buttons b)
      (define ob (add-offline-button! t b send-commands))
      (when ob (append! buttons ob)))
     ((probe)
-     (define b (button 'normal #\p (- RIGHT 80) (- BOTTOM 250) 70 50 "Probe [p]"
+     (define b (button 'normal #\p (- RIGHT 80) (- BOTTOM 250) 100 50 "Probe [p]"
                        (lambda (x y) (send-commands (command pid (tool-name t) #t)))))
      (append! buttons b)
      (define ob (add-offline-button! t b send-commands))
@@ -411,7 +411,7 @@
                             #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square)) 1.0)
                             #:r 255))
        
-       (define b (button 'normal #\s (+ LEFT 50) 0 70 50 "Stop [s]"
+       (define b (button 'normal #\s 0 (- BOTTOM 35) 70 30 "Stop [s]"
                          (lambda (x y)
                            (send-commands (command pid (tool-name t) #t)))))
        (append! buttons b)))
@@ -433,7 +433,7 @@
      (append! buttons (list b))
      (define ob (add-offline-button! t b send-commands))
      (when ob (append! buttons (list ob)))
-     (define lb (button (if (can-launch? stack) 'normal 'disabled) #\l (- RIGHT 80) (- BOTTOM 150) 80.0 30.0 "Launch [L]"
+     (define lb (button (if (can-launch? stack) 'normal 'disabled) #\l (- RIGHT 80) (- BOTTOM 150) 120.0 30.0 "Launch [L]"
                        (lambda (x y) (send-commands (command pid (tool-name t) 'launch)))))
      (append! buttons (list lb))
      (define lob (add-offline-button! t lb send-commands "nolaunch"))

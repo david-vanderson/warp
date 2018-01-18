@@ -96,7 +96,7 @@
       (append! changes (chadd (ann-text (next-id) (space-time space) (posvel 0 -200 -100 0 0 0 0) #f
                                         (string-join txt "\n") #f) #f))
       ; add end scenario button
-      (append! changes (chadd (ann-button (next-id) (space-time space) (posvel 0 200 100 0 100 50 0) #f "Quit Scenario" "quit-scenario") #f))
+      (append! changes (chadd (ann-button (next-id) (space-time space) (posvel 0 200 100 0 120 50 0) #f "Quit Scenario" "quit-scenario") #f))
       )
     
     (append! changes (order-changes space real-orders))

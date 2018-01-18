@@ -150,9 +150,11 @@
     
     (when (not ownspace)
       ; This screen is where you type in your name and the server IP
-      (append! sprites (textr "Intro Screen"
-                              0.0 0.0 #:layer LAYER_UI
-                              #:r 255 #:g 255 #:b 255)))
+      (define txt "O")
+      (define-values (w h) (textsr txt))
+      (for* ((i (in-range LEFT RIGHT w))
+             (j (in-range TOP BOTTOM h)))
+        (append! sprites (text-sprite textr textsr txt i j LAYER_UI))))
     
     (when ownspace
       (define p (findfid meid (space-players ownspace)))
@@ -211,12 +213,13 @@
                   (else
                    (error "don't know how to draw annotation ~v" a))))))))
 
-      (append! sprites (draw-background-stars csd center (get-scale) fowlist))
+      ;(append! sprites (draw-background-stars csd center (get-scale) fowlist))
+
       (for ((o (in-list (space-objects ownspace))))
         (define fowa (if (obj-posvel o) (get-alpha (obj-x o) (obj-y o) fowlist) 1.0))
         (when (fowa . > . 0)
           (append! sprites
-                   (draw-object csd textr center (get-scale) o ownspace meid showtab fowa LAYER_EFFECTS fac))))
+                   (draw-object csd textr textsr center (get-scale) o ownspace meid showtab fowa LAYER_EFFECTS fac))))
       
       ; draw stuff specific to the ship you are on
       ; - stacked if we are on a ship inside another ship
@@ -266,16 +269,16 @@
                                       #:r (send concol red) #:g (send concol green) #:b (send concol blue)))
 
              (define b (button 'normal #f
-                               (+ x (/ shipmax 2) 60)
-                               (+ y (- (/ shipmax 2)) 15) 100 30 (ship-name s)
+                               (+ x (/ shipmax 2) 80)
+                               (+ y (- (/ shipmax 2)) 15) 150 30 (ship-name s)
                                (lambda (x y)
                                  (send-commands (chmov meid (ob-id s) #f)))))
              (append! buttons b)
              (define players (find-all s player?))
-             ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
+             ;(append! players (player -1 "player1" "fac1" '() #f) (player -1 "player2" "fac2" '() #f))
              (for ((p (in-list players))
                    (i (in-naturals)))
-               (append! sprites (text-sprite textr (player-name p)
+               (append! sprites (text-sprite textr textsr (player-name p)
                                              (+ x (/ shipmax 2) 10)
                                              (+ y (- (/ shipmax 2)) 40 (* i 20)) LAYER_UI_TEXT)))))
           ((not (ship-flying? ship))
@@ -308,7 +311,7 @@
             (append! sprites ss)))
 
         (when (and (not rcship) (ship-hangar ship) (not (unbox in-hangar?)))
-          (define b (button 'normal #\h (- RIGHT 80) (+ TOP 70) 120 40
+          (define b (button 'normal #\h (- RIGHT 80) (+ TOP 70) 140 40
                             (~a "Hangar [h] " (length (ship-hangar ship)))
                             (lambda (x y)
                               (set-box! in-hangar? #t))))
@@ -341,34 +344,34 @@
           (define txts (string-split (ann-txt a) "\n"))
           (for ((t (in-list txts))
                 (i (in-naturals)))
-            (append! sprites (text-sprite textr t
+            (append! sprites (text-sprite textr textsr t
                                           (obj-x a) (+ (obj-y a) (* i 20)) LAYER_UI_TEXT z)))))
 
       (when showtab
         ; list all players
-        (append! sprites (text-sprite textr "Players:"
+        (append! sprites (text-sprite textr textsr "Players:"
                                       200 (+ TOP 80) LAYER_UI_TEXT))
         (for ((p (in-list (space-players ownspace)))
               (i (in-naturals)))
           (define str (if (player-faction p)
                           (~a (player-name p) " " (player-faction p))
                           (player-name p)))
-          (append! sprites (text-sprite textr str
+          (append! sprites (text-sprite textr textsr str
                                         200 (+ TOP 100 (* i 20)) LAYER_UI_TEXT))))
       
       ; draw orders
       (define line 0)
       (when ordertree
-        (define left (+ LEFT 130))
-        (append! sprites (text-sprite textr "Orders:"
+        (define left (+ LEFT 150))
+        (append! sprites (text-sprite textr textsr "Orders:"
                                       left TOP LAYER_UI_TEXT))
-        (set! left (+ left 50))
+        (set! left (+ left 80))
         (define top TOP)
         (for-orders ordertree showtab
           (lambda (ot depth highlight?)
             (when showtab
               (define color (if (ord-done? ot) "green" "red"))
-              (append! sprites (xy-sprite (+ left (* 10 depth) 5) (+ top (* 20 line) 6)
+              (append! sprites (xy-sprite (+ left (* 10 depth) 5) (+ top (* 20 line) 10)
                                           csd (get-scale) LAYER_UI 'circle (/ 5.0 (get-scale))
                                           1.0 0.0 color)))
             (define color (if highlight? "white" "gray"))
@@ -382,7 +385,7 @@
                                 (~a (~a min #:min-width 2 #:align 'right #:pad-string "0")
                                     ":"
                                     (~a sec #:min-width 2 #:align 'right #:pad-string "0")))))
-            (append! sprites (text-sprite textr txt
+            (append! sprites (text-sprite textr textsr txt
                                       (+ left 12 (* 10 depth)) (+ top (* 20 line)) LAYER_UI_TEXT 1.0 color))
             (set! line (+ line 1)))))
       
@@ -416,17 +419,17 @@
         (define zw 20)
         (define zh 150)
         (define zcx (- RIGHT 10 (/ zw 2)))
-        (define zcy (+ TOP 70 (/ zh 2)))
-        (append! sprites (sprite zcx (+ TOP 70) (sprite-idx csd 'blue)
+        (define zcy (+ TOP 100 (/ zh 2)))
+        (append! sprites (sprite zcx (+ zcy (- (/ zh 2))) (sprite-idx csd 'blue)
                                  #:layer LAYER_UI #:mx (/ 20.0 (sprite-width csd (sprite-idx csd 'blue)))))
-        (append! sprites (sprite zcx (+ TOP 70 150) (sprite-idx csd 'blue)
+        (append! sprites (sprite zcx (+ zcy (/ zh 2)) (sprite-idx csd 'blue)
                                  #:layer LAYER_UI #:mx (/ 20.0 (sprite-width csd (sprite-idx csd 'blue)))))
-        (append! sprites (sprite zcx (+ TOP 70 75) (sprite-idx csd 'blue)
+        (append! sprites (sprite zcx zcy (sprite-idx csd 'blue)
                                  #:layer LAYER_UI #:my (/ 150.0 (sprite-height csd (sprite-idx csd 'blue)))))
         
         (define zfrac (/ (- (log scale-play) (log (min-scale)))
                          (- (log (max-scale)) (log (min-scale)))))
-        (append! sprites (sprite zcx (+ TOP 70 zh (- (* zfrac zh))) (sprite-idx csd 'blue)
+        (append! sprites (sprite zcx (+ zcy (/ zh 2) (- (* zfrac zh))) (sprite-idx csd 'blue)
                                  #:layer LAYER_UI #:mx (/ 20.0 (sprite-width csd (sprite-idx csd 'blue)))))
         (define zbutton (button 'hidden #f zcx zcy zw zh "Zoom"
                                 (lambda (x y)
@@ -542,7 +545,7 @@
                (button 'hidden #\` 0 0 0 0 "Show Sector"
                        (lambda (k y) (set! showsector? (not showsector?)))))
 
-      (append! sprites (draw-overlay textr ownspace my-stack))
+      (append! sprites (draw-overlay textr textsr ownspace my-stack))
   
       ) ; when ownspace
 
@@ -554,8 +557,7 @@
       (define end (first frames))
       (define span (/ (- end start) 1000))
       (define txt (format "FPS: ~a" (truncate (/ (- (length frames) 1) span))))
-      (append! sprites (textr txt (+ LEFT 100) TOP #:layer LAYER_UI
-                              #:r 255 #:g 255 #:b 255)))
+      (append! sprites (text-sprite textr textsr txt (- RIGHT 80) TOP LAYER_UI)))
     
     (append! sprites (button-sprites csd textr buttons (if ownspace (space-time ownspace) 0)))
     
@@ -567,8 +569,8 @@
     (define width (+ WIDTH dmgx))
     (define height (+ HEIGHT dmgy))
     ; some machines show visual artifacts sometimes when the layers are exactly aligned?
-    (when (equal? width (round width)) (set! width (+ width 0.00005)))
-    (when (equal? height (round height)) (set! height (+ height 0.00005)))
+    ;(when (equal? width (round width)) (set! width (+ width 0.00005)))
+    ;(when (equal? height (round height)) (set! height (+ height 0.00005)))
     (define layers (for/vector ((i 8)) (layer width height)))
     
     (define r (render layers '() sprites))
@@ -784,15 +786,15 @@
                                          (send dc set-brush b))
                                        110 110)) "black"))
     )
-  (define textfont (load-font! sd #:size TEXTH #:family 'modern #:weight 'bold))
+  (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))
   (load-ships sd)
   (add-sprite!/file sd 'plasma (string-append "images/plasma.png"))
   (add-sprite!/file sd 'missile (string-append "images/missile.png"))
   
   (define csd (compile-sprite-db sd))
   ;(save-csd! csd "csd" #:debug? #t)
-  (define textr (make-text-renderer textfont csd))
-  (set-box! txtsize (sprite-width csd (font-char-idx textfont csd #\W)))
+  (define textr (make-text-aligned-renderer textfont csd))
+  (define textsr (make-text-aligned-sizer textfont csd))
   (gl:gl-smoothing? #t)
   (define render (gl:stage-draw/dc csd (fl->fx WIDTH) (fl->fx HEIGHT) LAYER_NUM))
   
