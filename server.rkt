@@ -333,7 +333,7 @@
                     space precs (space-time space) "server"))
         (append! changes cs))))
   
-  (let loop ((ships ships))
+  (let loop ((ships (append spaceships probes)))
     (when (not (null? ships))
       (define ship (car ships))
       (for ((s (cdr ships)))

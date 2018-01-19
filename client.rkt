@@ -537,7 +537,7 @@
              (set! clickcmds (command meid 'pbolt a))
              (append! sprites (sprite (exact->inexact x) (exact->inexact y)
                                       (sprite-idx csd 'target) #:layer LAYER_UI_TEXT
-                                      #:b 150 #:m 0.5))))))
+                                      #:r 100 #:g 100 #:b 255 #:m 0.7))))))
       
       (append! buttons
                (button 'hidden #\tab 0 0 0 0 "Mission Info"
