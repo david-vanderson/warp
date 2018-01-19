@@ -156,6 +156,19 @@
   changes)
 
 
+(define (missile-hit-missile! space m1 m2)
+  (define changes '())
+  (when (and ((ship-con m1) . > . 0)
+             ((ship-con m2) . > . 0)
+             ((distance m1 m2) . < . (+ (ship-radius m1) (ship-radius m2))))
+    ;(printf "missile hit ship ~a\n" (ship-name ship))
+
+    (append! changes
+             (chdam (ob-id m1) -1)  ; -1 means missile explodes
+             (chdam (ob-id m2) -1)))
+  changes)
+
+
 ; return a list of changes
 (define (plasma-hit-shield! space s p)
   (define changes '())
@@ -306,6 +319,11 @@
     (for ((p plasmas))
       (define cs (apply-all-changes!
                   space (missile-hit-plasma! space m p) (space-time space) "server"))
+      (append! changes cs))
+    (for ((m2 missiles)
+          #:when (not (equal? (ob-id m) (ob-id m2))))
+      (define cs (apply-all-changes!
+                  space (missile-hit-missile! space m m2) (space-time space) "server"))
       (append! changes cs))
     (for ((ship (append spaceships probes)))
       (define cs (apply-all-changes!

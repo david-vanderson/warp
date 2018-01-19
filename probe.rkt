@@ -46,7 +46,8 @@
        (define p (make-ship "probe" "Probe" (ship-faction ship)
                             #:start-time (space-time space)
                             #:life (tool-val tool)))
-       (define d (+ (ship-radius ship) (* 2.0 (ship-radius p))))
+       (define d (+ (ship-radius ship) (* 2.0 (ship-radius p))
+                    (random-between 0 1)))  ; random so things don't end up exactly aligned
        (set-obj-posvel! p (posvel (space-time space)
                                   (+ (obj-x ship) (* d (cos a)))
                                   (+ (obj-y ship) (* d (sin a)))

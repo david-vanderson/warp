@@ -301,7 +301,7 @@
      (define r (angle-add (obj-r parent) pi))
      (define dist (+ (ship-radius ship)
                      (ship-radius parent)
-                     10))
+                     (random-between 9 11)))
      (define pv (posvel 0
                         (+ (posvel-x (obj-posvel parent)) (* dist (cos r)))
                         (+ (posvel-y (obj-posvel parent)) (* dist (sin r)))
