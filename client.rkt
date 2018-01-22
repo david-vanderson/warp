@@ -832,7 +832,7 @@
       ;(printf "send-commands ~v\n" cmds)
       (with-handlers ((exn:fail:network? (lambda (exn)
                                            (drop-connection "send-command"))))
-        (write cmds server-out-port)
+        (write (update (if ownspace (space-time ownspace) #f) cmds #f) server-out-port)
         (flush-output server-out-port))))
   
   

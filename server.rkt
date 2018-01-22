@@ -461,7 +461,7 @@
     (set-tcp-nodelay! out #t)
     (define c (client (player (next-id) #f #f '() #f) in out))
     (append! clients (list c))
-    (define p (car (read-from-client c)))
+    (define p (car (update-changes (read-from-client c))))
     (set-player-name! (client-player c) (player-name p))
     (send-to-client c (client-player c))  ; assign an id
     (send-to-client c ownspace)  ; send full state
@@ -474,15 +474,16 @@
   (for ((c clients))
     (while (and (not (port-closed? (client-in c)))
                 (byte-ready? (client-in c)))
-      (define cmds (read-from-client c))
+      (define u (read-from-client c))
       (cond
-        ((not cmds) #f)  ; if read-from-client fails, it returns #f
-        ((eof-object? cmds)
+        ((not u) #f)  ; if read-from-client fails, it returns #f
+        ((eof-object? u)
          (remove-client c "eof"))
         (else
-         (for ((m (in-list cmds)) #:when (anncmd? m))
+         (printf "client ~a is behind ~a\n" (ob-id (client-player c)) (- (space-time ownspace) (update-time u)))
+         (for ((m (in-list (update-changes u))) #:when (anncmd? m))
            (scenario-on-message ownspace m change-scenario!))
-         (let ((cmds (filter-not anncmd? cmds)))
+         (let ((cmds (filter-not anncmd? (update-changes u))))
            (define command-changes
              (apply-all-changes! ownspace cmds (space-time ownspace) "server"))
            (append! updates command-changes))))))
