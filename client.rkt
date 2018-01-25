@@ -832,7 +832,7 @@
       ;(printf "send-commands ~v\n" cmds)
       (with-handlers ((exn:fail:network? (lambda (exn)
                                            (drop-connection "send-command"))))
-        (write (update (if ownspace (space-time ownspace) #f) cmds #f) server-out-port)
+        (write (update last-update-time cmds #f) server-out-port)
         (flush-output server-out-port))))
   
   
@@ -917,28 +917,31 @@
                (set! scale-play (min-scale)))
              )
             ((and ownspace (update? input))
-             (when (not (= (update-time input) (+ last-update-time TICK)))
-               (error "UPDATE TIMES DID NOT MATCH\n"))
-             (set! last-update-time (update-time input))
-             
-             ;(printf "client update space-time ~a update-time ~a\n" (space-time ownspace) (update-time input))
-             
-             (when ((space-time ownspace) . < . (update-time input))
-               ;(printf "client ticking ownspace forward for input ~a\n" (update-time input))
-               (tick-space! ownspace))
-             (when ((space-time ownspace) . < . (update-time input))
-               (error "client ownspace still behind update time\n"))
-             (for ((c (in-list (update-changes input))))
-               ;(printf "client applying change ~v\n" c)
-               (define-values (forward? useless-changes)
-                 (apply-change! ownspace c (update-time input) "client"))
-               (when (and (chmov? c) (equal? meid (chmov-id c)))
-                 (set-box! in-hangar? #f))
-               (when (not (null? useless-changes))
-                 (printf "client produced useless changes:\n  ~v\n" useless-changes))
-               )
-             (for ((pvu (in-list (update-pvs input))))
-               (update-posvel! ownspace pvu (update-time input)))))
+             (cond
+               ((not (= (update-time input) (+ last-update-time TICK)))
+                (printf "dropping update at time ~a, expecting ~a\n"
+                        (update-time input) (+ last-update-time TICK)))
+               (else
+                (set! last-update-time (update-time input))
+                
+                ;(printf "client update space-time ~a update-time ~a\n" (space-time ownspace) (update-time input))
+                
+                (when ((space-time ownspace) . < . (update-time input))
+                  ;(printf "client ticking ownspace forward for input ~a\n" (update-time input))
+                  (tick-space! ownspace))
+                (when ((space-time ownspace) . < . (update-time input))
+                  (error "client ownspace still behind update time\n"))
+                (for ((c (in-list (update-changes input))))
+                  ;(printf "client applying change ~v\n" c)
+                  (define-values (forward? useless-changes)
+                    (apply-change! ownspace c (update-time input) "client"))
+                  (when (and (chmov? c) (equal? meid (chmov-id c)))
+                    (set-box! in-hangar? #f))
+                  (when (not (null? useless-changes))
+                    (printf "client produced useless changes:\n  ~v\n" useless-changes))
+                  )
+                (for ((pvu (in-list (update-pvs input))))
+                  (update-posvel! ownspace pvu (update-time input)))))))
       
       (when ownspace
         ; If the first space is delayed, then our own clock got started late.

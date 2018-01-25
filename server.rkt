@@ -21,7 +21,7 @@
 
 (provide start-server)
 
-(struct client (player in out) #:mutable #:prefab)
+(struct client (player in-port out-port in-t out-t) #:mutable #:prefab)
 (define (client-id c) (ob-id (client-player c)))
 
 (define server-listener #f)
@@ -408,43 +408,77 @@
 
 (define updates '())
 
-(define (remove-client c msg)
-  (printf "removing client ~v ~a\n" (client-player c) msg)
-  (define s (find-stack ownspace (client-id c)))
-  (define changes '())
-  (when (and s (player-rcid (car s)))
-    (append! changes (command (client-id c) 'endrc #f)))
-  (append! changes (chrm (client-id c)))
-  (append! updates
-           (apply-all-changes! ownspace
-                               changes
-                               (space-time ownspace) "server"))
-  
-  (close-input-port (client-in c))
-  (close-output-port (client-out c))
-  (set! clients (remove c clients)))
+(define (make-in-thread cid in-port)
+  (define server-thread (current-thread))
+  (thread
+   (lambda ()
+     (let loop ()
+       ; read from in-port
+       (define v
+         (with-handlers ((exn:fail:network? (lambda (exn) #f)))
+           (read in-port)))
+       (cond
+         ((and v (not (eof-object? v)))
+          ; send to server-thread
+          (thread-send server-thread (cons cid v))
+          (loop))
+         (else
+          (thread-send server-thread (cons cid #f))
+          (printf "client ~a in-thread stopping ~v\n" cid v)))))))
 
+(define (make-out-thread cid out-port)
+  (define server-thread (current-thread))
+  (thread
+   (lambda ()
+     (let loop ()
+       ; get next thing from server-thread
+       (define v (thread-receive))
+       ; send it out
+       (define ret
+         (with-handlers ((exn:fail:network? (lambda (exn) #f)))
+           (define bstr (with-output-to-bytes (lambda () (write v))))
+           (define start-time (current-milliseconds))
+           (let loop ((bytes-written 0))
+             (cond
+               (((- (current-milliseconds) start-time) . > . 500)
+                #f)
+               ((not (= bytes-written (bytes-length bstr)))
+                (define r (write-bytes-avail* bstr out-port bytes-written))
+                (loop (+ bytes-written r)))
+               (else
+                (flush-output out-port))))))
+       (cond
+         ((void? ret)
+          (loop))
+         (else
+          (thread-send server-thread (cons cid #f))
+          (printf "client ~a out-thread stopping\n" cid)))))))
+     
+(define (remove-client cid msg)
+  (define c (findf (lambda (o) (= cid (client-id o))) clients))
+  (cond
+    ((not c)
+     (printf "already removed client ~a ~a\n" cid) msg)
+    (else
+     (printf "removing client ~v ~a\n" (client-player c) msg)
+     (define s (find-stack ownspace (client-id c)))
+     (define changes '())
+     (when (and s (player-rcid (car s)))
+       (append! changes (command (client-id c) 'endrc #f)))
+     (append! changes (chrm (client-id c)))
+     (append! updates
+              (apply-all-changes! ownspace
+                                  changes
+                                  (space-time ownspace) "server"))
+     
+     (close-input-port (client-in-port c))
+     (close-output-port (client-out-port c))
+     (kill-thread (client-in-t c))
+     (kill-thread (client-out-t c))
+     (set! clients (remove c clients)))))
 
-(define (send-to-client c msg)
-  (with-handlers ((exn:fail:network? (lambda (exn) (remove-client c "send-to-client"))))
-    (define bstr (with-output-to-bytes (lambda () (write msg))))
-    (define start-time (current-milliseconds))
-    (let loop ((bytes-written 0))
-      (cond
-        (((- (current-milliseconds) start-time) . > . 500)
-         (remove-client c "write-bytes-avail*"))
-        ((not (= bytes-written (bytes-length bstr)))
-         (define r (write-bytes-avail* bstr (client-out c) bytes-written))
-         (loop (+ bytes-written r)))
-        (else
-         (flush-output (client-out c)))))))
-
-
-(define (read-from-client c)
-  (with-handlers ((exn:fail:network? (lambda (exn)
-                                       (remove-client c "read-from-client")
-                                       #f)))
-    (read (client-in c))))
+(define (send-to-client c v)
+  (thread-send (client-out-t c) v))
 
 
 (define previous-physics-time #f)
@@ -459,34 +493,44 @@
     (printf "server accept-ready\n")
     (define-values (in out) (tcp-accept server-listener))
     (set-tcp-nodelay! out #t)
-    (define c (client (player (next-id) #f #f '() #f) in out))
-    (append! clients (list c))
-    (define p (car (update-changes (read-from-client c))))
-    (set-player-name! (client-player c) (player-name p))
+    (define cid (next-id))
+    (define c (client (player cid #f #f '() #f)
+                      in out
+                      (make-in-thread cid in)
+                      (make-out-thread cid out)))
     (send-to-client c (client-player c))  ; assign an id
-    (send-to-client c ownspace)  ; send full state
-    (append! updates
-             (apply-all-changes! ownspace (list (chadd (client-player c) #f)) (space-time ownspace) "server"))
-    (define m (message (next-id) (space-time ownspace) #f (format "New Player: ~a" (player-name p))))
-    (append! updates (list m)))
+    (append! clients (list c)))
 
   ; process commands
-  (for ((c clients))
-    (while (and (not (port-closed? (client-in c)))
-                (byte-ready? (client-in c)))
-      (define u (read-from-client c))
+  (let loop ()
+    (define v (thread-try-receive))
+    (when v
+      (define cid (car v))
+      (define u (cdr v))
       (cond
-        ((not u) #f)  ; if read-from-client fails, it returns #f
-        ((eof-object? u)
-         (remove-client c "eof"))
+        ((not u)
+         (remove-client cid ""))
         (else
-         (printf "client ~a is behind ~a\n" (ob-id (client-player c)) (- (space-time ownspace) (update-time u)))
-         (for ((m (in-list (update-changes u))) #:when (anncmd? m))
-           (scenario-on-message ownspace m change-scenario!))
-         (let ((cmds (filter-not anncmd? (update-changes u))))
-           (define command-changes
-             (apply-all-changes! ownspace cmds (space-time ownspace) "server"))
-           (append! updates command-changes))))))
+         (when (and (update-time u) ((- (space-time ownspace) (update-time u)) . > . 70))
+           (printf "~a : client ~a is behind ~a\n" (space-time ownspace) cid
+                   (- (space-time ownspace) (update-time u))))
+         (for ((ch (in-list (update-changes u))))
+           (cond
+             ((player? ch)
+              (define c (findf (lambda (o) (= cid (client-id o))) clients))
+              (set-player-name! (client-player c) (player-name ch))
+              (send-to-client c (copy-prefab ownspace))  ; send full state
+              (append! updates
+                       (apply-all-changes! ownspace (list (chadd (client-player c) #f)) (space-time ownspace) "server"))
+              (define m (message (next-id) (space-time ownspace) #f (format "New Player: ~a" (player-name ch))))
+              (append! updates (list m)))
+             ((anncmd? ch)
+              (scenario-on-message ownspace ch change-scenario!))
+             (else
+              (define command-changes
+                (apply-all-changes! ownspace (list ch) (space-time ownspace) "server"))
+              (append! updates command-changes))))))
+      (loop)))
   
   ; simulation tick
   (when (TICK . < . (- current-time previous-physics-time))
@@ -543,15 +587,16 @@
   (set! updates '())
   
   ;(printf "server sending time ~v\n" (update-time u))
+  (define msg (copy-prefab u))
   (for ((c clients))
-    (send-to-client c u))
+    (send-to-client c msg))
   
   ; sleep so we don't hog the whole racket vm
   (define sleep-time (- (+ previous-physics-time TICK 1)
                         (current-milliseconds)))
   (if (sleep-time . > . 0)
       (sleep (/ sleep-time 1000.0))
-      (printf "server skipping sleep ~a\n" sleep-time))
+      (printf "~a : server skipping sleep ~a\n" (space-time ownspace) sleep-time))
   
   (server-loop))
 
@@ -563,8 +608,9 @@
   (set! ownspace newspace)
   (set! scenario-on-tick on-tick)
   (set! scenario-on-message on-message)
+  (define msg (copy-prefab ownspace))
   (for ((c clients))
-    (send-to-client c ownspace)))
+    (send-to-client c msg)))
 
 
 (define (start-server (port PORT) #:scenario (scenario sc-pick))
