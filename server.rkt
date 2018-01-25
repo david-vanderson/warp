@@ -407,52 +407,6 @@
 
 
 (define updates '())
-
-(define (make-in-thread cid in-port)
-  (define server-thread (current-thread))
-  (thread
-   (lambda ()
-     (let loop ()
-       ; read from in-port
-       (define v
-         (with-handlers ((exn:fail:network? (lambda (exn) #f)))
-           (read in-port)))
-       (cond
-         ((and v (not (eof-object? v)))
-          ; send to server-thread
-          (thread-send server-thread (cons cid v))
-          (loop))
-         (else
-          (thread-send server-thread (cons cid #f))
-          (printf "client ~a in-thread stopping ~v\n" cid v)))))))
-
-(define (make-out-thread cid out-port)
-  (define server-thread (current-thread))
-  (thread
-   (lambda ()
-     (let loop ()
-       ; get next thing from server-thread
-       (define v (thread-receive))
-       ; send it out
-       (define ret
-         (with-handlers ((exn:fail:network? (lambda (exn) #f)))
-           (define bstr (with-output-to-bytes (lambda () (write v))))
-           (define start-time (current-milliseconds))
-           (let loop ((bytes-written 0))
-             (cond
-               (((- (current-milliseconds) start-time) . > . 500)
-                #f)
-               ((not (= bytes-written (bytes-length bstr)))
-                (define r (write-bytes-avail* bstr out-port bytes-written))
-                (loop (+ bytes-written r)))
-               (else
-                (flush-output out-port))))))
-       (cond
-         ((void? ret)
-          (loop))
-         (else
-          (thread-send server-thread (cons cid #f))
-          (printf "client ~a out-thread stopping\n" cid)))))))
      
 (define (remove-client cid msg)
   (define c (findf (lambda (o) (= cid (client-id o))) clients))

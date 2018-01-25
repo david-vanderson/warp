@@ -37,6 +37,8 @@
   (define playing? #t)
   (define server-in-port #f)
   (define server-out-port #f)
+  (define server-in-t #f)
+  (define server-out-t #f)
   (define meid #f)  ; integer? or #f
   (define ownspace #f)
   (define my-stack #f)
@@ -819,31 +821,22 @@
     (printf "drop server ~a\n" msg)
     (when server-in-port
       (close-input-port server-in-port)
-      (close-output-port server-out-port))
+      (close-output-port server-out-port)
+      (kill-thread server-in-t)
+      (kill-thread server-out-t))
     (set! server-in-port #f)
     (set! server-out-port #f)
+    (set! server-in-t #f)
+    (set! server-out-t #f)
     (set! meid #f)
     (set! ownspace #f))
   
   
   (define (send-commands cmds)
     (when (not (list? cmds)) (set! cmds (list cmds)))
-    (when ((length cmds) . > . 0)
+    (when (and server-out-t ((length cmds) . > . 0))
       ;(printf "send-commands ~v\n" cmds)
-      (with-handlers ((exn:fail:network? (lambda (exn)
-                                           (drop-connection "send-command"))))
-        (write (update last-update-time cmds #f) server-out-port)
-        (flush-output server-out-port))))
-  
-  
-  (define (read-from-server)
-    (with-handlers ((exn:fail:network? (lambda (exn)
-                                         (drop-connection "read-from-server")
-                                         eof)))
-      (define x (read server-in-port))
-      (when (eof-object? x)
-        (drop-connection "read got eof"))
-      x))
+      (thread-send server-out-t (update last-update-time cmds #f))))
   
   
   (define (client-loop)
@@ -884,76 +877,83 @@
         (set! server-out-port out)
         
         (when server-out-port
+          (set! server-in-t (make-in-thread #f in))
+          (set! server-out-t (make-out-thread #f out))
           ; send our name to the server
-          (send-commands (player #f name #f '() #f)))
-        
-        (when server-in-port
-          ; read a player struct that has our unique id
-          (define newme (read-from-server))
-          (when (not (eof-object? newme))
-            (set! meid (ob-id newme))
-            (idimag meid)))))
+          (send-commands (player #f name #f '() #f)))))
     
-    ; get new world
-    (while (and server-in-port (byte-ready? server-in-port))
-      (define input (read-from-server))
-      ;(printf "client input: ~v\n" input)
-      (cond ((space? input)
-             (set! ownspace input)
-             (set! start-space-time (space-time ownspace))
-             (set! start-time (current-milliseconds))
-             (set! last-update-time start-space-time)
+    ; process received info
+    (let loop ()
+      (define v (thread-try-receive))
+      (when v
+        (define id (car v))
+        (define input (cdr v))
+        ;(printf "client input: ~v\n" input)
+        (cond
+          ((not input)
+           (drop-connection ""))
+          ((player? input)
+           ; should only happen once when we connect to the server
+           (printf "got player id from server ~a\n" (ob-id input))
+           (set! meid (ob-id input))
+           (idimag meid))
+          ((space? input)
+           (set! ownspace input)
+           (set! start-space-time (space-time ownspace))
+           (set! start-time (current-milliseconds))
+           (set! last-update-time start-space-time)
 
-             ; new ownspace, reset view stuff
-             (set! showsector? #f)
-             (set! center #f)
-             (set! center-follow? #t)
-             (set-posvel-x! (obj-posvel centerxy) 0)
-             (set-posvel-y! (obj-posvel centerxy) 0)
-             (set! dragstate "none")
+           ; new ownspace, reset view stuff
+           (set! showsector? #f)
+           (set! center #f)
+           (set! center-follow? #t)
+           (set-posvel-x! (obj-posvel centerxy) 0)
+           (set-posvel-y! (obj-posvel centerxy) 0)
+           (set! dragstate "none")
 
-             (when (not (find-id ownspace meid))
-               ; set scale so we see the whole sector
-               (set! scale-play (min-scale)))
-             )
-            ((and ownspace (update? input))
-             (cond
-               ((not (= (update-time input) (+ last-update-time TICK)))
-                (printf "dropping update at time ~a, expecting ~a\n"
-                        (update-time input) (+ last-update-time TICK)))
-               (else
-                (set! last-update-time (update-time input))
+           (when (not (find-id ownspace meid))
+             ; set scale so we see the whole sector
+             (set! scale-play (min-scale))))
+          ((update? input)
+           (cond
+             ((not ownspace)
+              (printf "dropping update (no ownspace)\n"))
+             ((not (= (update-time input) (+ last-update-time TICK)))
+              (printf "dropping update at time ~a, expecting ~a\n"
+                      (update-time input) (+ last-update-time TICK)))
+             (else
+              (set! last-update-time (update-time input))
                 
-                ;(printf "client update space-time ~a update-time ~a\n" (space-time ownspace) (update-time input))
-                
-                (when ((space-time ownspace) . < . (update-time input))
-                  ;(printf "client ticking ownspace forward for input ~a\n" (update-time input))
-                  (tick-space! ownspace))
-                (when ((space-time ownspace) . < . (update-time input))
-                  (error "client ownspace still behind update time\n"))
-                (for ((c (in-list (update-changes input))))
-                  ;(printf "client applying change ~v\n" c)
-                  (define-values (forward? useless-changes)
-                    (apply-change! ownspace c (update-time input) "client"))
-                  (when (and (chmov? c) (equal? meid (chmov-id c)))
-                    (set-box! in-hangar? #f))
-                  (when (not (null? useless-changes))
-                    (printf "client produced useless changes:\n  ~v\n" useless-changes))
-                  )
-                (for ((pvu (in-list (update-pvs input))))
-                  (update-posvel! ownspace pvu (update-time input)))))))
-      
-      (when ownspace
-        ; If the first space is delayed, then our own clock got started late.
-        ; Need to use (current-milliseconds) here in case we hiccupped
-        ; since the start of the loop
-        (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))
-        ;(printf "calc-dt ~a ~a ~a ~a ~a\n" (current-milliseconds) start-time (space-time ownspace) start-space-time dt)
-        (when (dt . < . 0)
-          (printf "started too late ~a\n" dt)
-          (set! start-time (- start-time (- dt)))))
-      )
-    
+              ;(printf "client update space-time ~a update-time ~a\n" (space-time ownspace) (update-time input))
+              
+              (when ((space-time ownspace) . < . (update-time input))
+                ;(printf "client ticking ownspace forward for input ~a\n" (update-time input))
+                (tick-space! ownspace))
+              (when ((space-time ownspace) . < . (update-time input))
+                (error "client ownspace still behind update time\n"))
+              (for ((c (in-list (update-changes input))))
+                ;(printf "client applying change ~v\n" c)
+                (define-values (forward? useless-changes)
+                  (apply-change! ownspace c (update-time input) "client"))
+                (when (and (chmov? c) (equal? meid (chmov-id c)))
+                  (set-box! in-hangar? #f))
+                (when (not (null? useless-changes))
+                  (printf "client produced useless changes:\n  ~v\n" useless-changes))
+                )
+              (for ((pvu (in-list (update-pvs input))))
+                (update-posvel! ownspace pvu (update-time input)))))))
+        (loop)))
+
+    (when ownspace
+      ; If the first space is delayed, then our own clock got started late.
+      ; Need to use (current-milliseconds) here in case we hiccupped
+      ; since the start of the loop
+      (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))
+      ;(printf "calc-dt ~a ~a ~a ~a ~a\n" (current-milliseconds) start-time (space-time ownspace) start-space-time dt)
+      (when (dt . < . 0)
+        (printf "started too late ~a\n" dt)
+        (set! start-time (- start-time (- dt)))))
+
     (when ownspace
       (set! my-stack (find-stack ownspace meid))
       (when (and my-stack (get-ship my-stack))

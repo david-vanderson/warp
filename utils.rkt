@@ -10,6 +10,52 @@
 
 (provide (all-defined-out))
 
+(define (make-in-thread id in-port)
+  (define orig-thread (current-thread))
+  (thread
+   (lambda ()
+     (let loop ()
+       ; read from in-port
+       (define v
+         (with-handlers ((exn:fail:network? (lambda (exn) #f)))
+           (read in-port)))
+       (cond
+         ((and v (not (eof-object? v)))
+          ; send to client/server thread
+          (thread-send orig-thread (cons id v))
+          (loop))
+         (else
+          (thread-send orig-thread (cons id #f))
+          (printf "in-thread ~a stopping ~v\n" id v)))))))
+
+(define (make-out-thread id out-port)
+  (define orig-thread (current-thread))
+  (thread
+   (lambda ()
+     (let loop ()
+       ; get next thing from the client/server thread
+       (define v (thread-receive))
+       ; send it out
+       (define ret
+         (with-handlers ((exn:fail:network? (lambda (exn) #f)))
+           (define bstr (with-output-to-bytes (lambda () (write v))))
+           (define start-time (current-milliseconds))
+           (let loop ((bytes-written 0))
+             (cond
+               (((- (current-milliseconds) start-time) . > . 500)
+                #f)
+               ((not (= bytes-written (bytes-length bstr)))
+                (define r (write-bytes-avail* bstr out-port bytes-written))
+                (loop (+ bytes-written r)))
+               (else
+                (flush-output out-port))))))
+       (cond
+         ((void? ret)
+          (loop))
+         (else
+          (thread-send orig-thread (cons id #f))
+          (printf "out-thread ~a stopping\n" id)))))))
+
 (define (standard-quit-scenario-tab-button)
   (ann-button (next-id) 0 (posvel 0 (+ LEFT 90) (+ TOP 80) 0 180 50 0) #t "Quit Scenario" "quit-scenario"))
 
