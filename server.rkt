@@ -412,7 +412,7 @@
   (define c (findf (lambda (o) (= cid (client-id o))) clients))
   (cond
     ((not c)
-     (printf "already removed client ~a ~a\n" cid) msg)
+     (printf "already removed client ~a ~a\n" cid msg))
     (else
      (printf "removing client ~v ~a\n" (client-player c) msg)
      (define s (find-stack ownspace (client-id c)))
