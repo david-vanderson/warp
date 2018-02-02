@@ -11,6 +11,7 @@
          "draw-utils.rkt"
          "plasma.rkt"
          "missile.rkt"
+         "cannon.rkt"
          "probe.rkt"
          "shield.rkt"
          "effect.rkt"
@@ -143,23 +144,8 @@
             (send dc set-pen "orange" (/ 2.0 (dc-point-size dc)) 'solid)
             (send dc draw-point (obj-x o) (obj-y o)))))
     (else
-     (cond ((ship? o)
-            (define-values (x y) (obj->screen o center scale))
-            (append! spr (sprite x y (sprite-idx csd (string->symbol (ship-type o)))
-                                 #:layer LAYER_SHIPS #:m scale #:theta (- (obj-r o))
-                                 #:a fowa #:r (get-red space o)))
-            ;(append! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
-            (when showplayers?
-              (define colstr (faction-check-color faction (ship-faction o)))
-              (define players (find-all o player?))
-              ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
-              (append! spr (draw-cargolist csd textr textsr center scale o colstr fowa
-                                           (cons (ship-name o) (map upgrade-type (ship-cargo o)))
-                                           (map player-name players)))))
-           ((plasma? o)
+     (cond ((plasma? o)
             (append! spr (draw-plasma csd center scale o space fowa)))
-           ((missile? o)
-            (append! spr (draw-missile csd center scale o space fowa)))
            ((shield? o)
             (append! spr (draw-shield csd center scale space o fowa)))
            ((effect? o)
@@ -168,7 +154,25 @@
             (append! spr (draw-upgrade csd center scale space o fowa))
             (when showplayers?
               (append! spr (draw-cargolist csd textr textsr center scale o "gray" fowa
-                                           (list (upgrade-type o)) '())))))))
+                                           (list (upgrade-type o)) '()))))
+           ((ship? o)
+            (define-values (x y) (obj->screen o center scale))
+            (define sid (sprite-idx csd (string->symbol (ship-type o))))
+            (define size (ship-info-size (hash-ref ship-list (ship-type o))))
+            (define sprite-size (max (sprite-width csd sid)
+                                     (sprite-height csd sid)))
+            (append! spr (sprite x y sid
+                                 #:layer LAYER_SHIPS #:theta (- (obj-r o))
+                                 #:m (exact->inexact (/ (* size scale) sprite-size))
+                                 #:a fowa #:r (get-red space o)))
+            ;(append! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
+            (when showplayers?
+              (define colstr (faction-check-color faction (ship-faction o)))
+              (define players (find-all o player?))
+              ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
+              (append! spr (draw-cargolist csd textr textsr center scale o colstr fowa
+                                           (cons (ship-name o) (map upgrade-type (ship-cargo o)))
+                                           (map player-name players))))))))
   spr)
 
 
@@ -403,6 +407,13 @@
      (append! buttons b)
      (define ob (add-offline-button! t b send-commands))
      (when ob (append! buttons ob)))
+    ((cannon)
+     (define b (holdbutton 'normal #\c (- RIGHT 80) (- BOTTOM 400) 100 50 "Cannon [c]"
+                           (lambda (x y) (send-commands (command pid (tool-name t) (obj-r (get-ship stack)))))
+                           (lambda () (send-commands (endcb pid #t)))))
+     (append! buttons b)
+     (define ob (add-offline-button! t b send-commands))
+     (when ob (append! buttons ob)))
     ((endrc)
      (when rcship
        (define life (max 0 ((tool-rc t) . - . (/ (obj-age space rcship) 1000.0))))
@@ -413,7 +424,7 @@
        
        (define b (button 'normal #\s 0 (- BOTTOM 35) 70 30 "Stop [s]"
                          (lambda (x y)
-                           (send-commands (command pid (tool-name t) #t)))))
+                           (send-commands (endrc pid #t)))))
        (append! buttons b)))
     #;((steer? t)
      (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))
@@ -426,7 +437,7 @@
                              (/ (dmg-energy offline) (dmg-size offline)) (dmg-fixing? offline)))
        (append! buttons (list ob))))     
     ((dock)
-     (define b (button 'normal #\c (- RIGHT 80) (- BOTTOM 100) 120.0 30.0 (if (tool-rc t) "Dock On [C]" "Dock Off [C]")
+     (define b (button 'normal #\v (- RIGHT 80) (- BOTTOM 100) 120.0 30.0 (if (tool-rc t) "Dock On [v]" "Dock Off [v]")
                        (lambda (x y) (send-commands (command pid (tool-name t) (not (tool-rc t)))))))
      (when (not (ship-flying? (get-ship stack)))
        (set-button-draw! b 'disabled))

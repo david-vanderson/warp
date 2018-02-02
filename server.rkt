@@ -14,6 +14,7 @@
          "plasma.rkt"
          "pbolt.rkt"
          "missile.rkt"
+         "cannon.rkt"
          "shield.rkt"
          "scenario.rkt"
          "scenarios/testing.rkt"
@@ -169,6 +170,39 @@
   changes)
 
 
+(define (cb-hit-cb! space cb1 cb2)
+  (define changes '())
+  (when (and ((ship-con cb1) . > . 0)
+             ((ship-con cb2) . > . 0)
+             ((distance cb1 cb2) . < . (+ (ship-radius cb1) (ship-radius cb2))))
+    ;(printf "missile hit ship ~a\n" (ship-name ship))
+    (define d (+ (ship-maxcon cb1) (ship-maxcon cb2)))
+    (append! changes
+             (chdam (ob-id cb1) d)
+             (chdam (ob-id cb2) d)))
+  changes)
+
+
+(define (cb-hit-ship! space cb ship)
+  (define changes '())
+  (when (and ((ship-con ship) . > . 0)
+             ((ship-con cb) . > . 0)
+             ((distance ship cb) . < . (+ (ship-radius ship) (ship-radius cb))))
+    ;(printf "missile hit ship ~a\n" (ship-name ship))
+
+    (define d (ship-maxcon cb))
+    (define e (effect (next-id) (space-time space)
+                      (struct-copy posvel (obj-posvel cb)
+                                   (dx (posvel-dx (obj-posvel ship)))
+                                   (dy (posvel-dy (obj-posvel ship))))
+                      15.0 600))
+    (append! changes (list (chadd (dmgfx (next-id) (space-time space) #f "translation" d) (ob-id ship))
+                           (chdam (ob-id ship) d)
+                           (chdam (ob-id cb) d)
+                           (chadd e #f))))
+  changes)
+
+
 ; return a list of changes
 (define (plasma-hit-shield! space s p)
   (define changes '())
@@ -291,22 +325,36 @@
   
   (define spaceships (filter spaceship? ships))
   (define probes (filter probe? ships))
+  (define missiles (filter missile? ships))
+  (define cbs (filter cannonball? ships))
   
   (define plasmas (filter plasma? objects))
   (define shields (filter shield? objects))
   (define upgrades (filter upgrade? objects))
-  (define missiles (filter missile? objects))
 
   (for ((p probes))
     (define t (ship-tool p 'endrc))
     (when (and (tool-rc t) ((tool-rc t) . <= . (/ (obj-age space p) 1000.0)))
-      (define changes1 '())      
-      (define player (find-id space (lambda (o) (and (player? o) (equal? (player-rcid o) (ob-id p))))))
-      (when player
-        (append! changes1 (command (ob-id player) 'endrc #f)))
-      (append! changes1 (command (ob-id p) 'endrc #f))
+      (define changes1 '())
+      (define player (findf (lambda (o) (equal? (player-rcid o) (ob-id p))) (space-players space)))
+      (append! changes1 (endrc (ob-id player) #t))
       (define cs (apply-all-changes!
                   space changes1 (space-time space) "server"))
+      (append! changes cs)))
+
+  (for ((cb cbs))
+    (when ((obj-age space cb) . > . 30000.0)
+      (define cs (apply-all-changes!
+                  space (list (chdam (ob-id cb) -1)) (space-time space) "server"))
+      (append! changes cs))
+    (for ((cb2 cbs)
+          #:when (not (equal? (ob-id cb) (ob-id cb2))))
+      (define cs (apply-all-changes!
+                  space (cb-hit-cb! space cb cb2) (space-time space) "server"))
+      (append! changes cs))
+    (for ((ship (append spaceships probes)))
+      (define cs (apply-all-changes!
+                  space (cb-hit-ship! space cb ship) (space-time space) "server"))
       (append! changes cs)))
 
   (for ((m missiles))
@@ -325,7 +373,7 @@
       (define cs (apply-all-changes!
                   space (missile-hit-missile! space m m2) (space-time space) "server"))
       (append! changes cs))
-    (for ((ship (append spaceships probes)))
+    (for ((ship (append spaceships probes cbs)))
       (define cs (apply-all-changes!
                   space (missile-hit-ship! space ship m) (space-time space) "server"))
       (append! changes cs)))
@@ -335,7 +383,7 @@
       (define cs (apply-all-changes!
                   space (plasma-hit-shield! space shield p) (space-time space) "server"))
       (append! changes cs))
-    (for ((ship (append spaceships probes)))
+    (for ((ship (append spaceships probes cbs)))
       (define cs (apply-all-changes!
                   space (plasma-hit-ship! space ship p) (space-time space) "server"))
       (append! changes cs)))
@@ -396,6 +444,11 @@
       (when (ship-tool ship 'pbolt)
         (append! changes (pbolt-ai! space s)))
 
+      (when (ship-tool ship 'cannon)
+        (append! changes (cannon-ai! space s)))
+      (when (cannonball? ship)
+        (append! changes (cannonball-ai! space s)))
+
       #;(when (findf shbolt? (pod-tools p))
         (append! changes (shbolt-ai! space s)))
 
@@ -415,14 +468,9 @@
      (printf "already removed client ~a ~a\n" cid msg))
     (else
      (printf "removing client ~v ~a\n" (client-player c) msg)
-     (define s (find-stack ownspace (client-id c)))
-     (define changes '())
-     (when (and s (player-rcid (car s)))
-       (append! changes (command (client-id c) 'endrc #f)))
-     (append! changes (chrm (client-id c)))
      (append! updates
               (apply-all-changes! ownspace
-                                  changes
+                                  (list (chrm (client-id c)))
                                   (space-time ownspace) "server"))
      
      (close-input-port (client-in-port c))
@@ -448,7 +496,7 @@
     (define-values (in out) (tcp-accept server-listener))
     (set-tcp-nodelay! out #t)
     (define cid (next-id))
-    (define c (client (player cid #f #f '() #f)
+    (define c (client (player cid #f #f '() #f #f)
                       in out
                       (make-in-thread cid in)
                       (make-out-thread cid out)))

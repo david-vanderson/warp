@@ -48,13 +48,14 @@
   (define pb (ship-tool ownship 'pbolt))
   (when (and (ship-flying? ownship)
              (tool-online? pb))
-
-    (for/first ((o (in-list (space-objects space)))
-                #:when (and (or (spaceship? o) (missile? o) (probe? o))
-                            ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)
-                            ((distance ownship o) . < . 400)))
+    (let/ec done
+      (for ((o (in-list (space-objects space)))
+            #:when (and (or (spaceship? o) (missile? o) (probe? o) (cannonball? o))
+                        ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)
+                        ((distance ownship o) . < . 400)))
       
       (define t (target-angle ownship ownship o o PLASMA_SPEED))
-      #:break (not t)
-      (append! changes (list (command (ob-id ownship) 'pbolt t)))))
+      (when t
+        (append! changes (list (command (ob-id ownship) 'pbolt t)))
+        (done)))))
   changes)

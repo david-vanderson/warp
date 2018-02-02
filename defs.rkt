@@ -77,13 +77,14 @@
 (define (obj-dy obj) (posvel-dy (obj-posvel obj)))
 (define (obj-dr obj) (posvel-dr (obj-posvel obj)))
 
-(struct player ob (name faction commands rcid) #:mutable #:prefab)
+(struct player ob (name faction commands rcid cbid) #:mutable #:prefab)
 ; name is what is shown in UIs
 ; faction is string
 ; commands is a list of symbols that say which UI elements are being pressed
 ; - '(fthrust) : pressing engine forward button
 ; - '(fthrust warp) : pressing engine and warp buttons
 ; rcid is #f, or the id of the missile/probe this player is controlling
+; cbid is #f, or the id of the cannonball this player is shooting (so they can detonate it)
 
 (struct tool ob (name val rc dmgs) #:mutable #:prefab)
 ; this is something that a player/ai can interact with
@@ -139,6 +140,7 @@
 (struct spaceship ship () #:mutable #:prefab)
 (struct probe ship () #:mutable #:prefab)
 (struct missile ship () #:mutable #:prefab)
+(struct cannonball ship () #:mutable #:prefab)
 
 (struct plasma obj (e ownship-id) #:mutable #:prefab)
 ; e energy
@@ -253,6 +255,13 @@
 (struct chrc (pid rcid) #:mutable #:prefab)
 ; when a player launches a missile or probe,
 ; server sends this message so they begin remote-controlling it
+
+(struct endrc (pid rcid) #:mutable #:prefab)
+(struct endcb (pid cbid) #:mutable #:prefab)
+; when a player stops rcing something (or moves/leaves), send this
+; also used by the server to clean up
+; tries to lookup the player via pid and use player-rcid/player-cbid
+; if we can't find the player, use rcid/cbid
 
 (struct chrm (id) #:mutable #:prefab)
 ; id is of the object to remove

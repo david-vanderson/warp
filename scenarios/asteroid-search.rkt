@@ -78,6 +78,7 @@
                   (tool (next-id) 'pbolt 5.0 #f '())
                   (tool (next-id) 'probe 10.0 #f '())
                   (tool (next-id) 'missile 5.0 #f '())
+                  (tool (next-id) 'cannon 20.0 #f '())
                   (tool (next-id) 'dock #f #t '())
                   ))
   
@@ -95,7 +96,7 @@
   (set-ship-tools!
    enemy-base
    (list
-    (tool (next-id) 'pbolt 5.0 #f '())
+    (tool (next-id) 'pbolt 7.0 #f '())
     (tool (next-id) 'missile 5.0 #f '())))
   
   (set-space-objects! ownspace (append (space-objects ownspace)

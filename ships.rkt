@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require racket/class
+         racket/draw
          mode-lambda/static
          racket/math)
 
@@ -9,34 +10,40 @@
 
 (provide (all-defined-out))
 
-(define shipshash (make-hash))
+(struct ship-info (file size) #:mutable #:prefab)
 
-(define (get-ship-bitmap ship)
-  (define type (stats-type (ship-stats ship)))
-  (hash-ref shipshash type))
-
-(define (load-ship type)
-  (hash-set! shipshash type (load-bitmap type)))
+(define ship-list
+  (hash "spacesuit" (ship-info "spacesuit" #f)
+        "probe" (ship-info "probe" #f)
+        "missile" (ship-info "missile" 10.0)
+        "cannonball" (ship-info "asteroid_43" 10.0)
+        "asteroid_87" (ship-info "asteroid_87" #f)
+        "asteroid_43" (ship-info "asteroid_43" #f)
+        "blue-station" (ship-info "blue-station" #f)
+        "red-station" (ship-info "red-station" #f)
+        "blue-frigate" (ship-info "blue-frigate" #f)
+        "red-frigate" (ship-info "red-frigate" #f)
+        "blue-fighter" (ship-info "blue-fighter" #f)
+        "red-fighter" (ship-info "red-fighter" #f)
+        "red-destroyer" (ship-info "red-destroyer" #f)
+        "blue-cruiser" (ship-info "blue-cruiser" #f)
+        
+        "missile1" (ship-info "missile1" #f)
+        "missile2" (ship-info "missile2" #f)
+        "missile3" (ship-info "missile3" #f)
+        "probe1" (ship-info "probe1" #f)
+        "probe2a" (ship-info "probe2a" #f)
+        "probe2b" (ship-info "probe2b" #f)
+        "probe3" (ship-info "probe3" #f)
+    ))
 
 (define (load-ships sd)
-  (define shiplist
-    '("spacesuit"
-      "probe"
-      "asteroid_87"
-      "asteroid_43"
-      "blue-station"
-      "red-station"
-      "blue-frigate"
-      "red-frigate"
-      "blue-fighter"
-      "red-fighter"
-      "red-destroyer"
-      "blue-cruiser"))
-  (for ((name shiplist))
-    (add-sprite!/file sd
-                      (string->symbol name)
-                      (string-append "images/" name ".png")))
-  )
+  (for (((name si) (in-hash ship-list)))
+    (define bm (read-bitmap (string-append "images/" (ship-info-file si) ".png")
+                            'png/alpha))
+    (when (not (ship-info-size si))
+      (set-ship-info-size! si (max (send bm get-width) (send bm get-height))))
+    (add-sprite!/value sd (string->symbol (ship-info-file si)) bm)))
 
 
 (define (make-spacesuit name ship)
@@ -74,12 +81,10 @@
                 '()  ; empty ai-strategy
                 ))
 
-  (define s #f)
-
   (when in-hangar
     (for ((hangship (in-list in-hangar)))
       (set-obj-posvel! hangship #f)))
-  
+
   (case type
     (("spacesuit")
      (define s (apply spacesuit args))
@@ -96,6 +101,13 @@
               (tool (next-id) 'turnright 2.0 #f '())
               (tool (next-id) 'steer 2.0 r '())
               (tool (next-id) 'endrc #f life '())))
+     s)
+    (("cannonball")
+     (define s (apply cannonball args))
+     ;type name faction con maxcon radius mass radar drag start?
+     (set-ship-stats! s (stats (next-id) type name faction life life 5.0 1.0 0.0 0.0 #f))
+     (set-ship-tools!
+      s (list (tool (next-id) 'endrc #f 0 '())))
      s)
     (("probe")
      (define s (apply probe args))
@@ -166,9 +178,15 @@
               (tool (next-id) 'dock #f #t '())
               ))
      s)
-    (("blue-cruiser" "red-destroyer")
+    #;(("blue-cruiser" "red-destroyer")
      (define s (apply spaceship args))
      s)
     (else
-     (error (string-append "Tried to create an unknown ship type " type "\n")))
-    ))
+     ;(error (string-append "Tried to create an unknown ship type " type "\n")))
+     (define s (apply spaceship args))
+     (set-ship-stats! s (stats (next-id) type name faction 1.0 1.0 50.0 1.0 200.0 0.4 start-ship?))
+     (set-ship-tools!
+      s (list (tool (next-id) 'engine 100.0 #f '())
+              (tool (next-id) 'turnleft 1.0 #f '())
+              (tool (next-id) 'turnright 1.0 #f '())))
+     s)))

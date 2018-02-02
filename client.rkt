@@ -277,7 +277,7 @@
                                  (send-commands (chmov meid (ob-id s) #f)))))
              (append! buttons b)
              (define players (find-all s player?))
-             ;(append! players (player -1 "player1" "fac1" '() #f) (player -1 "player2" "fac2" '() #f))
+             ;(append! players (player -1 "player1" "fac1" '() #f #f) (player -1 "player2" "fac2" '() #f #f))
              (for ((p (in-list players))
                    (i (in-naturals)))
                (append! sprites (text-sprite textr textsr (player-name p)
@@ -405,7 +405,9 @@
         
         (for ((s (in-list start-ships))
               (i (in-naturals)))
-          (define b (button 'normal #f (+ LEFT 100 (* i 250) 100) (- BOTTOM 60 15) 200 30
+          (define x (+ LEFT 100 (* (remainder i 3) 250)))
+          (define y (+ TOP 30 (* (quotient i 3) 60)))
+          (define b (button 'normal #f x y 200 30
                             (format "~a" (ship-name s))
                             (lambda (x y)
                               ; leaving sector overview, so center on ship and reset scale
@@ -655,7 +657,9 @@
            (when (not (member (button-draw b) '(disabled dmg)))
              ((button-f b) kc #f)
              (when (holdbutton? b)
-               (set! holding (cons (cons kc (holdbutton-frelease b)) holding)))))
+               (set! holding (cons (cons kc (holdbutton-frelease b)) holding))
+               (when ((length holding) . > . 5)
+                 (printf "holding ~a\n" (length holding))))))
           (else
            (case kc
              #;((#\d)
@@ -792,6 +796,7 @@
   (load-ships sd)
   (add-sprite!/file sd 'plasma (string-append "images/plasma.png"))
   (add-sprite!/file sd 'missile (string-append "images/missile.png"))
+  (add-sprite!/file sd 'cannonball (string-append "images/asteroid_43.png"))
   
   (define csd (compile-sprite-db sd))
   ;(save-csd! csd "csd" #:debug? #t)
@@ -880,7 +885,7 @@
           (set! server-in-t (make-in-thread #f in))
           (set! server-out-t (make-out-thread #f out))
           ; send our name to the server
-          (send-commands (player #f name #f '() #f)))))
+          (send-commands (player #f name #f '() #f #f)))))
     
     ; process received info
     (let loop ()

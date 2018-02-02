@@ -38,12 +38,6 @@
   changes)
 
 
-
-(define (draw-missile csd center scale m space fowa)
-  (obj-sprite m csd center scale LAYER_SHIPS 'missile 10.0 fowa (obj-r m) "black"))
-
-
-
 (define (dmg-mtube tool)
   (cond
     ((null? (tool-dmgs tool))

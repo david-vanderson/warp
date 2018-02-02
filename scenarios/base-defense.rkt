@@ -72,6 +72,7 @@
                  (tool (next-id) 'dock #f #t '())
                  (tool (next-id) 'probe 10.0 #f '())
                  (tool (next-id) 'missile 5.0 #f '())
+                 (tool (next-id) 'cannon 20.0 #f '())
                  (tool (next-id) 'warp '(150.0 100.0 0.0) #f '())
                  ))
   
@@ -101,6 +102,7 @@
                ,(tool (next-id) 'steer 0.1 #f '())
                ,(tool (next-id) 'pbolt 5.0 #f '())
                ,(tool (next-id) 'missile 5.0 #f '())
+               ,(tool (next-id) 'cannon 20.0 #f '())
                ))
   
   (set-ship-ai-strategy! destroyer

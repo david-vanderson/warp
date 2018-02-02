@@ -102,7 +102,7 @@
 
 ; age, life, death are ms since object start time
 (define (linear-fade age life death)
-  (cond ((age . < . life) 1.0)
+  (cond ((age . <= . life) 1.0)
         ((age . > . death) 0.0)
         (else (/ (- death age)
                  (- death life)))))

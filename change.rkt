@@ -9,6 +9,7 @@
          "pbolt.rkt"
          "warp.rkt"
          "missile.rkt"
+         "cannon.rkt"
          "plasma.rkt"
          "shield.rkt"
          "probe.rkt"
@@ -53,6 +54,15 @@
 
 (define (add! o to who)
   (adj! o to who #f))
+
+; returns a list of changes you want whenever a player moves or leaves
+(define (player-cleanup! space p)
+  (define changes '())
+  (set-player-commands! p '())
+  (when (server?)
+    (append! changes (endrc (ob-id p) (player-rcid p)))
+    (append! changes (endcb (ob-id p) (player-cbid p))))
+  changes)
 
 ; make the change in space
 ; return 2 values:
@@ -118,26 +128,14 @@
               (set-tool-rc! tool (command-arg c))
               (values #t '()))))
           ((endrc)
-           (cond (p
-                  (define o (find-id space (player-rcid p)))
-                  (set-player-rcid! p #f)
-                  (define changes '())
-                  (when (and (server?) (missile? o))
-                    ; -1 means missile explodes
-                    (append! changes (chdam (ob-id o) -1)))
-                  (when (and (server?) (probe? o))
-                    (append! changes
-                             (command (ob-id o) 'engine #f)
-                             (command (ob-id o) 'turnleft #f)
-                             (command (ob-id o) 'turnright #f)))
-                  (values #t changes))
-                 (else
-                  (set-tool-rc! tool (command-arg c))
-                  (values #t '()))))
+           (set-tool-rc! tool (command-arg c))
+           (values #t '()))
           ((probe)
            (launch-probe! c space s who))
           ((missile)
            (launch-missile! c space s who))
+          ((cannon)
+           (fire-cannon! c space s who))
           (else
            (cond ((or rcship (not p))
                   ; either we are remote controlling something
@@ -154,13 +152,48 @@
            )))))
     ((chrc? c)
      (define p (find-id space (chrc-pid c)))
+     (define o (find-id space (chrc-rcid c)))
      (cond
        ((not p)
         (printf "~a dropping command (can't find player) ~v\n" who c)
         (values #f '()))
+       ((not o)
+        (printf "~a dropping command (can't find rcid) ~v\n" who c)
+        (values #f '()))
+       ((cannonball? o)
+        (set-player-cbid! p (chrc-rcid c))
+        (values #t '()))
        (else
         (set-player-rcid! p (chrc-rcid c))
         (values #t '()))))
+    ((endrc? c)
+     (define changes '())
+     (define p (findfid (endrc-pid c) (space-players space)))
+     (define id (if p (player-rcid p) (endrc-rcid c)))
+     (define o (find-id space id))
+     (when (and (server?) (missile? o))
+       ; -1 means missile explodes
+       (append! changes (chdam (ob-id o) -1)))
+     (when (and (server?) (probe? o))
+       (append! changes
+                (command (ob-id o) 'endrc #f)
+                (command (ob-id o) 'engine #f)
+                (command (ob-id o) 'turnleft #f)
+                (command (ob-id o) 'turnright #f)))
+     (when p
+       (set-player-rcid! p #f))
+     (values #t changes))
+    ((endcb? c)
+     (define changes '())
+     (define p (findfid (endcb-pid c) (space-players space)))
+     (define id (if p (player-cbid p) (endcb-cbid c)))
+     (define o (find-id space id))
+     (when (and (server?) (cannonball? o))
+       ; find and explode player's cbid
+       (append! changes (chdam (ob-id o) -1)))
+     (when p
+       (set-player-cbid! p #f))
+     (values #t changes))
     ((chadd? c)
      (define to (if (chadd-to c)
                     (find-id space (chadd-to c))
@@ -179,18 +212,21 @@
         (printf "~a dropping chadd (can't find chadd-to) ~v\n" who c)
         (values #f '()))))
     ((chrm? c)
+     (define changes '())
      ; have to manage space-players specially
      (define p (findfid (chrm-id c) (space-players space)))
-     (when p (rem! p space who))
+     (when p
+       (rem! p space who)
+       (append! changes (player-cleanup! space p)))
 
      (define s (find-stack space (chrm-id c)))
      (cond
        (s
         (rem! (car s) (cadr s) who)
-        (values #t '()))
+        (values #t changes))
        (else
         (printf "~a dropping chrm (can't find chrm-id) ~v\n" who c)
-        (values #f '()))))
+        (values #f changes))))
     ((chmov? c)
      (define to (if (chmov-to c)
                     (find-id space (chmov-to c))
@@ -225,14 +261,14 @@
                   (add! (car s) to who)
                   ; whenever a player moves somewhere, need to clear out all existing commands
                   (when (player? (car s))
-                    (set-player-commands! (car s) '()))
+                    (append! changes (player-cleanup! space (car s))))
                   (when (obj? (car s)) (set-obj-posvel! (car s) (chmov-pv c)))))
            (values #t changes))
           (p
            (add! p to who)
            ; player could have had commands from a previous ship/scenario
-           (set-player-commands! p '())
-           (values #t '()))
+           (define changes (player-cleanup! space p))
+           (values #t changes))
           (else
            (printf "~a dropping chmov (can't find chmov-id) ~v\n" who c)
            (values #f '()))))))
@@ -254,6 +290,7 @@
             (values #t
                     (cond ((plasma? o) (reduce-plasma! space o d) '())
                           ((missile? o) (reduce-missile! space o d))
+                          ((cannonball? o) (reduce-cannonball! space o d))
                           ((shield? o) (reduce-shield! space o d) '())
                           ((ship? o) (reduce-ship! space o d)))))
            (else

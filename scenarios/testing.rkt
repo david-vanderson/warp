@@ -15,7 +15,7 @@
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "Rebel"))
 
-  (define ownspace (space 0 2000 2000 players '()
+  (define ownspace (space 0 20000 2000 players '()
                           `(,(standard-quit-scenario-tab-button))))
   
   (define (new-blue-fighter)
@@ -50,7 +50,7 @@
     s)
   
   
-  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x 0 #:y 0 #:ai? #t
+  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -800 #:y 0 #:ai? #t
                              #:hangar (list (new-blue-fighter))))
   (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
                                   ;con maxcon radius mass radar drag start?
@@ -64,6 +64,7 @@
                  (tool (next-id) 'dock #f #t '())
                  (tool (next-id) 'probe 10.0 #f '())
                  (tool (next-id) 'missile 5.0 #f '())
+                 (tool (next-id) 'cannon 20.0 #f '())
                  (tool (next-id) 'warp '(150.0 100.0 0.0) #f '())
                  ))
   
@@ -90,8 +91,9 @@
                ,(tool (next-id) 'turnleft 0.1 #f '())
                ,(tool (next-id) 'turnright 0.1 #f '())
                ,(tool (next-id) 'steer 0.1 pi '())
-               ,(tool (next-id) 'pbolt 5.0 #f '())
+               ,(tool (next-id) 'pbolt 7.0 #f '())
                ,(tool (next-id) 'missile 5.0 #f '())
+               ,(tool (next-id) 'cannon 20.0 #f '())
                ))
   
   (set-ship-ai-strategy! destroyer
@@ -102,6 +104,11 @@
     
   (set-space-objects! ownspace (append (space-objects ownspace)
                                        (list cruiser #;base destroyer #;f)))
+
+  #;(set-space-objects! ownspace
+                      (for/list ((name ship-name-list)
+                                 (x (in-range -10000 10000 1000)))
+                        (make-ship name name "Rebel" #:x x #:start-ship? #t)))
   
   (define real-orders (space 0 0 0 '() '() '()))  ; only care about orders
   
