@@ -880,6 +880,7 @@
         
         (set! server-in-port in)
         (set! server-out-port out)
+        (set-tcp-nodelay! out #t)
         
         (when server-out-port
           (set! server-in-t (make-in-thread #f in))
