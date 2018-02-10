@@ -7,6 +7,7 @@
          "change.rkt"
          "physics.rkt"
          "pilot.rkt"
+         "warp.rkt"
          "plasma.rkt"
          "pbolt.rkt"
          "missile.rkt"
@@ -246,8 +247,10 @@
 
 
 ; return a list of changes
-(define (dock! s1 s2)
+(define (dock! s1 s2)  
   (define changes '())
+  (when (warping? s1)
+    (append! changes (command (ob-id s1) 'warp 'stop)))
   (append! changes (list (chmov (ob-id s1) (ob-id s2) #f)))
   changes)
 
@@ -271,11 +274,13 @@
          ; don't need to explicitly remove the spacesuit because chmov does that
          (append! changes (chmov (ob-id (car (ship-players s)))
                                  (ob-id ship) #f))))
-      ((will-dock? ship s)
+      ((will-dock? ship s)       
        (append! changes (dock! ship s)))
       ((will-dock? s ship)
        (append! changes (dock! s ship)))
       (else
+       (when (warping? ship) (append! changes (command (ob-id ship) 'warp 'stop)))
+       (when (warping? s) (append! changes (command (ob-id s) 'warp 'stop)))
        (ship-collide! ship s))))
   changes)
 

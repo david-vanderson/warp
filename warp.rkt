@@ -19,16 +19,33 @@
 
 ;; client/server
 
-(define (warping? ship)
-  (define w (ship-tool ship 'warp))
-  (and w
-       (= 0 (tool-count w ship))
-       ((caddr (tool-val w)) . > . 0)))
+(define (warp-speed w)
+  (car (tool-val w)))
+
+(define (warp-threshold w)
+  (cadr (tool-val w)))
+
+(define (warp-energy w)
+  (caddr (tool-val w)))
 
 (define (warp-charging? ship)
   (define w (ship-tool ship 'warp))
   (and w
+       ((warp-energy w) . < . (warp-threshold w))
        ((tool-count w ship) . > . 0)))
+
+(define (warping? ship)
+  (define w (ship-tool ship 'warp))
+  (and w
+       ((warp-energy w) . = . (warp-threshold w))))
+
+(define (cancel-warp! ship)
+  (set-posvel-dx! (obj-posvel ship) 0.0)
+  (set-posvel-dy! (obj-posvel ship) 0.0)
+  (define w (ship-tool ship 'warp))
+  (set-tool-val! w (list (warp-speed w)
+                         (warp-threshold w)
+                         0.0)))
 
 
 ; return list of buttons
@@ -56,17 +73,19 @@
   ; - player presses and holds the shortcut key
   ; - player clicks the button with the mouse (overwrites holding?)
   ; this means you can get multiple holdbutton-frelease calls
-  (define b (holdbutton 'outline #\q x y maxw h "Warp [q]"
+  (define b (holdbutton 'outline #\q x y maxw h "Charge Warp [q]"
                         (lambda (x y) (void))
                         (lambda ()
                           (send-commands (command (ob-id (car stack)) (tool-name t) #f)))))
 
   (cond
     ((warping? ship)
-     (set-button-label! b "Warping!"))
+     (set-button-label! b "Stop Warp [q]")
+     (set-button-f! b (lambda (x y)
+                        (send-commands (command (ob-id (car stack)) (tool-name t) 'stop)))))
     (else
      (when (warp-charging? ship)
-       (set-button-label! b "Warp [q] Charging"))
+       (set-button-label! b "Charging Warp [q]"))
      (set-button-f! b (lambda (x y)
                         (send-commands (command (ob-id (car stack)) (tool-name t) #t))))))
   

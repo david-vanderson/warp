@@ -63,18 +63,16 @@
 
   ; ship starts with pilot tools damaged beyond repair
   ; we will manually remove the dmgs when the engine parts are recovered
-  (define steerdmgid (next-id))
-  (define turnleftdmgid (next-id))
-  (define turnrightdmgid (next-id))
+  (define enginedmgid (next-id))
   (define warpdmgid (next-id))
   (set-ship-hangar! goodship (list (new-red-fighter)
                                    (new-red-fighter)
                                    (new-red-fighter)))
   (set-ship-tools!
-   goodship (list (tool (next-id) 'engine 20.0 #f (list (dmg steerdmgid "offline" 10000.0 0 #f)))
-                  (tool (next-id) 'turnleft 0.3 #f (list (dmg turnleftdmgid "offline" 10000.0 0 #f)))
-                  (tool (next-id) 'turnright 0.3 #f (list (dmg turnrightdmgid "offline" 10000.0 0 #f)))
-                  (tool (next-id) 'warp '(150.0 100.0 0.0) #f (list (dmg warpdmgid "offline" 10000.0 0 #f)))
+   goodship (list (tool (next-id) 'engine 25.0 #f (list (dmg enginedmgid "offline" 10000.0 0 #f)))
+                  (tool (next-id) 'turnleft 0.3 #f '())
+                  (tool (next-id) 'turnright 0.3 #f '())
+                  (tool (next-id) 'warp '(200.0 80.0 0.0) #f '() #;(list (dmg warpdmgid "offline" 10000.0 0 #f)))
                   (tool (next-id) 'pbolt 5.0 #f '())
                   (tool (next-id) 'probe 10.0 #f '())
                   (tool (next-id) 'missile 5.0 #f '())
@@ -207,7 +205,7 @@
           (set! parts-returned? #t)
           ; need to actually repair the engine somehow...
           (append! changes (chrm (ob-id parts))
-                   (chrm steerdmgid) (chrm turnleftdmgid) (chrm turnrightdmgid) (chrm warpdmgid)
+                   (chrm enginedmgid) (chrm warpdmgid)
                    (message (next-id) (space-time ownspace) #f "Frigate Engine Repaired!"))))
       )
 

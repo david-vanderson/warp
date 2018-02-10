@@ -65,7 +65,7 @@
                                   ;con maxcon radius mass radar drag start?
                                   150.0 150.0 15.0 100.0 500.0 0.4 #t))
   (set-ship-tools!
-   cruiser (list (tool (next-id) 'engine 30.0 #f '())
+   cruiser (list (tool (next-id) 'engine 25.0 #f '())
                  (tool (next-id) 'turnleft 1.0 #f '())
                  (tool (next-id) 'turnright 1.0 #f '())
                  (tool (next-id) 'pbolt 5.0 #f '())
@@ -73,7 +73,7 @@
                  (tool (next-id) 'probe 10.0 #f '())
                  (tool (next-id) 'missile 5.0 #f '())
                  (tool (next-id) 'cannon 20.0 #f '())
-                 (tool (next-id) 'warp '(150.0 100.0 0.0) #f '())
+                 (tool (next-id) 'warp '(200.0 80.0 0.0) #f '())
                  ))
   
   

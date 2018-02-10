@@ -6,6 +6,7 @@
 
 (require "defs.rkt"
          "utils.rkt"
+         "warp.rkt"
          "draw-utils.rkt")
 
 (provide (all-defined-out))
@@ -13,11 +14,9 @@
 
 (define (add-backeffects! space o)
   (when (ship? o)
-    (define w (ship-tool o 'warp))
-    (define wc (if w (tool-count w o) 0))
     (define eng (ship-tool o 'engine))
     (cond
-      ((and w (= wc 0) ((caddr (tool-val w)) . > . 0))
+      ((warping? o)
        (when (time-for (obj-age space o) 100)
          (define l (- (ship-radius o)))
          (define t (posvel-r (obj-posvel o)))

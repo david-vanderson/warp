@@ -137,18 +137,24 @@
           ((cannon)
            (fire-cannon! c space s who))
           (else
-           (cond ((or rcship (not p))
-                  ; either we are remote controlling something
-                  ; or this command is not coming from a player
-                  (set-tool-rc! tool (command-arg c))
-                  (values #t '()))
-                 (else
-                  (define cmds (remove* (list (command-cmd c)) (player-commands p)))
-                  (when (command-arg c)
-                    (set! cmds (cons (command-cmd c) cmds)))
-                  (set-player-commands! p cmds)
-                  ;(printf "~a player ~a ~v\n" who (player-name p) (player-commands p))
-                  (values #t '())))
+           (cond
+             ((and (equal? 'warp (command-cmd c))
+                   (equal? 'stop (command-arg c)))
+              (when (and ship (warping? ship))
+                (cancel-warp! ship))
+              (values #t '()))
+             ((or rcship (not p))
+              ; either we are remote controlling something
+              ; or this command is not coming from a player
+              (set-tool-rc! tool (command-arg c))
+              (values #t '()))
+             (else
+              (define cmds (remove* (list (command-cmd c)) (player-commands p)))
+              (when (command-arg c)
+                (set! cmds (cons (command-cmd c) cmds)))
+              (set-player-commands! p cmds)
+              ;(printf "~a player ~a ~v\n" who (player-name p) (player-commands p))
+              (values #t '())))
            )))))
     ((chrc? c)
      (define p (find-id space (chrc-pid c)))
