@@ -70,17 +70,8 @@
        ; send it out
        (define ret
          (with-handlers ((exn:fail:network? (lambda (exn) #f)))
-           (define bstr (with-output-to-bytes (lambda () (write v))))
-           (define start-time (current-milliseconds))
-           (let loop ((bytes-written 0))
-             (cond
-               (((- (current-milliseconds) start-time) . > . 500)
-                #f)
-               ((not (= bytes-written (bytes-length bstr)))
-                (define r (write-bytes-avail* bstr out-port bytes-written))
-                (loop (+ bytes-written r)))
-               (else
-                (flush-output out-port))))))
+           (write v out-port)
+           (flush-output out-port)))
        (cond
          ((void? ret)
           (loop))

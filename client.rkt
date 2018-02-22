@@ -880,10 +880,10 @@
         
         (set! server-in-port in)
         (set! server-out-port out)
-        (set-tcp-nodelay! out #t)
         
         (when server-out-port
           (set! server-in-t (make-in-thread #f in))
+          (set-tcp-nodelay! out #t)
           (set! server-out-t (make-out-thread #f out))
           ; send our name to the server
           (send-commands (player #f name #f '() #f #f)))))

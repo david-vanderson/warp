@@ -522,43 +522,44 @@
     ; ai
     (append! updates (apply-all-changes! ownspace (run-ai! ownspace)
                                          (space-time ownspace) "server"))
+    
+    
+  
+    ; send any 0-time posvels and least-recently sent
+    (define oldest #f)
+    (define pvupdates '())
+    ;(printf "pvts (~a) :" (space-time ownspace))
+    (for ((o (space-objects ownspace))
+          #:when (ship? o))
+      (define pv (obj-posvel o))
+      ;(printf " ~a" (posvel-t pv))
+      (cond ((= 0 (posvel-t pv))
+             (set-posvel-t! pv (space-time ownspace))
+             (set! pvupdates (cons (pvupdate (ob-id o) pv) pvupdates)))
+            ((or (not oldest)
+                 (< (- (space-time ownspace) (posvel-t (obj-posvel oldest)))
+                    (- (space-time ownspace) (posvel-t pv))))
+             (set! oldest o))))
+    ;(printf "\n")
+  
+    (when (and oldest (< 500 (- (space-time ownspace) (posvel-t (obj-posvel oldest)))))
+      ;    (when (< 500 (- (space-time ownspace) (posvel-t (obj-posvel oldest))) 10000)
+      ;      (printf "server oldest posvel is ~a\n" (- (space-time ownspace) (posvel-t (obj-posvel oldest)))))
+      (set-posvel-t! (obj-posvel oldest) (space-time ownspace))
+      (set! pvupdates (cons (pvupdate (ob-id oldest) (obj-posvel oldest)) pvupdates)))
+  
+    ; make total update message
+    (define u (update (space-time ownspace) updates pvupdates))
+  
+    ; reset this before trying to send, so we can accumulate
+    ; client-disconnect updates if there's an error
+    (set! updates '())
+  
+    (printf "server queuing time ~v\n" (update-time u))
+    (define msg (copy-prefab u))
+    (for ((c clients))
+      (send-to-client c msg))
     )
-  
-  
-  ; send any 0-time posvels and least-recently sent
-  (define oldest #f)
-  (define pvupdates '())
-  ;(printf "pvts (~a) :" (space-time ownspace))
-  (for ((o (space-objects ownspace))
-        #:when (ship? o))
-    (define pv (obj-posvel o))
-    ;(printf " ~a" (posvel-t pv))
-    (cond ((= 0 (posvel-t pv))
-           (set-posvel-t! pv (space-time ownspace))
-           (set! pvupdates (cons (pvupdate (ob-id o) pv) pvupdates)))
-          ((or (not oldest)
-               (< (- (space-time ownspace) (posvel-t (obj-posvel oldest)))
-                  (- (space-time ownspace) (posvel-t pv))))
-           (set! oldest o))))
-  ;(printf "\n")
-  
-  (when (and oldest (< 500 (- (space-time ownspace) (posvel-t (obj-posvel oldest)))))
-;    (when (< 500 (- (space-time ownspace) (posvel-t (obj-posvel oldest))) 10000)
-;      (printf "server oldest posvel is ~a\n" (- (space-time ownspace) (posvel-t (obj-posvel oldest)))))
-    (set-posvel-t! (obj-posvel oldest) (space-time ownspace))
-    (set! pvupdates (cons (pvupdate (ob-id oldest) (obj-posvel oldest)) pvupdates)))
-  
-  ; make total update message
-  (define u (update (space-time ownspace) updates pvupdates))
-  
-  ; reset this before trying to send, so we can accumulate
-  ; client-disconnect updates if there's an error
-  (set! updates '())
-  
-  ;(printf "server sending time ~v\n" (update-time u))
-  (define msg (copy-prefab u))
-  (for ((c clients))
-    (send-to-client c msg))
   
   ; sleep so we don't hog the whole racket vm
   (define sleep-time (- (+ previous-physics-time TICK 1)
