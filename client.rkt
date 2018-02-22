@@ -981,8 +981,9 @@
         ;(printf "client ticking forward for prediction ~a\n" dt)
         (tick-space! ownspace)
         (set! dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time)))
-      
-      ;(printf "client is ahead by ~a\n" (- (space-time ownspace) last-update-time))
+
+      (when ((- (space-time ownspace) last-update-time) . > . 0)
+        (printf "client is ahead by ~a\n" (- (space-time ownspace) last-update-time)))
       )
     
     ;rendering
