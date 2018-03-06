@@ -49,24 +49,26 @@
     (set-obj-posvel! s #f)
     s)
   
-  
-  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -800 #:y 0 #:ai? #t
-                             #:hangar (list (new-blue-fighter))))
-  (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
-                                  ;con maxcon radius mass radar drag start?
-                                  150.0 150.0 15.0 100.0 500.0 0.4 #t))
-  (set-ship-tools!
-   cruiser (list (tool (next-id) 'engine 30.0 #f '())
-                 (tool (next-id) 'steer 1.0 #f '())
-                 (tool (next-id) 'turnleft 1.0 #f '())
-                 (tool (next-id) 'turnright 1.0 #f '())
-                 (tool (next-id) 'pbolt 5.0 #f '())
-                 (tool (next-id) 'dock #f #t '())
-                 (tool (next-id) 'probe 10.0 #f '())
-                 (tool (next-id) 'missile 5.0 #f '())
-                 (tool (next-id) 'cannon 20.0 #f '())
-                 (tool (next-id) 'warp '(150.0 100.0 0.0) #f '())
-                 ))
+
+  (define (new-blue-cruiser x y)
+    (define s (make-ship "blue-cruiser" "z" "z" #:x x #:y y #:ai? #t
+                         #:hangar (list (new-blue-fighter))))
+    (set-ship-stats! s (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
+                              ;con maxcon radius mass radar drag start?
+                              150.0 150.0 15.0 100.0 500.0 0.4 #t))
+    (set-ship-tools!
+     s (list (tool (next-id) 'engine 30.0 #f '())
+             (tool (next-id) 'steer 1.0 #f '())
+             (tool (next-id) 'turnleft 1.0 #f '())
+             (tool (next-id) 'turnright 1.0 #f '())
+             (tool (next-id) 'pbolt 5.0 #f '())
+             (tool (next-id) 'dock #f #t '())
+             (tool (next-id) 'probe 10.0 #f '())
+             (tool (next-id) 'missile 5.0 #f '())
+             (tool (next-id) 'cannon 20.0 #f '())
+             (tool (next-id) 'warp '(150.0 50.0 0.0) #f '())
+             ))
+    s)
   
   (define base (make-ship "blue-station" "a" "a" #:x -1000 #:y 0  #:ai? #t #:hangar '()))
   (set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
@@ -101,9 +103,11 @@
 
   (define f (new-blue-fighter))
   (set-obj-posvel! f (posvel 0 100 100 pi/2 0 0 0))
-    
+
+  (define c1 (new-blue-cruiser -800.0 0.0))
+  (define c2 (new-blue-cruiser -900.0 0.0))
   (set-space-objects! ownspace (append (space-objects ownspace)
-                                       (list cruiser #;base destroyer #;f)))
+                                       (list c1 c2 #;base #;destroyer #;f)))
 
   #;(set-space-objects! ownspace
                       (for/list ((name ship-name-list)

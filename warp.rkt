@@ -40,8 +40,10 @@
        ((warp-energy w) . = . (warp-threshold w))))
 
 (define (cancel-warp! ship)
-  (set-posvel-dx! (obj-posvel ship) 0.0)
-  (set-posvel-dy! (obj-posvel ship) 0.0)
+  ; not sure if this is good or not, but setting speed to zero here
+  ; screws up the bounch when a warping ship hits something
+  ;(set-posvel-dx! (obj-posvel ship) 0.0)
+  ;(set-posvel-dy! (obj-posvel ship) 0.0)
   (define w (ship-tool ship 'warp))
   (set-tool-val! w (list (warp-speed w)
                          (warp-threshold w)

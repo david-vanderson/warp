@@ -279,9 +279,35 @@
       ((will-dock? s ship)
        (append! changes (dock! s ship)))
       (else
-       (when (warping? ship) (append! changes (command (ob-id ship) 'warp 'stop)))
-       (when (warping? s) (append! changes (command (ob-id s) 'warp 'stop)))
-       (ship-collide! ship s))))
+       (cond
+         ((or (warping? ship) (warping? s))
+          (when (warping? ship)
+            (append! changes (command (ob-id ship) 'warp 'stop))
+            (define t (theta ship s))
+            (define d (+ 1.0 (- (hit-distance ship s) (distance ship s))))
+            (when (warping? s)
+              ; if other ship is also warping, it will do half the work
+              (set! d (/ d 2.0)))
+            (define pv1 (obj-posvel ship))
+            (set-posvel-x! pv1 (- (posvel-x pv1) (* d (cos t))))            
+            (set-posvel-y! pv1 (- (posvel-y pv1) (* d (sin t))))
+            (set-posvel-dx! pv1 (* -10.0 (cos t)))
+            (set-posvel-dy! pv1 (* -10.0 (sin t)))
+            ; make sure we send the new posvel right away
+            (set-posvel-t! pv1 0))
+          (when (warping? s)
+            (append! changes (command (ob-id s) 'warp 'stop))
+            (define t (theta s ship))
+            (define d (+ 1.0 (- (hit-distance ship s) (distance ship s))))
+            (define pv1 (obj-posvel s))
+            (set-posvel-x! pv1 (- (posvel-x pv1) (* d (cos t))))
+            (set-posvel-y! pv1 (- (posvel-y pv1) (* d (sin t))))
+            (set-posvel-dx! pv1 (* -10.0 (cos t)))
+            (set-posvel-dy! pv1 (* -10.0 (sin t)))
+            ; make sure we send the new posvel right away
+            (set-posvel-t! pv1 0)))
+         (else
+          (ship-collide! ship s))))))
   changes)
 
 ; return a list of final changes
