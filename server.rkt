@@ -439,9 +439,10 @@
               (apply-all-changes! ownspace
                                   (list (chrm (client-id c)))
                                   (space-time ownspace) "server"))
-     
+
      (close-input-port (client-in-port c))
-     (close-output-port (client-out-port c))
+     (with-handlers ((exn:fail:network? (lambda (exn) #f)))
+       (close-output-port (client-out-port c)))
      (kill-thread (client-in-t c))
      (kill-thread (client-out-t c))
      (set! clients (remove c clients)))))
