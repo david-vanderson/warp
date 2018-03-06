@@ -572,10 +572,7 @@
 
     (define width (+ WIDTH dmgx))
     (define height (+ HEIGHT dmgy))
-    ; some machines show visual artifacts sometimes when the layers are exactly aligned?
-    ;(when (equal? width (round width)) (set! width (+ width 0.00005)))
-    ;(when (equal? height (round height)) (set! height (+ height 0.00005)))
-    (define layers (for/vector ((i 8)) (layer width height)))
+    (define layers (for/vector ((i LAYER_NUM)) (layer width height)))
     
     (define r (render layers '() sprites))
     (r (send canvas get-width) (send canvas get-height) dc))
@@ -982,8 +979,9 @@
         (tick-space! ownspace)
         (set! dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time)))
 
-      (when ((- (space-time ownspace) last-update-time) . > . 0)
-        (printf "client is ahead by ~a\n" (- (space-time ownspace) last-update-time)))
+      (define ahead (- (space-time ownspace) last-update-time))
+      (when (ahead . > . 100)
+        (printf "~a client is ahead by ~a\n" (current-milliseconds) ahead))
       )
     
     ;rendering
