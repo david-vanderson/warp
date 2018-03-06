@@ -56,6 +56,7 @@
   ; do some action, clickcmds is a list of commands we send
   (define clickcmds #f)
   (define frames '())  ; list of last few frame times
+  (define aheads '())  ; list of last few ahead calculations
   (define last-update-time #f)
 
   (define showtab #f)  ; tab toggles an overlay showing players and goals
@@ -562,6 +563,13 @@
       (define span (/ (- end start) 1000))
       (define txt (format "FPS: ~a" (truncate (/ (- (length frames) 1) span))))
       (append! sprites (text-sprite textr textsr txt (- RIGHT 80) TOP LAYER_UI)))
+
+    ; network issues?
+    (when ((length aheads) . > . 0)
+      (define ma (apply max aheads))
+      (when (ma . > . AHEAD_THRESHOLD)
+        (define txt (format "Ahead: ~a" ma))
+        (append! sprites (text-sprite textr textsr txt (- RIGHT 200) TOP LAYER_UI))))
     
     (append! sprites (button-sprites csd textr buttons (if ownspace (space-time ownspace) 0)))
     
@@ -980,7 +988,8 @@
         (set! dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time)))
 
       (define ahead (- (space-time ownspace) last-update-time))
-      (when (ahead . > . 100)
+      (set! aheads (add-frame-time ahead aheads))
+      (when (ahead . > . AHEAD_THRESHOLD)
         (printf "~a client is ahead by ~a\n" (current-milliseconds) ahead))
       )
     
