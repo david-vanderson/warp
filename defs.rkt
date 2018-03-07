@@ -8,7 +8,7 @@
 (define PORT 22381)
 (define TICK 33)  ; ms time slice for physics, also determines max client frame rate
 (define AI_INTERVAL 1000)  ; ms between ai runs (at least)
-(define AHEAD_THRESHOLD 100)  ; if client is ahead by this many ms you see it on the screen
+(define AHEAD_THRESHOLD 200)  ; if client is ahead by this many ms you see it on the screen
 
 (define WIDTH 800.0)  ; how many meters wide is the screen view
 (define HEIGHT 600.0)  ; how many meters tall is the screen view

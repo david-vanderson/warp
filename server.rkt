@@ -330,7 +330,8 @@
     (when (and (tool-rc t) ((tool-rc t) . <= . (/ (obj-age space p) 1000.0)))
       (define changes1 '())
       (define player (findf (lambda (o) (equal? (player-rcid o) (ob-id p))) (space-players space)))
-      (append! changes1 (endrc (ob-id player) #t))
+      (when player
+        (append! changes1 (endrc (ob-id player) #t)))
       (define cs (apply-all-changes!
                   space changes1 (space-time space) "server"))
       (append! changes cs)))

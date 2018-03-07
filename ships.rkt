@@ -28,7 +28,7 @@
         "red-destroyer" (ship-info "red-destroyer" #f)
         "blue-cruiser" (ship-info "blue-cruiser" #f)
         
-        "missile1" (ship-info "missile1" #f)
+        "missile1" (ship-info "missile1" 16.0)
         "missile2" (ship-info "missile2" #f)
         "missile3" (ship-info "missile3" #f)
         "probe1" (ship-info "probe1" #f)
@@ -66,7 +66,7 @@
                    #:ai? (ai? #f)
                    #:con (con #f)
                    #:start-time (start-time 0)
-                   #:life (life #f)
+                   #:life (life 1.0)
                    #:hangar (in-hangar #f)
                    #:cargo (cargo '()))
   (define args (list

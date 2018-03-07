@@ -104,15 +104,16 @@
   (define f (new-blue-fighter))
   (set-obj-posvel! f (posvel 0 100 100 pi/2 0 0 0))
 
-  (define c1 (new-blue-cruiser -800.0 0.0))
-  (define c2 (new-blue-cruiser -900.0 0.0))
-  (set-space-objects! ownspace (append (space-objects ownspace)
+  ;(define c1 (new-blue-cruiser -800.0 0.0))
+  ;(define c2 (new-blue-cruiser -900.0 0.0))
+  #;(set-space-objects! ownspace (append (space-objects ownspace)
                                        (list c1 c2 #;base #;destroyer #;f)))
 
-  #;(set-space-objects! ownspace
-                      (for/list ((name ship-name-list)
-                                 (x (in-range -10000 10000 1000)))
-                        (make-ship name name "Rebel" #:x x #:start-ship? #t)))
+  (set-space-objects! ownspace
+                      (append (space-objects ownspace)
+                              (for/list (((name si) (in-hash ship-list))
+                                         (x (in-range -1000 1000 100)))
+                                (make-ship name name "Rebel" #:x x #:start-ship? #t))))
   
   (define real-orders (space 0 0 0 '() '() '()))  ; only care about orders
   

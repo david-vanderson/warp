@@ -57,7 +57,7 @@
   (define clickcmds #f)
   (define frames '())  ; list of last few frame times
   (define aheads '())  ; list of last few ahead calculations
-  (define last-update-time #f)
+  (define last-update-time #f)  ; space-time of last update we got from server
 
   (define showtab #f)  ; tab toggles an overlay showing players and goals
   (define showsector? #f)  ; tilde toggles showing the whole sector or the regular view
@@ -565,11 +565,10 @@
       (append! sprites (text-sprite textr textsr txt (- RIGHT 80) TOP LAYER_UI)))
 
     ; network issues?
-    (when ((length aheads) . > . 0)
-      (define ma (apply max aheads))
-      (when (ma . > . AHEAD_THRESHOLD)
-        (define txt (format "Ahead: ~a" ma))
-        (append! sprites (text-sprite textr textsr txt (- RIGHT 200) TOP LAYER_UI))))
+    (define ma (apply max 0 aheads))
+    (when (ma . > . AHEAD_THRESHOLD)
+      (define txt (format "Ahead: ~a" ma))
+      (append! sprites (text-sprite textr textsr txt (- RIGHT 200) TOP LAYER_UI)))
     
     (append! sprites (button-sprites csd textr buttons (if ownspace (space-time ownspace) 0)))
     
@@ -840,13 +839,18 @@
     (set! server-out-t #f)
     (set! meid #f)
     (set! ownspace #f))
-  
+
   
   (define (send-commands cmds)
     (when (not (list? cmds)) (set! cmds (list cmds)))
     (when (and server-out-t ((length cmds) . > . 0))
       ;(printf "send-commands ~v\n" cmds)
-      (thread-send server-out-t (update last-update-time cmds #f))))
+      (define ma (apply max 0 aheads))
+      (cond
+        ((ma . < . AHEAD_THRESHOLD)  
+         (thread-send server-out-t (update last-update-time cmds #f)))
+        (else
+         (printf "dropping commands (ahead ~a) ~v\n" ma cmds)))))
   
   
   (define (client-loop)
