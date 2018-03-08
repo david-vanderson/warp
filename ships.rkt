@@ -94,7 +94,7 @@
     (("missile")
      (define s (apply missile args))
      ;type name faction con maxcon radius mass radar drag start?
-     (set-ship-stats! s (stats (next-id) type name faction 1.0 1.0 5.0 1.0 50.0 0.5 #f))
+     (set-ship-stats! s (stats (next-id) type name faction life life 5.0 1.0 50.0 0.5 #f))
      (set-ship-tools!
       s (list (tool (next-id) 'engine 100.0 #t '())
               (tool (next-id) 'turnleft 2.0 #f '())

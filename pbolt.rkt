@@ -56,6 +56,6 @@
       
       (define t (target-angle ownship ownship o o PLASMA_SPEED))
       (when t
-        (append! changes (list (command (ob-id ownship) 'pbolt t)))
+        (append! changes (list (command (ob-id ownship) #f 'pbolt t)))
         (done)))))
   changes)

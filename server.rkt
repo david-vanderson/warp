@@ -250,7 +250,7 @@
 (define (dock! s1 s2)  
   (define changes '())
   (when (warping? s1)
-    (append! changes (command (ob-id s1) 'warp 'stop)))
+    (append! changes (command (ob-id s1) #f 'warp 'stop)))
   (append! changes (list (chmov (ob-id s1) (ob-id s2) #f)))
   changes)
 
@@ -282,7 +282,7 @@
        (cond
          ((or (warping? ship) (warping? s))
           (when (warping? ship)
-            (append! changes (command (ob-id ship) 'warp 'stop))
+            (append! changes (command (ob-id ship) #f 'warp 'stop))
             (define t (theta ship s))
             (define d (+ 1.0 (- (hit-distance ship s) (distance ship s))))
             (when (warping? s)
@@ -296,7 +296,7 @@
             ; make sure we send the new posvel right away
             (set-posvel-t! pv1 0))
           (when (warping? s)
-            (append! changes (command (ob-id s) 'warp 'stop))
+            (append! changes (command (ob-id s) #f 'warp 'stop))
             (define t (theta s ship))
             (define d (+ 1.0 (- (hit-distance ship s) (distance ship s))))
             (define pv1 (obj-posvel s))
@@ -328,12 +328,10 @@
   (for ((p probes))
     (define t (ship-tool p 'endrc))
     (when (and (tool-rc t) ((tool-rc t) . <= . (/ (obj-age space p) 1000.0)))
-      (define changes1 '())
       (define player (findf (lambda (o) (equal? (player-rcid o) (ob-id p))) (space-players space)))
-      (when player
-        (append! changes1 (endrc (ob-id player) #t)))
       (define cs (apply-all-changes!
-                  space changes1 (space-time space) "server"))
+                  space (list (endrc (and player (ob-id player)) (ob-id p)))
+                  (space-time space) "server"))
       (append! changes cs)))
 
   (for ((cb cbs))
@@ -401,6 +399,13 @@
                     space (ship-hit-ship! space ship s) (space-time space) "server"))
         (append! changes cs))
       (loop (cdr ships))))
+
+  ; find out if any player's rc objects went away
+  (for ((p (space-players space))
+        #:when (and (player-rcid p) (not (find-id space (player-rcid p)))))
+    (define cs (apply-all-changes! space (list (endrc (ob-id p) #f)) (space-time space) "server"))
+    (append! changes cs))
+  
   changes)
 
 
@@ -491,7 +496,7 @@
     (define-values (in out) (tcp-accept server-listener))
     (set-tcp-nodelay! out #t)
     (define cid (next-id))
-    (define c (client (player cid #f #f '() #f #f)
+    (define c (client (player cid #f #f 0 '() #f #f)
                       in out
                       (make-in-thread cid in)
                       (make-out-thread cid out)))
@@ -583,7 +588,7 @@
     ; client-disconnect updates if there's an error
     (set! updates '())
   
-    (printf "server queuing time ~v\n" (update-time u))
+    ;(printf "server queuing time ~v\n" (update-time u))
     (define msg (copy-prefab u))
     (for ((c clients))
       (send-to-client c msg))

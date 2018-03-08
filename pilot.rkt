@@ -99,7 +99,7 @@
           (else
            ; we are just sitting in space with no strat, at least turn on docking so a ship can pick us up
            (when (and d (tool-online? d) (not (tool-rc d)))
-             (set! changes (list (command (ob-id ship) 'dock #t)))))))
+             (set! changes (list (command (ob-id ship) #f 'dock #t)))))))
        (("return")
         (define mothership (find-top-id space (strategy-arg strat)))
         (cond
@@ -165,7 +165,7 @@
               (when (and (not (ship-behind? space mothership))
                          (tool-online? d "nolaunch"))
                 ; we accidentally docked with not our real mothership, launch again
-                (set! changes (list (command (ob-id ship) 'dock 'launch)))))
+                (set! changes (list (command (ob-id ship) #f 'dock 'launch)))))
              (else
               ; we successfully docked with our real mothership, remove the strat
               (set! changes (list (new-strat (ob-id ship) (cdr strats)))))))
@@ -174,7 +174,7 @@
                       (= (ship-con ship) (ship-maxcon ship))
                       (not (ship-behind? space mothership)))
              ; we have a strat to do and ready to go, launch
-             (set! changes (list (command (ob-id ship) 'dock 'launch)))))
+             (set! changes (list (command (ob-id ship) #f 'dock 'launch)))))
           (else
            (define ne (nearest-enemy space mothership))
            (when (and ne
@@ -185,7 +185,7 @@
              ; there's an enemy and we're ready to go - launch and attack
              (define returnstrat (strategy (space-time space) "return" (ob-id mothership)))
              (define attackstrat (strategy (space-time space) "attack" (ob-id ne)))
-             (set! changes (list (command (ob-id ship) 'dock 'launch)
+             (set! changes (list (command (ob-id ship) #f 'dock 'launch)
                                  (new-strat (ob-id ship)
                                             (cons attackstrat
                                                   (cons returnstrat strats))))))))))))
@@ -208,11 +208,11 @@
     (when (and strat
                (equal? "return" (strategy-name strat))
                (not (tool-rc dt)))
-      (set! changes (append changes (list (command (ob-id ownship) 'dock #t)))))
+      (set! changes (append changes (list (command (ob-id ownship) #f 'dock #t)))))
     (when (and strat
                (not (equal? "return" (strategy-name strat)))
                (tool-rc dt))
-      (set! changes (append changes (list (command (ob-id ownship) 'dock #f))))))
+      (set! changes (append changes (list (command (ob-id ownship) #f 'dock #f))))))
 
 
   (define st (ship-tool ownship 'steer))
@@ -275,11 +275,11 @@
   (when ft
     (set-tool-rc! ft origf)
     (when (and (not (equal? origf bestf)) (tool-online? ft))
-      (set! changes (append changes (list (command (ob-id ownship) 'engine bestf))))))
+      (set! changes (append changes (list (command (ob-id ownship) #f 'engine bestf))))))
   (when st
     (set-tool-rc! st origc)
     (when (and (not (equal? origc bestc)) (tool-online? st))
-      (set! changes (append changes (list (command (ob-id ownship) 'steer bestc))))))
+      (set! changes (append changes (list (command (ob-id ownship) #f 'steer bestc))))))
   
   changes)
 

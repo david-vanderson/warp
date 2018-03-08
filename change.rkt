@@ -59,6 +59,7 @@
 (define (player-cleanup! space p)
   (define changes '())
   (set-player-commands! p '())
+  (set-player-cmdlevel! p (add1 (player-cmdlevel p)))
   (when (server?)
     (append! changes (endrc (ob-id p) (player-rcid p)))
     (append! changes (endcb (ob-id p) (player-cbid p))))
@@ -116,6 +117,9 @@
        ((not tool)
         (printf "~a dropping command (no tool) ~v\n" who c)
         (values #f '()))
+       ((and p (not (= (command-level c) (player-cmdlevel p))))
+        (printf "~a dropping command (need cmdlevel ~a) ~v\n" who (player-cmdlevel p) c)
+        (values #f '()))
        (else
         (case (tool-name tool)
           ((pbolt)
@@ -171,6 +175,8 @@
         (values #t '()))
        (else
         (set-player-rcid! p (chrc-rcid c))
+        (set-player-commands! p '())
+        (set-player-cmdlevel! p (add1 (player-cmdlevel p)))
         (values #t '()))))
     ((endrc? c)
      (define changes '())
@@ -182,12 +188,13 @@
        (append! changes (chdam (ob-id o) -1)))
      (when (and (server?) (probe? o))
        (append! changes
-                (command (ob-id o) 'endrc #f)
-                (command (ob-id o) 'engine #f)
-                (command (ob-id o) 'turnleft #f)
-                (command (ob-id o) 'turnright #f)))
-     (when p
-       (set-player-rcid! p #f))
+                (command (ob-id o) #f 'endrc #f)
+                (command (ob-id o) #f 'engine #f)
+                (command (ob-id o) #f 'turnleft #f)
+                (command (ob-id o) #f 'turnright #f)))
+     (when p       
+       (set-player-rcid! p #f)
+       (set-player-cmdlevel! p (add1 (player-cmdlevel p))))
      (values #t changes))
     ((endcb? c)
      (define changes '())

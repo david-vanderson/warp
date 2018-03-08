@@ -41,7 +41,7 @@
         (append! changes (chfaction (ob-id p) "players"))))
     changes)
   (define (on-message space cmd change-scenario!)
-    (define o (find-id space (command-id cmd)))
+    (define o (find-id space (anncmd-id cmd)))
     (when (and o (ann-button? o))
       (case (ann-button-msg o)
         (("testing") (change-scenario! testing-scenario))

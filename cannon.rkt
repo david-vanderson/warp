@@ -113,7 +113,7 @@
         
         (define t (target-angle ownship ownship o o CANNON_MAX_SPEED))
         (when (and t ((abs (angle-frto (obj-r ownship) t)) . < . 0.1))
-          (append! changes (list (command (ob-id ownship) 'cannon t)))
+          (append! changes (list (command (ob-id ownship) #f 'cannon t)))
           (done)))))
   changes)
 

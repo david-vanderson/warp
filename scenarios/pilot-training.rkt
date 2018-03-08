@@ -104,7 +104,7 @@
     changes)
   
   (define (on-message space cmd change-scenario!)
-    (define o (find-id space (command-id cmd)))
+    (define o (find-id space (anncmd-id cmd)))
     (when (and o (ann-button? o))
       (case (ann-button-msg o)
         (("quit-scenario") (change-scenario!))))

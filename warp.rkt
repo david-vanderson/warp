@@ -63,6 +63,9 @@
   (define y (- BOTTOM 135.0))
   (define z (clamp 0.0 1.0 (/ w maxw)))
 
+  (define pid (ob-id (car stack)))
+  (define cmdlevel (player-cmdlevel (car stack)))
+
   ; fill
   (append! spr (sprite x y (sprite-idx csd 'square) #:layer LAYER_UI
                        #:mx (/ (* w z) (sprite-width csd (sprite-idx csd 'square)) 1.0)
@@ -78,18 +81,18 @@
   (define b (holdbutton 'outline #\q x y maxw h "Charge Warp [q]"
                         (lambda (x y) (void))
                         (lambda ()
-                          (send-commands (command (ob-id (car stack)) (tool-name t) #f)))))
+                          (send-commands (command pid cmdlevel (tool-name t) #f)))))
 
   (cond
     ((warping? ship)
      (set-button-label! b "Stop Warp [q]")
      (set-button-f! b (lambda (x y)
-                        (send-commands (command (ob-id (car stack)) (tool-name t) 'stop)))))
+                        (send-commands (command pid cmdlevel (tool-name t) 'stop)))))
     (else
      (when (warp-charging? ship)
        (set-button-label! b "Charging Warp [q]"))
      (set-button-f! b (lambda (x y)
-                        (send-commands (command (ob-id (car stack)) (tool-name t) #t))))))
+                        (send-commands (command pid cmdlevel (tool-name t) #t))))))
   
   (append! buttons b)
   (define ob (add-offline-button! t b send-commands))

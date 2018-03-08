@@ -23,18 +23,18 @@
 
   (when (and (server?) (= -1 damage))
     ; missile is detonating
-    (define n 5)
-    (define da (degrees->radians 40.0))
-    (define starta (- (* (- n 1) (/ da 2.0))))
-    (for ((i n))
-      (define a (angle-add (obj-r m) (+ starta (* i da))))
+    (define num 8)
+    (for ((i (in-range num)))
+      (define r (* i (/ 2pi num)))
+      (define a (angle-add (obj-r m) r))
       (define p (plasma (next-id) (space-time space)
-                        (posvel (space-time space) (obj-x m) (obj-y m) (obj-r m)
-                                (+ (* (/ PLASMA_SPEED 3.0) (cos a)) (obj-dx m))
-                                (+ (* (/ PLASMA_SPEED 3.0) (sin a)) (obj-dy m))
-                                0)
-                        5.0 #f))
-      (append! changes (chadd p #f))))
+                        (posvel (space-time space)
+                                  (obj-x m) (obj-y m) (obj-r m)
+                                  (+ (* PLASMA_SPEED 0.8 (cos a)))
+                                  (+ (* PLASMA_SPEED 0.8 (sin a)))
+                                  0)
+                          (/ (* 5.0 (ship-maxcon m)) num) #f))
+        (append! changes (chadd p #f))))
   changes)
 
 
@@ -106,7 +106,7 @@
                             ((distance ownship o) . < . (ship-radar ownship))))
       ;(printf "firing\n")
       (set-tool-rc! t (space-time space))
-      (append! changes (command (ob-id ownship) 'missile #t))
+      (append! changes (command (ob-id ownship) #f 'missile #t))
       ))
   changes)
 

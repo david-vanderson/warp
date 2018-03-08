@@ -334,7 +334,7 @@
         (when (and (ann-button? a) (or (not (ann-showtab? a)) showtab))
           (define ab (button 'normal #f
                              (obj-x a) (obj-y a) (obj-dx a) (obj-dy a) (ann-txt a)
-                             (lambda (k y) (send-commands (anncmd (ob-id a) #f #f)))))
+                             (lambda (k y) (send-commands (anncmd (ob-id a))))))
           (append! buttons ab))
         (when (and (ann-text? a) (or (not (ann-showtab? a)) showtab))
           (define z
@@ -539,7 +539,7 @@
                   (ship-tool ship 'pbolt)
                   (ship-flying? ship))
              (set! cursordrawn #t)
-             (set! clickcmds (command meid 'pbolt a))
+             (set! clickcmds (command meid (player-cmdlevel player) 'pbolt a))
              (append! sprites (sprite (exact->inexact x) (exact->inexact y)
                                       (sprite-idx csd 'target) #:layer LAYER_UI_TEXT
                                       #:r 100 #:g 100 #:b 255 #:m 0.7))))))
@@ -895,7 +895,7 @@
           (set-tcp-nodelay! out #t)
           (set! server-out-t (make-out-thread #f out))
           ; send our name to the server
-          (send-commands (player #f name #f '() #f #f)))))
+          (send-commands (player #f name #f #f '() #f #f)))))
     
     ; process received info
     (let loop ()

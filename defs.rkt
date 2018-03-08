@@ -78,9 +78,11 @@
 (define (obj-dy obj) (posvel-dy (obj-posvel obj)))
 (define (obj-dr obj) (posvel-dr (obj-posvel obj)))
 
-(struct player ob (name faction commands rcid cbid) #:mutable #:prefab)
+(struct player ob (name faction cmdlevel commands rcid cbid) #:mutable #:prefab)
 ; name is what is shown in UIs
 ; faction is string
+; cmdlevel increases each time the player moves to a different place (or remote control)
+; - the server drops commands with old cmdlevels (stale)
 ; commands is a list of symbols that say which UI elements are being pressed
 ; - '(fthrust) : pressing engine forward button
 ; - '(fthrust warp) : pressing engine and warp buttons
@@ -230,14 +232,15 @@
 
 ;; Changes
 
-(struct command (id cmd arg) #:mutable #:prefab)
+(struct command (id level cmd arg) #:mutable #:prefab)
 ; general purpose command
 ; id points to the player giving the command
+; level is the player-cmdlevel when this command was issued
 ; cmd is anything, usually a symbol
 ; arg is #t if turning something on, #f if turning it off
 
-(struct anncmd command () #:mutable #:prefab)
-; for commands that the server will pick out before sending to apply-change!
+(struct anncmd (id) #:mutable #:prefab)
+; for things that the server will pick out before sending to apply-change!
 ; id points to a annbutton
 
 (struct chfaction (playerid newf) #:mutable #:prefab)
