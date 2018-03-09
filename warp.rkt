@@ -78,19 +78,19 @@
   ; - player presses and holds the shortcut key
   ; - player clicks the button with the mouse (overwrites holding?)
   ; this means you can get multiple holdbutton-frelease calls
-  (define b (holdbutton 'outline #\q x y maxw h "Charge Warp [q]"
+  (define b (holdbutton 'outline #\s x y maxw h "Charge Warp [s]"
                         (lambda (x y) (void))
                         (lambda ()
                           (send-commands (command pid cmdlevel (tool-name t) #f)))))
 
   (cond
     ((warping? ship)
-     (set-button-label! b "Stop Warp [q]")
+     (set-button-label! b "Stop Warp [s]")
      (set-button-f! b (lambda (x y)
                         (send-commands (command pid cmdlevel (tool-name t) 'stop)))))
     (else
      (when (warp-charging? ship)
-       (set-button-label! b "Charging Warp [q]"))
+       (set-button-label! b "Charging Warp [s]"))
      (set-button-f! b (lambda (x y)
                         (send-commands (command pid cmdlevel (tool-name t) #t))))))
   

@@ -397,13 +397,18 @@
      (append! buttons bs)
      (append! spr ss))
     ((missile)
-     (define b (button 'normal #\m (- RIGHT 80) (- BOTTOM 350) 100 50 "Missile [m]"
-                       (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))))
+     (define b (button 'normal #\q (+ LEFT 80) (- BOTTOM 350) 100 50 "Missile [q]"
+                       (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'left)))))
      (append! buttons b)
      (define ob (add-offline-button! t b send-commands))
-     (when ob (append! buttons ob)))
+     (when ob (append! buttons ob))
+     (define b2 (button 'normal #\e (- RIGHT 80) (- BOTTOM 350) 100 50 "Missile [e]"
+                       (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'right)))))
+     (append! buttons b2)
+     (define ob2 (add-offline-button! t b2 send-commands))
+     (when ob2 (append! buttons ob2)))
     ((probe)
-     (define b (button 'normal #\p (- RIGHT 80) (- BOTTOM 250) 100 50 "Probe [p]"
+     (define b (button 'normal #\x (- RIGHT 80) (- BOTTOM 250) 100 50 "Probe [x]"
                        (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))))
      (append! buttons b)
      (define ob (add-offline-button! t b send-commands))
@@ -445,11 +450,12 @@
      (append! buttons (list b))
      (define ob (add-offline-button! t b send-commands))
      (when ob (append! buttons (list ob)))
-     (define lb (button (if (can-launch? stack) 'normal 'disabled) #\l (- RIGHT 80) (- BOTTOM 150) 120.0 30.0 "Launch [L]"
-                       (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'launch)))))
-     (append! buttons (list lb))
-     (define lob (add-offline-button! t lb send-commands "nolaunch"))
-     (when lob (append! buttons (list lob))))
+     (when (can-launch? stack)
+       (define lb (button 'normal #\w (- RIGHT 80) (- BOTTOM 150) 120.0 30.0 "Launch [w]"
+                          (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'launch)))))
+       (append! buttons (list lb))
+       (define lob (add-offline-button! t lb send-commands "nolaunch"))
+       (when lob (append! buttons (list lob)))))
     
     #;((shbolt? t)
      (define ship (get-ship stack))

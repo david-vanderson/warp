@@ -105,7 +105,8 @@
 
   (define (key-button? buttons key)
     (for/first ((b (in-list buttons))
-                #:when (equal? (button-key b) key))
+                #:when (and (equal? (button-key b) key)
+                            (not (member (button-draw b) '(disabled dmg)))))
       b))
   
   
@@ -442,10 +443,10 @@
                                   (define z (exp (+ (log (min-scale))
                                                     (* zfracy (- (log (max-scale)) (log (min-scale)))))))
                                   (set-scale z))))
-        (define zkeyb (button 'hidden #\z 0 0 0 0 "Zoom In"
+        (define zkeyb (button 'hidden #\r 0 0 0 0 "Zoom In"
                               (lambda (k y) (set-scale (* scale-play 1.1)))))
         
-        (define xkeyb (button 'hidden #\x 0 0 0 0 "Zoom Out"
+        (define xkeyb (button 'hidden #\f 0 0 0 0 "Zoom Out"
                               (lambda (k y) (set-scale (/ scale-play 1.1)))))
         
         (append! buttons zbutton zkeyb xkeyb))
@@ -658,12 +659,11 @@
              ((cdr v))  ; run the release function
              (set! holding (remove v holding))))  ; cancel the hold
           (b
-           (when (not (member (button-draw b) '(disabled dmg)))
-             ((button-f b) kc #f)
-             (when (holdbutton? b)
-               (set! holding (cons (cons kc (holdbutton-frelease b)) holding))
-               (when ((length holding) . > . 5)
-                 (printf "holding ~a\n" (length holding))))))
+           ((button-f b) kc #f)
+           (when (holdbutton? b)
+             (set! holding (cons (cons kc (holdbutton-frelease b)) holding))
+             (when ((length holding) . > . 5)
+               (printf "holding ~a\n" (length holding)))))
           (else
            (case kc
              #;((#\d)

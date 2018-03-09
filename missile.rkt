@@ -23,10 +23,11 @@
 
   (when (and (server?) (= -1 damage))
     ; missile is detonating
+    (define basea (remain (* .001 (obj-age space m)) 2pi))
     (define num 8)
     (for ((i (in-range num)))
       (define r (* i (/ 2pi num)))
-      (define a (angle-add (obj-r m) r))
+      (define a (angle-add basea r))
       (define p (plasma (next-id) (space-time space)
                         (posvel (space-time space)
                                   (obj-x m) (obj-y m) (obj-r m)
@@ -67,7 +68,7 @@
     (else
      (define changes '())
      (when (server?)
-       (define a (angle-add (obj-r ship) (if ((random) . > . 0.5) pi/2 (- pi/2))))
+       (define a (angle-add (obj-r ship) (if (equal? 'left (command-arg cmd)) pi/2 (- pi/2))))
        (define m (make-ship "missile" "Missile" (ship-faction ship)
                             #:ai? (not (player? (car stack)))
                             #:r a

@@ -90,7 +90,7 @@
           list))
 
 (define (findfid id list)
-  (findf (lambda (o) (= id (ob-id o))) list))
+  (findf (lambda (o) (equal? id (ob-id o))) list))
 
 (define (copy-prefab s)
   (apply make-prefab-struct (prefab-struct-key s) (struct->list s)))
