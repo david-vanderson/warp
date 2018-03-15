@@ -506,11 +506,17 @@
                                        (send-commands (chmov meid (ob-id ms) #f))))
          (append! buttons leave-button)))
       
-      ; draw mouse cursor
+      ; draw mouse cursor and green corners
       (when my-stack
         (define player (car my-stack))
         (define rcship (if (player-rcid player) (find-id ownspace (player-rcid player)) #f))
         (define ship (or rcship (get-ship my-stack)))
+
+        (define-values (gx gy) (obj->screen ship center (get-scale)))
+        (append! sprites (sprite gx gy (sprite-idx csd 'corners)
+                                 #:layer LAYER_UI
+                                 #:g 200))
+        
         (define-values (p mods) (get-current-mouse-state))
         (define-values (wx wy) (send canvas screen->client
                                      (+ (send p get-x) left-inset)
@@ -786,15 +792,19 @@
                                          (send dc draw-line 5 55 105 55)
                                          (send dc set-brush b))
                                        110 110)) "black"))
-    (add-sprite!/value sd 'podarc
-                       (colorize (linewidth 10.0
+
+    (add-sprite!/value sd 'corners
+                       (colorize (linewidth 2.0
                                    (dc (lambda (dc dx dy)
-                                         (define b (send dc get-brush))
-                                         (send dc set-brush nocolor 'transparent)
-                                         (send dc draw-arc
-                                               5 5 100 100 (- (/ pi 4)) (/ pi 4))
-                                         (send dc set-brush b))
-                                       110 110)) "black"))
+                                         (send dc draw-line 1 1 5 1)
+                                         (send dc draw-line 45 1 49 1)
+                                         (send dc draw-line 49 1 49 5)
+                                         (send dc draw-line 49 45 49 49)
+                                         (send dc draw-line 49 49 45 49)
+                                         (send dc draw-line 5 49 1 49)
+                                         (send dc draw-line 1 49 1 45)
+                                         (send dc draw-line 1 5 1 1))
+                                       50 50)) "black"))
     )
   (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))
   (load-ships sd)
