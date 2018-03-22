@@ -65,18 +65,24 @@
   (define (on-tick space change-scenario!)
     (define changes '())
     (for ((p (space-players space)))
+      (define s (find-id space (lambda (o) (and (ship? o) (equal? (ship-faction o) (player-faction p))))))
       (cond
         ((not (player-faction p))
          ; new player
          (define f (next-faction))
          (define o (new-orders))
          (set-space-orders-for! real-orders f o)
-         (append! changes (chfaction (ob-id p) f) (chadd (new-trainer f) #f)))
-        ((not (find-id space (lambda (o) (and (ship? o) (equal? (ship-faction o) (player-faction p))))))
+         (define nt (new-trainer f))
+         (append! changes (chfaction (ob-id p) f) (chadd nt #f) (chmov (ob-id p) (ob-id nt) #f)))
+        ((not s)
          ; player has no ship left
          (define o (new-orders))
          (set-space-orders-for! real-orders (player-faction p) o)
-         (append! changes (chadd (new-trainer (player-faction p)) #f)))))
+         (define nt (new-trainer (player-faction p)))
+         (append! changes (chadd nt #f) (chmov (ob-id p) (ob-id nt) #f)))
+        ((and s (not (find-id space (ob-id p))))
+         ; player has a ship but is not on any ship
+         (append! changes (chmov (ob-id p) (ob-id s) #f)))))
 
     (for ((fo (space-orders real-orders)))
       (check space (car fo) (cadr fo)))

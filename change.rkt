@@ -93,7 +93,6 @@
 ;    - additional changes if the ship explodes
 ;
 ; on the server, you could get conflicting commands
-; (two players trying to take the same open role)
 ; (or even the same player clicking a button twice before the server sees it)
 ;
 ; ctime is the scenario time of the change or #f
@@ -362,5 +361,5 @@
       (apply append
              (for/list ((c (in-list changes)))
                (define-values (forward? new-changes) (apply-change! space c ctime who))
-               (append (if forward? (list (copy-prefab c)) '())
+               (append (if forward? (list (copy c)) '())
                        (apply-all-changes! space new-changes ctime who))))))

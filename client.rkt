@@ -510,13 +510,14 @@
       (when my-stack
         (define player (car my-stack))
         (define rcship (if (player-rcid player) (find-id ownspace (player-rcid player)) #f))
-        (define ship (or rcship (get-ship my-stack)))
 
-        (when (obj-posvel ship)
-          (define-values (gx gy) (obj->screen ship center (get-scale)))
-          (append! sprites (sprite gx gy (sprite-idx csd 'corners)
-                                   #:layer LAYER_UI
-                                   #:g 200)))
+        (define topship (or rcship (get-topship my-stack)))  
+        (define-values (gx gy) (obj->screen topship center (get-scale)))
+        (append! sprites (sprite gx gy (sprite-idx csd 'corners)
+                                 #:layer LAYER_UI
+                                 #:g 200))
+      
+        (define ship (or rcship (get-ship my-stack)))
         
         (define-values (p mods) (get-current-mouse-state))
         (define-values (wx wy) (send canvas screen->client

@@ -521,11 +521,11 @@
              ((player? ch)
               (define c (findf (lambda (o) (= cid (client-id o))) clients))
               (set-player-name! (client-player c) (player-name ch))
-              (send-to-client c (copy-prefab ownspace))  ; send full state
+              (send-to-client c (copy ownspace))  ; send full state
               (append! updates
                        (apply-all-changes! ownspace (list (chadd (client-player c) #f)) (space-time ownspace) "server"))
               (define m (message (next-id) (space-time ownspace) #f (format "New Player: ~a" (player-name ch))))
-              (append! updates (list m)))
+              (append! updates (apply-all-changes! ownspace (list m) (space-time ownspace) "server")))
              ((anncmd? ch)
               (scenario-on-message ownspace ch change-scenario!))
              (else
@@ -589,7 +589,7 @@
     (set! updates '())
   
     ;(printf "server queuing time ~v\n" (update-time u))
-    (define msg (copy-prefab u))
+    (define msg (copy u))
     (for ((c clients))
       (send-to-client c msg))
     )
@@ -611,7 +611,7 @@
   (set! ownspace newspace)
   (set! scenario-on-tick on-tick)
   (set! scenario-on-message on-message)
-  (define msg (copy-prefab ownspace))
+  (define msg (copy ownspace))
   (for ((c clients))
     (send-to-client c msg)))
 
