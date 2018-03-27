@@ -461,16 +461,18 @@
 
 (define updates '())
      
-(define (remove-client cid msg)
+(define (remove-client cid)
   (define c (findf (lambda (o) (= cid (client-id o))) clients))
   (cond
     ((not c)
-     (printf "already removed client ~a ~a\n" cid msg))
+     (printf "already removed client ~a\n" cid))
     (else
-     (printf "removing client ~v ~a\n" (client-player c) msg)
+     (printf "removing client ~v\n" (client-player c))
+     (define m (message (next-id) (space-time ownspace) #f
+                        (format "Player Left: ~a" (player-name (client-player c)))))
      (append! updates
               (apply-all-changes! ownspace
-                                  (list (chrm (client-id c)))
+                                  (list (chrm (client-id c)) m)
                                   (space-time ownspace) "server"))
 
      (close-input-port (client-in-port c))
@@ -512,7 +514,7 @@
       (define u (cdr v))
       (cond
         ((not u)
-         (remove-client cid ""))
+         (remove-client cid))
         (else
          (when (and (update-time u) ((- (space-time ownspace) (update-time u)) . > . 70))
            (printf "~a : client ~a is behind ~a\n" (space-time ownspace) cid
