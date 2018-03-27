@@ -69,16 +69,15 @@
                                    (new-red-fighter)
                                    (new-red-fighter)))
   (set-ship-tools!
-   goodship (list (tool (next-id) 'engine 25.0 #f (list (dmg enginedmgid "offline" 10000.0 0 #f)))
-                  (tool (next-id) 'turnleft 0.3 #f '())
-                  (tool (next-id) 'turnright 0.3 #f '())
-                  (tool (next-id) 'warp '(200.0 80.0 0.0) #f (list (dmg warpdmgid "offline" 10000.0 0 #f)))
-                  (tool (next-id) 'pbolt 5.0 #f '())
-                  (tool (next-id) 'probe 10.0 #f '())
-                  (tool (next-id) 'missile 5.0 #f '())
-                  (tool (next-id) 'cannon 20.0 #f '())
-                  (tool (next-id) 'dock #f #t '())
-                  ))
+   goodship (append (tools-pilot 25.0 #f 0.4)
+                    (list (tool-warp 200.0 80.0)
+                          (tool-pbolt 5.0)
+                          (tool-probe 10.0)
+                          (tool-missile 5.0)
+                          (tool-cannon 20.0))))
+
+  (set-tool-dmgs! (ship-tool goodship 'engine) (list (dmg enginedmgid "offline" 10000.0 0 #f)))
+  (set-tool-dmgs! (ship-tool goodship 'warp) (list (dmg warpdmgid "offline" 10000.0 0 #f)))
   
 
   ; the bad guys
@@ -94,8 +93,8 @@
   (set-ship-tools!
    enemy-base
    (list
-    (tool (next-id) 'pbolt 7.0 #f '())
-    (tool (next-id) 'missile 5.0 #f '())))
+    (tool-pbolt 7.0)
+    (tool-missile 5.0)))
   
   (set-space-objects! ownspace (append (space-objects ownspace)
                                        (list goodship enemy-base)))

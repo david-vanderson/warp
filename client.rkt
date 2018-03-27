@@ -301,16 +301,10 @@
         
         ; draw tool UI
         (when (not (unbox in-hangar?))
-          (define tools
-            (cond
-              (rcship
-               (filter-not (lambda (t) (equal? 'engine (tool-name t)))
-                           (ship-tools rcship)))
-              (else
-               (ship-tools ship))))
+          (define tools (filter tool-visible? (ship-tools (or rcship ship))))
           (for ((t (in-list tools)))
             (define-values (bs ss)
-              (draw-tool-ui csd center (get-scale) ownspace meid rcship t my-stack send-commands active-mouse-tool))
+              (draw-tool-ui csd center (get-scale) ownspace meid (or rcship ship) t my-stack send-commands active-mouse-tool))
             (append! buttons bs)
             (append! sprites ss)))
 

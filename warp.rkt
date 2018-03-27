@@ -51,10 +51,9 @@
 
 
 ; return list of buttons
-(define (draw-warp-ui! csd center scale t stack send-commands)
+(define (draw-warp-ui! csd center scale ship t stack send-commands)
   (define buttons '())
   (define spr '())
-  (define ship (get-ship stack))
   (define vals (tool-val t))
   (define maxw (* 2.0 (cadr vals)))
   (define w (* 2.0 (caddr vals)))

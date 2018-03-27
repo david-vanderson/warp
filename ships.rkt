@@ -96,28 +96,23 @@
      ;type name faction con maxcon radius mass radar drag start?
      (set-ship-stats! s (stats (next-id) type name faction life life 5.0 1.0 50.0 0.5 #f))
      (set-ship-tools!
-      s (list (tool (next-id) 'engine 100.0 #t '())
-              (tool (next-id) 'turnleft 2.0 #f '())
-              (tool (next-id) 'turnright 2.0 #f '())
-              (tool (next-id) 'steer 2.0 r '())
-              (tool (next-id) 'endrc #f life '())))
+      s (append (tools-pilot 100.0 #t 2.0 #:engine-visible? #f #:dock? #f)
+                (list (tool-endrc life))))
      s)
     (("cannonball")
      (define s (apply cannonball args))
      ;type name faction con maxcon radius mass radar drag start?
      (set-ship-stats! s (stats (next-id) type name faction life life 5.0 1.0 0.0 0.0 #f))
      (set-ship-tools!
-      s (list (tool (next-id) 'endrc #f 0 '())))
+      s (list (tool-endrc 0.0)))
      s)
     (("probe")
      (define s (apply probe args))
      ;type name faction con maxcon radius mass radar drag start?
      (set-ship-stats! s (stats (next-id) type name faction 10.0 10.0 7.0 1.0 1000.0 0.4 #f))
      (set-ship-tools!
-      s (list (tool (next-id) 'engine 100.0 #t '())
-              (tool (next-id) 'turnleft 1.0 #f '())
-              (tool (next-id) 'turnright 1.0 #f '())
-              (tool (next-id) 'endrc #f life '())))
+      s (append (tools-pilot 100.0 #t 1.0 #:engine-visible? #f #:dock? #f)
+                (list (tool-endrc life))))
      s)
     (("asteroid_87")
      (define s (apply spaceship args))
@@ -133,8 +128,8 @@
      (define mc 500.0)
      (set-ship-stats! s (stats (next-id) type name faction mc mc 26.0 1000.0 200.0 0.4 start-ship?))
      (set-ship-tools!
-      s (list (tool (next-id) 'pbolt 5.0 #f '())
-              (tool (next-id) 'probe 30.0 #f '())
+      s (list (tool-pbolt 5.0)
+              (tool-probe 30.0)
           ; need missile
           ; need shield
           ))
@@ -158,35 +153,21 @@
                                ;con maxcon radius mass radar drag start
                                100.0 100.0 18.0 100.0 300.0 0.4 start-ship?))
      (set-ship-tools!
-      s (list (tool (next-id) 'engine 20.0 #f '())
-              (tool (next-id) 'steer 0.3 #f '())
-              (tool (next-id) 'turnleft 0.3 #f '())
-              (tool (next-id) 'turnright 0.3 #f '())
-              (tool (next-id) 'pbolt 5.0 #f '())
-              (tool (next-id) 'dock #f #t '())
-              ))
+      s (append (tools-pilot 20.0 #f 0.3)
+                (list (tool-pbolt 5.0))))
      s)
     (("blue-fighter" "red-fighter")
      (define s (apply spaceship args))
      (define c (if con con 20.0))
      (set-ship-stats! s (stats (next-id) type name faction c c 6.0 20.0 200.0 0.4 start-ship?))
      (set-ship-tools!
-      s (list (tool (next-id) 'engine 50.0 #f '())
-              (tool (next-id) 'turnleft 1.5 #f '())
-              (tool (next-id) 'turnright 1.5 #f '())
-              (tool (next-id) 'pbolt 5.0 #f '())
-              (tool (next-id) 'dock #f #t '())
-              ))
-     s)
-    #;(("blue-cruiser" "red-destroyer")
-     (define s (apply spaceship args))
+      s (append (tools-pilot 50.0 #f 1.5)
+                (list (tool-pbolt 5.0))))
      s)
     (else
      ;(error (string-append "Tried to create an unknown ship type " type "\n")))
      (define s (apply spaceship args))
      (set-ship-stats! s (stats (next-id) type name faction 1.0 1.0 50.0 1.0 200.0 0.4 start-ship?))
      (set-ship-tools!
-      s (list (tool (next-id) 'engine 100.0 #f '())
-              (tool (next-id) 'turnleft 1.0 #f '())
-              (tool (next-id) 'turnright 1.0 #f '())))
+      s (tools-pilot 100.0 #f 1.0))
      s)))

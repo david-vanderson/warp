@@ -32,13 +32,8 @@
                               ;con maxcon radius mass radar drag start-ship?
                               50.0 50.0 6.0 20.0 300.0 0.4 #f))
     (set-ship-tools!
-     s (list (tool (next-id) 'engine 50.0 #f '())
-             (tool (next-id) 'turnleft 1.5 #f '())
-             (tool (next-id) 'turnright 1.5 #f '())
-             (tool (next-id) 'steer 1.5 #f '())
-             (tool (next-id) 'pbolt 5.0 #f '())
-             (tool (next-id) 'dock #f #t '())
-             ))
+     s (append (tools-pilot 50.0 #f 1.5)
+               (list (tool-pbolt 5.0))))
     (set-obj-posvel! s #f)
     s)
   
@@ -48,13 +43,8 @@
                               ;con maxcon radius mass radar drag start
                               20.0 20.0 6.0 20.0 300.0 0.4 #f))
     (set-ship-tools!
-     s (list (tool (next-id) 'engine 50.0 #f '())
-             (tool (next-id) 'turnleft 1.5 #f '())
-             (tool (next-id) 'turnright 1.5 #f '())
-             (tool (next-id) 'steer 1.5 #f '())
-             (tool (next-id) 'pbolt 5.0 #f '())
-             (tool (next-id) 'dock #f #t '())
-             ))
+     s (append (tools-pilot 50.0 #f 2.0)
+               (list (tool-pbolt 5.0))))
     (set-obj-posvel! s #f)
     s)
   
@@ -65,16 +55,12 @@
                                   ;con maxcon radius mass radar drag start?
                                   150.0 150.0 15.0 100.0 500.0 0.4 #t))
   (set-ship-tools!
-   cruiser (list (tool (next-id) 'engine 25.0 #f '())
-                 (tool (next-id) 'turnleft 1.0 #f '())
-                 (tool (next-id) 'turnright 1.0 #f '())
-                 (tool (next-id) 'pbolt 5.0 #f '())
-                 (tool (next-id) 'dock #f #t '())
-                 (tool (next-id) 'probe 10.0 #f '())
-                 (tool (next-id) 'missile 5.0 #f '())
-                 (tool (next-id) 'cannon 20.0 #f '())
-                 (tool (next-id) 'warp '(200.0 80.0 0.0) #f '())
-                 ))
+   cruiser (append (tools-pilot 25.0 #f 1.0)
+                   (list (tool-pbolt 5.0)
+                         (tool-probe 10.0)
+                         (tool-missile 5.0)
+                         (tool-cannon 20.0)
+                         (tool-warp 200.0 80.0))))
   
   
   (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:ai? #t #:hangar '()))
@@ -82,9 +68,9 @@
                                ;con maxcon radius mass radar drag start-ship?
                                1000.0 1000.0 26.0 1000.0 1000.0 0.4 #t))
   (set-ship-tools!
-   base (list (tool (next-id) 'pbolt 5.0 #f '())
-              (tool (next-id) 'probe 30.0 #f '())
-              (tool (next-id) 'missile 5.0 #f '())
+   base (list (tool-pbolt 5.0)
+              (tool-probe 30.0)
+              (tool-missile 5.0)
           ))
   
   
@@ -96,14 +82,10 @@
                                     ;con maxcon radius mass radar drag start?
                                     1000.0 1000.0 23.0 500.0 1000.0 0.4 #f))
   (set-ship-tools!
-   destroyer `(,(tool (next-id) 'engine 6.0 #f '())
-               ,(tool (next-id) 'turnleft 0.1 #f '())
-               ,(tool (next-id) 'turnright 0.1 #f '())
-               ,(tool (next-id) 'steer 0.1 #f '())
-               ,(tool (next-id) 'pbolt 5.0 #f '())
-               ,(tool (next-id) 'missile 5.0 #f '())
-               ,(tool (next-id) 'cannon 20.0 #f '())
-               ))
+   destroyer (append (tools-pilot 6.0 #f 0.1 #:dock? #f)
+                     (list (tool-pbolt 5.0)
+                           (tool-missile 5.0)
+                           (tool-cannon 20.0))))
   
   (set-ship-ai-strategy! destroyer
                          (list (strategy (space-time ownspace) "attack-only" (ob-id base))))

@@ -89,7 +89,7 @@
 ; rcid is #f, or the id of the missile/probe this player is controlling
 ; cbid is #f, or the id of the cannonball this player is shooting (so they can detonate it)
 
-(struct tool ob (name val rc dmgs) #:mutable #:prefab)
+(struct tool ob (name val rc visible? while-warping? dmgs) #:mutable #:prefab)
 ; this is something that a player/ai can interact with
 ; name is a symbol
 ; val is a value or list of values that parameterize the tool
@@ -97,7 +97,42 @@
 ; if there are no players, the rc field controls it
 ; - used by missles/probes where the players are not colocated
 ; - also dock only uses rc
+; visible? is #t if a player can interact with it
+; - on missiles, players can't interact with the engine tool
+; - steer tool is only used by ai, players use turnleft/turnright
+; while-warping? is #t if this tool can be used while a ship is warping
+; - if #f, then tool buttons are shown disabled during warping
 ; dmgs is list of dmg structs
+
+(define (tools-pilot engine-power engine-on? turn-power
+                     #:engine-visible? (v #t)
+                     #:dock? (dock? #t))
+  (append (list (tool (next-id) 'engine engine-power engine-on? v #f '())
+                (tool (next-id) 'turnleft turn-power #f #t #f '())
+                (tool (next-id) 'turnright turn-power #f #t #f '())
+                (tool (next-id) 'steer turn-power #f #f #f '()))
+          (if dock?
+              (list (tool (next-id) 'dock #f #t #t #t '()))
+              '())))
+
+(define (tool-endrc life)
+  (tool (next-id) 'endrc #f life #t #t '()))
+
+(define (tool-pbolt power)
+  (tool (next-id) 'pbolt power #f #t #f '()))
+
+(define (tool-probe life)
+  (tool (next-id) 'probe life #f #t #t '()))
+
+(define (tool-missile life)
+  (tool (next-id) 'missile life #f #t #f '()))
+
+(define (tool-cannon power)
+  (tool (next-id) 'cannon power #f #t #f '()))
+
+(define (tool-warp speed threshold)
+  (tool (next-id) 'warp (list speed threshold 0.0) #f #t #t '()))
+
 
 (define MOUSE_TOOLS '(pbolt))
 
