@@ -144,17 +144,21 @@
   (define (on-tick ownspace change-scenario!)
     (define changes '())
 
-    (for ((p (space-players ownspace)))
-      (when (not (player-faction p))
-        ; new player
-        (append! changes (chfaction (ob-id p) "Rebel"))))
-
-    (for ((fo (space-orders real-orders)))
-      (check ownspace (car fo) (cadr fo)))
-    
     (define hb (find-id ownspace (ob-id base)))
     (define eb (find-id ownspace (ob-id destroyer)))
     (define c (find-id ownspace (ob-id cruiser)))
+
+    (for ((p (space-players ownspace)))
+      (when (not (player-faction p))
+        ; new player
+        (append! changes (chfaction (ob-id p) "Rebel"))
+        (when c
+          (append! changes (chmov (ob-id p) (ob-id c) #f))))
+      (when (and c (not (find-id ownspace (ob-id p))))
+        (append! changes (chmov (ob-id p) (ob-id c) #f))))
+
+    (for ((fo (space-orders real-orders)))
+      (check ownspace (car fo) (cadr fo)))
 
     (when (and playing? (or (not hb) (not eb) (not c)))
       (set! playing? #f)

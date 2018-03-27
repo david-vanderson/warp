@@ -72,7 +72,7 @@
    goodship (list (tool (next-id) 'engine 25.0 #f (list (dmg enginedmgid "offline" 10000.0 0 #f)))
                   (tool (next-id) 'turnleft 0.3 #f '())
                   (tool (next-id) 'turnright 0.3 #f '())
-                  (tool (next-id) 'warp '(200.0 80.0 0.0) #f '() #;(list (dmg warpdmgid "offline" 10000.0 0 #f)))
+                  (tool (next-id) 'warp '(200.0 80.0 0.0) #f (list (dmg warpdmgid "offline" 10000.0 0 #f)))
                   (tool (next-id) 'pbolt 5.0 #f '())
                   (tool (next-id) 'probe 10.0 #f '())
                   (tool (next-id) 'missile 5.0 #f '())
@@ -126,16 +126,20 @@
   (define (on-tick ownspace change-scenario!)
     (define changes '())
 
+    (define frig (find-id ownspace (ob-id goodship)))
+    (define eb (find-id ownspace (ob-id enemy-base)))
+
     (for ((p (space-players ownspace)))
       (when (not (player-faction p))
         ; new player
-        (append! changes (chfaction (ob-id p) "Empire"))))
+        (append! changes (chfaction (ob-id p) "Empire"))
+        (when frig
+          (append! changes (chmov (ob-id p) (ob-id frig) #f))))
+      (when (and frig (not (find-id ownspace (ob-id p))))
+        (append! changes (chmov (ob-id p) (ob-id frig) #f))))
 
     (for ((fo (space-orders real-orders)))
       (check ownspace (car fo) (cadr fo)))
-    
-    (define frig (find-id ownspace (ob-id goodship)))
-    (define eb (find-id ownspace (ob-id enemy-base)))
 
     (when (and playing? (or (not frig) (not eb) ((space-time ownspace) . > . time-limit)))
       (set! playing? #f)  ; end scenario
