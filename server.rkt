@@ -315,7 +315,8 @@
   (define changes '())
   (define objects (space-objects space))
   (define ships (filter ship? objects))
-  
+
+  (define spacesuits (filter spacesuit? ships))
   (define spaceships (filter spaceship? ships))
   (define probes (filter probe? ships))
   (define missiles (filter missile? ships))
@@ -391,7 +392,7 @@
                     space precs (space-time space) "server"))
         (append! changes cs))))
   
-  (let loop ((ships (append spaceships probes)))
+  (let loop ((ships (append spaceships probes spacesuits)))
     (when (not (null? ships))
       (define ship (car ships))
       (for ((s (cdr ships)))
