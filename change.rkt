@@ -101,7 +101,7 @@
 ; who is a string? for message reporting
 ;
 (define (apply-change! space c ctime who)
-  ;(printf "~a applying change ~v\n" who c)
+  ;(printf "~a (~a) applying change ~v\n" who (space-time space) c)
   (cond
     ((command? c)
      (define s (find-stack space (command-id c)))

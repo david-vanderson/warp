@@ -156,15 +156,11 @@
               (append! spr (draw-cargolist csd textr textsr center scale o "gray" fowa
                                            (list (upgrade-type o)) '()))))
            ((ship? o)
-            (define-values (x y) (obj->screen o center scale))
-            (define sid (sprite-idx csd (string->symbol (ship-type o))))
-            (define size (ship-info-size (hash-ref ship-list (ship-type o))))
-            (define sprite-size (max (sprite-width csd sid)
-                                     (sprite-height csd sid)))
-            (append! spr (sprite x y sid
-                                 #:layer LAYER_SHIPS #:theta (- (obj-r o))
-                                 #:m (exact->inexact (/ (* size scale) sprite-size))
-                                 #:a fowa #:r (get-red space o)))
+            (append! spr (obj-sprite o csd center scale LAYER_SHIPS
+                                     (string->symbol (ship-type o))
+                                     (ship-info-size (hash-ref ship-list (ship-type o)))
+                                     fowa (obj-r o) (make-color (get-red space o) 0 0 1.0)))
+            
             ;(append! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
             (when showplayers?
               (define colstr (faction-check-color faction (ship-faction o)))

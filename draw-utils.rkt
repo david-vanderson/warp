@@ -24,13 +24,18 @@
 (define (obj->screen o center scale)
   (xy->screen (obj-x o) (obj-y o) center scale))
 
+(define (snap x w)
+  (if (even? w)
+      (round x)
+      (- (round (+ x 0.5)) 0.5)))
+
 (define (xy-sprite x y csd scale layer sprsym size a r color)
   (when (string? color)
     (set! color (send the-color-database find-color color)))
-  
-  (define sprite-size (max (sprite-width csd (sprite-idx csd sprsym))
-                           (sprite-height csd (sprite-idx csd sprsym))))
-  (sprite x y (sprite-idx csd sprsym)
+  (define w (sprite-width csd (sprite-idx csd sprsym)))
+  (define h (sprite-height csd (sprite-idx csd sprsym)))
+  (define sprite-size (max w h))
+  (sprite (snap x w) (snap y h) (sprite-idx csd sprsym)
           #:layer layer #:a (exact->inexact a) #:theta (exact->inexact (- r))
           #:m (exact->inexact (/ (* size scale) sprite-size))
           #:r (send color red) #:g (send color green) #:b (send color blue)))
@@ -119,9 +124,9 @@
   (define hpfrac (max 0.0 (/ (ship-con ship) (ship-maxcon ship))))
   (cond
     ((hpfrac . < . 0.5)
-     (define cycletime (+ 200 (* 5000 hpfrac)))
+     (define cycletime 2500.0)
      (define z (cycletri (obj-age space ship) cycletime))
-     (define alpha (+ 0.0 (* 1.0 z (max 0.1 (- 0.8 hpfrac)))))
+     (define alpha (* z (- 0.8 hpfrac)))
      (inexact->exact (round (* alpha 255))))
     (else 0)))
 
