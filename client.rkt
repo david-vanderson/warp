@@ -72,6 +72,11 @@
   (define dragstate "none")  ; "none", "start", "drag"
   
   (define scale-play 1.0)  ; scale for zooming
+
+  (define first-scale #t)
+  ; when a new scenario happens and you are not on a ship, set this to #t
+  ; if you are put onto a ship and this is #t, set to #f and set scale-play to 1.0
+  ; effectively, the "first" time you are put on a ship, zoom to normal scale
   
   (define (min-scale)
     (if ownspace
@@ -86,11 +91,10 @@
   (define shown-scale scale-play)  ; scale that is actually used
   (define (get-scale) (if showsector? (min-scale) shown-scale))
   (define (update-scale)  ; move shown-scale towards the scale we want
-    (define target scale-play)
-    (define diff (abs (- target shown-scale)))
-    (if (shown-scale . < . target)
-        (set! shown-scale (min target (+ shown-scale (max 0.1 (* 0.4 diff)))))
-        (set! shown-scale (max target (- shown-scale (max 0.1 (* 0.4 diff)))))))
+    (define diff (abs (- scale-play shown-scale)))
+    (if (shown-scale . < . scale-play)
+        (set! shown-scale (min scale-play (+ shown-scale (max 0.1 (* 0.4 diff)))))
+        (set! shown-scale (max scale-play (- shown-scale (max 0.1 (* 0.4 diff)))))))
   
   
   (define (in-button? buttons x y)
@@ -469,9 +473,7 @@
         ((spacesuit? (get-ship my-stack))
          ; dying
          (set-button-f! leave-button (lambda (x y)
-                                       ; reset scale so starting screen shows whole sector
-                                       (set! scale-play (min-scale))
-                                       (set! center-follow? #t)  ; sector centered
+                                       (set! center-follow? #t)  ; sector/ship centered
                                        (send-commands (chmov meid #f #f))))
          (append! buttons leave-button))
         ((and (player-rcid (car my-stack)) (find-id ownspace (player-rcid (car my-stack))))
@@ -934,7 +936,8 @@
 
            (when (not (find-id ownspace meid))
              ; set scale so we see the whole sector
-             (set! scale-play (min-scale))))
+             (set! scale-play (min-scale))
+             (set! first-scale #t)))
           ((update? input)
            (cond
              ((not ownspace)
@@ -977,17 +980,21 @@
 
     (when ownspace
       (set! my-stack (find-stack ownspace meid))
-      (when (and my-stack (get-ship my-stack))
-        (define tools (map tool-name (ship-tools (get-ship my-stack))))
-        (cond
-          ((member (unbox active-mouse-tool) tools)
-            ; our tool exists in whatever ship we find ourselves in
-           )
-          (else
-           ; our tool doesn't exist, default to the first available
-           (set-box! active-mouse-tool (for/first ((t tools)
-                                                   #:when (member t MOUSE_TOOLS))
-                                         t)))))
+      (when my-stack
+        (when first-scale
+          (set! first-scale #f)
+          (set! scale-play 1.0))
+        (when (get-ship my-stack)
+          (define tools (map tool-name (ship-tools (get-ship my-stack))))
+          (cond
+            ((member (unbox active-mouse-tool) tools)
+             ; our tool exists in whatever ship we find ourselves in
+             )
+            (else
+             ; our tool doesn't exist, default to the first available
+             (set-box! active-mouse-tool (for/first ((t tools)
+                                                     #:when (member t MOUSE_TOOLS))
+                                           t))))))
         
       
       ; physics prediction
