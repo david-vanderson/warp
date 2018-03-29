@@ -831,9 +831,8 @@
     (set-space-time! space (+ (space-time space) TICK))
     (for ((o (in-list (space-objects space))))
       (update-physics! space o (/ TICK 1000.0))
-      (when (ship? o) (repair-subships! (/ TICK 1000.0) o))
+      (when (ship? o) (update-ship! o (/ TICK 1000.0)))
       (add-backeffects! space o)))
-  
   
   
   (define (drop-connection msg)

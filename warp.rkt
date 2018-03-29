@@ -40,14 +40,13 @@
        ((warp-energy w) . = . (warp-threshold w))))
 
 (define (cancel-warp! ship)
-  ; not sure if this is good or not, but setting speed to zero here
-  ; screws up the bounch when a warping ship hits something
-  ;(set-posvel-dx! (obj-posvel ship) 0.0)
-  ;(set-posvel-dy! (obj-posvel ship) 0.0)
   (define w (ship-tool ship 'warp))
-  (set-tool-val! w (list (warp-speed w)
-                         (warp-threshold w)
-                         0.0)))
+  (when w
+    (set-tool-val! w (list (warp-speed w)
+                           (warp-threshold w)
+                           0.0))
+    (for ((p (in-list (ship-players ship))))
+      (set-player-commands! p (remove* '(warp) (player-commands p))))))
 
 
 ; return list of buttons
@@ -92,7 +91,10 @@
        (set-button-label! b "Charging Warp [s]"))
      (set-button-f! b (lambda (x y)
                         (send-commands (command pid cmdlevel (tool-name t) #t))))))
-  
+
+  (when (or (not (ship-flying? ship))
+            (and (warping? ship) (not (tool-while-warping? t))))
+    (set-button-draw! b 'disabled))
   (append! buttons b)
   (define ob (add-offline-button! t b send-commands))
   (when ob (append! buttons ob))

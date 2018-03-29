@@ -27,20 +27,6 @@
      (set-posvel-dr! pv 0.0)
      (set! trying? #t))
     (else
-     (cond
-       ((warp-charging? ownship)
-        (define w (ship-tool ownship 'warp))
-        (define wc (tool-count w ownship))
-        (set-tool-val! w (list (warp-speed w)
-                               (warp-threshold w)
-                               (min (warp-threshold w)
-                                    (+ (warp-energy w) (* 10.0 dt wc))))))
-       ((ship-tool ownship 'warp)
-        (define w (ship-tool ownship 'warp))
-        (set-tool-val! w (list (warp-speed w)
-                               (warp-threshold w)
-                               (max 0.0 (- (warp-energy w) (* 10.0 dt)))))))
-
      (define st (ship-tool ownship 'steer))
      (define tl (ship-tool ownship 'turnleft))
      (define tr (ship-tool ownship 'turnright))
@@ -187,10 +173,27 @@
   changes)
 
 
-(define (repair-subships! dt ship)
+(define (update-ship! ship dt)
+  (define w (ship-tool ship 'warp))
+  (when w
+    (cond
+      ((warping? ship)
+       ; nothing changes
+       )
+      ((warp-charging? ship)
+       (define wc (tool-count w ship))
+       (set-tool-val! w (list (warp-speed w)
+                              (warp-threshold w)
+                              (min (warp-threshold w)
+                                   (+ (warp-energy w) (* 10.0 dt wc))))))
+      (else
+       ; drain it
+       (set-tool-val! w (list (warp-speed w)
+                              (warp-threshold w)
+                              (max 0.0 (- (warp-energy w) (* 10.0 dt))))))))
   (for ((s (in-list (ship-ships ship))))
     (define stats (ship-stats s))
     (set-stats-con! stats (min (stats-maxcon stats)
                                (+ (stats-con stats) (* 5.0 dt))))
-    (repair-subships! dt s)))
+    (update-ship! s dt)))
 

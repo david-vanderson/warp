@@ -249,8 +249,6 @@
 ; return a list of changes
 (define (dock! s1 s2)  
   (define changes '())
-  (when (warping? s1)
-    (append! changes (command (ob-id s1) #f 'warp 'stop)))
   (append! changes (list (chmov (ob-id s1) (ob-id s2) #f)))
   changes)
 
@@ -544,7 +542,7 @@
     (set-space-time! ownspace (+ (space-time ownspace) TICK))
     (for ((o (space-objects ownspace)))
       (update-physics! ownspace o (/ TICK 1000.0))
-      (when (ship? o) (repair-subships! (/ TICK 1000.0) o)))
+      (when (ship? o) (update-ship! o (/ TICK 1000.0))))
       
 
     ; collisions

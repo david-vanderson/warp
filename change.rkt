@@ -143,7 +143,7 @@
            (cond
              ((and (equal? 'warp (command-cmd c))
                    (equal? 'stop (command-arg c)))
-              (when (and ship (warping? ship))
+              (when ship
                 (cancel-warp! ship))
               (values #t '()))
              ((or rcship (not p))
@@ -274,7 +274,12 @@
                   ; whenever a player moves somewhere, need to clear out all existing commands
                   (when (player? (car s))
                     (append! changes (player-cleanup! space (car s))))
-                  (when (obj? (car s)) (set-obj-posvel! (car s) (chmov-pv c)))))
+                  (when (obj? (car s)) (set-obj-posvel! (car s) (chmov-pv c)))
+                  (when (and (ship? (car s)) (ship? to))
+                    (define ship (car s))
+                    ; ship is docking, clean up warp if we have it
+                    (when (ship-tool ship 'warp)
+                      (append! changes (command (ob-id ship) #f 'warp 'stop))))))
            (values #t changes))
           (p
            (add! p to who)
