@@ -84,9 +84,10 @@
         .01))
   (define (max-scale) 30.0)
     
-  (define (set-scale z)
+  (define (set-scale z #:immediate? (imm? #f))
     (define newz (clamp (min-scale) (max-scale) z))
-    (set! scale-play newz))
+    (set! scale-play newz)
+    (when imm? (set! shown-scale scale-play)))
   
   (define shown-scale scale-play)  ; scale that is actually used
   (define (get-scale) (if showsector? (min-scale) shown-scale))
@@ -237,6 +238,7 @@
         (define ship (get-ship my-stack))
         (define topship (get-topship my-stack))
         (when (and (unbox in-hangar?) (not (ship-hangar ship)))
+          ; just to make sure, maybe our ship had a hangar and it went away?
           (set-box! in-hangar? #f))
         (cond 
           ((unbox in-hangar?)
@@ -449,16 +451,15 @@
         
         (append! buttons zbutton zkeyb xkeyb))
 
+      ; auto-center button
+      (when (not center-follow?)
+        (define b (button 'normal #\z 0.0 (+ TOP 50) 120 50 "Auto Center"
+                          (lambda (x y) (set! center-follow? #t))))
+        (append! buttons b))
         
       (define leave-button (button 'normal 'escape (+ LEFT 50) (+ TOP 25) 100 50 "Exit" #f))
       (define quit-button (button 'normal 'escape (- RIGHT 50) (- BOTTOM 25) 100 50 "Quit" #f))
       (cond
-        ((not center-follow?)
-         (set-button-label! leave-button "Back")
-         (set-button-f! leave-button
-                        (lambda (x y)
-                          (set! center-follow? #t)))
-         (append! buttons leave-button))
         ((not my-stack)
          (set-button-f! quit-button
                         (lambda (x y)
@@ -479,22 +480,17 @@
         ((and (player-rcid (car my-stack)) (find-id ownspace (player-rcid (car my-stack))))
          ; remote controlling something
          )
-        ((ship-flying? (get-ship my-stack))
-         (cond
-           ((unbox in-hangar?)
-            (set-button-f! leave-button (lambda (x y) (set-box! in-hangar? #f)))
-            (append! buttons leave-button))
-           (else
-            ; jumping ship
-            (set-button-label! quit-button "Jump")
-            (set-button-key! quit-button #f)  ; turn off keyboard shortcut
-            (set-button-f! quit-button (lambda (x y) (send-commands (chmov meid #f #f))))
-            (append! buttons quit-button))))
         ((unbox in-hangar?)
          ; looking into a hangar, just stop looking
          (set-button-f! leave-button (lambda (x y)
                                        (set-box! in-hangar? #f)))
          (append! buttons leave-button))
+        ((ship-flying? (get-ship my-stack))
+         ; jumping ship
+         (set-button-label! quit-button "Jump")
+         (set-button-key! quit-button #f)  ; turn off keyboard shortcut
+         (set-button-f! quit-button (lambda (x y) (send-commands (chmov meid #f #f))))
+         (append! buttons quit-button))
         (else
          ; leaving this ship into mothership
          (define ms (cadr (get-ships my-stack)))
@@ -608,7 +604,22 @@
                      ; (style '(hide-menu-bar no-caption no-resize-border))
                      ))
 
-  
+
+  (define (zoom-mouse z)
+    (define old-scale (get-scale))
+    (set-scale (* scale-play z) #:immediate? #t)
+    (when (not center-follow?)
+      ; zoom around mouse pointer
+      (define-values (p mods) (get-current-mouse-state))
+      (define-values (wx wy) (send canvas screen->client
+                                   (+ (send p get-x) left-inset)
+                                   (+ (send p get-y) top-inset)))
+      (define-values (x y) (screen->canon canvas wx wy))
+      (define-values (ox oy) (canon->space center old-scale x y))
+      (define-values (mx my) (canon->space center (get-scale) x y))
+      ; adjust centerxy so ox,oy will display at mx,my
+      (set-posvel-x! (obj-posvel centerxy) (- (obj-x centerxy) (- mx ox)))
+      (set-posvel-y! (obj-posvel centerxy) (- (obj-y centerxy) (- my oy)))))
   
   (define my-canvas%
     (class canvas%
@@ -691,10 +702,10 @@
                                         (~a "message " (space-time ownspace))))))
              ((wheel-up)
               (when (and ownspace (not showsector?))
-                (set-scale (* scale-play 1.05))))
+                (zoom-mouse 1.05)))
              ((wheel-down)
               (when (and ownspace (not showsector?))
-                (set-scale (/ scale-play 1.05))))
+                (zoom-mouse (/ 1.0 1.05))))
              #;((#\u)
               (when ownspace
                 (send-commands (chadd (random-upgrade ownspace (posvel -1 0 0 0 (random 100) (random 100) 0)) #f))))

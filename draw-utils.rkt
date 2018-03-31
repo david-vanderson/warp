@@ -21,6 +21,10 @@
   (values (* zoom (- x (obj-x center)))
           (* zoom (- (obj-y center) y))))
 
+(define (canon->space center zoom x y)
+  (values (+ (obj-x center) (/ x zoom))
+          (- (obj-y center) (/ y zoom))))
+
 (define (obj->screen o center scale)
   (xy->screen (obj-x o) (obj-y o) center scale))
 
