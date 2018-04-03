@@ -39,7 +39,7 @@
   (define w (sprite-width csd (sprite-idx csd sprsym)))
   (define h (sprite-height csd (sprite-idx csd sprsym)))
   (define sprite-size (max w h))
-  (sprite (snap x w) (snap y h) (sprite-idx csd sprsym)
+  (sprite x y (sprite-idx csd sprsym)
           #:layer layer #:a (exact->inexact a) #:theta (exact->inexact (- r))
           #:m (exact->inexact (/ (* size scale) sprite-size))
           #:r (send color red) #:g (send color green) #:b (send color blue)))

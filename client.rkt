@@ -503,14 +503,10 @@
         (define player (car my-stack))
         (define rcship (if (player-rcid player) (find-id ownspace (player-rcid player)) #f))
 
-        (let ()
-          (define topship (or rcship (get-topship my-stack)))  
-          (define-values (gx gy) (obj->screen topship center (get-scale)))
-          (define w (sprite-width csd (sprite-idx csd 'corners)))
-          (define h (sprite-height csd (sprite-idx csd 'corners)))
-          (append! sprites (sprite (snap gx w) (snap gy h) (sprite-idx csd 'corners)
-                                   #:layer LAYER_UI
-                                   #:g 200)))
+        (define topship (or rcship (get-topship my-stack)))
+        (append! sprites (obj-sprite topship csd center (get-scale) LAYER_UI 'corners
+                                     (/ (sprite-width csd (sprite-idx csd 'corners)) (get-scale))
+                                     1.0 0.0 (make-color 0 200 0 1.0)))
       
         (define ship (or rcship (get-ship my-stack)))
         
@@ -806,16 +802,17 @@
                                        110 110)) "black"))
 
     (add-sprite!/value sd 'corners
-                       (colorize (dc (lambda (dc dx dy)
-                                       (send dc draw-line 1 1 5 1)
-                                       (send dc draw-line 45 1 49 1)
-                                       (send dc draw-line 49 1 49 5)
-                                       (send dc draw-line 49 45 49 49)
-                                       (send dc draw-line 49 49 45 49)
-                                       (send dc draw-line 5 49 1 49)
-                                       (send dc draw-line 1 49 1 45)
-                                       (send dc draw-line 1 5 1 1))
-                                     50 50) "black"))
+                       (colorize (linewidth 2.0
+                                            (dc (lambda (dc dx dy)
+                                                  (send dc draw-line 1 1 5 1)
+                                                  (send dc draw-line 45 1 49 1)
+                                                  (send dc draw-line 49 1 49 5)
+                                                  (send dc draw-line 49 45 49 49)
+                                                  (send dc draw-line 49 49 45 49)
+                                                  (send dc draw-line 5 49 1 49)
+                                                  (send dc draw-line 1 49 1 45)
+                                                  (send dc draw-line 1 5 1 1))
+                                                50 50)) "black"))
     )
   (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))
   (load-ships sd)
