@@ -141,7 +141,6 @@
     (set! clickcmds #f)
     
     (update-scale)
-    (define canvas-scale (min (/ (send canvas get-width) WIDTH) (/ (send canvas get-height) HEIGHT)))
     
     (set! center
           (cond ((or (not ownspace) showsector?)
@@ -173,8 +172,9 @@
       (define ordertree (get-space-orders-for ownspace fac))
       
       ; make background be fog of war gray
-      (append! sprites (sprite 0.0 0.0 (sprite-idx csd 'gray) #:layer LAYER_FOW_GRAY
-                               #:m (* canvas-scale (min WIDTH HEIGHT))))
+      (append! sprites (sprite 0.0 0.0 (sprite-idx csd '100x100) #:layer LAYER_FOW_GRAY
+                               #:m (* 2.0 (/ (max WIDTH HEIGHT) 100.0)) #:r (send fowcol red)
+                               #:g (send fowcol green) #:b (send fowcol blue)))
 
       ; put a black circle wherever we can see
       (define fowlist
@@ -426,17 +426,17 @@
         (define zh 150)
         (define zcx (- RIGHT 10 (/ zw 2)))
         (define zcy (+ TOP 100 (/ zh 2)))
-        (append! sprites (sprite zcx (+ zcy (- (/ zh 2))) (sprite-idx csd 'blue)
-                                 #:layer LAYER_UI #:mx (/ 20.0 (sprite-width csd (sprite-idx csd 'blue)))))
-        (append! sprites (sprite zcx (+ zcy (/ zh 2)) (sprite-idx csd 'blue)
-                                 #:layer LAYER_UI #:mx (/ 20.0 (sprite-width csd (sprite-idx csd 'blue)))))
-        (append! sprites (sprite zcx zcy (sprite-idx csd 'blue)
-                                 #:layer LAYER_UI #:my (/ 150.0 (sprite-height csd (sprite-idx csd 'blue)))))
+        (append! sprites (sprite zcx (+ zcy (- (/ zh 2))) (sprite-idx csd '20x2)
+                                 #:layer LAYER_UI #:b (send mapcol blue)))
+        (append! sprites (sprite zcx (+ zcy (/ zh 2)) (sprite-idx csd '20x2)
+                                 #:layer LAYER_UI #:b (send mapcol blue)))
+        (append! sprites (sprite zcx zcy (sprite-idx csd '2x150)
+                                 #:layer LAYER_UI #:b (send mapcol blue)))
         
         (define zfrac (/ (- (log scale-play) (log (min-scale)))
                          (- (log (max-scale)) (log (min-scale)))))
-        (append! sprites (sprite zcx (+ zcy (/ zh 2) (- (* zfrac zh))) (sprite-idx csd 'blue)
-                                 #:layer LAYER_UI #:mx (/ 20.0 (sprite-width csd (sprite-idx csd 'blue)))))
+        (append! sprites (sprite zcx (+ zcy (/ zh 2) (- (* zfrac zh))) (sprite-idx csd '20x2)
+                                 #:layer LAYER_UI #:b (send mapcol blue)))
         (define zbutton (button 'hidden #f zcx zcy zw zh "Zoom"
                                 (lambda (x y)
                                   (define zfracy (/ (+ (/ zh 2) (- y)) zh))
@@ -504,9 +504,7 @@
         (define rcship (if (player-rcid player) (find-id ownspace (player-rcid player)) #f))
 
         (define topship (or rcship (get-topship my-stack)))
-        (append! sprites (obj-sprite topship csd center (get-scale) LAYER_UI 'corners
-                                     (/ (sprite-width csd (sprite-idx csd 'corners)) (get-scale))
-                                     1.0 0.0 (make-color 0 200 0 1.0)))
+        (append! sprites (draw-green-corners topship csd center (get-scale)))
       
         (define ship (or rcship (get-ship my-stack)))
         
@@ -770,10 +768,16 @@
     (add-sprite!/value sd 'dmgbutton-fill
                        (inset (filled-rectangle 100 50 #:color "black"
                                                 #:border-color "black" #:border-width 0) 2))
-    (add-sprite!/value sd 'blue
-                       (colorize (rectangle 2 2) "blue"))
-    (add-sprite!/value sd 'gray
-                       (colorize (rectangle 2 2) "gray"))
+    (add-sprite!/value sd '100x1
+                       (colorize (filled-rectangle 100 1) "black"))
+    (add-sprite!/value sd '5x1
+                       (colorize (filled-rectangle 5 1) "black"))
+    (add-sprite!/value sd '20x2
+                       (colorize (filled-rectangle 20 2) "black"))
+    (add-sprite!/value sd '2x150
+                       (colorize (filled-rectangle 2 150) "black"))
+    (add-sprite!/value sd '100x100
+                       (colorize (filled-rectangle 100 100) "black"))
     (add-sprite!/value sd 'circle
                        (colorize (filled-ellipse 100 100) "black"))
     (add-sprite!/value sd 'shield
@@ -800,19 +804,6 @@
                                          (send dc draw-line 5 55 105 55)
                                          (send dc set-brush b))
                                        110 110)) "black"))
-
-    (add-sprite!/value sd 'corners
-                       (colorize (linewidth 2.0
-                                            (dc (lambda (dc dx dy)
-                                                  (send dc draw-line 1 1 5 1)
-                                                  (send dc draw-line 45 1 49 1)
-                                                  (send dc draw-line 49 1 49 5)
-                                                  (send dc draw-line 49 45 49 49)
-                                                  (send dc draw-line 49 49 45 49)
-                                                  (send dc draw-line 5 49 1 49)
-                                                  (send dc draw-line 1 49 1 45)
-                                                  (send dc draw-line 1 5 1 1))
-                                                50 50)) "black"))
     )
   (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))
   (load-ships sd)

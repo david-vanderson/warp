@@ -213,26 +213,50 @@
 (define (draw-sector-lines csd center scale space)
   (define spr '())
   (define max-x (/ (space-width space) 2))
+  (define mx (* max-x scale 2.0 (/ 1.0 100.0)))
   (define max-y (/ (space-height space) 2))
+  (define my (* max-y scale 2.0 (/ 1.0 100.0)))
   
   (define sw 1000)
+  (define idx (sprite-idx csd '100x1))
+  (define w 2.0)
   
   (define-values (x y) (xy->screen 0.0 0.0 center scale))
-  (append! spr (sprite x y (sprite-idx csd 'blue) #:layer LAYER_MAP #:my (* max-y scale) #:a 0.8))
+  (append! spr (sprite x y idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2 #:b (send mapcol blue)))
   (for ((i (in-range 1 (+ 1 (inexact->exact (floor (/ max-x sw)))))))
     (define-values (x y) (xy->screen (exact->inexact (* sw i)) 0.0 center scale))
-    (append! spr (sprite x y (sprite-idx csd 'blue) #:layer LAYER_MAP #:my (* max-y scale) #:a 0.8))
+    (append! spr (sprite x y idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2 #:b (send mapcol blue)))
     (define-values (x2 y2) (xy->screen (exact->inexact (* sw (- i))) 0.0 center scale))
-    (append! spr (sprite x2 y2 (sprite-idx csd 'blue) #:layer LAYER_MAP #:my (* max-y scale) #:a 0.8)))
+    (append! spr (sprite x2 y2 idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2 #:b (send mapcol blue))))
   
-  (append! spr (sprite x y (sprite-idx csd 'blue) #:layer LAYER_MAP #:mx (* max-x scale) #:a 0.8))
+  (append! spr (sprite x y idx #:layer LAYER_MAP #:my w #:mx mx #:b (send mapcol blue)))
   (for ((i (in-range 1 (+ 1 (inexact->exact (floor (/ max-y sw)))))))
     (define-values (x y) (xy->screen 0.0 (exact->inexact (* sw i)) center scale))
-    (append! spr (sprite x y (sprite-idx csd 'blue) #:layer LAYER_MAP #:mx (* max-x scale) #:a 0.8))
+    (append! spr (sprite x y idx #:layer LAYER_MAP #:my w #:mx mx #:b (send mapcol blue)))
     (define-values (x2 y2) (xy->screen 0.0 (exact->inexact (* sw (- i))) center scale))
-    (append! spr (sprite x2 y2 (sprite-idx csd 'blue) #:layer LAYER_MAP #:mx (* max-x scale) #:a 0.8)))
+    (append! spr (sprite x2 y2 idx #:layer LAYER_MAP #:my w #:mx mx #:b (send mapcol blue))))
   spr)
 
+
+(define (draw-green-corners o csd center scale)
+  (define sprites '())
+  (define idx (sprite-idx csd '5x1))
+  (define w 2.0)
+  (define h 2.5)
+  (define-values (x y) (obj->screen o center scale))
+  (append! sprites (sprite (+ x 25 (- h)) (+ y 24) idx #:my w #:layer LAYER_UI #:g 200))
+  (append! sprites (sprite (+ x 24) (+ y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+
+  (append! sprites (sprite (- x 25 (- h)) (+ y 24) idx #:my w #:layer LAYER_UI #:g 200))
+  (append! sprites (sprite (- x 24) (+ y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+
+  (append! sprites (sprite (+ x 25 (- h)) (- y 24) idx #:my w #:layer LAYER_UI #:g 200))
+  (append! sprites (sprite (+ x 24) (- y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+
+  (append! sprites (sprite (- x 25 (- h)) (- y 24) idx #:my w #:layer LAYER_UI #:g 200))
+  (append! sprites (sprite (- x 24) (- y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+
+  sprites)
 
 
 (define (draw-overlay textr textsr space stack)

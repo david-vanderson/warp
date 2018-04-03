@@ -13,6 +13,9 @@
 
 (provide (all-defined-out))
 
+(define fowcol (make-color 100 100 100 1.0))  ; background gray
+(define mapcol (make-color 0 0 200 1.0))  ; sector lines, zoom scale
+
 (define (xy->screen x y center scale)
   (values (* (- x (obj-x center)) scale)
           (* (- (obj-y center) y) scale)))
