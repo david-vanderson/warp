@@ -1,14 +1,10 @@
 #lang racket/base
 
-(require racket/class
-         racket/math
-         mode-lambda
-         racket/draw)
+(require racket/math)
 
 (require "defs.rkt"
          "utils.rkt"
-         "ships.rkt"
-         "draw-utils.rkt")
+         "ships.rkt")
 
 (provide (all-defined-out))
 
@@ -19,16 +15,11 @@
 (define (reduce-cannonball! space b damage)
   (define changes '())
 
-  ; -1 damage means exploding
-  ; -2 damage means dying silently because we hit a ship
-  
-  (if (damage . > . 0)
-      (set-stats-con! (ship-stats b) (- (ship-con b) damage))
-      (set-stats-con! (ship-stats b) damage))
+  (set-stats-con! (ship-stats b) (- (ship-con b) damage))
   
   (when ((ship-con b) . <= . 0)
     (set-space-objects! space (remove-id (ob-id b) (space-objects space)))
-    (when (and (server?) (not (equal? -2 damage)))
+    (when (server?)
       ; explode
       (define num 16)
       (for ((i (in-range num)))
@@ -137,7 +128,7 @@
         ((abs (angle-frto t2 t)) . < . (* pi 0.2))))
     
     (when (not any-closer?)
-      (append! changes (list (chdam (ob-id ownship) -1)))))
+      (append! changes (list (chdam (ob-id ownship) (ship-maxcon ownship))))))
   
   changes)
 

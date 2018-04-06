@@ -811,7 +811,7 @@
   (add-sprite!/file sd 'missile (string-append "images/missile.png"))
   (add-sprite!/file sd 'cannonball (string-append "images/asteroid_43.png"))
   
-  (define csd (compile-sprite-db sd))
+  (define csd (compile-sprite-db sd #:padding 2))
   ;(save-csd! csd "csd" #:debug? #t)
   (define textr (make-text-aligned-renderer textfont csd))
   (define textsr (make-text-aligned-sizer textfont csd))

@@ -94,7 +94,7 @@
     ;(printf "missile hit plasma\n")
 
     (define damage (plasma-energy space p))
-    (append! changes (chdam (ob-id m) -1)  ; -1 means missile explodes
+    (append! changes (chdam (ob-id m) damage)
              (chdam (ob-id p) damage)))
   changes)
 
@@ -107,7 +107,7 @@
              ((distance ship m) . < . (+ (ship-radius ship) (ship-radius m))))
     ;(printf "missile hit ship ~a\n" (ship-name ship))
 
-    (define damage 50.0)
+    (define damage (ship-maxcon m))
     (define e (effect (next-id) (space-time space)
                       (struct-copy posvel (obj-posvel m)
                                    (dx (posvel-dx (obj-posvel ship)))
@@ -125,11 +125,9 @@
   (when (and ((ship-con m1) . > . 0)
              ((ship-con m2) . > . 0)
              ((distance m1 m2) . < . (+ (ship-radius m1) (ship-radius m2))))
-    ;(printf "missile hit ship ~a\n" (ship-name ship))
-
     (append! changes
-             (chdam (ob-id m1) -1)  ; -1 means missile explodes
-             (chdam (ob-id m2) -1)))
+             (chdam (ob-id m1) (ship-maxcon m2))
+             (chdam (ob-id m2) (ship-maxcon m1))))
   changes)
 
 
@@ -138,7 +136,6 @@
   (when (and ((ship-con cb1) . > . 0)
              ((ship-con cb2) . > . 0)
              ((distance cb1 cb2) . < . (+ (ship-radius cb1) (ship-radius cb2))))
-    ;(printf "missile hit ship ~a\n" (ship-name ship))
     (define d (+ (ship-maxcon cb1) (ship-maxcon cb2)))
     (append! changes
              (chdam (ob-id cb1) d)
@@ -151,7 +148,7 @@
   (when (and ((ship-con ship) . > . 0)
              ((ship-con cb) . > . 0)
              ((distance ship cb) . < . (+ (ship-radius ship) (ship-radius cb))))
-    ;(printf "missile hit ship ~a\n" (ship-name ship))
+    ;(printf "cannon hit ship ~a\n" (ship-name ship))
 
     (define d (ship-maxcon cb))
     (define e (effect (next-id) (space-time space)
@@ -343,7 +340,7 @@
   (for ((cb cbs))
     (when ((obj-age space cb) . > . 30000.0)
       (define cs (apply-all-changes!
-                  space (list (chdam (ob-id cb) -1)) (space-time space) "server"))
+                  space (list (chdam (ob-id cb) (ship-maxcon cb))) (space-time space) "server"))
       (append! changes cs))
     (for ((cb2 cbs)
           #:when (not (equal? (ob-id cb) (ob-id cb2))))
@@ -359,8 +356,7 @@
     (define t (ship-tool m 'endrc))
     (when ((tool-rc t) . <= . (/ (obj-age space m) 1000.0))
       (define cs (apply-all-changes!
-                  ; -1 means missile explodes
-                  space (list (chdam (ob-id m) -1)) (space-time space) "server"))
+                  space (list (chdam (ob-id m) (ship-maxcon m))) (space-time space) "server"))
       (append! changes cs))
     (for ((p plasmas))
       (define cs (apply-all-changes!

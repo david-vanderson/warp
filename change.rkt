@@ -183,8 +183,8 @@
      (define id (if p (player-rcid p) (endrc-rcid c)))
      (define o (find-id space id))
      (when (and (server?) (missile? o))
-       ; -1 means missile explodes
-       (append! changes (chdam (ob-id o) -1)))
+       ; missile explodes
+       (append! changes (chdam (ob-id o) (ship-maxcon o))))
      (when (and (server?) (probe? o))
        (append! changes
                 (command (ob-id o) #f 'endrc #f)
@@ -202,7 +202,7 @@
      (define o (find-id space id))
      (when (and (server?) (cannonball? o))
        ; find and explode player's cbid
-       (append! changes (chdam (ob-id o) -1)))
+       (append! changes (chdam (ob-id o) (ship-maxcon o))))
      (when p
        (set-player-cbid! p #f))
      (values #t changes))

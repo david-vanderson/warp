@@ -1,15 +1,8 @@
 #lang racket/base
 
-(require racket/class
-         racket/math
-         mode-lambda
-         racket/draw)
-
 (require "defs.rkt"
          "utils.rkt"
-         "physics.rkt"
-         "ships.rkt"
-         "draw-utils.rkt")
+         "ships.rkt")
 
 (provide (all-defined-out))
 
@@ -17,25 +10,26 @@
 ; return list of changes
 (define (reduce-missile! space m damage)
   (define changes '())
-  ; missiles die instantly
-  (set-stats-con! (ship-stats m) 0)  ; mark as dead
-  (set-space-objects! space (remove-id (ob-id m) (space-objects space)))
 
-  (when (and (server?) (= -1 damage))
-    ; missile is detonating
-    (define basea (remain (* .001 (obj-age space m)) 2pi))
-    (define num 8)
-    (for ((i (in-range num)))
-      (define r (* i (/ 2pi num)))
-      (define a (angle-add basea r))
-      (define p (plasma (next-id) (space-time space)
-                        (posvel (space-time space)
+  (set-stats-con! (ship-stats m) (- (ship-con m) damage))
+
+  (when ((ship-con m) . <= . 0)
+    (set-space-objects! space (remove-id (ob-id m) (space-objects space)))
+    (when (server?)
+      ; missile is detonating
+      (define basea (remain (* .001 (obj-age space m)) 2pi))
+      (define num 8)
+      (for ((i (in-range num)))
+        (define r (* i (/ 2pi num)))
+        (define a (angle-add basea r))
+        (define p (plasma (next-id) (space-time space)
+                          (posvel (space-time space)
                                   (obj-x m) (obj-y m) (obj-r m)
                                   (+ (* PLASMA_SPEED 0.8 (cos a)))
                                   (+ (* PLASMA_SPEED 0.8 (sin a)))
                                   0)
                           (/ (* 5.0 (ship-maxcon m)) num) #f))
-        (append! changes (chadd p #f))))
+        (append! changes (chadd p #f)))))
   changes)
 
 
