@@ -124,8 +124,8 @@
 (define (tool-probe life)
   (tool (next-id) 'probe life #f #t #t '()))
 
-(define (tool-missile life)
-  (tool (next-id) 'missile life #f #t #f '()))
+(define (tool-missile life power)
+  (tool (next-id) 'missile (list life power) #f #t #f '()))
 
 (define (tool-cannon power)
   (tool (next-id) 'cannon power #f #t #f '()))

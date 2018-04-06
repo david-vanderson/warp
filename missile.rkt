@@ -67,7 +67,8 @@
                             #:ai? (not (player? (car stack)))
                             #:r a
                             #:start-time (space-time space)
-                            #:life (tool-val tool)))
+                            #:life (car (tool-val tool))
+                            #:con (cadr (tool-val tool))))
        (define d (+ (ship-radius ship) (* 2.0 (ship-radius m))))
        (define speed 10.0)
        (set-obj-posvel! m (posvel (space-time space)

@@ -64,7 +64,7 @@
                    #:dx (dx 0.0) #:dy (dy 0.0) #:dr (dr 0.0)
                    #:start-ship? (start-ship? #f)
                    #:ai? (ai? #f)
-                   #:con (con #f)
+                   #:con (con 1.0)
                    #:start-time (start-time 0)
                    #:life (life 1.0)
                    #:hangar (in-hangar #f)
@@ -94,7 +94,7 @@
     (("missile")
      (define s (apply missile args))
      ;type name faction con maxcon radius mass radar drag start?
-     (set-ship-stats! s (stats (next-id) type name faction life life 5.0 1.0 50.0 0.5 #f))
+     (set-ship-stats! s (stats (next-id) type name faction con con 5.0 1.0 50.0 0.5 #f))
      (set-ship-tools!
       s (append (tools-pilot 100.0 #t 2.0 #:engine-visible? #f #:dock? #f)
                 (list (tool-endrc life))))

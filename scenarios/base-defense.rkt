@@ -58,7 +58,7 @@
    cruiser (append (tools-pilot 25.0 #f 1.0)
                    (list (tool-pbolt 5.0)
                          (tool-probe 10.0)
-                         (tool-missile 5.0)
+                         (tool-missile 5.0 8.0)
                          (tool-cannon 20.0)
                          (tool-warp 200.0 80.0))))
   
@@ -70,7 +70,7 @@
   (set-ship-tools!
    base (list (tool-pbolt 5.0)
               (tool-probe 30.0)
-              (tool-missile 5.0)
+              (tool-missile 5.0 8.0)
           ))
   
   
@@ -84,7 +84,7 @@
   (set-ship-tools!
    destroyer (append (tools-pilot 6.0 #f 0.1 #:dock? #f)
                      (list (tool-pbolt 5.0)
-                           (tool-missile 5.0)
+                           (tool-missile 5.0 8.0)
                            (tool-cannon 20.0))))
   
   (set-ship-ai-strategy! destroyer
