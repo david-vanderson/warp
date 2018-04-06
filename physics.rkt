@@ -173,7 +173,7 @@
                                   (+ (* s (cos t)) (posvel-dx pv))
                                   (+ (* s (sin t)) (posvel-dy pv))
                                   0)
-                          e #f))
+                          e))
         (append! changes (chadd p #f)))
       
       (define msg (message (next-id) (space-time space) #f

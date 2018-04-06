@@ -21,6 +21,7 @@
   "dmg.rkt"
   "order.rkt"
   "missile.rkt"
+  "warp.rkt"
   "plasma.rkt")
 
 (provide start-client)
@@ -535,7 +536,8 @@
                                       #:theta (- a) #:b 150)))
             ((and (equal? 'pbolt (unbox active-mouse-tool))
                   (ship-tool ship 'pbolt)
-                  (ship-flying? ship))
+                  (ship-flying? ship)
+                  (not (warping? ship)))
              (set! cursordrawn #t)
              (set! clickcmds (command meid (player-cmdlevel player) 'pbolt a))
              (append! sprites (sprite (exact->inexact x) (exact->inexact y)
@@ -705,7 +707,7 @@
                 (send-commands (chadd (random-upgrade ownspace (posvel -1 0 0 0 (random 100) (random 100) 0)) #f))))
              #;((#\p)
               (when ownspace
-                (send-commands (chadd (plasma (next-id) (space-time ownspace) (posvel -1 0 0 (random-between 0 2pi) (random 100) (random 100) 0) (random 10) #f) #f))))
+                (send-commands (chadd (plasma (next-id) (space-time ownspace) (posvel -1 0 0 (random-between 0 2pi) (random 100) (random 100) 0) (random 10)) #f))))
 ;             ((#\s)
 ;              (when ownspace
 ;                (define r (random-between 0 2pi))

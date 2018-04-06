@@ -31,7 +31,7 @@
                                   (+ (* PLASMA_SPEED 0.7 (cos a)))
                                   (+ (* PLASMA_SPEED 0.7 (sin a)))
                                   0)
-                          (/ (* 5.0 (ship-maxcon b)) num) #f))
+                          (/ (* 5.0 (ship-maxcon b)) num)))
         (append! changes (chadd p #f)))))
   
   changes)

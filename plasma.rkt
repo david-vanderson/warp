@@ -19,10 +19,11 @@
 (define (plasma-energy space p)
   (- (plasma-e p) (* (max 0.0 (- (obj-age space p) PLASMA_LIFE)) (/ PLASMA_FADE 1000.0))))
 
+(define (plasma-energy->radius e)
+  (/ e 2))
 
 (define (plasma-radius space p)
   (/ (plasma-energy space p) 2))
-
 
 (define (plasma-dead? space p)
   ((plasma-energy space p) . < . 1))

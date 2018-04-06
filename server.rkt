@@ -69,7 +69,6 @@
   (define changes '())
   (when (and ((ship-con ship) . > . 0)
              (not (plasma-dead? space p))
-             (not (equal? (plasma-ownship-id p) (ob-id ship)))
              ((distance ship p) . < . (+ (ship-radius ship) (plasma-radius space p))))
     ;(printf "plasma hit ship ~a (~a ~a)\n" (ship-name ship) (plasma-ownship-id p) (obj-id ship))
     

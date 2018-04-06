@@ -180,9 +180,8 @@
 (struct missile ship () #:mutable #:prefab)
 (struct cannonball ship () #:mutable #:prefab)
 
-(struct plasma obj (e ownship-id) #:mutable #:prefab)
+(struct plasma obj (e) #:mutable #:prefab)
 ; e energy
-; ownship is id of the ship that fired it, or #f if it belongs to no ship
 
 (struct effect obj (size duration) #:mutable #:prefab)
 

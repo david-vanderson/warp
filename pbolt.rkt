@@ -2,7 +2,8 @@
 
 (require "defs.rkt"
          "utils.rkt"
-         "draw-utils.rkt")
+         "draw-utils.rkt"
+         "plasma.rkt")
 
 (provide (all-defined-out))
 
@@ -25,16 +26,17 @@
      (printf "~a discarding message (not flying) ~v\n" who cmd)
      (values #f '()))
     (else
+     (define d (+ (ship-radius ship) (plasma-energy->radius (tool-val tool))))
      (define plas
        (plasma (next-id) (space-time space)
                (posvel (space-time space)
-                       (+ (obj-x ship) (* (ship-radius ship) (cos a)))
-                       (+ (obj-y ship) (* (ship-radius ship) (sin a)))
+                       (+ (obj-x ship) (* d (cos a)))
+                       (+ (obj-y ship) (* d (sin a)))
                        (obj-r ship)
                        (+ (* PLASMA_SPEED (cos a)) (obj-dx ship))
                        (+ (* PLASMA_SPEED (sin a)) (obj-dy ship))
                        0)
-               (tool-val tool) (ob-id ship)))
+               (tool-val tool)))
      
      (values #f (list (chadd plas #f))))))
 
