@@ -324,6 +324,13 @@
   (define shields (filter shield? objects))
   (define upgrades (filter upgrade? objects))
 
+  ; stop warp for any ships that hit the edge of space
+  (for ((s spaceships))
+    (when (and (outside? space s) (ship-tool s 'warp))
+      (define cs (apply-all-changes! space (list (command (ob-id s) #f 'warp 'stop))
+                                     (space-time space) "server"))
+      (append! changes cs)))
+
   (for ((p probes))
     (define t (ship-tool p 'endrc))
     (when (and (tool-rc t) ((tool-rc t) . <= . (/ (obj-age space p) 1000.0)))

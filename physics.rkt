@@ -81,18 +81,27 @@
     (set-posvel-dy! pv (drag (posvel-dy pv) dt drag_xy (if acc? 0 dt)))))
 
 
-(define EDGE_THRUST 100.0)
+(define EDGE_THRUST 10.0)
+
+(define (outside? space o)
+  (or ((obj-x o) . > . (/ (space-width space) 2))
+      ((obj-x o) . < . (/ (- (space-width space)) 2))
+      ((obj-y o) . > . (/ (space-height space) 2))
+      ((obj-y o) . < . (/ (- (space-height space)) 2))))
 
 (define (push-back! space o dt)
   (define pv (obj-posvel o))
-  (when ((posvel-x pv) . > . (/ (space-width space) 2))
-    (set-posvel-dx! pv (- (posvel-dx pv) (* EDGE_THRUST dt))))
-  (when ((posvel-x pv) . < . (- (/ (space-width space) 2)))
-    (set-posvel-dx! pv (+ (posvel-dx pv) (* EDGE_THRUST dt))))
-  (when ((posvel-y pv) . > . (/ (space-height space) 2))
-    (set-posvel-dy! pv (- (posvel-dy pv) (* EDGE_THRUST dt))))
-  (when ((posvel-y pv) . < . (- (/ (space-height space) 2)))
-    (set-posvel-dy! pv (+ (posvel-dy pv) (* EDGE_THRUST dt)))))
+  (define dx ((posvel-x pv) . - . (/ (space-width space) 2)))
+  (when (dx . > . 0)
+    (set-posvel-dx! pv (- (posvel-dx pv) (* EDGE_THRUST dt dx))))
+  (when (dx . < . (- (space-width space)))
+    (set-posvel-dx! pv (- (posvel-dx pv) (* EDGE_THRUST dt (+ dx (space-width space))))))
+
+  (define dy ((posvel-y pv) . - . (/ (space-height space) 2)))
+  (when (dy . > . 0)
+    (set-posvel-dy! pv (- (posvel-dy pv) (* EDGE_THRUST dt dy))))
+  (when (dy . < . (- (space-height space)))
+    (set-posvel-dy! pv (- (posvel-dy pv) (* EDGE_THRUST dt (+ dy (space-height space)))))))
 
 (define (update-physics! space o dt)
   (define pv (obj-posvel o))
