@@ -33,7 +33,7 @@
                               50.0 50.0 6.0 20.0 300.0 0.4 #f))
     (set-ship-tools!
      s (append (tools-pilot 50.0 #f 1.5)
-               (list (tool-pbolt 5.0))))
+               (list (tool-pbolt 8.0))))
     (set-obj-posvel! s #f)
     s)
   
@@ -44,7 +44,7 @@
                               20.0 20.0 6.0 20.0 300.0 0.4 #f))
     (set-ship-tools!
      s (append (tools-pilot 50.0 #f 2.0)
-               (list (tool-pbolt 5.0))))
+               (list (tool-pbolt 8.0))))
     (set-obj-posvel! s #f)
     s)
   
@@ -56,10 +56,10 @@
                                   150.0 150.0 15.0 100.0 500.0 0.4 #t))
   (set-ship-tools!
    cruiser (append (tools-pilot 25.0 #f 1.0)
-                   (list (tool-pbolt 5.0)
+                   (list (tool-pbolt 10.0)
                          (tool-probe 10.0)
-                         (tool-missile 5.0 8.0)
-                         (tool-cannon 20.0)
+                         (tool-missile 5.0 12.0)
+                         (tool-cannon 27.0)
                          (tool-warp 200.0 80.0))))
   
   
@@ -68,9 +68,9 @@
                                ;con maxcon radius mass radar drag start-ship?
                                1000.0 1000.0 26.0 1000.0 1000.0 0.4 #t))
   (set-ship-tools!
-   base (list (tool-pbolt 5.0)
+   base (list (tool-pbolt 10.0)
               (tool-probe 30.0)
-              (tool-missile 5.0 8.0)
+              (tool-missile 5.0 12.0)
           ))
   
   
@@ -83,9 +83,9 @@
                                     1000.0 1000.0 23.0 500.0 1000.0 0.4 #f))
   (set-ship-tools!
    destroyer (append (tools-pilot 6.0 #f 0.1 #:dock? #f)
-                     (list (tool-pbolt 5.0)
-                           (tool-missile 5.0 8.0)
-                           (tool-cannon 20.0))))
+                     (list (tool-pbolt 10.0)
+                           (tool-missile 5.0 12.0)
+                           (tool-cannon 27.0))))
   
   (set-ship-ai-strategy! destroyer
                          (list (strategy (space-time ownspace) "attack-only" (ob-id base))))

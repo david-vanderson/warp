@@ -47,6 +47,7 @@
   (define sprites #f)
   (define active-mouse-tool (box #f))
   (define in-hangar? (box #f))
+  (define last-pbolt-time 0)  ; space-time of last pbolt fire
 
   (define holding '())
   ; if you are holding a key/mouse button (from a holdbutton?), this is a list of pairs
@@ -54,7 +55,7 @@
   ; cdr is the holdbutton-frelease function
   
   ; if the mouse is over something (other than a button) that when clicked will
-  ; do some action, clickcmds is a list of commands we send
+  ; do some action, clickcmds is a lambda that returns a list of commands we send
   (define clickcmds #f)
   (define frames '())  ; list of last few frame times
   (define aheads '())  ; list of last few ahead calculations
@@ -129,7 +130,7 @@
            (set! holding (cons (cons 'mouse (holdbutton-frelease b)) holding)))
          ))
       (clickcmds
-       (send-commands clickcmds))))
+       (send-commands (clickcmds)))))
   
   
   (define (draw-screen canvas dc)
@@ -311,7 +312,7 @@
           (define tools (filter tool-visible? (ship-tools (or rcship ship))))
           (for ((t (in-list tools)))
             (define-values (bs ss)
-              (draw-tool-ui csd center (get-scale) ownspace meid (or rcship ship) t my-stack send-commands active-mouse-tool))
+              (draw-tool-ui csd center (get-scale) ownspace meid (or rcship ship) t my-stack send-commands active-mouse-tool last-pbolt-time))
             (append! buttons bs)
             (append! sprites ss)))
 
@@ -539,7 +540,12 @@
                   (ship-flying? ship)
                   (not (warping? ship)))
              (set! cursordrawn #t)
-             (set! clickcmds (command meid (player-cmdlevel player) 'pbolt a))
+             (define cmds (command meid (player-cmdlevel player) 'pbolt
+                                   (cons a
+                                         (pbolt-frac last-pbolt-time (space-time ownspace)))))
+             (set! clickcmds (lambda ()
+                               (set! last-pbolt-time (space-time ownspace))
+                               cmds))
              (append! sprites (sprite (exact->inexact x) (exact->inexact y)
                                       (sprite-idx csd 'target) #:layer LAYER_UI_TEXT
                                       #:r 100 #:g 100 #:b 255 #:m 0.7))))))
@@ -927,6 +933,7 @@
            (set! start-space-time (space-time ownspace))
            (set! start-time (current-milliseconds))
            (set! last-update-time start-space-time)
+           (set! last-pbolt-time start-space-time)
 
            ; new ownspace, reset view stuff
            (set! showsector? #f)
@@ -1015,7 +1022,7 @@
     ;rendering
     ;(printf "client render ~a" (current-milliseconds))
     (set! frames (add-frame-time (current-milliseconds) frames))
-    (send canvas refresh-now #:flush? #f)
+    (send canvas refresh-now) ;#:flush? #f)
     ;(printf "  ~a\n" (current-milliseconds))
     
 ;    (when (time-for (current-milliseconds) 1000)

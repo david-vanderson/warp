@@ -72,7 +72,7 @@
              ((distance ship p) . < . (+ (ship-radius ship) (plasma-radius space p))))
     ;(printf "plasma hit ship ~a (~a ~a)\n" (ship-name ship) (plasma-ownship-id p) (obj-id ship))
     
-    (define damage (plasma-energy space p))
+    (define damage (plasma-damage space p))
     (define e (effect (next-id) (space-time space)
                       (struct-copy posvel (obj-posvel p)
                                    (dx (posvel-dx (obj-posvel ship)))
@@ -92,7 +92,7 @@
              ((distance m p) . < . (+ (ship-radius m) (plasma-radius space p))))
     ;(printf "missile hit plasma\n")
 
-    (define damage (plasma-energy space p))
+    (define damage (plasma-damage space p))
     (append! changes (chdam (ob-id m) damage)
              (chdam (ob-id p) damage)))
   changes)
@@ -178,7 +178,7 @@
     (define l (shield-length space s))
     (when (and (< (- rad) x rad)
                (< (- (- (/ l 2)) rad) y (+ (/ l 2) rad)))
-      (define damage (min (plasma-energy space p) (shield-energy space s)))
+      (define damage (min (plasma-damage space p) (shield-energy space s)))
       (append! changes (list (chdam (ob-id p) damage)
                              (chdam (ob-id s) damage)))))
   changes)

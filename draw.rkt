@@ -384,7 +384,8 @@
 
 
 ; drawn in canon transform (buttons, dmgs, warnings)
-(define (draw-tool-ui csd center scale space pid ship t stack send-commands active-mouse-tool)
+(define (draw-tool-ui csd center scale space pid ship t stack
+                      send-commands active-mouse-tool last-pbolt-time)
   (define buttons '())
   (define spr '())
   (define cmdlevel (player-cmdlevel (car stack)))
@@ -413,6 +414,12 @@
          (set-button-draw! b 'normal)
          (set-button-f! b (lambda (x y) (set-box! active-mouse-tool 'pbolt))))
        (append! buttons b)
+       (define f (pbolt-frac last-pbolt-time (space-time space)))
+       (append! spr (sprite (+ LEFT 65) (- BOTTOM 48) (sprite-idx csd '5x1)
+                            #:layer LAYER_UI_TEXT
+                            #:mx (* f 10.0)
+                            #:my 4.0
+                            #:r 255))
        (define ob (add-offline-button! t b send-commands))
        (when ob (append! buttons (list ob))))
       ((warp)

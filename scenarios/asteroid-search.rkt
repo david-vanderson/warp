@@ -71,10 +71,10 @@
   (set-ship-tools!
    goodship (append (tools-pilot 25.0 #f 0.4)
                     (list (tool-warp 200.0 80.0)
-                          (tool-pbolt 5.0)
+                          (tool-pbolt 10.0)
                           (tool-probe 10.0)
-                          (tool-missile 5.0 8.0)
-                          (tool-cannon 20.0))))
+                          (tool-missile 5.0 12.0)
+                          (tool-cannon 27.0))))
 
   (set-tool-dmgs! (ship-tool goodship 'engine) (list (dmg enginedmgid "offline" 10000.0 0 #f)))
   (set-tool-dmgs! (ship-tool goodship 'warp) (list (dmg warpdmgid "offline" 10000.0 0 #f)))
@@ -93,8 +93,8 @@
   (set-ship-tools!
    enemy-base
    (list
-    (tool-pbolt 7.0)
-    (tool-missile 5.0 8.0)))
+    (tool-pbolt 10.0)
+    (tool-missile 5.0 12.0)))
   
   (set-space-objects! ownspace (append (space-objects ownspace)
                                        (list goodship enemy-base)))

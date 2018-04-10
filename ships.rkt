@@ -128,7 +128,7 @@
      (define mc 500.0)
      (set-ship-stats! s (stats (next-id) type name faction mc mc 26.0 1000.0 200.0 0.4 start-ship?))
      (set-ship-tools!
-      s (list (tool-pbolt 5.0)
+      s (list (tool-pbolt 10.0)
               (tool-probe 30.0)
           ; need missile
           ; need shield
@@ -151,10 +151,10 @@
      (define s (apply spaceship args))
      (set-ship-stats! s (stats (next-id) type name faction
                                ;con maxcon radius mass radar drag start
-                               100.0 100.0 18.0 100.0 300.0 0.4 start-ship?))
+                               200.0 200.0 18.0 100.0 300.0 0.4 start-ship?))
      (set-ship-tools!
       s (append (tools-pilot 20.0 #f 0.3)
-                (list (tool-pbolt 5.0))))
+                (list (tool-pbolt 10.0))))
      s)
     (("blue-fighter" "red-fighter")
      (define s (apply spaceship args))
@@ -162,7 +162,7 @@
      (set-ship-stats! s (stats (next-id) type name faction c c 6.0 20.0 200.0 0.4 start-ship?))
      (set-ship-tools!
       s (append (tools-pilot 50.0 #f 1.5)
-                (list (tool-pbolt 5.0))))
+                (list (tool-pbolt 8.0))))
      s)
     (else
      ;(error (string-append "Tried to create an unknown ship type " type "\n")))

@@ -16,9 +16,14 @@
      #f)))
 
 
+(define (pbolt-frac last-time now)
+  (define a (- 1.0 (linear-fade (- now last-time) 0 1000)))
+  (* a a))
+
+
 ;; client/server
 
-(define (change-pbolt! cmd space stack a who)
+(define (change-pbolt! cmd space stack args who)
   (define ship (get-ship stack))
   (define tool (ship-tool ship 'pbolt))
   (cond
@@ -26,6 +31,9 @@
      (printf "~a discarding message (not flying) ~v\n" who cmd)
      (values #f '()))
     (else
+     (define a (car args))
+     (define frac (cdr args))
+     (define e (max 1.0 (* frac (tool-val tool))))
      (define d (+ (ship-radius ship) (plasma-energy->radius (tool-val tool))))
      (define plas
        (plasma (next-id) (space-time space)
@@ -36,7 +44,7 @@
                        (+ (* PLASMA_SPEED (cos a)) (obj-dx ship))
                        (+ (* PLASMA_SPEED (sin a)) (obj-dy ship))
                        0)
-               (tool-val tool)))
+               e))
      
      (values #f (list (chadd plas #f))))))
 
@@ -58,6 +66,6 @@
       
       (define t (target-angle ownship ownship o o PLASMA_SPEED))
       (when t
-        (append! changes (list (command (ob-id ownship) #f 'pbolt t)))
+        (append! changes (list (command (ob-id ownship) #f 'pbolt (cons t 1.0))))
         (done)))))
   changes)
