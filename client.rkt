@@ -542,7 +542,7 @@
                   (not (warping? ship)))
              (set! cursordrawn #t)
              (define cmds (command meid (player-cmdlevel player) 'pbolt
-                                   (cons a
+                                   (list a a
                                          (pbolt-frac last-pbolt-time (space-time ownspace)))))
              (set! clickcmds (lambda ()
                                (set! last-pbolt-time (space-time ownspace))

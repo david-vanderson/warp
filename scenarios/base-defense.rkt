@@ -53,13 +53,13 @@
                              #:hangar (list (new-blue-fighter))))
   (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
                                   ;con maxcon radius mass radar drag start?
-                                  150.0 150.0 15.0 100.0 500.0 0.4 #t))
+                                  200.0 200.0 15.0 100.0 500.0 0.4 #t))
   (set-ship-tools!
    cruiser (append (tools-pilot 25.0 #f 1.0)
                    (list (tool-pbolt 10.0)
                          (tool-probe 10.0)
-                         (tool-missile 5.0 12.0)
-                         (tool-cannon 27.0)
+                         (tool-missile 5.0 10.0)
+                         (tool-cannon 21.0)
                          (tool-warp 200.0 80.0))))
   
   
@@ -70,7 +70,7 @@
   (set-ship-tools!
    base (list (tool-pbolt 10.0)
               (tool-probe 30.0)
-              (tool-missile 5.0 12.0)
+              (tool-missile 5.0 10.0)
           ))
   
   
@@ -84,8 +84,8 @@
   (set-ship-tools!
    destroyer (append (tools-pilot 6.0 #f 0.1 #:dock? #f)
                      (list (tool-pbolt 10.0)
-                           (tool-missile 5.0 12.0)
-                           (tool-cannon 27.0))))
+                           (tool-missile 5.0 10.0)
+                           (tool-cannon 21.0))))
   
   (set-ship-ai-strategy! destroyer
                          (list (strategy (space-time ownspace) "attack-only" (ob-id base))))

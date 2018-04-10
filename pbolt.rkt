@@ -31,15 +31,16 @@
      (printf "~a discarding message (not flying) ~v\n" who cmd)
      (values #f '()))
     (else
-     (define a (car args))
-     (define frac (cdr args))
+     (define ship-a (car args))
+     (define a (cadr args))
+     (define frac (caddr args))
      (define e (max 1.0 (* frac (tool-val tool))))
      (define d (+ (ship-radius ship) (plasma-energy->radius (tool-val tool))))
      (define plas
        (plasma (next-id) (space-time space)
                (posvel (space-time space)
-                       (+ (obj-x ship) (* d (cos a)))
-                       (+ (obj-y ship) (* d (sin a)))
+                       (+ (obj-x ship) (* d (cos ship-a)))
+                       (+ (obj-y ship) (* d (sin ship-a)))
                        (obj-r ship)
                        (+ (* PLASMA_SPEED (cos a)) (obj-dx ship))
                        (+ (* PLASMA_SPEED (sin a)) (obj-dy ship))
@@ -56,6 +57,7 @@
   (define changes '())
   (define ownship (get-ship stack))
   (define pb (ship-tool ownship 'pbolt))
+  (define d (+ (ship-radius ownship) (plasma-energy->radius (tool-val pb))))
   (when (and (ship-flying? ownship)
              (tool-online? pb))
     (let/ec done
@@ -63,9 +65,14 @@
             #:when (and (or (spaceship? o) (missile? o) (probe? o) (cannonball? o))
                         ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)
                         ((distance ownship o) . < . 400)))
-      
-      (define t (target-angle ownship ownship o o PLASMA_SPEED))
-      (when t
-        (append! changes (list (command (ob-id ownship) #f 'pbolt (cons t 1.0))))
-        (done)))))
+
+        (define r (theta ownship o))
+        (define xy (obj -1 -1 (posvel -1
+                                      (+ (obj-x ownship) (* d (cos r)))
+                                      (+ (obj-y ownship) (* d (sin r)))
+                                      0 0 0 0)))
+        (define t (target-angle xy ownship o o PLASMA_SPEED))
+        (when t
+          (append! changes (list (command (ob-id ownship) #f 'pbolt (list r t 1.0))))
+          (done)))))
   changes)

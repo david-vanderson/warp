@@ -11,7 +11,7 @@
 (define PLASMA_FADE 2.0)  ; energy loss per second after PLASMA_LIFE
 
 (define (plasma-damage space p)
-  (/ (plasma-energy space p) 2.0))
+  (plasma-energy space p))
 
 (define (plasma-energy space p)
   (- (plasma-e p) (* (max 0.0 (- (obj-age space p) PLASMA_LIFE)) (/ PLASMA_FADE 1000.0))))
