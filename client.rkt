@@ -82,7 +82,7 @@
   
   (define (min-scale)
     (if ownspace
-        (min (/ WIDTH (space-width ownspace)) (/ HEIGHT (space-height ownspace)))
+        (min (/ canon-width (space-width ownspace)) (/ canon-height (space-height ownspace)))
         .01))
   (define (max-scale) 30.0)
     
@@ -162,8 +162,8 @@
       ; This screen is where you type in your name and the server IP
       (define txt "O")
       (define-values (w h) (textsr txt))
-      (for* ((i (in-range LEFT RIGHT w))
-             (j (in-range TOP BOTTOM h)))
+      (for* ((i (in-range (left) (right) w))
+             (j (in-range (top) (bottom) h)))
         (append! sprites (text-sprite textr textsr txt i j LAYER_UI))))
     
     (when ownspace
@@ -175,7 +175,7 @@
       
       ; make background be fog of war gray
       (append! sprites (sprite 0.0 0.0 (sprite-idx csd '100x100) #:layer LAYER_FOW_GRAY
-                               #:m (* 2.0 (/ (max WIDTH HEIGHT) 100.0)) #:r (send fowcol red)
+                               #:m (* 2.0 (/ (max canon-width canon-height) 100.0)) #:r (send fowcol red)
                                #:g (send fowcol green) #:b (send fowcol blue)))
 
       ; put a black circle wherever we can see
@@ -245,7 +245,7 @@
         (cond 
           ((unbox in-hangar?)
            ; hangar background
-           (define size (* 0.8 (min WIDTH HEIGHT)))
+           (define size (* 0.8 (min canon-width canon-height)))
            (append! sprites (sprite 0.0 0.0 (sprite-idx csd 'square-outline) #:layer LAYER_SHIPS
                          #:m (/ (+ size 2.0) (sprite-width csd (sprite-idx csd 'square-outline)))
                          #:r 255 #:g 255 #:b 255))
@@ -317,7 +317,7 @@
             (append! sprites ss)))
 
         (when (and (not rcship) (ship-hangar ship) (not (unbox in-hangar?)))
-          (define b (button 'normal #\h (- RIGHT 80) (+ TOP 70) 140 40
+          (define b (button 'normal #\h (- (right) 80) (+ (top) 70) 140 40
                             (~a "Hangar [h] " (length (ship-hangar ship)))
                             (lambda (x y)
                               (set-box! in-hangar? #t))))
@@ -336,7 +336,8 @@
             #:when (ann? a))
         (when (and (ann-button? a) (or (not (ann-showtab? a)) showtab))
           (define ab (button 'normal #f
-                             (obj-x a) (obj-y a) (obj-dx a) (obj-dy a) (ann-txt a)
+                             (+ (left) (obj-x a)) (+ (top) (obj-y a))
+                             (obj-dx a) (obj-dy a) (ann-txt a)
                              (lambda (k y) (send-commands (anncmd (ob-id a))))))
           (append! buttons ab))
         (when (and (ann-text? a) (or (not (ann-showtab? a)) showtab))
@@ -356,28 +357,28 @@
       (when showtab
         ; list all players
         (append! sprites (text-sprite textr textsr "Players:"
-                                      200 (+ TOP 80) LAYER_UI_TEXT))
+                                      200 (+ (top) 80) LAYER_UI_TEXT))
         (for ((p (in-list (space-players ownspace)))
               (i (in-naturals)))
           (define str (if (player-faction p)
                           (~a (player-name p) " " (player-faction p))
                           (player-name p)))
           (append! sprites (text-sprite textr textsr str
-                                        200 (+ TOP 100 (* i 20)) LAYER_UI_TEXT))))
+                                        200 (+ (top) 100 (* i 20)) LAYER_UI_TEXT))))
       
       ; draw orders
       (define line 0)
       (when ordertree
-        (define left (+ LEFT 150))
+        (define lefte (+ (left) 150))
         (append! sprites (text-sprite textr textsr "Orders:"
-                                      left TOP LAYER_UI_TEXT))
-        (set! left (+ left 80))
-        (define top TOP)
+                                      lefte (top) LAYER_UI_TEXT))
+        (set! lefte (+ lefte 80))
+        (define tope (top))
         (for-orders ordertree showtab
           (lambda (ot depth highlight?)
             (when showtab
               (define color (if (ord-done? ot) "green" "red"))
-              (append! sprites (xy-sprite (+ left (* 10 depth) 5) (+ top (* 20 line) 10)
+              (append! sprites (xy-sprite (+ lefte (* 10 depth) 5) (+ tope (* 20 line) 10)
                                           csd (get-scale) LAYER_UI 'circle (/ 5.0 (get-scale))
                                           1.0 0.0 color)))
             (define color (if highlight? "white" "gray"))
@@ -392,7 +393,7 @@
                                     ":"
                                     (~a sec #:min-width 2 #:align 'right #:pad-string "0")))))
             (append! sprites (text-sprite textr textsr txt
-                                      (+ left 12 (* 10 depth)) (+ top (* 20 line)) LAYER_UI_TEXT 1.0 color))
+                                      (+ lefte 12 (* 10 depth)) (+ tope (* 20 line)) LAYER_UI_TEXT 1.0 color))
             (set! line (+ line 1)))))
       
       (when (not my-stack)
@@ -409,8 +410,8 @@
         
         (for ((s (in-list start-ships))
               (i (in-naturals)))
-          (define x (+ LEFT 100 (* (remainder i 3) 250)))
-          (define y (+ TOP 30 (* (quotient i 3) 60)))
+          (define x (+ (left) 100 (* (remainder i 3) 250)))
+          (define y (+ (top) 30 (* (quotient i 3) 60)))
           (define b (button 'normal #f x y 200 30
                             (format "~a" (ship-name s))
                             (lambda (x y)
@@ -426,8 +427,8 @@
       (when (not showsector?)
         (define zw 20)
         (define zh 150)
-        (define zcx (- RIGHT 10 (/ zw 2)))
-        (define zcy (+ TOP 100 (/ zh 2)))
+        (define zcx (- (right) 10 (/ zw 2)))
+        (define zcy (+ (top) 100 (/ zh 2)))
         (append! sprites (sprite zcx (+ zcy (- (/ zh 2))) (sprite-idx csd '20x2)
                                  #:layer LAYER_UI #:b (send mapcol blue)))
         (append! sprites (sprite zcx (+ zcy (/ zh 2)) (sprite-idx csd '20x2)
@@ -448,19 +449,19 @@
         (define zkeyb (button 'hidden #\r 0 0 0 0 "Zoom In"
                               (lambda (k y) (set-scale (* scale-play 1.1)))))
         
-        (define xkeyb (button 'hidden #\f 0 0 0 0 "Zoom Out"
+        (define xkeyb (button 'hidden #\t 0 0 0 0 "Zoom Out"
                               (lambda (k y) (set-scale (/ scale-play 1.1)))))
         
         (append! buttons zbutton zkeyb xkeyb))
 
       ; auto-center button
       (when (not center-follow?)
-        (define b (button 'normal #\z 0.0 (+ TOP 50) 120 50 "Auto Center"
+        (define b (button 'normal #\z 0.0 (+ (top) 50) 120 50 "Auto Center"
                           (lambda (x y) (set! center-follow? #t))))
         (append! buttons b))
         
-      (define leave-button (button 'normal 'escape (+ LEFT 50) (+ TOP 25) 100 50 "Exit" #f))
-      (define quit-button (button 'normal 'escape (- RIGHT 50) (- BOTTOM 25) 100 50 "Quit" #f))
+      (define leave-button (button 'normal 'escape (+ (left) 50) (+ (top) 25) 100 50 "Exit" #f))
+      (define quit-button (button 'normal 'escape (- (right) 50) (- (bottom) 25) 100 50 "Quit" #f))
       (cond
         ((not my-stack)
          (set-button-f! quit-button
@@ -568,13 +569,13 @@
       (define end (first frames))
       (define span (/ (- end start) 1000))
       (define txt (format "FPS: ~a" (truncate (/ (- (length frames) 1) span))))
-      (append! sprites (text-sprite textr textsr txt (- RIGHT 80) TOP LAYER_UI)))
+      (append! sprites (text-sprite textr textsr txt (- (right) 80) (top) LAYER_UI)))
 
     ; network issues?
     (define ma (apply max 0 aheads))
     (when (ma . > . AHEAD_THRESHOLD)
       (define txt (format "Ahead: ~a" ma))
-      (append! sprites (text-sprite textr textsr txt (- RIGHT 200) TOP LAYER_UI)))
+      (append! sprites (text-sprite textr textsr txt (- (right) 200) (top) LAYER_UI)))
     
     (append! sprites (button-sprites csd textr buttons (if ownspace (space-time ownspace) 0)))
     
@@ -583,12 +584,12 @@
           (get-dmgfx my-stack)
           (values 0.0 0.0)))
 
-    (define width (+ WIDTH dmgx))
-    (define height (+ HEIGHT dmgy))
+    (define width (+ canon-width dmgx))
+    (define height (+ canon-height dmgy))
     (define layers (for/vector ((i LAYER_NUM)) (layer width height)))
     
     (define r (render layers '() sprites))
-    (r (send canvas get-width) (send canvas get-height) dc))
+    (r (fl->fx canon-width) (fl->fx canon-height) dc))
     
   
   (define-values (left-inset top-inset) (get-display-left-top-inset))
@@ -601,8 +602,8 @@
                      ; use below instead for fullscreen
                      ; (x (- left-inset))
                      ; (y (- top-inset))
-                     ; (width screen-w)
-                     ; (height screen-h)
+                     (width (fl->fx canon-width))
+                     (height (fl->fx canon-height))
                      ; (style '(hide-menu-bar no-caption no-resize-border))
                      ))
 
@@ -627,7 +628,12 @@
     (class canvas%
       (super-new)
       (define/override (on-size w h)
-        (printf "canvas on-size ~a ~a\n" w h))
+        (printf "canvas on-size ~a ~a\n" w h)
+        (when (odd? w) (set! w (- w 1)))
+        (when (odd? h) (set! h (- h 1)))
+        (set-canon-width! (fx->fl w))
+        (set-canon-height! (fx->fl h))
+        (set! render (gl:stage-draw/dc csd (fl->fx canon-width) (fl->fx canon-height) LAYER_NUM)))
       (define/override (on-event event)
         (case (send event get-event-type)
           ((left-down)
@@ -648,8 +654,6 @@
                        (equal? dragstate "drag"))
                (set! dragstate "drag")
                (set! center-follow? #f)
-               (define scale (* (get-scale) (min (/ (send this get-width) WIDTH)
-                                                 (/ (send this get-height) HEIGHT))))
                (define dx (/ (- (send event get-x) (car dragxypx)) (get-scale)))
                (define dy (/ (- (send event get-y) (cdr dragxypx)) (get-scale)))
                (set-posvel-x! (obj-posvel centerxy) (- (obj-x centerxy) dx))
@@ -686,6 +690,8 @@
                (printf "holding ~a\n" (length holding)))))
           (else
            (case kc
+             ((#\f)
+              (send frame fullscreen (not (send frame is-fullscreened?))))
              #;((#\d)
               (when ownspace
                 (define cmds '())
@@ -727,32 +733,13 @@
 
   (define glconfig (new gl-config%))
   (send glconfig set-legacy? #f)
-
-  ; make sure the real canvas is surrounded by black
-  (define bc (make-object color% "black"))
-  (define vpane (new vertical-pane% (parent frame)))
-  (define topblack (new canvas% (parent vpane)))
-  (send topblack set-canvas-background bc)
-
-  (define hpane (new horizontal-pane% (parent vpane) (stretchable-height #f)))
-  (define leftblack (new canvas% (parent hpane)))
-  (send leftblack set-canvas-background bc)
   
   (define canvas
     (new my-canvas%
-         (parent hpane)
-         (min-width (inexact->exact (round (/ WIDTH 1.0))))
-         (min-height (inexact->exact (round (/ HEIGHT 1.0))))
-         (stretchable-width #f)
-         (stretchable-height #f)
+         (parent frame)
          (paint-callback draw-screen)
          (gl-config glconfig)
          (style '(no-autoclear gl))))
-
-  (define rightblack (new canvas% (parent hpane)))
-  (send rightblack set-canvas-background bc)
-  (define botblack (new canvas% (parent vpane)))
-  (send botblack set-canvas-background bc)
   
   (define sd (make-sprite-db))
   (let ()
@@ -824,7 +811,7 @@
   (define textr (make-text-aligned-renderer textfont csd))
   (define textsr (make-text-aligned-sizer textfont csd))
   (gl:gl-smoothing? #t)
-  (define render (gl:stage-draw/dc csd (fl->fx WIDTH) (fl->fx HEIGHT) LAYER_NUM))
+  (define render (gl:stage-draw/dc csd (fl->fx canon-width) (fl->fx canon-height) LAYER_NUM))
   
   (send frame show #t)
   

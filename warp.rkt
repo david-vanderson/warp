@@ -58,7 +58,7 @@
   (define w (* 2.0 (caddr vals)))
   (define h 30.0)
   (define x 0.0)
-  (define y (- BOTTOM 135.0))
+  (define y (- (bottom) 135.0))
   (define z (clamp 0.0 1.0 (/ w maxw)))
 
   (define pid (ob-id (car stack)))

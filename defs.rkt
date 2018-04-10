@@ -10,12 +10,6 @@
 (define AI_INTERVAL 1000)  ; ms between ai runs (at least)
 (define AHEAD_THRESHOLD 200)  ; if client is ahead by this many ms you see it on the screen
 
-(define WIDTH 800.0)  ; how many meters wide is the screen view
-(define HEIGHT 600.0)  ; how many meters tall is the screen view
-(define LEFT (/ (- WIDTH) 2))  ; left edge of canonical view
-(define RIGHT (/ WIDTH 2))
-(define TOP (/ (- HEIGHT) 2))
-(define BOTTOM (/ HEIGHT 2))
 (define TEXTH (if (equal? 'windows (system-type)) 12.0 16.0))
 
 (define 2pi (* 2 pi))
@@ -220,7 +214,7 @@
 
 (struct ann-button ann (msg) #:mutable #:prefab)
 ; clickable button
-; obj-x/y is lower left-hand corner (in canon coords)
+; obj-x/y is center of button offset from top-left window corner (in canon coords)
 ; obj-dx/dy is size of button (in canon coords)
 ; text is what the button says
 ; msg is what is sent to server when a player clicks it

@@ -78,8 +78,8 @@
   (define offy (remain (obj-y center) height))
   (define origx (+ (obj-x center) (- offx) (/ width 2)))
   (define origy (+ (obj-y center) (- offy) (/ height 2)))
-  (define w/2 (/ WIDTH 2 scale))
-  (define h/2 (/ HEIGHT 2 scale))
+  (define w/2 (/ canon-width 2 scale))
+  (define h/2 (/ canon-height 2 scale))
   
   (define istart (- 0 (ceiling (/ (max 0 (- w/2 offx)) width))))
   (define iend (+ 0 (ceiling (/ (max 0 (- w/2 (- width offx))) width)) 1))
@@ -268,7 +268,7 @@
       (if str
           (set! str (format "~a on ~a" str (ship-name s)))
           (set! str (ship-name s))))
-    (append! spr (textr str 0.0 (+ TOP 10) #:layer LAYER_UI_TEXT
+    (append! spr (textr str 0.0 (+ (top) 10) #:layer LAYER_UI_TEXT
                         #:r 255 #:g 255 #:b 255)))
 
   ; messages
@@ -282,7 +282,7 @@
           (set! num (+ num 1))
           (define z (linear-fade (obj-age space m) (/ MSG_FADE_TIME 2) MSG_FADE_TIME))
           (append! spr (text-sprite textr textsr (message-msg m)
-                                    (- 5.0 (/ WIDTH 2.0)) (+ -200.0 (* num 20))
+                                    (+ (left) 5.0) (+ (top) 200.0 (* num 20))
                                     LAYER_UI_TEXT z)))
         (loop (cdr l)))))
   spr)
@@ -368,17 +368,17 @@
 
   ; ship hp
   (define s (get-ship stack))
-  (append! spr (sprite (- RIGHT 45 (/ (ship-maxcon s) 2)) (+ TOP 30) (sprite-idx csd 'square-outline)
+  (append! spr (sprite (- (right) 45 (/ (ship-maxcon s) 2)) (+ (top) 30) (sprite-idx csd 'square-outline)
                          #:layer LAYER_UI
                          #:mx (/ (+ 2.0 (ship-maxcon s)) (sprite-width csd (sprite-idx csd 'square-outline)) 1.0)
                          #:my (/ 22.0 (sprite-height csd (sprite-idx csd 'square-outline)))
                          #:r 255 #:g 255 #:b 255))
   (define col (send the-color-database find-color (stoplight-color (ship-con s) (ship-maxcon s))))
-  (append! spr (sprite (- RIGHT 45 (/ (ship-con s) 2)) (+ TOP 30) (sprite-idx csd 'square)
+  (append! spr (sprite (- (right) 45 (/ (ship-con s) 2)) (+ (top) 30) (sprite-idx csd 'square)
                          #:layer LAYER_UI #:my (/ 20.0 (sprite-height csd (sprite-idx csd 'square)))
                          #:mx (/ (ship-con s) (sprite-width csd (sprite-idx csd 'square)) 1.0)
                          #:r (send col red) #:g (send col green) #:b (send col blue)))
-  (append! spr (textr "Hull" (- RIGHT 20) (+ TOP 30) #:layer LAYER_UI
+  (append! spr (textr "Hull" (- (right) 20) (+ (top) 30) #:layer LAYER_UI
                       #:r 255 #:g 255 #:b 255))
   spr)
 
@@ -397,7 +397,7 @@
            ((engine) (values "Go [w]" #\w 0))
            ((turnleft) (values "Left [a]" #\a -100))
            ((turnright) (values "Right [d]" #\d 100))))
-       (define b (holdbutton 'normal key x (- BOTTOM 35) 80 30 str
+       (define b (holdbutton 'normal key x (- (bottom) 35) 80 30 str
                              (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))
                              (lambda () (send-commands (command pid cmdlevel (tool-name t) #f)))))
        (when (or (not (ship-flying? ship))
@@ -407,7 +407,7 @@
        (define ob (add-offline-button! t b send-commands))
        (when ob (append! buttons (list ob))))
       ((pbolt)
-       (define b (button 'disabled #f (+ LEFT 65) (- BOTTOM 35) 100 50 "Plasma" #f))
+       (define b (button 'disabled #f (+ (left) 65) (- (bottom) 35) 100 50 "Plasma" #f))
        (when (and (not (equal? 'pbolt (unbox active-mouse-tool)))
                   (ship-flying? ship)
                   (or (tool-while-warping? t) (not (warping? ship))))
@@ -415,7 +415,7 @@
          (set-button-f! b (lambda (x y) (set-box! active-mouse-tool 'pbolt))))
        (append! buttons b)
        (define f (pbolt-frac last-pbolt-time (space-time space)))
-       (append! spr (sprite (+ LEFT 65) (- BOTTOM 48) (sprite-idx csd '5x1)
+       (append! spr (sprite (+ (left) 65) (- (bottom) 48) (sprite-idx csd '5x1)
                             #:layer LAYER_UI_TEXT
                             #:mx (* f 10.0)
                             #:my 4.0
@@ -427,7 +427,7 @@
        (append! buttons bs)
        (append! spr ss))
       ((missile)
-       (define b (button 'normal #\q (+ LEFT 80) (- BOTTOM 350) 100 50 "Missile [q]"
+       (define b (button 'normal #\q (+ (left) 80) (- (bottom) 350) 100 50 "Missile [q]"
                          (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'left)))))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
@@ -435,7 +435,7 @@
        (append! buttons b)
        (define ob (add-offline-button! t b send-commands))
        (when ob (append! buttons ob))
-       (define b2 (button 'normal #\e (- RIGHT 80) (- BOTTOM 350) 100 50 "Missile [e]"
+       (define b2 (button 'normal #\e (- (right) 80) (- (bottom) 350) 100 50 "Missile [e]"
                           (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'right)))))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
@@ -444,7 +444,7 @@
        (define ob2 (add-offline-button! t b2 send-commands))
        (when ob2 (append! buttons ob2)))
       ((probe)
-       (define b (button 'normal #\x (- RIGHT 80) (- BOTTOM 250) 100 50 "Probe [x]"
+       (define b (button 'normal #\x (- (right) 80) (- (bottom) 250) 100 50 "Probe [x]"
                          (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
@@ -453,7 +453,7 @@
        (define ob (add-offline-button! t b send-commands))
        (when ob (append! buttons ob)))
       ((cannon)
-       (define b (holdbutton 'normal #\c (- RIGHT 80) (- BOTTOM 400) 100 50 "Cannon [c]"
+       (define b (holdbutton 'normal #\c (- (right) 80) (- (bottom) 400) 100 50 "Cannon [c]"
                              (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) (obj-r (get-ship stack)))))
                              (lambda () (send-commands (endcb pid #t)))))
        (when (or (not (ship-flying? ship))
@@ -464,12 +464,12 @@
        (when ob (append! buttons ob)))
       ((endrc)
        (define life (max 0 ((tool-rc t) . - . (/ (obj-age space ship) 1000.0))))
-       (append! spr (sprite 0.0 (- BOTTOM 4) (sprite-idx csd 'square) #:layer LAYER_UI
+       (append! spr (sprite 0.0 (- (bottom) 4) (sprite-idx csd 'square) #:layer LAYER_UI
                             #:mx (/ life .1 (sprite-width csd (sprite-idx csd 'square)) 1.0)
                             #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square)) 1.0)
                             #:r 255))
      
-       (define b (button 'normal #\s 0 (- BOTTOM 35) 70 30 "Stop [s]"
+       (define b (button 'normal #\s 0 (- (bottom) 35) 70 30 "Stop [s]"
                          (lambda (x y)
                            (send-commands (endrc pid #t)))))
        (append! buttons b))
@@ -477,14 +477,14 @@
          (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))
          (when offline
            (define ob (dmgbutton 'normal #f
-                                 0.0 (- BOTTOM 105) 200 30
+                                 0.0 (- (bottom) 105) 200 30
                                  "Steer Offline"
                                  (lambda (x y) (send-commands (command (ob-id offline)
                                                                        (not (dmg-fixing? offline)))))
                                  (/ (dmg-energy offline) (dmg-size offline)) (dmg-fixing? offline)))
            (append! buttons (list ob))))     
       ((dock)
-       (define b (button 'normal #\v (- RIGHT 80) (- BOTTOM 100) 120.0 30.0 (if (tool-rc t) "Dock On [v]" "Dock Off [v]")
+       (define b (button 'normal #\v (- (right) 80) (- (bottom) 100) 120.0 30.0 (if (tool-rc t) "Dock On [v]" "Dock Off [v]")
                          (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) (not (tool-rc t)))))))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
@@ -493,7 +493,7 @@
        (define ob (add-offline-button! t b send-commands))
        (when ob (append! buttons (list ob)))
        (when (can-launch? stack)
-         (define lb (button 'normal #\w (- RIGHT 80) (- BOTTOM 150) 120.0 30.0 "Launch [w]"
+         (define lb (button 'normal #\w (- (right) 80) (- (bottom) 150) 120.0 30.0 "Launch [w]"
                             (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'launch)))))
          (append! buttons (list lb))
          (define lob (add-offline-button! t lb send-commands "nolaunch"))
@@ -502,7 +502,7 @@
       #;((shbolt? t)
          (define ship (get-ship stack))
          (define pod (get-pod stack))
-         (define b (button 'normal #\space (+ LEFT 65) (- BOTTOM 35) 50.0 50.0 "Shield [_]" #f))
+         (define b (button 'normal #\space (+ (left) 65) (- (bottom) 35) 50.0 50.0 "Shield [_]" #f))
          (cond
            ((and (ship-flying? ship) ((pod-energy pod) . > . (shbolt-shield-size t)))
             (define a (+ (obj-r ship) (pod-facing (get-pod stack))))

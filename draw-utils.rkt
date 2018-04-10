@@ -16,6 +16,17 @@
 (define fowcol (make-color 100 100 100 1.0))  ; background gray
 (define mapcol (make-color 0 0 200 1.0))  ; sector lines, zoom scale
 
+(define canon-width 800.0)
+(define canon-height 600.0)
+(define (set-canon-width! w)
+  (set! canon-width w))
+(define (set-canon-height! h)
+  (set! canon-height h))
+(define (left) (- (/ canon-width 2)))
+(define (right) (/ canon-width 2))
+(define (top) (- (/ canon-height 2)))
+(define (bottom) (/ canon-height 2))
+
 (define (xy->screen x y center scale)
   (values (* (- x (obj-x center)) scale)
           (* (- (obj-y center) y) scale)))
@@ -153,8 +164,8 @@
 
 
 (define (canvas-scale canvas)
-  (min (/ (send canvas get-width) WIDTH)
-       (/ (send canvas get-height) HEIGHT)))
+  (min (/ (send canvas get-width) canon-width)
+       (/ (send canvas get-height) canon-height)))
 
 
 (define (screen->canon canvas x y)

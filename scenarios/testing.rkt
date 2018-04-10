@@ -16,7 +16,7 @@
   (for ((p players)) (set-player-faction! p "Rebel"))
 
   (define ownspace (space 0 20000 2000 players '()
-                          `(,(standard-quit-scenario-tab-button))))
+                          `(,(standard-quit-scenario-button #t))))
   
   (set-space-objects! ownspace
                       (append (space-objects ownspace)
