@@ -25,15 +25,12 @@
                (not (will-dock? o ship))
                (not (will-dock? ship o)))
       (define d (distance ship o))
-      (define mind (* 1.1 (hit-distance ship o)))
+      (define maxd (* 3.0 (hit-distance ship o)))
       (define ad (abs (angle-frto (posvel-r (obj-posvel ship)) (theta ship o))))
-      (cond ((d . < . mind)
-             (set! f (+ f -100.0))
-             (set! f (+ f (* 5.0 (min 0.8 (/ ad pi))))))
-            ((d . < . (* 2 mind))
-             (set! f (+ f (* -100.0 (- 1.0 (/ (- d mind) mind)))))
-             (set! f (+ f (* 5.0 (min 0.8 (/ ad pi))))))
-            )))
+      (when (d . < . maxd)
+        (define z (- 1.0 (/ d maxd)))
+        (set! f (+ f (* -1000.0 z z)))
+        (set! f (+ f (* 5.0 (/ ad pi)))))))
   
   
   (case (and strat (strategy-name strat))
@@ -41,30 +38,30 @@
      (define ne (find-top-id space (strategy-arg strat)))
      (when ne
        (define d (distance ship ne))
-       (set! f (+ f (* 100.0 (sigmoid d 1000))))
+       (set! f (+ f d))
        (define ad (abs (angle-frto (posvel-r (obj-posvel ship))
                                    (theta ship ne))))
-       (set! f (+ f (* 5.0 (min 0.8 (/ ad pi)))))
+       (set! f (+ f (* 5.0 (/ ad pi))))
        ))
     (("attack" "attack*" "attack-only")
      (define ne (find-top-id space (strategy-arg strat)))
      (when ne
        (define d (distance ship ne))
-       (set! f (+ f (* 100.0 (- 1.0 (sigmoid d 1000)))))
+       (set! f (+ f (- 1000.0 d)))
        
        (define ad (abs (angle-frto (posvel-r (obj-posvel ship))
                                    (theta ship ne))))
-       (set! f (+ f (* 10.0 (- 1.0 (max 0.1 (/ ad pi))))))
+       (set! f (+ f (* 10.0 (- 1.0 (/ ad pi)))))
        ))
     (("return")
      (define mship (find-top-id space (strategy-arg strat)))
      (when mship
        (define d (distance ship mship))
-       (set! f (+ f (* 100.0 (- 1.0 (sigmoid d 1000)))))
+       (set! f (+ f (- 1000.0 d)))
 
        (define ad (abs (angle-frto (posvel-r (obj-posvel ship))
                                    (theta ship mship))))
-       (set! f (+ f (* 5.0 (- 1.0 (max 0.2 (/ ad pi)))))))))
+       (set! f (+ f (* 5.0 (- 1.0 (/ ad pi))))))))
      
   f)
 
@@ -87,6 +84,7 @@
   ;(printf "pilot-ai-strategy! ~a ~v\n" (ship-name ship) strats)
   (define strat (ship-strategy ship))
   (define d (ship-tool ship 'dock))
+  (define e (ship-tool ship 'engine))
   (cond
     ((ship-flying? ship)
      (define ne (nearest-enemy space ship))
@@ -97,9 +95,14 @@
            (define ns (strategy (space-time space) "attack" (ob-id ne)))
            (set! changes (list (new-strat (ob-id ship) (list ns)))))
           (else
-           ; we are just sitting in space with no strat, at least turn on docking so a ship can pick us up
+           ; we are just sitting in space with no strat, at least
+           ; - turn on docking so a ship can pick us up
+           ; - turn off engines so we don't fly forever
            (when (and d (tool-online? d) (not (tool-rc d)))
-             (set! changes (list (command (ob-id ship) #f 'dock #t)))))))
+             (append! changes (command (ob-id ship) #f 'dock #t)))
+           (when (and e (tool-online? e) (tool-rc e))
+             (append! changes (command (ob-id ship) #f 'engine #f)))
+           )))
        (("return")
         (define mothership (find-top-id space (strategy-arg strat)))
         (cond
@@ -252,9 +255,9 @@
           (inexact->exact (round (max 0 (- (tool-rc (ship-tool ownship 'endrc))
                                            (/ (obj-age space ownship) 1000.0)))))
           (inexact->exact (round (/ 150 (tool-val ft))))))
-    (for ((i (in-range predict-secs)))
-      (for ((s (in-list ships))) (physics! (obj-posvel s) 1.0))
-      (for ((z (in-range 10)))
+    (for ((i (in-range (* 2 predict-secs))))
+      (for ((s (in-list ships))) (physics! (obj-posvel s) 0.5))
+      (for ((z (in-range 5)))
         (update-physics! space ownship 0.1))
       (define f ((if (missile? ownship) missile-fitness pilot-fitness) space ownship))
       (set! curfit (+ curfit f))
@@ -266,7 +269,7 @@
     ;(printf "fit ~a ~a ~a\n" maxfit f c)
     
     (when (or (not bestfit)  ; first pass
-              (maxfit . > . (* 1.01 bestfit)))
+              (maxfit . > . (+ bestfit 1.0)))  ; need at least 1 more point to be better
       ;(printf "better fit ~a ~a ~a\n" maxfit f c)
       (set! bestfit maxfit)
       (set! bestf f)

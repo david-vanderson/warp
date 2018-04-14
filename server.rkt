@@ -417,27 +417,20 @@
   (define stacks (search space ai-ship? #t))
 
   ; if we haven't seen this ship before, set ai runtime to 0
-  (for ((s stacks)
-        #:when (equal? #t (ship-ai? (car s))))
-    (set-ship-ai?! (car s) 0))
-
-  ; sort stacks by last ai runtime
-  (define sorted-stacks
-    (sort stacks (lambda (s1 s2) (< (ship-ai? (car s1))
-                                    (ship-ai? (car s2))))))
-
-  (when (not (null? sorted-stacks))
-    (define s (car sorted-stacks))  ; get first one
+  (for ((s (in-list stacks)))
     (define ship (car s))
-    ; don't run ai faster than AI_INTERVAL ms, could be slower
-    (when ((- (space-time space) (ship-ai? ship)) . > . AI_INTERVAL)
+    (when (equal? #t (ship-ai? ship))
+      (set-ship-ai?! ship 0))
+    
+    (when ((- (space-time space) (ship-ai? ship)) . > . (ship-ai-freq ship))
       (set-ship-ai?! ship (space-time space))  ; set runtime
 
       ;(printf "running ai for ship ~a\n" (ship-name ship))
       
       ; run this ship's ai
       (when (and (ship-tool ship 'engine) (ship-tool ship 'steer))
-        (append! changes (pilot-ai-strategy! space s))
+        (when (not (missile? ship))
+          (append! changes (pilot-ai-strategy! space s)))
         (when (ship-flying? (get-ship s))
           (append! changes (pilot-ai-fly! space s))))
 

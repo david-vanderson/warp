@@ -78,6 +78,7 @@
                 cargo
                 '()  ; empty dmgfx
                 ai?
+                1000 ; ai-freq
                 '()  ; empty ai-strategy
                 ))
 
@@ -93,6 +94,7 @@
      s)
     (("missile")
      (define s (apply missile args))
+     (set-ship-ai-freq! s 500)
      ;type name faction con maxcon radius mass radar drag start?
      (set-ship-stats! s (stats (next-id) type name faction con con 5.0 1.0 50.0 0.5 #f))
      (set-ship-tools!

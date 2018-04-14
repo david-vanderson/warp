@@ -146,13 +146,14 @@
 ; drag is the coeffecient for how fast this ship slows down
 ; start is if you can start on this ship
 
-(struct ship obj (stats tools players hangar cargo dmgfx ai? ai-strategy) #:mutable #:prefab)
+(struct ship obj (stats tools players hangar cargo dmgfx ai? ai-freq ai-strategy) #:mutable #:prefab)
 ; tools is a list of the systems available on this ship
 ; players is a list of the players on this ship
 ; hangar is list of ships in the hangar or #f if this ship has no hangar
 ; cargo is stuff you're carrying
 ; dmgfx is list of dmgfx affecting this ship
 ; ai? is #t if the ship is ai when no players are aboard
+; ai-freq is ms between when we should run the ai
 ; ai-strategy is a list of strategies, do them in order
 
 

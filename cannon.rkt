@@ -131,18 +131,3 @@
       (append! changes (list (chdam (ob-id ownship) (ship-maxcon ownship))))))
   
   changes)
-
-
-(define (cannonball-fitness space m)
-  (define f 0.0)
-  
-  (for ((o (in-list (space-objects space)))
-        #:when (spaceship? o))
-    (define d (distance o m))
-    (define hd (+ (ship-radius o) (ship-radius m)))
-    (define foe? ((faction-check (ship-faction m) (ship-faction o)) . < . 0))
-    (cond ((d . < . hd)
-           (set! f (+ f (if foe? 1000.0 -1000.0))))
-          (else
-           (set! f (+ f (* (if foe? 1000.0 -1000.0) (- 1.0 (sigmoid d 100))))))))
-  f)
