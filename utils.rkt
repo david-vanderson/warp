@@ -229,6 +229,11 @@
 (define (find-top-id space id)
   (for/first ((o (in-list (space-objects space))) #:when (= (ob-id o) id)) o))
 
+(define (find-top-containing-id space id)
+  (for/first ((o (in-list (space-objects space)))
+              #:when (find-id o id))
+    o))
+
 (define (ship-flying? ship)
   (obj-posvel ship))
 

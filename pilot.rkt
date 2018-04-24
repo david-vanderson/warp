@@ -54,7 +54,7 @@
        (set! f (+ f (* 10.0 (- 1.0 (/ ad pi)))))
        ))
     (("return")
-     (define mship (find-top-id space (strategy-arg strat)))
+     (define mship (find-top-containing-id space (strategy-arg strat)))
      (when mship
        (define d (distance ship mship))
        (set! f (+ f (- 1000.0 d)))
@@ -104,7 +104,7 @@
              (append! changes (command (ob-id ship) #f 'engine #f)))
            )))
        (("return")
-        (define mothership (find-top-id space (strategy-arg strat)))
+        (define mothership (find-top-containing-id space (strategy-arg strat)))
         (cond
           ((not mothership)
            ; our mothership is dead
@@ -157,15 +157,13 @@
     (else
      (define mothership (cadr (get-ships stack)))
      (cond
-       ((not (ship-ai? mothership))
-        ; we docked on a non-ai ship, so remove our ai
-        (set! changes (list (chstat (ob-id ship) 'ai #f) (new-strat (ob-id ship) '()))))
        ((ship-flying? mothership)
         (cond
           ((and strat (equal? "return" (strategy-name strat)))
            (cond
              ((not (= (ob-id mothership) (strategy-arg strat)))
-              (when (and (not (ship-behind? space mothership))
+              (when (and (find-top-id space (strategy-arg strat))
+                         (not (ship-behind? space mothership))
                          (tool-online? d "nolaunch"))
                 ; we accidentally docked with not our real mothership, launch again
                 (set! changes (list (command (ob-id ship) #f 'dock 'launch)))))
