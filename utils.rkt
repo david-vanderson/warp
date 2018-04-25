@@ -126,6 +126,9 @@
 (define (strategy-age space s)
   (- (space-time space) (strategy-t s)))
 
+(define (current-strat-age space ship)
+  (- (space-time space) (ship-ai-strat-time ship)))
+
 ; age, life, death are ms since object start time
 (define (linear-fade age life death)
   (cond ((age . <= . life) 1.0)

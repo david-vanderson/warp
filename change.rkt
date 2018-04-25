@@ -317,6 +317,7 @@
      (define o (find-id space (new-strat-ship-id c)))
      (cond (o
             (set-ship-ai-strategy! o (new-strat-strats c))
+            (set-ship-ai-strat-time! o (space-time space))
             (values #t '()))
            (else
             (printf "~a new-strat - couldn't find obj id ~a\n" who (new-strat-ship-id c))

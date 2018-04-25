@@ -146,7 +146,7 @@
 ; drag is the coeffecient for how fast this ship slows down
 ; start is if you can start on this ship
 
-(struct ship obj (stats tools players hangar cargo dmgfx ai? ai-freq ai-strategy) #:mutable #:prefab)
+(struct ship obj (stats tools players hangar cargo dmgfx ai? ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
 ; tools is a list of the systems available on this ship
 ; players is a list of the players on this ship
 ; hangar is list of ships in the hangar or #f if this ship has no hangar
@@ -155,6 +155,8 @@
 ; ai? is #t if the ship is ai when no players are aboard
 ; ai-freq is ms between when we should run the ai
 ; ai-strategy is a list of strategies, do them in order
+; ai-strat-time is the time that we last got new strategies
+; - used to know "how long have we been doing the same thing"?
 
 
 (define (ship-name s) (stats-name (ship-stats s)))
@@ -195,6 +197,8 @@
 ; ordertree is an instance of ord
 
 (struct strategy (t name arg) #:mutable #:prefab)
+; t is the time we made this strategy
+; - used for "has it been a long time since we revisited this old strat?"
 ; name is the state we are in, arg is the parameter(s) for that state
 
 (struct dmgfx obj (type size) #:mutable #:prefab)

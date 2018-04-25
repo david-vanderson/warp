@@ -30,7 +30,7 @@
       (when (d . < . maxd)
         (define z (- 1.0 (/ d maxd)))
         (set! f (+ f (* -1000.0 z z)))
-        (set! f (+ f (* 5.0 (/ ad pi)))))))
+        (set! f (+ f (* 360.0 (/ ad pi)))))))
   
   
   (case (and strat (strategy-name strat))
@@ -41,7 +41,7 @@
        (set! f (+ f d))
        (define ad (abs (angle-frto (posvel-r (obj-posvel ship))
                                    (theta ship ne))))
-       (set! f (+ f (* 5.0 (/ ad pi))))
+       (set! f (+ f (* 360.0 (/ ad pi))))
        ))
     (("attack" "attack*" "attack-only")
      (define ne (find-top-id space (strategy-arg strat)))
@@ -51,7 +51,8 @@
        
        (define ad (abs (angle-frto (posvel-r (obj-posvel ship))
                                    (theta ship ne))))
-       (set! f (+ f (* 10.0 (- 1.0 (/ ad pi)))))
+       ; 360 for angle is fairly precise, needed for cannon
+       (set! f (+ f (* 360.0 (- 1.0 (/ ad pi)))))
        ))
     (("return")
      (define mship (find-top-containing-id space (strategy-arg strat)))
@@ -61,7 +62,7 @@
 
        (define ad (abs (angle-frto (posvel-r (obj-posvel ship))
                                    (theta ship mship))))
-       (set! f (+ f (* 5.0 (- 1.0 (/ ad pi))))))))
+       (set! f (+ f (* 360.0 (- 1.0 (/ ad pi))))))))
      
   f)
 
@@ -124,8 +125,7 @@
            (define ns (strategy (space-time space) "attack" (ob-id ne)))
            (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))
           ((or ((distance ship e) . > . (* 10 (hit-distance ship e)))
-               (and ((abs (angle-frto (posvel-r (obj-posvel ship)) (theta ship e))) . > . (* 5/6 pi))
-                    ((strategy-age space strat) . > . 10000)))
+               ((current-strat-age space ship) . > . 10000))
            ; done retreating
            ;(printf "done retreating\n")
            (set! changes (list (new-strat (ob-id ship) (cdr strats)))))))
@@ -142,7 +142,8 @@
            ;(printf "new enemy\n")
            (define ns (strategy (space-time space) "attack" (ob-id ne)))
            (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))
-          (((distance ship e) . < . (* 5 (hit-distance ship e)))
+          ((and ((distance ship e) . < . (* 5 (hit-distance ship e)))
+                ((current-strat-age space ship) . > . 10000))
            ; too close, retreat
            ;(printf "too close\n")
            (define ns (strategy (space-time space) "retreat" (ob-id e)))

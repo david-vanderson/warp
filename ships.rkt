@@ -80,6 +80,7 @@
                 ai?
                 1000 ; ai-freq
                 '()  ; empty ai-strategy
+                0    ; placeholder ai-strat-time
                 ))
 
   (when in-hangar
