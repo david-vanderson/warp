@@ -10,16 +10,12 @@
 (provide (all-defined-out))
 
 
-(define UPGRADE_LIFE 60000)  ; ms after which upgrade dies
-
-
 (define (upgrade-radius space u)
   5)
 
-(define (upgrade-dead? space u)
-  (if (equal? "parts" (upgrade-type u))
-      #f
-      ((obj-age space u) . > . UPGRADE_LIFE)))
+(define (upgrade-alive? space u)
+  (or (not (upgrade-life u))
+      ((obj-age space u) . <= . (upgrade-life u))))
 
 (define (upgrade-color u)
   (case (upgrade-type u)
@@ -37,4 +33,4 @@
 (define types '("engines" "turning" "hull" "radar"))
 
 (define (random-upgrade ownspace pv)
-  (upgrade (next-id) (space-time ownspace) pv (list-ref types (random (length types)))))
+  (upgrade (next-id) (space-time ownspace) pv (list-ref types (random (length types))) 60000))

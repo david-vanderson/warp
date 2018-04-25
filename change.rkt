@@ -309,6 +309,7 @@
                           ((missile? o) (reduce-missile! space o d))
                           ((cannonball? o) (reduce-cannonball! space o d))
                           ((shield? o) (reduce-shield! space o d) '())
+                          ((upgrade? o) (set-upgrade-life! o 0) '())
                           ((ship? o) (reduce-ship! space o d)))))
            (else
             (printf "~a chdam - couldn't find obj id ~a\n" who (chdam-id c))

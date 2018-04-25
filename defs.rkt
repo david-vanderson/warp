@@ -188,8 +188,9 @@
 (struct shield obj (e) #:mutable #:prefab)
 ; e is energy
 
-(struct upgrade obj (type) #:mutable #:prefab)
+(struct upgrade obj (type life) #:mutable #:prefab)
 ; type is string saying which part of the ship it upgrades
+; life is ms the upgrade should stay before disappearing of #f if doesn't die
 
 (struct space (time width height players orders objects) #:mutable #:prefab)
 ; time is msec since the scenario started

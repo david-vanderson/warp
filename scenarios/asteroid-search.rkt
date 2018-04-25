@@ -37,7 +37,7 @@
                  (define s (make-ship (if ((random) . > . 0.5) "asteroid_43" "asteroid_87")
                                       "Asteroid" "_neutral" #:x x #:y y
                                       #:dx dx #:dy dy #:dr dr))
-                 (set-ship-cargo! s (list (upgrade (next-id) 0 #f "unscouted")))
+                 (set-ship-cargo! s (list (upgrade (next-id) 0 #f "unscouted" #f)))
                  (when (not hidden-base)
                    (set! hidden-base s)
                    (set-ship-hangar! s '()))
@@ -45,7 +45,7 @@
              )))
 
   ; put the spare parts upgrade in the hidden base
-  (define parts (upgrade (next-id) (space-time ownspace) #f "parts"))
+  (define parts (upgrade (next-id) (space-time ownspace) #f "parts" #f))
 
   ; the good guys in this scenario
   (define (new-red-fighter)

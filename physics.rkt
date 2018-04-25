@@ -131,7 +131,7 @@
        (set-space-objects! space (remove o (space-objects space)))))
     ((upgrade? o)
      (physics! pv dt 0.4)
-     (when (upgrade-dead? space o)
+     (when (not (upgrade-alive? space o))
        (set-space-objects! space (remove o (space-objects space)))))))
 
 
