@@ -58,7 +58,8 @@
           (loop))
          (else
           (thread-send orig-thread (cons id #f))
-          (printf "in-thread ~a stopping ~v\n" id v)))))))
+          (printf "in-thread ~a stopping ~v\n" id v)
+          (sync never-evt)))))))
 
 (define (make-out-thread id out-port)
   (define orig-thread (current-thread))
@@ -77,7 +78,8 @@
           (loop))
          (else
           (thread-send orig-thread (cons id #f))
-          (printf "out-thread ~a stopping\n" id)))))))
+          (printf "out-thread ~a stopping\n" id)
+          (sync never-evt)))))))
 
 (define (standard-quit-scenario-button (tab? #f))
   (ann-button (next-id) 0 (posvel 0 60 100 0 120 50 0) tab? "Quit Scenario" "quit-scenario"))
