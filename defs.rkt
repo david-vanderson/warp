@@ -42,6 +42,7 @@
 (define DMG_FIX? #t)  ; whether damages start out with fixing?
 
 (define server? (make-parameter #t))  ; clients set this to #f
+(define (client?) (not (server?)))
 (define idimag (make-parameter 0))  ; clients set this to their player id
 
 (define next-id
@@ -309,9 +310,10 @@
 ; to is id of where to put the object, #f means top level
 ; pv is the new posvel to use for this object
 
-(struct chdam (id damage) #:mutable #:prefab)
+(struct chdam (id damage fx) #:mutable #:prefab)
 ; id is of the object that is being damaged
 ; damage is the amount
+; fx is #t if the thing being damaged should shake the screen
 
 (struct pvupdate (id pv) #:mutable #:prefab)
 ; id is the object we want to update

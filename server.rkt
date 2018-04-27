@@ -56,7 +56,7 @@
   (cond (which
          (define m (message (next-id) (space-time space) #f (format "~a upgraded ~a" (ship-name ship) which)))
          (when sendstats (append! changes (chstats (ob-id ship) newstats)))
-         (append! changes (list m (chdam (ob-id u) 1))))
+         (append! changes (list m (chdam (ob-id u) 1 #f))))
         (else
          (append! changes (chmov (ob-id u) (ob-id ship) #f))))
    
@@ -69,14 +69,8 @@
   ;(printf "plasma hit ship ~a (~a)\n" (ship-name ship) (ob-id ship))
     
   (define damage (plasma-damage space p))
-  (define e (effect (next-id) (space-time space)
-                    (struct-copy posvel (obj-posvel p)
-                                 (dx (posvel-dx (obj-posvel ship)))
-                                 (dy (posvel-dy (obj-posvel ship))))
-                    (plasma-radius space p) 300))
-  (append! changes (chdam (ob-id p) damage)
-           (chdam (ob-id ship) damage)
-           (chadd e #f))
+  (append! changes (chdam (ob-id p) damage #f)
+           (chdam (ob-id ship) damage #f))
   changes)
 
 
@@ -86,8 +80,8 @@
   ;(printf "missile hit plasma\n")
   
   (define damage (plasma-damage space p))
-  (append! changes (chdam (ob-id m) damage)
-           (chdam (ob-id p) damage))
+  (append! changes (chdam (ob-id m) damage #f)
+           (chdam (ob-id p) damage #f))
   changes)
 
 
@@ -97,23 +91,16 @@
   ;(printf "missile hit ship ~a\n" (ship-name ship))
   
   (define damage (ship-maxcon m))
-  (define e (effect (next-id) (space-time space)
-                    (struct-copy posvel (obj-posvel m)
-                                 (dx (posvel-dx (obj-posvel ship)))
-                                 (dy (posvel-dy (obj-posvel ship))))
-                    10.0 500))
-  (append! changes (list (chadd (dmgfx (next-id) (space-time space) #f "translation" damage) (ob-id ship))
-                         (chdam (ob-id ship) damage)
-                         (chdam (ob-id m) damage)
-                         (chadd e #f)))
+  (append! changes (list (chdam (ob-id ship) damage #t)
+                         (chdam (ob-id m) damage #f)))
   changes)
 
 
 (define (missile-hit-missile! space m1 m2)
   (define changes '())
   (append! changes
-           (chdam (ob-id m1) (ship-maxcon m2))
-           (chdam (ob-id m2) (ship-maxcon m1)))
+           (chdam (ob-id m1) (ship-maxcon m2) #f)
+           (chdam (ob-id m2) (ship-maxcon m1) #f))
   changes)
 
 
@@ -121,8 +108,8 @@
   (define changes '())
   (define d (+ (ship-maxcon cb1) (ship-maxcon cb2)))
   (append! changes
-           (chdam (ob-id cb1) d)
-           (chdam (ob-id cb2) d))
+           (chdam (ob-id cb1) d #f)
+           (chdam (ob-id cb2) d #f))
   changes)
 
 
@@ -131,15 +118,8 @@
   ;(printf "cannon hit ship ~a\n" (ship-name ship))
 
   (define d (ship-maxcon cb))
-  (define e (effect (next-id) (space-time space)
-                    (struct-copy posvel (obj-posvel cb)
-                                 (dx (posvel-dx (obj-posvel ship)))
-                                 (dy (posvel-dy (obj-posvel ship))))
-                    15.0 600))
-  (append! changes (list (chadd (dmgfx (next-id) (space-time space) #f "translation" d) (ob-id ship))
-                         (chdam (ob-id ship) d)
-                         (chdam (ob-id cb) d)
-                         (chadd e #f)))
+  (append! changes (list (chdam (ob-id ship) d #t)
+                         (chdam (ob-id cb) d #f)))
   changes)
 
 
@@ -160,8 +140,8 @@
     (when (and (< (- rad) x rad)
                (< (- (- (/ l 2)) rad) y (+ (/ l 2) rad)))
       (define damage (min (plasma-damage space p) (shield-energy space s)))
-      (append! changes (list (chdam (ob-id p) damage)
-                             (chdam (ob-id s) damage)))))
+      (append! changes (list (chdam (ob-id p) damage #f)
+                             (chdam (ob-id s) damage #f)))))
   changes)
 
 
@@ -309,11 +289,11 @@
        (append! changes (endrc (and player (ob-id player)) (ob-id o)))))
     ((cannonball? o)
      (when ((obj-age space o) . > . 30000.0)
-       (append! changes (chdam (ob-id o) (ship-maxcon o)))))
+       (append! changes (chdam (ob-id o) (ship-maxcon o) #f))))
     ((missile? o)
      (define t (ship-tool o 'endrc))
      (when ((tool-rc t) . <= . (/ (obj-age space o) 1000.0))
-       (append! changes (chdam (ob-id o) (ship-maxcon o))))))
+       (append! changes (chdam (ob-id o) (ship-maxcon o) #f)))))
   changes)
 
 

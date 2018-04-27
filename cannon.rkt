@@ -19,8 +19,14 @@
   
   (when ((ship-con b) . <= . 0)
     (set-space-objects! space (remove-id (ob-id b) (space-objects space)))
+    ; explode
+    (when (client?)
+      (define e (effect (next-id) (space-time space)
+                        (posvel (space-time space) (obj-x b) (obj-y b) 0.0 0.0 0.0 0.0)
+                        15.0 600))
+      (append! changes (chadd e #f)))
+    
     (when (server?)
-      ; explode
       (define num 16)
       (for ((i (in-range num)))
         (define r (* i (/ 2pi num)))
@@ -128,6 +134,6 @@
         ((abs (angle-frto t2 t)) . < . (* pi 0.2))))
     
     (when (not any-closer?)
-      (append! changes (list (chdam (ob-id ownship) (ship-maxcon ownship))))))
+      (append! changes (list (chdam (ob-id ownship) (ship-maxcon ownship) #f)))))
   
   changes)

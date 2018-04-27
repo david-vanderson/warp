@@ -184,7 +184,7 @@
      (define o (find-id space id))
      (when (and (server?) (missile? o))
        ; missile explodes
-       (append! changes (chdam (ob-id o) (ship-maxcon o))))
+       (append! changes (chdam (ob-id o) (ship-maxcon o) #f)))
      (when (and (server?) (probe? o))
        (append! changes
                 (command (ob-id o) #f 'endrc #f)
@@ -202,7 +202,7 @@
      (define o (find-id space id))
      (when (and (server?) (cannonball? o))
        ; find and explode player's cbid
-       (append! changes (chdam (ob-id o) (ship-maxcon o))))
+       (append! changes (chdam (ob-id o) (ship-maxcon o) #f)))
      (when p
        (set-player-cbid! p #f))
      (values #t changes))
@@ -305,12 +305,18 @@
      (define d (chdam-damage c))
      (cond (o
             (values #t
-                    (cond ((plasma? o) (reduce-plasma! space o d) '())
+                    (cond ((plasma? o) (reduce-plasma! space o d))
                           ((missile? o) (reduce-missile! space o d))
                           ((cannonball? o) (reduce-cannonball! space o d))
                           ((shield? o) (reduce-shield! space o d) '())
                           ((upgrade? o) (set-upgrade-life! o 0) '())
-                          ((ship? o) (reduce-ship! space o d)))))
+                          ((ship? o)
+                           (define cs (reduce-ship! space o d))
+                           (when (and (not (server?)) (chdam-fx c))
+                             (append! cs (chadd
+                                          (dmgfx (next-id) (space-time space) #f "translation" d)
+                                          (ob-id o))))
+                           cs))))
            (else
             (printf "~a chdam - couldn't find obj id ~a\n" who (chdam-id c))
             (values #t '()))))

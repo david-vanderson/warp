@@ -15,6 +15,13 @@
 
   (when ((ship-con m) . <= . 0)
     (set-space-objects! space (remove-id (ob-id m) (space-objects space)))
+    
+    (when (client?)
+      (define e (effect (next-id) (space-time space)
+                        (posvel (space-time space) (obj-x m) (obj-y m) 0.0 0.0 0.0 0.0)
+                        10.0 500))
+      (append! changes (chadd e #f)))
+    
     (when (server?)
       ; missile is detonating
       (define basea (remain (* .001 (obj-age space m)) 2pi))

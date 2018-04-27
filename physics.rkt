@@ -142,12 +142,14 @@
   
   (when ((ship-con ship) . <= . 0)
     (set-space-objects! space (remove ship (space-objects space)))
-    (when (server?)
-      (define pv (obj-posvel ship))
-      (define energy (ship-mass ship))
+    (define pv (obj-posvel ship))
+    (define energy (ship-mass ship))
+    
+    (when (client?)
       (define e (effect (next-id) (space-time space) (struct-copy posvel pv) (sqrt energy) 1000))
-      (append! changes (chadd e #f))
-      
+      (append! changes (chadd e #f)))
+    
+    (when (server?)
       (for ((ps (in-list (search ship player? #t))))
         (define p (car ps))
         (define ss (make-spacesuit (player-name p) ship))
