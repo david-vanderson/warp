@@ -75,17 +75,6 @@
 
 
 ; return a list of changes
-(define (missile-hit-plasma! space m p)
-  (define changes '())
-  ;(printf "missile hit plasma\n")
-  
-  (define damage (plasma-damage space p))
-  (append! changes (chdam (ob-id m) damage #f)
-           (chdam (ob-id p) damage #f))
-  changes)
-
-
-; return a list of changes
 (define (missile-hit-ship! space ship m)
   (define changes '())
   ;(printf "missile hit ship ~a\n" (ship-name ship))
@@ -98,9 +87,10 @@
 
 (define (missile-hit-missile! space m1 m2)
   (define changes '())
+  (define d (+ (ship-maxcon m1) (ship-maxcon m2)))
   (append! changes
-           (chdam (ob-id m1) (ship-maxcon m2) #f)
-           (chdam (ob-id m2) (ship-maxcon m1) #f))
+           (chdam (ob-id m1) d #f)
+           (chdam (ob-id m2) d #f))
   changes)
 
 
@@ -296,9 +286,21 @@
        (append! changes (chdam (ob-id o) (ship-maxcon o) #f)))))
   changes)
 
+; numeric priority that controls the order that objects are seen by collide!
+(define (priority o)
+  (cond ((plasma? o) 0)
+        ((cannonball? o) 1)
+        ((missile? o) 2)
+        ((upgrade? o) 3)
+        ((spaceship? o) 4)
+        ((probe? o) 4)
+        ((spacesuit? o) 4)
+        (else (printf "priority unknown for ~v\n" o) 5)))
+
 
 ; called on every pair of objects that might be colliding
 ; called only once for each pair
+; (priority a) <= (priority b)
 ; return a list of changes
 (define (collide! space a b)
   (set! num-collide (+ 1 num-collide))
@@ -306,6 +308,7 @@
     ((plasma? a)
      (cond ((or (spaceship? b)
                 (probe? b)
+                (missile? b)
                 (cannonball? b))
             (when ((distance a b) . < . (+ (ship-radius b) (plasma-radius space a)))
               (plasma-hit-ship! space b a)))))
@@ -314,40 +317,26 @@
             (when ((distance a b) . < . (hit-distance a b))
               (cb-hit-cb! space a b)))
            ((or (spaceship? b)
+                (missile? b)
                 (probe? b))
             (when ((distance a b) . < . (hit-distance a b))
-              (cb-hit-ship! space a b)))
-           ((or (plasma? b)
-                (missile? b))
-            (set! num-collide (- num-collide 1))
-            (collide! space b a))))
+              (cb-hit-ship! space a b)))))
     ((missile? a)
-     (cond ((plasma? b)
-            (when ((distance a b) . < . (+ (ship-radius a) (plasma-radius space b)))
-              (missile-hit-plasma! space a b)))
-           ((missile? b)
+     (cond ((missile? b)
             (when ((distance a b) . < . (hit-distance a b))
               (missile-hit-missile! space a b)))
            ((or (spaceship? b)
-                (probe? b)
-                (cannonball? b))
+                (probe? b))
             (when ((distance a b) . < . (hit-distance a b))
               (missile-hit-ship! space b a)))))
     ((upgrade? a)
      (cond ((spaceship? b)
             (when ((distance a b) . < . (+ (ship-radius b) (upgrade-radius space a)))
-              (printf "collide upgrade\n")
               (upgrade-hit-ship! space b a)))))
     ((or (spaceship? a)
          (probe? a)
          (spacesuit? a))
      (cond
-       ((or (plasma? b)
-            (cannonball? b)
-            (missile? b)
-            (upgrade? b))
-        (set! num-collide (- num-collide 1))
-        (collide! space b a))
        ((or (spaceship? b)
             (probe? b)
             (spacesuit? b))
@@ -393,7 +382,9 @@
   (define (coll! a b)
     (when (and (live? space a)
                (live? space b))
-      (define precs (collide! space a b))
+      (define precs (if ((priority a) . <= . (priority b))
+                        (collide! space a b)
+                        (collide! space b a)))
       (when (not (void? precs))
         (define cs (apply-all-changes! space precs (space-time space) "server"))
         (append! changes cs))))
