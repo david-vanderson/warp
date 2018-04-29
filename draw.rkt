@@ -112,7 +112,7 @@
     #;((ptsize . < . 0.25)  ; "sector" view - ships are triangles
      (cond ((ship? o)
             (define col
-              (if (find-id o pid)
+              (if (find-id space o pid)
                   (linear-color "blue" "blue" 1.0
                                 (+ 0.5 (* 0.5 (cycletri (space-time space) 1500))))
                   "blue"))
@@ -120,7 +120,7 @@
               (cond ((spacesuit? o)
                      ; diamond, but small enough so it looks like a dot
                      '((-1 . 0) (0 . 1) (1 . 0) (0 . -1) (-1 . 0)))
-                    ((find-id o fthrust? #f)
+                    ((find-id space o fthrust? #f)
                      '((-1 . -2) (-1 . 2) (5 . 0) (-1 . -2)))  ; engines -> triangle
                     (else
                      '((-5 . -5) (-5 . 5) (5 . 5) (5 . -5) (-5 . -5)))))  ; no engines -> square
@@ -164,7 +164,7 @@
             ;(append! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
             (when showplayers?
               (define colstr (faction-check-color faction (ship-faction o)))
-              (define players (find-all o player?))
+              (define players (find-all space o player?))
               ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
               (append! spr (draw-cargolist csd textr textsr center scale o colstr fowa
                                            (cons (ship-name o) (map upgrade-type (ship-cargo o)))
@@ -423,7 +423,7 @@
        (define ob (add-offline-button! t b send-commands))
        (when ob (append! buttons (list ob))))
       ((warp)
-       (define-values (bs ss) (draw-warp-ui! csd center scale ship t stack send-commands))
+       (define-values (bs ss) (draw-warp-ui! csd center scale space ship t stack send-commands))
        (append! buttons bs)
        (append! spr ss))
       ((missile)

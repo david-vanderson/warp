@@ -213,7 +213,7 @@
        (set! s temp))
      (when ((faction-check (ship-faction ship) (ship-faction s)) . > . 0)
        ; don't need to explicitly remove the spacesuit because chmov does that
-       (append! changes (chmov (ob-id (car (ship-players s)))
+       (append! changes (chmov (car (ship-playerids s))
                                (ob-id ship) #f))))
     ((will-dock? ship s)       
      (append! changes (dock! ship s)))
@@ -397,7 +397,7 @@
   ; find out if any player's rc objects went away
   (for ((p (space-players space))
         #:when (and (player-rcid p)
-                    (not (find-id space (player-rcid p)))))
+                    (not (find-id space space (player-rcid p)))))
     (define cs (apply-all-changes! space (list (endrc (ob-id p) #f)) (space-time space) "server"))
     (append! changes cs))
   
@@ -408,7 +408,7 @@
 (define (run-ai! space)
   (define changes '())
   
-  (define stacks (search space ai-ship? #t))
+  (define stacks (search space space ai-ship? #t))
 
   ; if we haven't seen this ship before, set ai runtime to 0
   (for ((s (in-list stacks)))
@@ -554,7 +554,7 @@
     (set-space-time! ownspace (+ (space-time ownspace) TICK))
     (for ((o (space-objects ownspace)))
       (update-physics! ownspace o (/ TICK 1000.0))
-      (when (ship? o) (update-ship! o (/ TICK 1000.0))))
+      (when (ship? o) (update-ship! ownspace o (/ TICK 1000.0))))
     )
       
 

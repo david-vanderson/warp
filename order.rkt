@@ -115,13 +115,13 @@
 (define (kill text id)
   (order #f text (list (ann-ship (next-id) 0 #f #f text id))
          (lambda (space faction o)
-           (not (find-id space id)))))
+           (not (find-id space space id)))))
 
 ; keep alive
 (define (alive text id)
   (order #f text (list (ann-ship (next-id) 0 #f #f text id))
          (lambda (space faction o)
-           (find-id space id))))
+           (find-id space space id))))
 
 ; make a timout order
 (define (timeout text start total ot)

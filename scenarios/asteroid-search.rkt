@@ -125,8 +125,8 @@
   (define (on-tick ownspace change-scenario!)
     (define changes '())
 
-    (define frig (find-id ownspace (ob-id goodship)))
-    (define eb (find-id ownspace (ob-id enemy-base)))
+    (define frig (find-id ownspace ownspace (ob-id goodship)))
+    (define eb (find-id ownspace ownspace (ob-id enemy-base)))
 
     (for ((p (space-players ownspace)))
       (when (not (player-faction p))
@@ -134,7 +134,7 @@
         (append! changes (chfaction (ob-id p) "Empire"))
         (when frig
           (append! changes (chmov (ob-id p) (ob-id frig) #f))))
-      (when (and frig (not (find-id ownspace (ob-id p))))
+      (when (and frig (not (find-id ownspace ownspace (ob-id p))))
         (append! changes (chmov (ob-id p) (ob-id frig) #f))))
 
     (for ((fo (space-orders real-orders)))
@@ -166,7 +166,7 @@
                 (strategy (space-time ownspace) "return" (ob-id enemy-base))))
         (append! changes (chadd f (ob-id enemy-base)) m))
 
-      (define hb (find-id ownspace (ob-id hidden-base)))
+      (define hb (find-id ownspace ownspace (ob-id hidden-base)))
       
       ; update scouted status of asteroids
       (define (unscouted-cargo o)
@@ -179,9 +179,9 @@
             (a (space-objects ownspace))
             #:when (and (spaceship? a)
                         ((distance s a) . < . (ship-radar s))
-                        (find-id a unscouted-cargo)))
+                        (find-id ownspace a unscouted-cargo)))
         ; remove the unscouted cargo
-        (append! changes (chrm (ob-id (find-id a unscouted-cargo))))
+        (append! changes (chrm (ob-id (find-id ownspace a unscouted-cargo))))
         ; check if this was the hidden base
         (when (and (not found-base?) (equal? (ob-id hb) (ob-id a)))
           (set! found-base? #t)
@@ -200,8 +200,8 @@
       
       ; check if the parts got back to goodship
       (when (and found-base? dock-base? (not parts-returned?))
-        (define gs (find-id ownspace (ob-id goodship)))
-        (define p (find-stack gs (ob-id parts)))
+        (define gs (find-id ownspace ownspace (ob-id goodship)))
+        (define p (find-stack ownspace gs (ob-id parts)))
         (when p
           (set! parts-returned? #t)
           ; need to actually repair the engine somehow...
@@ -215,7 +215,7 @@
     changes)
   
   (define (on-message space cmd change-scenario!)
-    (define o (find-id space (anncmd-id cmd)))
+    (define o (find-id space space (anncmd-id cmd)))
     (when (and o (ann-button? o))
       (case (ann-button-msg o)
         (("quit-scenario") (change-scenario!))))

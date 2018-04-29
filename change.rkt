@@ -30,7 +30,7 @@
 (define (adj! o fto who rem?)
   (define-values (ss! ss)
     (cond ((ship? fto)
-           (cond ((player? o) (values set-ship-players! ship-players))
+           (cond ((player? o) (values set-ship-playerids! ship-playerids))
                  ((upgrade? o) (values set-ship-cargo! ship-cargo))
                  ((dmgfx? o) (values set-ship-dmgfx! ship-dmgfx))
                  (else (values set-ship-hangar! ship-hangar))))
@@ -45,9 +45,14 @@
           (if rem? "rem!" "add!")
           (prefab-struct-key o)
           (prefab-struct-key fto))
-  (if rem?
-      (ss! fto (remove-id (ob-id o) (ss fto)))
-      (ss! fto (cons o (ss fto)))))
+  (cond ((and (ship? fto) (player? o))
+         (if rem?
+             (ss! fto (remove (ob-id o) (ss fto)))
+             (ss! fto (cons (ob-id o) (ss fto)))))
+        (else
+         (if rem?
+             (ss! fto (remove-id (ob-id o) (ss fto)))
+             (ss! fto (cons o (ss fto)))))))
 
 (define (rem! o from who)
   (adj! o from who #t))
@@ -104,10 +109,10 @@
   ;(printf "~a (~a) applying change ~v\n" who (space-time space) c)
   (cond
     ((command? c)
-     (define s (find-stack space (command-id c)))
+     (define s (find-stack space space (command-id c)))
      (define p (if (and s (player? (car s))) (car s) #f))
      (define ship (if s (get-ship s) #f))
-     (define rcship (if p (find-id space (player-rcid p)) #f))
+     (define rcship (if p (find-id space space (player-rcid p)) #f))
      (define tool (if s (ship-tool (or rcship ship) (command-cmd c)) #f))
      (cond
        ((not s)
@@ -144,7 +149,7 @@
              ((and (equal? 'warp (command-cmd c))
                    (equal? 'stop (command-arg c)))
               (when ship
-                (cancel-warp! ship))
+                (cancel-warp! space ship))
               (values #t '()))
              ((or rcship (not p))
               ; either we are remote controlling something
@@ -160,8 +165,8 @@
               (values #t '())))
            )))))
     ((chrc? c)
-     (define p (find-id space (chrc-pid c)))
-     (define o (find-id space (chrc-rcid c)))
+     (define p (find-id space space (chrc-pid c)))
+     (define o (find-id space space (chrc-rcid c)))
      (cond
        ((not p)
         (printf "~a dropping command (can't find player) ~v\n" who c)
@@ -181,7 +186,7 @@
      (define changes '())
      (define p (findfid (endrc-pid c) (space-players space)))
      (define id (if p (player-rcid p) (endrc-rcid c)))
-     (define o (find-id space id))
+     (define o (find-id space space id))
      (when (and (server?) (missile? o))
        ; missile explodes
        (append! changes (chdam (ob-id o) (ship-maxcon o) #f)))
@@ -199,7 +204,7 @@
      (define changes '())
      (define p (findfid (endcb-pid c) (space-players space)))
      (define id (if p (player-cbid p) (endcb-cbid c)))
-     (define o (find-id space id))
+     (define o (find-id space space id))
      (when (and (server?) (cannonball? o))
        ; find and explode player's cbid
        (append! changes (chdam (ob-id o) (ship-maxcon o) #f)))
@@ -208,13 +213,14 @@
      (values #t changes))
     ((chadd? c)
      (define to (if (chadd-to c)
-                    (find-id space (chadd-to c))
+                    (find-id space space (chadd-to c))
                     space))
      (cond
        (to
         (define o (chadd-o c))
         (add! o to who)
         (while (and (ctime . < . (space-time space))
+                    (obj? o)
                     (obj-posvel o))  ; some objs have a #f posvel when inside other things
                ;(printf "~a ticking forward ~v\n" who (chadd-o c))
                (update-physics! space o (/ TICK 1000.0))
@@ -231,7 +237,7 @@
        (rem! p space who)
        (append! changes (player-cleanup! space p)))
 
-     (define s (find-stack space (chrm-id c)))
+     (define s (find-stack space space (chrm-id c)))
      (cond
        (s
         (rem! (car s) (cadr s) who)
@@ -241,7 +247,7 @@
         (values #f changes))))
     ((chmov? c)
      (define to (if (chmov-to c)
-                    (find-id space (chmov-to c))
+                    (find-id space space (chmov-to c))
                     space))
      (cond
        ((not to)
@@ -249,7 +255,7 @@
         (values #f '()))
        (else
         (define p (findfid (chmov-id c) (space-players space)))
-        (define s (find-stack space (chmov-id c)))
+        (define s (find-stack space space (chmov-id c)))
         (cond
           (s
            (define changes '())
@@ -301,7 +307,7 @@
     
     
     ((chdam? c)
-     (define o (find-id space (chdam-id c)))
+     (define o (find-id space space (chdam-id c)))
      (define d (chdam-damage c))
      (cond (o
             (values #t
@@ -321,7 +327,7 @@
             (printf "~a chdam - couldn't find obj id ~a\n" who (chdam-id c))
             (values #t '()))))
     ((new-strat? c)
-     (define o (find-id space (new-strat-ship-id c)))
+     (define o (find-id space space (new-strat-ship-id c)))
      (cond (o
             (set-ship-ai-strategy! o (new-strat-strats c))
             (set-ship-ai-strat-time! o (space-time space))
@@ -330,7 +336,7 @@
             (printf "~a new-strat - couldn't find obj id ~a\n" who (new-strat-ship-id c))
             (values #t '()))))
     ((chstats? c)
-     (define o (find-id space (chstats-id c)))
+     (define o (find-id space space (chstats-id c)))
      (cond (o
             (set-ship-stats! o (chstats-newstats c))
             ;(printf "ship ~a now has stats ~v\n" (ship-name o) (ship-stats o))
@@ -339,7 +345,7 @@
             (printf "~a chstats - couldn't find obj id ~a\n" who (chstats-id c))
             (values #t '()))))
     ((chstat? c)
-     (define o (find-id space (chstat-id c)))
+     (define o (find-id space space (chstat-id c)))
      (cond
        (o
         (case (chstat-what c)

@@ -28,29 +28,29 @@
 (define (warp-energy w)
   (caddr (tool-val w)))
 
-(define (warp-charging? ship)
+(define (warp-charging? space ship)
   (define w (ship-tool ship 'warp))
   (and w
        ((warp-energy w) . < . (warp-threshold w))
-       ((tool-count w ship) . > . 0)))
+       ((tool-count space w ship) . > . 0)))
 
 (define (warping? ship)
   (define w (ship-tool ship 'warp))
   (and w
        ((warp-energy w) . = . (warp-threshold w))))
 
-(define (cancel-warp! ship)
+(define (cancel-warp! space ship)
   (define w (ship-tool ship 'warp))
   (when w
     (set-tool-val! w (list (warp-speed w)
                            (warp-threshold w)
                            0.0))
-    (for ((p (in-list (ship-players ship))))
+    (for ((p (in-list (ship-players space ship))))
       (set-player-commands! p (remove* '(warp) (player-commands p))))))
 
 
 ; return list of buttons
-(define (draw-warp-ui! csd center scale ship t stack send-commands)
+(define (draw-warp-ui! csd center scale space ship t stack send-commands)
   (define buttons '())
   (define spr '())
   (define vals (tool-val t))
@@ -87,7 +87,7 @@
      (set-button-f! b (lambda (x y)
                         (send-commands (command pid cmdlevel (tool-name t) 'stop)))))
     (else
-     (when (warp-charging? ship)
+     (when (warp-charging? space ship)
        (set-button-label! b "Charging Warp [s]"))
      (set-button-f! b (lambda (x y)
                         (send-commands (command pid cmdlevel (tool-name t) #t))))))

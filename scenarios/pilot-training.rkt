@@ -65,7 +65,7 @@
   (define (on-tick space change-scenario!)
     (define changes '())
     (for ((p (space-players space)))
-      (define s (find-id space (lambda (o) (and (ship? o) (equal? (ship-faction o) (player-faction p))))))
+      (define s (find-id space space (lambda (o) (and (ship? o) (equal? (ship-faction o) (player-faction p))))))
       (cond
         ((not (player-faction p))
          ; new player
@@ -80,7 +80,7 @@
          (set-space-orders-for! real-orders (player-faction p) o)
          (define nt (new-trainer (player-faction p)))
          (append! changes (chadd nt #f) (chmov (ob-id p) (ob-id nt) #f)))
-        ((and s (not (find-id space (ob-id p))))
+        ((and s (not (find-id space space (ob-id p))))
          ; player has a ship but is not on any ship
          (append! changes (chmov (ob-id p) (ob-id s) #f)))))
 
@@ -110,7 +110,7 @@
     changes)
   
   (define (on-message space cmd change-scenario!)
-    (define o (find-id space (anncmd-id cmd)))
+    (define o (find-id space space (anncmd-id cmd)))
     (when (and o (ann-button? o))
       (case (ann-button-msg o)
         (("quit-scenario") (change-scenario!))))

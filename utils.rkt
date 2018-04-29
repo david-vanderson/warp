@@ -179,7 +179,7 @@
 
 ; returns a list of stacks of all objects from ownspace
 ; to the object with the given id (found object first)
-(define (search o id (multiple? #f) (subships? #t))
+(define (search space o id (multiple? #f) (subships? #t))
   (define search-return '())  ; found stacks
   (let/ec esc
     (let search-internal ((o o) (stack '()))
@@ -205,7 +205,7 @@
         ((ship? o)
          (for ((x (in-list (ship-tools o))))
            (search-internal x (cons o stack)))
-         (for ((x (in-list (ship-players o))))
+         (for ((x (in-list (ship-players space o))))
            (search-internal x (cons o stack)))
          (for ((x (in-list (ship-cargo o))))
            (search-internal x (cons o stack)))
@@ -220,15 +220,15 @@
   search-return)
 
 
-(define (find-all o id)
-  (map car (search o id #t)))
+(define (find-all space o id)
+  (map car (search space o id #t)))
 
-(define (find-stack o id (subships? #t))
-  (define r (if id (search o id #f subships?) null))
+(define (find-stack space o id (subships? #t))
+  (define r (if id (search space o id #f subships?) null))
   (if (null? r) #f (car r)))
 
-(define (find-id o id (subships? #t))
-  (define r (find-stack o id subships?))
+(define (find-id space o id (subships? #t))
+  (define r (find-stack space o id subships?))
   (if r (car r) #f))
 
 (define (find-top-id space id)
@@ -236,7 +236,7 @@
 
 (define (find-top-containing-id space id)
   (for/first ((o (in-list (space-objects space)))
-              #:when (find-id o id))
+              #:when (find-id space o id))
     o))
 
 (define (ship-flying? ship)
@@ -258,7 +258,7 @@
 (define (get-center space stack)
   (define shipcenter (get-topship stack))
   (define p (car stack))
-  (define rcobj (if (player-rcid p) (find-id space (player-rcid p)) #f))
+  (define rcobj (if (player-rcid p) (find-id space space (player-rcid p)) #f))
   (cond
     (rcobj rcobj)
     (else shipcenter)))
@@ -267,7 +267,7 @@
   (car (reverse stack)))
 
 (define (ai-ship? o)
-  (and (ship? o) (ship-ai? o) (null? (ship-players o))))
+  (and (ship? o) (ship-ai? o) (null? (ship-playerids o))))
 
 (define (can-launch? stack)
   (define ships (get-ships stack))
@@ -278,17 +278,17 @@
 (define (ship-tool ship sym)
   (findf (lambda (t) (equal? sym (tool-name t))) (ship-tools ship)))
 
-(define (tool-count t ship)
+(define (tool-count space t ship)
   (cond
     ((not t) 0)
-    ((empty? (ship-players ship))
+    ((empty? (ship-playerids ship))
      (if (tool-rc t) 1 0))
     (else
      (count (lambda (p)
               (findf (lambda (c)
                        (equal? c (tool-name t)))
                      (player-commands p)))
-            (ship-players ship)))))
+            (ship-players space ship)))))
 
 (define (tool-online? t (dmgtype "offline"))
   (not (findf (lambda (d) (equal? dmgtype (dmg-type d))) (tool-dmgs t))))

@@ -214,7 +214,7 @@
                                            x y #:layer LAYER_MAP #:a (send col alpha)
                                            #:r (send col red) #:g (send col green) #:b (send col blue))))
                   ((ann-ship? a)
-                   (define st (find-stack ownspace (ann-ship-id a)))
+                   (define st (find-stack ownspace ownspace (ann-ship-id a)))
                    (when st
                      (define s (get-topship st))
                      (define col (if highlight? bright dim))
@@ -236,7 +236,7 @@
       ; - stacked if we are on a ship inside another ship
       (when my-stack
         (define p (car my-stack))
-        (define rcship (if (player-rcid p) (find-id ownspace (player-rcid p)) #f))
+        (define rcship (if (player-rcid p) (find-id ownspace ownspace (player-rcid p)) #f))
         (define ship (get-ship my-stack))
         (define topship (get-topship my-stack))
         (when (and (unbox in-hangar?) (not (ship-hangar ship)))
@@ -286,7 +286,7 @@
                                (lambda (x y)
                                  (send-commands (chmov meid (ob-id s) #f)))))
              (append! buttons b)
-             (define players (find-all s player?))
+             (define players (find-all ownspace s player?))
              ;(append! players (player -1 "player1" "fac1" '() #f #f) (player -1 "player2" "fac2" '() #f #f))
              (for ((p (in-list players))
                    (i (in-naturals)))
@@ -398,10 +398,11 @@
       
       (when (not my-stack)
         (define start-ships
-          (find-all ownspace (lambda (o) (and (ship? o)
-                                              (ship-flying? o)
-                                              (ship-start o)
-                                              (equal? fac (ship-faction o))))))
+          (find-all ownspace ownspace (lambda (o)
+                                        (and (ship? o)
+                                             (ship-flying? o)
+                                             (ship-start o)
+                                             (equal? fac (ship-faction o))))))
         
         (when (not fac)
           (append! sprites (textr "Waiting for faction assignment..."
@@ -480,7 +481,7 @@
                                        (set! center-follow? #t)  ; sector/ship centered
                                        (send-commands (chmov meid #f #f))))
          (append! buttons leave-button))
-        ((and (player-rcid (car my-stack)) (find-id ownspace (player-rcid (car my-stack))))
+        ((and (player-rcid (car my-stack)) (find-id ownspace ownspace (player-rcid (car my-stack))))
          ; remote controlling something
          )
         ((unbox in-hangar?)
@@ -504,7 +505,7 @@
       ; draw mouse cursor and green corners
       (when my-stack
         (define player (car my-stack))
-        (define rcship (if (player-rcid player) (find-id ownspace (player-rcid player)) #f))
+        (define rcship (if (player-rcid player) (find-id ownspace ownspace (player-rcid player)) #f))
 
         (define topship (or rcship (get-topship my-stack)))
         (append! sprites (draw-green-corners topship csd center (get-scale)))
@@ -522,14 +523,14 @@
           (define-values (mx my) (obj->screen mypos center (get-scale)))
           (define a (angle-norm (atan0 (- my y) (- x mx))))
           (cond
-            #;((or (and mt (find-id ownspace (mtube-mid mt)))
-                 (and pt (find-id ownspace (ptube-pid pt)))
+            #;((or (and mt (find-id ownspace ownspace (mtube-mid mt)))
+                 (and pt (find-id ownspace ownspace (ptube-pid pt)))
                  (and st (tool-online? st)))
              (set! cursordrawn #t)
              (set! clickcmds (command
                               (cond (mt (mtube-mid mt))
                                     (pt
-                                     (define probe (find-id ownspace (ptube-pid pt)))
+                                     (define probe (find-id ownspace ownspace (ptube-pid pt)))
                                      (ob-id (findf steer? (pod-tools (car (ship-pods probe))))))
                                     (else (ob-id st)))
                               a))
@@ -825,7 +826,7 @@
     (set-space-time! space (+ (space-time space) TICK))
     (for ((o (in-list (space-objects space))))
       (update-physics! space o (/ TICK 1000.0))
-      (when (ship? o) (update-ship! o (/ TICK 1000.0)))
+      (when (ship? o) (update-ship! space o (/ TICK 1000.0)))
       (add-backeffects! space o)))
   
   
@@ -930,7 +931,7 @@
            (set-posvel-y! (obj-posvel centerxy) 0)
            (set! dragstate "none")
 
-           (when (not (find-id ownspace meid))
+           (when (not (find-id ownspace ownspace meid))
              ; set scale so we see the whole sector
              (set! scale-play (min-scale))
              (set! first-scale #t)))
@@ -975,8 +976,13 @@
         (printf "started too late ~a\n" dt)
         (set! start-time (- start-time (- dt)))))
 
-    (when ownspace
-      (set! my-stack (find-stack ownspace meid))
+      (define ahead (- (space-time ownspace) last-update-time))
+      (set! aheads (add-frame-time ahead aheads))
+      #;(when (ahead . > . AHEAD_THRESHOLD)
+        (printf "~a client is ahead by ~a\n" last-update-time ahead))
+      
+      
+      (set! my-stack (find-stack ownspace ownspace meid))
       (when my-stack
         (when first-scale
           (set! first-scale #f)

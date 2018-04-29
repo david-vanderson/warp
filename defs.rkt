@@ -147,9 +147,9 @@
 ; drag is the coeffecient for how fast this ship slows down
 ; start is if you can start on this ship
 
-(struct ship obj (stats tools players hangar cargo dmgfx ai? ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
+(struct ship obj (stats tools playerids hangar cargo dmgfx ai? ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
 ; tools is a list of the systems available on this ship
-; players is a list of the players on this ship
+; players is a list of the player ids on this ship
 ; hangar is list of ships in the hangar or #f if this ship has no hangar
 ; cargo is stuff you're carrying
 ; dmgfx is list of dmgfx affecting this ship
@@ -159,6 +159,9 @@
 ; ai-strat-time is the time that we last got new strategies
 ; - used to know "how long have we been doing the same thing"?
 
+(define (ship-players space s)
+  (for/list ((idx (in-list (ship-playerids s))))
+    (findf (lambda (o) (equal? idx (ob-id o))) (space-players space))))
 
 (define (ship-name s) (stats-name (ship-stats s)))
 (define (ship-type s) (stats-type (ship-stats s)))

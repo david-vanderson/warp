@@ -32,7 +32,7 @@
                                         0) #f 1000))
          (set-space-objects! space (cons be (space-objects space)))))
       (eng
-       (define c (tool-count eng o))
+       (define c (tool-count space eng o))
        (when (or (and (missile? o) (time-for (obj-age space o) 200))
                  (and (time-for (obj-age space o) 800)
                       (c . > . 0))

@@ -14,7 +14,7 @@
 (provide (all-defined-out))
 
 
-(define (steer! ownship dt)
+(define (steer! space ownship dt)
   (define trying? #f)
   (define pv (obj-posvel ownship))
   ;(printf "steer! for ~a\n" (ship-name ownship))
@@ -47,15 +47,15 @@
            (set-posvel-dr! pv (if ((angle-frto r course) . > . 0.0) racc (- racc)))
            (set! trying? #t))))
        ((or tl tr)
-        (define cl (tool-count tl ownship))
-        (define cr (tool-count tr ownship))
+        (define cl (tool-count space tl ownship))
+        (define cr (tool-count space tr ownship))
         (define racc (- (* cl (if tl (tool-val tl) 0.0))
                         (* cr (if tr (tool-val tr) 0.0))))
         (set-posvel-dr! pv racc)))
      
      (define eng (ship-tool ownship 'engine))
      (when eng
-       (define c (tool-count eng ownship))
+       (define c (tool-count space eng ownship))
        (when (c . > . 0)
          (define xy_acc (* c (tool-val eng)))
          (define ddx (* xy_acc (cos (posvel-r pv))))
@@ -107,7 +107,7 @@
   (define pv (obj-posvel o))
   (cond
     ((ship? o)
-     (physics! pv dt (if (warping? o) #f (ship-drag o)) (steer! o dt))
+     (physics! pv dt (if (warping? o) #f (ship-drag o)) (steer! space o dt))
      (push-back! space o dt))
     ((plasma? o)
      (physics! pv dt)
@@ -150,7 +150,7 @@
       (append! changes (chadd e #f)))
     
     (when (server?)
-      (for ((ps (in-list (search ship player? #t))))
+      (for ((ps (in-list (search space ship player? #t))))
         (define p (car ps))
         (define ss (make-spacesuit (player-name p) ship))
         (append! changes (chadd ss #f) (chmov (ob-id p) (ob-id ss) #f)))
@@ -184,15 +184,15 @@
   changes)
 
 
-(define (update-ship! ship dt)
+(define (update-ship! space ship dt)
   (define w (ship-tool ship 'warp))
   (when w
     (cond
       ((warping? ship)
        ; nothing changes
        )
-      ((warp-charging? ship)
-       (define wc (tool-count w ship))
+      ((warp-charging? space ship)
+       (define wc (tool-count space w ship))
        (set-tool-val! w (list (warp-speed w)
                               (warp-threshold w)
                               (min (warp-threshold w)
@@ -206,5 +206,5 @@
     (define stats (ship-stats s))
     (set-stats-con! stats (min (stats-maxcon stats)
                                (+ (stats-con stats) (* 5.0 dt))))
-    (update-ship! s dt)))
+    (update-ship! space s dt)))
 

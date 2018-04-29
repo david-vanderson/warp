@@ -126,9 +126,9 @@
   (define (on-tick ownspace change-scenario!)
     (define changes '())
 
-    (define hb (find-id ownspace (ob-id base)))
-    (define eb (find-id ownspace (ob-id destroyer)))
-    (define c (find-id ownspace (ob-id cruiser)))
+    (define hb (find-id ownspace ownspace (ob-id base)))
+    (define eb (find-id ownspace ownspace (ob-id destroyer)))
+    (define c (find-id ownspace ownspace (ob-id cruiser)))
 
     (for ((p (space-players ownspace)))
       (when (not (player-faction p))
@@ -136,7 +136,7 @@
         (append! changes (chfaction (ob-id p) "Rebel"))
         (when c
           (append! changes (chmov (ob-id p) (ob-id c) #f))))
-      (when (and c (not (find-id ownspace (ob-id p))))
+      (when (and c (not (find-id ownspace ownspace (ob-id p))))
         (append! changes (chmov (ob-id p) (ob-id c) #f))))
 
     (for ((fo (space-orders real-orders)))
@@ -199,7 +199,7 @@
     changes)
   
   (define (on-message space cmd change-scenario!)
-    (define o (find-id space (anncmd-id cmd)))
+    (define o (find-id space space (anncmd-id cmd)))
     (when (and o (ann-button? o))
       (case (ann-button-msg o)
         (("quit-scenario") (change-scenario!))))
