@@ -26,12 +26,10 @@
 
 (provide start-client)
 
-(define serverspace #f)
 
-(define (start-client ip port name new-eventspace? sspace)
+(define (start-client ip port name new-eventspace? #:spacebox (sspace #f))
   (server? #f)
-  (when sspace
-    (set! serverspace sspace))
+  
   (when new-eventspace?
     (current-eventspace (make-eventspace)))
 
@@ -559,7 +557,15 @@
                        (lambda (k y) (set! showsector? (not showsector?)))))
 
       (append! sprites (draw-overlay textr textsr ownspace my-stack))
-  
+
+      ; debugging
+      (when (and sspace (unbox sspace))
+        (for ((o (space-objects (unbox sspace)))
+              #:when (ship? o))
+          (append! sprites
+                   (obj-sprite o csd center (get-scale) LAYER_UI_TEXT 'circle
+                               (/ 7.0 (get-scale)) 1.0 0.0 "pink"))))
+      
       ) ; when ownspace
 
     (send canvas set-cursor (make-object cursor% (if cursordrawn 'blank 'arrow)))
@@ -1092,7 +1098,7 @@
   ;(require profile)
   ;(profile #:threads #t #:delay 0.0
     ;(begin
-    (start-client "127.0.0.1" PORT "Dave" #f #f)
+    (start-client "127.0.0.1" PORT "Dave" #f)
     (yield 'wait)
     ;))
   ;(exit 0)

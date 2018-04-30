@@ -2,6 +2,8 @@
 
 (require racket/tcp)
 
+(require racket/async-channel)
+
 (require "defs.rkt"
          "utils.rkt"
          "change.rkt"
@@ -28,6 +30,9 @@
 (define ownspace #f)
 (define (scenario-on-tick change-scenario!) '())
 (define (scenario-on-message cmd change-scenario!) '())
+
+; debugging
+(define spacebox #f)
 
 
 ; return a list of changes
@@ -469,8 +474,31 @@
      (kill-thread (client-out-t c))
      (set! clients (remove c clients)))))
 
+; for debugging to artificially introduce lag from server->client
+;(define delay-ch (make-async-channel))
+;(thread
+; (lambda ()
+;   (define delay 0.0)
+;   (define count 0)
+;   (let loop ()
+;     (define vs (async-channel-get delay-ch))
+;     (define d (- delay (- (current-milliseconds) (car vs))))
+;     ;(printf "delaying ~a\n" d)
+;     (when (d . > . 0)
+;       (sleep (/ d 1000.0)))
+;     (thread-send (cadr vs) (caddr vs))
+;     (set! count (+ 1 count))
+;     (when (= 0 (modulo count 600))
+;       (if (equal? 0.0 delay)
+;           (set! delay 400.0)
+;           (set! delay 0.0))
+;       (printf "delay set to ~a\n" delay))
+;     (loop))))
+
 (define (send-to-client c v)
-  (thread-send (client-out-t c) v))
+  (thread-send (client-out-t c) v)
+  ;(async-channel-put delay-ch (list (current-milliseconds) (client-out-t c) v))
+  )
 
 
 (define previous-physics-time #f)
@@ -532,6 +560,7 @@
              ((player? ch)
               (define c (findf (lambda (o) (= cid (client-id o))) clients))
               (set-player-name! (client-player c) (player-name ch))
+              ;(printf "server queuing ownspace ~v\n" (space-time ownspace))
               (send-to-client c (copy ownspace))  ; send full state
               (append! updates
                        (apply-all-changes! ownspace (list (chadd (client-player c) #f)) (space-time ownspace) "server"))
@@ -608,7 +637,7 @@
     ; client-disconnect updates if there's an error
     (set! updates '())
   
-    ;(printf "server queuing time ~v\n" (update-time u))
+    ;(printf "~a server queuing time ~v\n" (current-milliseconds) (update-time u))
     (define msg (copy u))
     (for ((c clients))
       (send-to-client c msg))
@@ -642,12 +671,18 @@
   (set! scenario-on-tick on-tick)
   (set! scenario-on-message on-message)
   (define msg (copy ownspace))
+  ;(printf "server queuing new ownspace ~v\n" (space-time ownspace))
   (for ((c clients))
-    (send-to-client c msg)))
+    (send-to-client c msg))
+
+  ; debugging
+  (when spacebox
+    (set-box! spacebox ownspace)))
 
 
-(define (start-server (port PORT) #:scenario (scenario sc-pick))
+(define (start-server (port PORT) #:scenario (scenario sc-pick) #:spacebox (spbox #f))
   (change-scenario! scenario)
+  (set! spacebox spbox)
   (set! server-listener (tcp-listen port 4 #t))
   (printf "waiting for clients...\n")
   (server-loop))

@@ -22,5 +22,5 @@
   [run-server?
     (start-server port)]
   [else
-    (start-client "127.0.0.1" port "Name" #f #f)])
+    (start-client "127.0.0.1" port "Name" #f)])
 

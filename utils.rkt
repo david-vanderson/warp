@@ -94,11 +94,18 @@
 (define (findfid id list)
   (findf (lambda (o) (equal? id (ob-id o))) list))
 
-(define-values (copy-in copy-out) (make-pipe))
+(define copy-param (make-parameter #f))
+
+(define (make-copy)
+  (define-values (copy-in copy-out) (make-pipe))
+  (lambda (s)
+    (write s copy-out)
+    (read copy-in)))
 
 (define (copy s)
-  (write s copy-out)
-  (read copy-in))
+  (when (not (copy-param))
+    (copy-param (make-copy)))
+  ((copy-param) s))
 
 (define (load-bitmap name)
   (read-bitmap (string-append "images/" name ".png")))
