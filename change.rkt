@@ -65,6 +65,7 @@
   (define changes '())
   (set-player-commands! p '())
   (set-player-cmdlevel! p (add1 (player-cmdlevel p)))
+  ;(printf "player cleanup ~a cmdlevel ~a\n" (player-name p) (player-cmdlevel p))
   (when (server?)
     (append! changes (endrc (ob-id p) (player-rcid p)))
     (append! changes (endcb (ob-id p) (player-cbid p))))
@@ -181,6 +182,7 @@
         (set-player-rcid! p (chrc-rcid c))
         (set-player-commands! p '())
         (set-player-cmdlevel! p (add1 (player-cmdlevel p)))
+        ;(printf "player chrc ~a cmdlevel ~a\n" (player-name p) (player-cmdlevel p))
         (values #t '()))))
     ((endrc? c)
      (define changes '())
@@ -198,7 +200,9 @@
                 (command (ob-id o) #f 'turnright #f)))
      (when p       
        (set-player-rcid! p #f)
-       (set-player-cmdlevel! p (add1 (player-cmdlevel p))))
+       (set-player-cmdlevel! p (add1 (player-cmdlevel p)))
+       ;(printf "player endrc ~a cmdlevel ~a\n" (player-name p) (player-cmdlevel p))
+       )
      (values #t changes))
     ((endcb? c)
      (define changes '())
@@ -231,16 +235,19 @@
         (values #f '()))))
     ((chrm? c)
      (define changes '())
+     (define forward? #t)
      ; have to manage space-players specially
      (define p (findfid (chrm-id c) (space-players space)))
-     (when p
-       (rem! p space who)
-       (append! changes (player-cleanup! space p)))
-
      (define s (find-stack space space (chrm-id c)))
      (cond
-       (s
-        (rem! (car s) (cadr s) who)
+       ((or s p)
+        ; if both s and p, do s first because we need to remove a player
+        ; from a ship before we remove the player
+        (when s
+          (rem! (car s) (cadr s) who))
+        (when p
+          (rem! p space who)
+          (append! changes (player-cleanup! space p)))
         (values #t changes))
        (else
         (printf "~a dropping chrm (can't find chrm-id) ~v\n" who c)
