@@ -816,11 +816,6 @@
   
   (send frame show #t)
   
-  (define start-space-time #f)
-  (define start-time #f)
-  
-  (define (calc-dt curtime start curspace startspace)
-    (- (- curtime start) (- curspace startspace)))
   
   (define (tick-space! space)
     (set-space-time! space (+ (space-time space) TICK))
@@ -846,19 +841,28 @@
 
   
   (define (send-commands cmds)
-    (when (not (list? cmds)) (set! cmds (list cmds)))
+    (when (not (list? cmds))
+      (set! cmds (list cmds)))
     (when (and server-out-t ((length cmds) . > . 0))
       ;(printf "send-commands ~v\n" cmds)
       (define ma (apply max 0 aheads))
       (cond
-        ((ma . < . AHEAD_THRESHOLD)  
+        ((ma . < . 1000)
          (thread-send server-out-t (update last-update-time cmds #f)))
         (else
-         (printf "dropping commands (ahead ~a) ~v\n" ma cmds)))))
+         ; if the client is 1 second ahead of the server then something is wrong
+         ; - drop input until the server comes back
+         (printf "client dropping commands (ahead ~a)\n" ma)))))
   
+
+  (define start-loop-time #f)
+  ; time we want to show
+  (define target-time #f)
+  ; saved ownspace if we predicted forward
+  (define oldspace #f)
+
   
   (define (client-loop)
-    (define start-loop-time (current-milliseconds))
     
     (when (not server-in-port)
       (define newname
@@ -900,6 +904,9 @@
           (set! server-out-t (make-out-thread #f out))
           ; send our name to the server
           (send-commands (player #f name #f #f '() #f #f)))))
+
+    (define num-updates 0)
+    (define num-ticks 0)
     
     ; process received info
     (let loop ()
@@ -918,10 +925,11 @@
            (idimag meid))
           ((space? input)
            (set! ownspace input)
-           (set! start-space-time (space-time ownspace))
-           (set! start-time (current-milliseconds))
-           (set! last-update-time start-space-time)
-           (set! last-pbolt-time start-space-time)
+           (set! oldspace #f)
+           (set! target-time (space-time ownspace))
+           (set! last-update-time (space-time ownspace))
+           (set! last-pbolt-time (space-time ownspace))
+           (printf "client new ownspace ~a\n" (space-time ownspace))
 
            ; new ownspace, reset view stuff
            (set! showsector? #f)
@@ -936,22 +944,37 @@
              (set! scale-play (min-scale))
              (set! first-scale #t)))
           ((update? input)
+           (set! num-updates (+ 1 num-updates))
            (cond
              ((not ownspace)
-              (printf "dropping update (no ownspace)\n"))
+              (printf "~a client dropping update ~a (no ownspace)\n"
+                      last-update-time (update-time input)))
              ((not (= (update-time input) (+ last-update-time TICK)))
-              (printf "dropping update at time ~a, expecting ~a\n"
-                      (update-time input) (+ last-update-time TICK)))
+              (printf "~a client dropping update at time ~a, expecting ~a\n"
+                      last-update-time (update-time input) (+ last-update-time TICK)))
              (else
               (set! last-update-time (update-time input))
-                
-              ;(printf "client update space-time ~a update-time ~a\n" (space-time ownspace) (update-time input))
-              
+
+              (when ((update-time input) . > . target-time)
+                ; got this update sooner than expected, maybe our lag decreased?
+                ;(printf "client updating target-time to ~a\n" (update-time input))
+                (set! target-time (update-time input)))
+
+              (when oldspace
+                (when (not (equal? (space-time oldspace) (update-time input)))
+                  (error "oldspace time ~a != update-time ~a\n"
+                         (space-time oldspace) (update-time input)))
+                (set! ownspace oldspace)
+                (set! oldspace #f))
+
               (when ((space-time ownspace) . < . (update-time input))
                 ;(printf "client ticking ownspace forward for input ~a\n" (update-time input))
+                (set! num-ticks (+ 1 num-ticks))
                 (tick-space! ownspace))
+
               (when ((space-time ownspace) . < . (update-time input))
                 (error "client ownspace still behind update time\n"))
+
               (for ((c (in-list (update-changes input))))
                 ;(printf "client applying change ~v\n" c)
                 (apply-all-changes! ownspace (list c) (update-time input) "client")
@@ -967,19 +990,38 @@
         (loop)))
 
     (when ownspace
-      ; If the first space is delayed, then our own clock got started late.
-      ; Need to use (current-milliseconds) here in case we hiccupped
-      ; since the start of the loop
-      (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))
-      ;(printf "calc-dt ~a ~a ~a ~a ~a\n" (current-milliseconds) start-time (space-time ownspace) start-space-time dt)
-      (when (dt . < . 0)
-        (printf "started too late ~a\n" dt)
-        (set! start-time (- start-time (- dt)))))
+
+      ; for debugging to artificially make the client predict ahead
+      (define future 0)
+
+      (when ((+ target-time (- TICK) future) . > . (space-time ownspace))
+        ; maybe our lag increased, so slowly reduce the target-time
+        (printf "target-time-- ~a\n" (- (+ target-time (- TICK) future) (space-time ownspace)))
+        (set! target-time (- target-time 1)))
+
+      (define motion? #f)
+
+      (while ((+ target-time future) . > . (space-time ownspace))
+        ; we are behind, forward predict
+        (when (and (not oldspace)
+                   (last-update-time . < . (space-time ownspace)))
+          ;(printf "client saving oldspace ~a\n" (space-time ownspace))
+          (set! oldspace (copy ownspace)))
+
+        (tick-space! ownspace)
+        (set! motion? #t)
+        (set! num-ticks (+ num-ticks 1))
+
+        (when oldspace
+          ;(printf "client forward predict to ~a\n" (space-time ownspace))
+          (set! num-ticks (- num-ticks 1))))
+
+      ;(printf "updates ~a ticks ~a ~a\n" num-updates num-ticks (if motion? "motion" ""))
 
       (define ahead (- (space-time ownspace) last-update-time))
       (set! aheads (add-frame-time ahead aheads))
-      #;(when (ahead . > . AHEAD_THRESHOLD)
-        (printf "~a client is ahead by ~a\n" last-update-time ahead))
+      ;(when (ahead . > . AHEAD_THRESHOLD)
+      ;  (printf "~a client is ahead by ~a\n" last-update-time ahead))
       
       
       (set! my-stack (find-stack ownspace ownspace meid))
@@ -998,48 +1040,48 @@
              (set-box! active-mouse-tool (for/first ((t tools)
                                                      #:when (member t MOUSE_TOOLS))
                                            t))))))
-        
-      
-      ; physics prediction
-      (define dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time))
-      (when (dt . > . TICK)
-        ;(printf "client ticking forward for prediction ~a\n" dt)
-        (tick-space! ownspace)
-        (set! dt (calc-dt (current-milliseconds) start-time (space-time ownspace) start-space-time)))
-
-      (define ahead (- (space-time ownspace) last-update-time))
-      (set! aheads (add-frame-time ahead aheads))
-      (when (ahead . > . AHEAD_THRESHOLD)
-        (printf "~a client is ahead by ~a\n" (current-milliseconds) ahead))
       )
     
-    ;rendering
-    ;(printf "client render ~a" (current-milliseconds))
+    ; render a frame
     (set! frames (add-frame-time (current-milliseconds) frames))
-    (send canvas refresh-now) ;#:flush? #f)
-    ;(printf "  ~a\n" (current-milliseconds))
+    (send canvas refresh-now)
+
+    ; for debugging low-fps situations
+    ;(define sum 0)
+    ;(for ((i 1000000))
+    ;  (set! sum (+ i sum)))
+
+    ; housekeeping
+    (flush-output)
+    (collect-garbage 'incremental)
     
 ;    (when (time-for (current-milliseconds) 1000)
 ;      (displayln (~a "mem: " (~r (/ (current-memory-use) (* 1024.0 1024.0)) #:precision 2))))
-          
+    
+    (when (not start-loop-time)
+      (set! start-loop-time (current-milliseconds)))
+
     ; sleep so we don't hog the whole racket vm
-    (define sleep-time
-      (add1
-       (if ownspace
-           (- (calc-dt (current-milliseconds) start-time
-                       (+ (space-time ownspace) TICK) start-space-time))
-           (- (+ start-loop-time TICK) (current-milliseconds)))))
-    
-    (cond
-      ((sleep-time . > . 0)
-       ;(printf "client sleeping ~a\n" sleep-time)
-       (sleep/yield (/ sleep-time 1000.0)))
-      (else
-       ;(printf "client skipping sleep ~a\n" sleep-time)
-       (sleep/yield .001)))
-    
-    (flush-output)
-    (collect-garbage 'incremental)
+    (define now (current-milliseconds))
+    ; how long has it been since we should have woken up?
+    (define loop-time (- now start-loop-time))
+    ; how long should we sleep (always at least 5ms for the GUI to process GUI events)
+    (define extra-time (- TICK loop-time))
+    (define min-sleep 5)
+    (define sleep-time (max min-sleep extra-time))
+    (define total (+ loop-time sleep-time))
+
+    ;(when (extra-time . < . min-sleep)
+    ;  (printf "client extra-time ~a\n" extra-time))
+
+    ; set the start of the loop time to be exactly when we want to wake up
+    ; we might actually sleep a bit longer, that will count as part of loop-time
+    ; during the next loop
+    (set! start-loop-time (+ start-loop-time total))
+    (when target-time
+      (set! target-time (+ target-time total)))
+
+    (sleep/yield (/ sleep-time 1000.0))
     (when playing? (client-loop)))
   
   (queue-callback client-loop #f))
