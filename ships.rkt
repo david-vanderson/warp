@@ -49,7 +49,7 @@
 (define (make-spacesuit name ship)
   (define pv (obj-posvel ship))
   (define theta (angle-add (obj-r ship) pi/2))
-  (define r (random-between -50 50))
+  (define r (random-between -50.0 50.0))
   (make-ship "spacesuit"
              name
              (ship-faction ship)
@@ -70,7 +70,16 @@
                    #:hangar (in-hangar #f)
                    #:cargo (cargo '()))
   (define args (list
-                (next-id) start-time (if posvel? (posvel 0 x y r dx dy dr) #f)
+                (next-id) start-time
+                (if posvel?
+                    (posvel 0
+                            (exact->inexact x)
+                            (exact->inexact y)
+                            (exact->inexact r)
+                            (exact->inexact dx)
+                            (exact->inexact dy)
+                            (exact->inexact dr))
+                    #f)
                 #f  ; must fill the stats later
                 '()  ; tools
                 '()  ; players

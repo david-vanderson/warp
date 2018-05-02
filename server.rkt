@@ -22,7 +22,15 @@
 
 (provide start-server)
 
-(struct client (player in-port out-port in-t out-t) #:mutable #:prefab)
+; client connected, we are waiting for their player name
+(define CLIENT_STATUS_NEW 0)
+; client needs whole ownspace, don't send any updates until then
+; - changing the scenario puts everybody here
+(define CLIENT_STATUS_WAITING_FOR_SPACE 1)
+; normal operation, send updates
+(define CLIENT_STATUS_OK 2)
+
+(struct client (status player in-port out-port in-t out-t) #:mutable #:prefab)
 (define (client-id c) (ob-id (client-player c)))
 
 (define server-listener #f)
@@ -533,7 +541,8 @@
     (define-values (in out) (tcp-accept server-listener))
     (set-tcp-nodelay! out #t)
     (define cid (next-id))
-    (define c (client (player cid #f #f 0 '() #f #f)
+    (define c (client CLIENT_STATUS_NEW
+                      (player cid #f #f 0 '() #f #f)
                       in out
                       (make-in-thread cid in)
                       (make-out-thread cid out)))
@@ -576,8 +585,7 @@
                ((player? ch)
                 (define c (findf (lambda (o) (= cid (client-id o))) clients))
                 (set-player-name! (client-player c) (player-name ch))
-                ;(printf "server queuing ownspace ~v\n" (space-time ownspace))
-                (send-to-client c (copy ownspace))  ; send full state
+                (set-client-status! c CLIENT_STATUS_WAITING_FOR_SPACE)
                 (append! updates
                          (apply-all-changes! ownspace (list (chadd (client-player c) #f)) (space-time ownspace) "server"))
                 (define m (message (next-id) (space-time ownspace) #f (format "New Player: ~a" (player-name ch))))
@@ -643,10 +651,24 @@
   
     ;(printf "~a server queuing time ~v\n" (current-milliseconds) (update-time u))
     (define msg (copy u))
-    (for ((c clients))
+    (for ((c clients)
+          #:when (= (client-status c) CLIENT_STATUS_OK))
       (send-to-client c msg))
     )
     )
+
+  ; send to any clients that need a whole ownspace
+  ; - either new clients or the scenario changed
+  (define msg #f)
+  (for ((c clients)
+        #:when (= (client-status c) CLIENT_STATUS_WAITING_FOR_SPACE))
+    (when (not msg)
+      (set! msg (copy ownspace)))
+    (printf "server sending ownspace to client ~a ~a\n"
+            (client-id c) (player-name (client-player c)))
+    (send-to-client c msg)
+    (set-client-status! c CLIENT_STATUS_OK))
+  
   
   ; sleep so we don't hog the whole racket vm
   (define sleep-time (- (+ previous-physics-time TICK 1)
@@ -674,10 +696,12 @@
   (set! ownspace newspace)
   (set! scenario-on-tick on-tick)
   (set! scenario-on-message on-message)
-  (define msg (copy ownspace))
-  ;(printf "server queuing new ownspace ~v\n" (space-time ownspace))
+
+  ; junk any updates we've already processed on the old space
+  (set! updates '())
+
   (for ((c clients))
-    (send-to-client c msg))
+    (set-client-status! c CLIENT_STATUS_WAITING_FOR_SPACE))
 
   ; debugging
   (when spacebox
