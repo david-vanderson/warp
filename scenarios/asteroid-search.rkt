@@ -18,7 +18,7 @@
   (define hidden-base #f)
 
   (define ownspace
-    (space 0 6000 4000 players '()
+    (space (next-id) 0 6000 4000 players '()
            `(
              ,(standard-quit-scenario-button #t)
              ,(ann-text (next-id) 0 (posvel 0 -200 -100 0 0 0 0) #f
@@ -118,7 +118,7 @@
                                              (lambda (s f o) parts-returned?))
                                       (kill "Destroy Enemy Outpost" (ob-id enemy-base))))))))
   
-  (define real-orders (space 0 0 0 '() '() '()))  ; only care about orders
+  (define real-orders (space 0 0 0 0 '() '() '()))  ; only care about orders
   (set-space-orders-for! real-orders "Empire" orders)
   
   ; return a list of changes

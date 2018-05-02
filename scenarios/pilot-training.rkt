@@ -16,7 +16,7 @@
     (set-player-faction! p #f))
   
   (define newspace
-    (space 0 2000 2000
+    (space (next-id) 0 2000 2000
            players
            '()
            `(
@@ -46,7 +46,7 @@
                               (scout-waypoint "Scout C" -300 -300 50)
                               (scout-waypoint "Scout D" -300  300 50)))))
 
-  (define real-orders (space 0 0 0 '() '() '()))  ; only care about orders
+  (define real-orders (space 0 0 0 0 '() '() '()))  ; only care about orders
 
   (define next-faction
     (let ((i 0))

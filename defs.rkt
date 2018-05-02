@@ -196,7 +196,8 @@
 ; type is string saying which part of the ship it upgrades
 ; life is ms the upgrade should stay before disappearing of #f if doesn't die
 
-(struct space (time width height players orders objects) #:mutable #:prefab)
+(struct space (id time width height players orders objects) #:mutable #:prefab)
+; id is used when we change scenarios to drop stuff coming in for the old space
 ; time is msec since the scenario started
 ; orders is a (list (faction ordertree) ...)
 ; ordertree is an instance of ord
@@ -285,7 +286,8 @@
 (struct chorders (faction ot) #:mutable #:prefab)
 ; ot is an instance of ord
 
-(struct update (time changes pvs) #:mutable #:prefab)
+(struct update (id time changes pvs) #:mutable #:prefab)
+; id is space-id of the ownspace this update is for
 ; time is ms since scenario started
 ; changes is list of above structs
 ; pvs is a list of pvupdates

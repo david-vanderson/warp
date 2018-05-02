@@ -576,26 +576,37 @@
         (cond
           ((not u)
            (remove-client cid))
+          ((and (update? u)
+                (not (null? (update-changes u)))
+                (player? (car (update-changes u))))
+           (define c (findf (lambda (o) (= cid (client-id o))) clients))
+           (define name (player-name (car (update-changes u))))
+           (set-player-name! (client-player c) name)
+           (set-client-status! c CLIENT_STATUS_WAITING_FOR_SPACE)
+           (append! updates
+                    (apply-all-changes! ownspace (list (chadd (client-player c) #f)) (space-time ownspace) "server"))
+           (define m (message (next-id) (space-time ownspace) #f (format "New Player: ~a" name)))
+           (append! updates (apply-all-changes! ownspace (list m) (space-time ownspace) "server")))
+          
+          ((update? u)
+           (cond
+             ((not (= (space-id ownspace) (update-id u)))
+              (printf "server dropping update for old space (needed ~a) ~v\n"
+                      (space-id ownspace) u))
+             (else
+              (when (and (update-time u) ((- (space-time ownspace) (update-time u)) . > . 70))
+                (printf "~a : client ~a is behind ~a\n" (space-time ownspace) cid
+                        (- (space-time ownspace) (update-time u))))
+              (for ((ch (in-list (update-changes u))))
+                (cond
+                  ((anncmd? ch)
+                   (scenario-on-message ownspace ch change-scenario!))
+                  (else
+                   (define command-changes
+                     (apply-all-changes! ownspace (list ch) (space-time ownspace) "server"))
+                   (append! updates command-changes)))))))
           (else
-           (when (and (update-time u) ((- (space-time ownspace) (update-time u)) . > . 70))
-             (printf "~a : client ~a is behind ~a\n" (space-time ownspace) cid
-                     (- (space-time ownspace) (update-time u))))
-           (for ((ch (in-list (update-changes u))))
-             (cond
-               ((player? ch)
-                (define c (findf (lambda (o) (= cid (client-id o))) clients))
-                (set-player-name! (client-player c) (player-name ch))
-                (set-client-status! c CLIENT_STATUS_WAITING_FOR_SPACE)
-                (append! updates
-                         (apply-all-changes! ownspace (list (chadd (client-player c) #f)) (space-time ownspace) "server"))
-                (define m (message (next-id) (space-time ownspace) #f (format "New Player: ~a" (player-name ch))))
-                (append! updates (apply-all-changes! ownspace (list m) (space-time ownspace) "server")))
-               ((anncmd? ch)
-                (scenario-on-message ownspace ch change-scenario!))
-               (else
-                (define command-changes
-                  (apply-all-changes! ownspace (list ch) (space-time ownspace) "server"))
-                (append! updates command-changes))))))
+           (printf "server got unexpected data ~v\n" u)))
         (loop)))
     )
 
@@ -643,7 +654,7 @@
       (set! pvupdates (cons (pvupdate (ob-id oldest) (obj-posvel oldest)) pvupdates)))
   
     ; make total update message
-    (define u (update (space-time ownspace) updates pvupdates))
+    (define u (update (space-id ownspace) (space-time ownspace) updates pvupdates))
   
     ; reset this before trying to send, so we can accumulate
     ; client-disconnect updates if there's an error

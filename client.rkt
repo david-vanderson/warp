@@ -852,7 +852,8 @@
       (define ma (apply max 0 aheads))
       (cond
         ((ma . < . 1000)
-         (thread-send server-out-t (update last-update-time cmds #f)))
+         (thread-send server-out-t (update (if ownspace (space-id ownspace) #f)
+                                           last-update-time cmds #f)))
         (else
          ; if the client is 1 second ahead of the server then something is wrong
          ; - drop input until the server comes back
@@ -953,6 +954,9 @@
              ((not ownspace)
               (printf "~a client dropping update ~a (no ownspace)\n"
                       last-update-time (update-time input)))
+             ((not (= (space-id ownspace) (update-id input)))
+              (printf "~a client dropping update id ~a (ownspace id ~a)\n"
+                      last-update-time (update-id input) (space-id ownspace)))
              ((not (= (update-time input) (+ last-update-time TICK)))
               (printf "~a client dropping update at time ~a, expecting ~a\n"
                       last-update-time (update-time input) (+ last-update-time TICK)))

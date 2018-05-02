@@ -15,7 +15,7 @@
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "Rebel"))
 
-  (define ownspace (space 0 5000 2000 players '()
+  (define ownspace (space (next-id) 0 5000 2000 players '()
                           `(
                             ,(standard-quit-scenario-button #t)
                             ,(ann-text (next-id) 0 (posvel 0 -200 -100 0 0 0 0) #f
@@ -106,7 +106,7 @@
                      (alive "Keep Cruiser Alive" (ob-id cruiser))
                      (kill "Kill Enemy Destroyer" (ob-id destroyer)))))
   
-  (define real-orders (space 0 0 0 '() '() '()))  ; only care about orders
+  (define real-orders (space 0 0 0 0 '() '() '()))  ; only care about orders
   (set-space-orders-for! real-orders "Rebel" rebel-orders)
 
   

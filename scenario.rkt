@@ -24,7 +24,7 @@
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "players"))
   (define newspace
-    (space 0 1000 1000
+    (space (next-id) 0 1000 1000
            players
            '()
            `(
