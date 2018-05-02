@@ -18,14 +18,6 @@
 
 (provide (all-defined-out))
 
-(define (update-posvel! space pvu pvutime)
-  (define o (find-top-id space (pvupdate-id pvu)))
-  (when o
-    (set-obj-posvel! o (pvupdate-pv pvu))
-    (while (pvutime . < . (space-time space))
-      ;(printf "client ticking forward pvu\n")
-      (update-physics! space o (/ TICK 1000.0))
-      (set! pvutime (+ pvutime TICK)))))
 
 (define (adj! o fto who rem?)
   (define-values (ss! ss)

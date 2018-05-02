@@ -167,8 +167,6 @@
     (when ownspace
       (define p (findfid meid (space-players ownspace)))
       (define fac (if p (player-faction p) #f))
-      (when (and (not fac) my-stack)
-        (set! fac (ship-faction (get-ship my-stack))))
       (define ordertree (get-space-orders-for ownspace fac))
       
       ; make background be fog of war gray
@@ -992,7 +990,13 @@
                   (set-box! in-hangar? #f))
                 )
               (for ((pvu (in-list (update-pvs input))))
-                (update-posvel! ownspace pvu (update-time input)))))))
+                (define o (find-top-id ownspace (pvupdate-id pvu)))
+                (cond
+                  (o
+                   (set-obj-posvel! o (pvupdate-pv pvu)))
+                  (else
+                   (printf "client dropped pvupdate couldn't find obj id ~v\n"
+                           (pvupdate-id pvu)))))))))
         (loop)))
 
     (when ownspace
