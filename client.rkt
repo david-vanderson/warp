@@ -575,7 +575,7 @@
       (define start (list-ref frames (- (length frames) 1)))
       (define end (first frames))
       (define span (/ (- end start) 1000))
-      (define txt (format "FPS: ~a" (truncate (/ (- (length frames) 1) span))))
+      (define txt (format "FPS: ~a" (round (/ (- (length frames) 1) span))))
       (append! sprites (text-sprite textr textsr txt (- (right) 80) (top) LAYER_UI)))
 
     ; network issues?
@@ -963,7 +963,7 @@
 
               (when ((update-time input) . > . target-time)
                 ; got this update sooner than expected, maybe our lag decreased?
-                ;(printf "client updating target-time to ~a\n" (update-time input))
+                (printf "client jumping forward to ~a\n" (update-time input))
                 (set! target-time (update-time input)))
 
               (when oldspace

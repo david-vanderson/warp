@@ -24,7 +24,7 @@
 
 
 (define (add-frame-time current-time frames)
-  (cons current-time (take frames (min 10 (length frames)))))
+  (cons current-time (take frames (min 30 (length frames)))))
 
 
 (define (random-stars n)

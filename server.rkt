@@ -540,43 +540,14 @@
     (send-to-client c (client-player c))  ; assign an id
     (append! clients (list c)))
   )
-
-  ; process commands
-  (timeit time-commands
-  (let loop ()
-    (define v (thread-try-receive))
-    (when v
-      (define cid (car v))
-      (define u (cdr v))
-      (cond
-        ((not u)
-         (remove-client cid))
-        (else
-         (when (and (update-time u) ((- (space-time ownspace) (update-time u)) . > . 70))
-           (printf "~a : client ~a is behind ~a\n" (space-time ownspace) cid
-                   (- (space-time ownspace) (update-time u))))
-         (for ((ch (in-list (update-changes u))))
-           (cond
-             ((player? ch)
-              (define c (findf (lambda (o) (= cid (client-id o))) clients))
-              (set-player-name! (client-player c) (player-name ch))
-              ;(printf "server queuing ownspace ~v\n" (space-time ownspace))
-              (send-to-client c (copy ownspace))  ; send full state
-              (append! updates
-                       (apply-all-changes! ownspace (list (chadd (client-player c) #f)) (space-time ownspace) "server"))
-              (define m (message (next-id) (space-time ownspace) #f (format "New Player: ~a" (player-name ch))))
-              (append! updates (apply-all-changes! ownspace (list m) (space-time ownspace) "server")))
-             ((anncmd? ch)
-              (scenario-on-message ownspace ch change-scenario!))
-             (else
-              (define command-changes
-                (apply-all-changes! ownspace (list ch) (space-time ownspace) "server"))
-              (append! updates command-changes))))))
-      (loop)))
-  )
   
   ; simulation tick
-  (when (TICK . < . (- current-time previous-physics-time))
+  (define tick? #t)
+  (when ((- current-time previous-physics-time) . < . TICK)
+    (printf "server woke up too early, no tick\n")
+    (set! tick? #f))
+    
+  (when tick?
     ; physics
     (timeit time-tick
     (set! previous-physics-time (+ previous-physics-time TICK))
@@ -585,7 +556,40 @@
       (update-physics! ownspace o (/ TICK 1000.0))
       (when (ship? o) (update-ship! ownspace o (/ TICK 1000.0))))
     )
-      
+
+    ; process player commands
+    (timeit time-commands
+    (let loop ()
+      (define v (thread-try-receive))
+      (when v
+        (define cid (car v))
+        (define u (cdr v))
+        (cond
+          ((not u)
+           (remove-client cid))
+          (else
+           (when (and (update-time u) ((- (space-time ownspace) (update-time u)) . > . 70))
+             (printf "~a : client ~a is behind ~a\n" (space-time ownspace) cid
+                     (- (space-time ownspace) (update-time u))))
+           (for ((ch (in-list (update-changes u))))
+             (cond
+               ((player? ch)
+                (define c (findf (lambda (o) (= cid (client-id o))) clients))
+                (set-player-name! (client-player c) (player-name ch))
+                ;(printf "server queuing ownspace ~v\n" (space-time ownspace))
+                (send-to-client c (copy ownspace))  ; send full state
+                (append! updates
+                         (apply-all-changes! ownspace (list (chadd (client-player c) #f)) (space-time ownspace) "server"))
+                (define m (message (next-id) (space-time ownspace) #f (format "New Player: ~a" (player-name ch))))
+                (append! updates (apply-all-changes! ownspace (list m) (space-time ownspace) "server")))
+               ((anncmd? ch)
+                (scenario-on-message ownspace ch change-scenario!))
+               (else
+                (define command-changes
+                  (apply-all-changes! ownspace (list ch) (space-time ownspace) "server"))
+                (append! updates command-changes))))))
+        (loop)))
+    )
 
     ; collisions
     ; update-effects! returns already-applied changes
