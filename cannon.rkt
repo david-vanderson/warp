@@ -78,7 +78,7 @@
                             #:r a
                             #:start-time (space-time space)
                             #:life (tool-val tool)))
-       (define d (+ (ship-radius ship) (* 1.1 (ship-radius b))))
+       (define d (+ (ship-radius ship) (ship-radius b) 0.1))
        (define speed CANNON_MAX_SPEED)
        (set-obj-posvel! b (posvel (space-time space)
                                   (+ (obj-x ship) (* d (cos a)))

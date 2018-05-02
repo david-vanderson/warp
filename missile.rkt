@@ -76,7 +76,7 @@
                             #:start-time (space-time space)
                             #:life (car (tool-val tool))
                             #:con (cadr (tool-val tool))))
-       (define d (+ (ship-radius ship) (* 2.0 (ship-radius m))))
+       (define d (+ (ship-radius ship) (ship-radius m) 0.1))
        (define speed 10.0)
        (set-obj-posvel! m (posvel (space-time space)
                                   (+ (obj-x ship) (* d (cos a)))

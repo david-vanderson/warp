@@ -35,7 +35,7 @@
      (define a (cadr args))
      (define frac (caddr args))
      (define e (max 1.0 (* frac (tool-val tool))))
-     (define d (+ (ship-radius ship) (plasma-energy->radius (tool-val tool))))
+     (define d (+ (ship-radius ship) (plasma-energy->radius e) 0.1))
      (define plas
        (plasma (next-id) (space-time space)
                (posvel (space-time space)
