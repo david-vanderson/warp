@@ -1001,16 +1001,16 @@
 
     (when ownspace
 
-      ; for debugging to artificially make the client predict ahead
-      (define future 0)
-
-      (when ((+ target-time (- TICK) future) . > . (space-time ownspace))
+      (when ((+ target-time (- TICK)) . > . (space-time ownspace))
         ; maybe our lag increased, so slowly reduce the target-time
-        (printf "target-time-- ~a\n" (- (+ target-time (- TICK) future) (space-time ownspace)))
+        (printf "target-time-- ~a\n" (- (+ target-time (- TICK)) (space-time ownspace)))
         (set! target-time (- target-time 1)))
 
       (define motion? #f)
 
+      ; for debugging to artificially make the client predict ahead
+      (define future 0)
+      
       (while ((+ target-time future) . > . (space-time ownspace))
         ; we are behind, forward predict
         (when (and (not oldspace)
