@@ -146,7 +146,7 @@
     (define energy (ship-mass ship))
     
     (when (client?)
-      (define e (effect (next-id) (space-time space) (struct-copy posvel pv) (sqrt energy) 1000))
+      (define e (effect (next-id) (space-time space) #t (struct-copy posvel pv) (sqrt energy) 1000))
       (append! changes (chadd e #f)))
     
     (when (server?)
@@ -170,7 +170,7 @@
         (set! energy-left (- energy-left e))
         (define t (random-between 0 2pi))
         (define s (random-between 10 50))
-        (define p (plasma (next-id) (space-time space)
+        (define p (plasma (next-id) (space-time space) #t
                           (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
                                   (+ (* s (cos t)) (posvel-dx pv))
                                   (+ (* s (sin t)) (posvel-dy pv))
@@ -178,7 +178,7 @@
                           e))
         (append! changes (chadd p #f)))
       
-      (define msg (message (next-id) (space-time space) #f
+      (define msg (message (next-id) (space-time space) #t #f
                            (format "~a Destroyed" (ship-name ship))))
       (append! changes msg)))
   changes)

@@ -37,7 +37,7 @@
      (define e (max 1.0 (* frac (tool-val tool))))
      (define d (+ (ship-radius ship) (plasma-energy->radius e) 0.1))
      (define plas
-       (plasma (next-id) (space-time space)
+       (plasma (next-id) (space-time space) #t
                (posvel (space-time space)
                        (+ (obj-x ship) (* d (cos ship-a)))
                        (+ (obj-y ship) (* d (sin ship-a)))

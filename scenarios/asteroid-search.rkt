@@ -21,7 +21,7 @@
     (space (next-id) 0 6000 4000 players '()
            `(
              ,(standard-quit-scenario-button #t)
-             ,(ann-text (next-id) 0 (posvel 0 -200 -100 0 0 0 0) #f
+             ,(ann-text (next-id) 0 #t (posvel 0 -200 -100 0 0 0 0) #f
                         (string-append
                          "On mission to destroy a rebel outpost your engines have failed.\n"
                          "Use your fighters to search the asteroid field for a hidden cache.\n"
@@ -37,7 +37,7 @@
                  (define s (make-ship (if ((random) . > . 0.5) "asteroid_43" "asteroid_87")
                                       "Asteroid" "_neutral" #:x x #:y y
                                       #:dx dx #:dy dy #:dr dr))
-                 (set-ship-cargo! s (list (upgrade (next-id) 0 #f "unscouted" #f)))
+                 (set-ship-cargo! s (list (upgrade (next-id) 0 #t #f "unscouted" #f)))
                  (when (not hidden-base)
                    (set! hidden-base s)
                    (set-ship-hangar! s '()))
@@ -45,7 +45,7 @@
              )))
 
   ; put the spare parts upgrade in the hidden base
-  (define parts (upgrade (next-id) (space-time ownspace) #f "parts" #f))
+  (define parts (upgrade (next-id) (space-time ownspace) #t #f "parts" #f))
 
   ; the good guys in this scenario
   (define (new-red-fighter)
@@ -150,7 +150,7 @@
               (else
                "Ran Out of Time, You Lose")))
       
-      (append! changes (chadd (ann-text (next-id) (space-time ownspace)
+      (append! changes (chadd (ann-text (next-id) (space-time ownspace) #t
                                         (posvel 0 -200 -100 0 0 0 0) #f
                                         txt #f) #f))
       ; add end scenario button
@@ -159,7 +159,7 @@
 
     (when playing?
       (when (time-for (space-time ownspace) 55000 0000)
-        (define m (message (next-id) (space-time ownspace) #f "New Fighter at Outpost"))
+        (define m (message (next-id) (space-time ownspace) #t #f "New Fighter at Outpost"))
         (define f (new-blue-fighter))
         (set-ship-ai-strategy! f
           (list (strategy (space-time ownspace) "attack*" (ob-id goodship))
@@ -189,14 +189,14 @@
           (set-stats-faction! newstats "Empire")
           (append! changes (chstats (ob-id hb) newstats)
                    (chadd parts (ob-id hb))
-                   (message (next-id) (space-time ownspace) #f "Discovered Hidden Base!"))))
+                   (message (next-id) (space-time ownspace) #t #f "Discovered Hidden Base!"))))
 
       ; check if the good guys docked
       (when (and found-base? (not dock-base?))
         (for/first ((s (in-list (ship-hangar hb))))
           (set! dock-base? #t)
           (append! changes (chmov (ob-id parts) (ob-id s) #f)
-                   (message (next-id) (space-time ownspace) #f "Parts Transferred to Fighter"))))
+                   (message (next-id) (space-time ownspace) #t #f "Parts Transferred to Fighter"))))
       
       ; check if the parts got back to goodship
       (when (and found-base? dock-base? (not parts-returned?))
@@ -207,7 +207,7 @@
           ; need to actually repair the engine somehow...
           (append! changes (chrm (ob-id parts))
                    (chrm enginedmgid) (chrm warpdmgid)
-                   (message (next-id) (space-time ownspace) #f "Frigate Engine Repaired!"))))
+                   (message (next-id) (space-time ownspace) #t #f "Frigate Engine Repaired!"))))
       )
 
     (append! changes (order-changes ownspace real-orders))

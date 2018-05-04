@@ -33,4 +33,4 @@
 (define types '("engines" "turning" "hull" "radar"))
 
 (define (random-upgrade ownspace pv)
-  (upgrade (next-id) (space-time ownspace) pv (list-ref types (random (length types))) 60000))
+  (upgrade (next-id) (space-time ownspace) #t pv (list-ref types (random (length types))) 60000))

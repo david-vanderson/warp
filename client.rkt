@@ -995,9 +995,9 @@
 
               (for ((c (in-list (update-changes input))))
                 ;(printf "client applying change ~v\n" c)
-                (apply-all-changes! ownspace (list c) (update-time input) "client")
+                (apply-all-changes! ownspace (list c) "client")
                 ;(define-values (forward? useless-changes)
-                ;  (apply-change! ownspace c (update-time input) "client"))
+                ;  (apply-change! ownspace c "client"))
                 ;(when (not (null? useless-changes))
                 ;  (printf "client produced useless changes:\n  ~v\n" useless-changes))
                 (when (and (chmov? c) (equal? meid (chmov-id c)))

@@ -17,7 +17,7 @@
     (set-space-objects! space (remove-id (ob-id m) (space-objects space)))
     
     (when (client?)
-      (define e (effect (next-id) (space-time space)
+      (define e (effect (next-id) (space-time space) #t
                         (posvel (space-time space) (obj-x m) (obj-y m) 0.0 0.0 0.0 0.0)
                         10.0 500))
       (append! changes (chadd e #f)))
@@ -29,7 +29,7 @@
       (for ((i (in-range num)))
         (define r (* i (/ 2pi num)))
         (define a (angle-add basea r))
-        (define p (plasma (next-id) (space-time space)
+        (define p (plasma (next-id) (space-time space) #t
                           (posvel (space-time space)
                                   (obj-x m) (obj-y m) (obj-r m)
                                   (+ (* PLASMA_SPEED 0.8 (cos a)))

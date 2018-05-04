@@ -385,7 +385,7 @@
   (define qt (qt-new 0 0 (space-width space) (space-height space)))
   (for ((o (space-objects space)))
     (define precs (upkeep! space o))
-    (define cs (apply-all-changes! space precs (space-time space) "server"))
+    (define cs (apply-all-changes! space precs "server"))
     (append! changes cs)
     
     (define rad (obj-radius space o))
@@ -399,7 +399,7 @@
                         (collide! space a b)
                         (collide! space b a)))
       (when (not (void? precs))
-        (define cs (apply-all-changes! space precs (space-time space) "server"))
+        (define cs (apply-all-changes! space precs "server"))
         (append! changes cs))))
   
   (qt-collide! qt coll!)
@@ -411,7 +411,7 @@
   (for ((p (space-players space))
         #:when (and (player-rcid p)
                     (not (find-id space space (player-rcid p)))))
-    (define cs (apply-all-changes! space (list (endrc (ob-id p) #f)) (space-time space) "server"))
+    (define cs (apply-all-changes! space (list (endrc (ob-id p) #f)) "server"))
     (append! changes cs))
   
   changes)
@@ -473,7 +473,7 @@
      (append! updates
               (apply-all-changes! ownspace
                                   (list (chrm (client-id c)) m)
-                                  (space-time ownspace) "server"))
+                                  "server"))
 
      (close-input-port (client-in-port c))
      (with-handlers ((exn:fail:network? (lambda (exn) #f)))
@@ -577,9 +577,10 @@
            (set-player-name! (client-player c) name)
            (set-client-status! c CLIENT_STATUS_WAITING_FOR_SPACE)
            (append! updates
-                    (apply-all-changes! ownspace (list (chadd (client-player c) #f)) (space-time ownspace) "server"))
-           (define m (message (next-id) (space-time ownspace) #t #f (format "New Player: ~a" name)))
-           (append! updates (apply-all-changes! ownspace (list m) (space-time ownspace) "server")))
+                    (apply-all-changes! ownspace (list (chadd (client-player c) #f)) "server"))
+           (define m (message (next-id) (space-time ownspace) #t #f
+                              (format "New Player: ~a" name)))
+           (append! updates (apply-all-changes! ownspace (list m) "server")))
           
           ((update? u)
            (cond
@@ -596,7 +597,7 @@
                    (scenario-on-message ownspace ch change-scenario!))
                   (else
                    (define command-changes
-                     (apply-all-changes! ownspace (list ch) (space-time ownspace) "server"))
+                     (apply-all-changes! ownspace (list ch) "server"))
                    (append! updates command-changes)))))))
           (else
            (printf "server got unexpected data ~v\n" u)))
@@ -611,7 +612,7 @@
 
     ; scenario hook
     (append! updates (apply-all-changes! ownspace (scenario-on-tick ownspace change-scenario!)
-                                       (space-time ownspace) "server"))
+                                         "server"))
 
     ; ai
     (timeit time-ai

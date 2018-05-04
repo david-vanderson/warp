@@ -33,7 +33,7 @@
   (when (plasma-dead? space p)
     (set-space-objects! space (remove p (space-objects space)))
     (when (client?)
-      (define e (effect (next-id) (space-time space)
+      (define e (effect (next-id) (space-time space) #t
                         (posvel (space-time space) (obj-x p) (obj-y p) 0.0 0.0 0.0 0.0)
                         pr 300))
       (append! changes (chadd e #f))))

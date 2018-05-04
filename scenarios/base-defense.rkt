@@ -18,7 +18,7 @@
   (define ownspace (space (next-id) 0 5000 2000 players '()
                           `(
                             ,(standard-quit-scenario-button #t)
-                            ,(ann-text (next-id) 0 (posvel 0 -200 -100 0 0 0 0) #f
+                            ,(ann-text (next-id) 0 #t (posvel 0 -200 -100 0 0 0 0) #f
                                        (string-append
                                         "Defend your base from the incoming destroyer.\n"
                                         "Use your cruiser to attack, dock on the station to repair.\n"
@@ -152,7 +152,7 @@
               (else
                "Enemy Defeated, You Win")))
       
-      (append! changes (chadd (ann-text (next-id) (space-time ownspace)
+      (append! changes (chadd (ann-text (next-id) (space-time ownspace) #t
                                         (posvel 0 -200 -100 0 0 0 0) #f
                                         txt #f) #f))
       ; add end scenario button
@@ -161,7 +161,7 @@
 
     (when (and playing? hb eb)
       (when (time-for (space-time ownspace) 55000 0000)
-        (define m (message (next-id) (space-time ownspace) #f "New Fighter at Outpost"))
+        (define m (message (next-id) (space-time ownspace) #t #f "New Fighter at Outpost"))
         (define f (new-blue-fighter))
         (append! changes (chadd f (ob-id base)) m))
       
@@ -170,7 +170,7 @@
         (append! changes (chadd f (ob-id destroyer))))
       
       (when (time-for (space-time ownspace) 90000 10000)
-        (define m (message (next-id) (space-time ownspace) #f "Empire Frigate Incoming"))
+        (define m (message (next-id) (space-time ownspace) #t #f "Empire Frigate Incoming"))
         (define x (+ (/ (space-width ownspace) 2) 100))
         (define y (random-between (- (/ (space-height ownspace) 2)) (/ (space-height ownspace) 2)))
         (define fighters (for/list ((i (random 3)))
@@ -184,13 +184,13 @@
       
       
       (when ((ship-con hb) . < . (- last-base-con 100))
-        (define m (message (next-id) (space-time ownspace) #f (format "Outpost Health: ~a" (inexact->exact (round (ship-con hb))))))
+        (define m (message (next-id) (space-time ownspace) #t #f (format "Outpost Health: ~a" (inexact->exact (round (ship-con hb))))))
         (append! changes m)
         (set! last-base-con (ship-con hb)))
       
       
       (when (< (ship-con eb) (- last-enemy-base-con 50))
-        (define m (message (next-id) (space-time ownspace) #f (format "Empire Destroyer Health: ~a" (inexact->exact (round (ship-con eb))))))
+        (define m (message (next-id) (space-time ownspace) #t #f (format "Empire Destroyer Health: ~a" (inexact->exact (round (ship-con eb))))))
         (append! changes m)
         (set! last-enemy-base-con (ship-con eb))))
 

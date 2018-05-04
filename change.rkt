@@ -93,12 +93,9 @@
 ; on the server, you could get conflicting commands
 ; (or even the same player clicking a button twice before the server sees it)
 ;
-; ctime is the scenario time of the change or #f
-; - needed when the client has moved space forward and is now picking up old changes
-;
 ; who is a string? for message reporting
 ;
-(define (apply-change! space c ctime who)
+(define (apply-change! space c who)
   ;(printf "~a (~a) applying change ~v\n" who (space-time space) c)
   (cond
     ((command? c)
@@ -215,12 +212,6 @@
        (to
         (define o (chadd-o c))
         (add! o to who)
-        (while (and (ctime . < . (space-time space))
-                    (obj? o)
-                    (obj-posvel o))  ; some objs have a #f posvel when inside other things
-               ;(printf "~a ticking forward ~v\n" who (chadd-o c))
-               (update-physics! space o (/ TICK 1000.0))
-               (set! ctime (+ ctime TICK)))
         (values #t '()))
        (else
         (printf "~a dropping chadd (can't find chadd-to) ~v\n" who c)
@@ -317,9 +308,9 @@
                           ((upgrade? o) (set-upgrade-life! o 0) '())
                           ((ship? o)
                            (define cs (reduce-ship! space o d))
-                           (when (and (not (server?)) (chdam-fx c))
+                           (when (and (obj-alive? o) (client?) (chdam-fx c))
                              (append! cs (chadd
-                                          (dmgfx (next-id) (space-time space) #f "translation" d)
+                                          (dmgfx (next-id) (space-time space) #t #f "translation" d)
                                           (ob-id o))))
                            cs))))
            (else
@@ -373,11 +364,11 @@
      (error "apply-change! hit ELSE clause" c))))
 
 
-(define (apply-all-changes! space changes ctime who)
+(define (apply-all-changes! space changes who)
   (if (null? changes)
       '()
       (apply append
              (for/list ((c (in-list changes)))
-               (define-values (forward? new-changes) (apply-change! space c ctime who))
+               (define-values (forward? new-changes) (apply-change! space c who))
                (append (if forward? (list (copy c)) '())
-                       (apply-all-changes! space new-changes ctime who))))))
+                       (apply-all-changes! space new-changes who))))))
