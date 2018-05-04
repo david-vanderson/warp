@@ -93,7 +93,7 @@
       (printf "~a : ~a ~a ~a\n" time who 'v v)) ...))
 
 (define (standard-quit-scenario-button (tab? #f))
-  (ann-button (next-id) 0 (posvel 0 60 100 0 120 50 0) tab? "Quit Scenario" "quit-scenario"))
+  (ann-button (next-id) 0 #t (posvel 0 60 100 0 120 50 0) tab? "Quit Scenario" "quit-scenario"))
 
 (define-syntax-rule (append! lst e ...)
   (set! lst (append lst (flatten (list e ...)))))

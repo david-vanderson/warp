@@ -67,7 +67,7 @@
       (("radar") (set-stats-radar! newstats (* 1.1 (stats-radar newstats))) "radar")
       (else #f)))
   (cond (which
-         (define m (message (next-id) (space-time space) #f (format "~a upgraded ~a" (ship-name ship) which)))
+         (define m (message (next-id) (space-time space) #t #f (format "~a upgraded ~a" (ship-name ship) which)))
          (when sendstats (append! changes (chstats (ob-id ship) newstats)))
          (append! changes (list m (chdam (ob-id u) 1 #f))))
         (else
@@ -468,7 +468,7 @@
      (printf "already removed client ~a\n" cid))
     (else
      (printf "removing client ~v\n" (client-player c))
-     (define m (message (next-id) (space-time ownspace) #f
+     (define m (message (next-id) (space-time ownspace) #t #f
                         (format "Player Left: ~a" (player-name (client-player c)))))
      (append! updates
               (apply-all-changes! ownspace
@@ -556,6 +556,7 @@
     (for ((o (space-objects ownspace)))
       (update-physics! ownspace o (/ TICK 1000.0))
       (when (ship? o) (update-ship! ownspace o (/ TICK 1000.0))))
+    (set-space-objects! ownspace (filter obj-alive? (space-objects ownspace)))
     )
 
     ; process player commands
@@ -577,7 +578,7 @@
            (set-client-status! c CLIENT_STATUS_WAITING_FOR_SPACE)
            (append! updates
                     (apply-all-changes! ownspace (list (chadd (client-player c) #f)) (space-time ownspace) "server"))
-           (define m (message (next-id) (space-time ownspace) #f (format "New Player: ~a" name)))
+           (define m (message (next-id) (space-time ownspace) #t #f (format "New Player: ~a" name)))
            (append! updates (apply-all-changes! ownspace (list m) (space-time ownspace) "server")))
           
           ((update? u)
@@ -685,7 +686,8 @@
     ((sleep-time . > . 0)
      (sleep (/ sleep-time 1000.0)))
     (else
-     (printf "~a : server skipping sleep ~a\n" (space-time ownspace) sleep-time)
+     (printf "~a : server sleep-time ~a num objects ~a\n"
+             (space-time ownspace) sleep-time (length (space-objects ownspace)))
      (outputtime "server"
                  (space-time ownspace)
                  time-new-clients

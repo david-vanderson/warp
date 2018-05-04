@@ -60,9 +60,12 @@
 (struct posvel (t x y r dx dy dr) #:mutable #:prefab)
 ; t is the last spacetime that this posvel was sent to clients
 
-(struct obj ob (start-time posvel) #:mutable #:prefab)
+(struct obj ob (start-time alive? posvel) #:mutable #:prefab)
 ; start-time is seconds since scenario start that this object was created
 ;  - used for animations
+; alive? is #t normally
+; - set to #f if this obj needs to be removed
+; - used to support delayed removal of top-level objs
 ; if posvel is #f, then this obj is inside something else
 ; if posvel is not #f, then this is a top-level object that is drawn
 

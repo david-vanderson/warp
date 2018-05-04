@@ -70,7 +70,7 @@
                    #:hangar (in-hangar #f)
                    #:cargo (cargo '()))
   (define args (list
-                (next-id) start-time
+                (next-id) start-time #t
                 (if posvel?
                     (posvel 0
                             (exact->inexact x)

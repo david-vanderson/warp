@@ -113,7 +113,7 @@
      (physics! pv dt)
      (push-back! space o dt)
      (when (plasma-dead? space o)
-       (set-space-objects! space (remove o (space-objects space)))))
+       (set-obj-alive?! o #f)))
     ((shield? o)
      (physics! pv dt 0.4)
      (push-back! space o dt)

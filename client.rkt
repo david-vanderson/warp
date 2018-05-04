@@ -61,13 +61,13 @@
 
   (define showtab #f)  ; tab toggles an overlay showing players and goals
   (define showsector? #f)  ; tilde toggles showing the whole sector or the regular view
-  (define zerocenter (obj #f #f (posvel #f 0.0 0.0 #f #f #f #f)))
+  (define zerocenter (obj #f #f #f (posvel #f 0.0 0.0 #f #f #f #f)))
 
   (define center #f)  ; updated each frame for the click handler and mouse cursor drawing
   (define center-follow? #t)  ; show player position in the center?
 
   ; when (not center-follow?)
-  (define centerxy (obj #f #f (posvel #f 0.0 0.0 #f #f #f #f)))  ; center of the screen when panning
+  (define centerxy (obj #f #f #f (posvel #f 0.0 0.0 #f #f #f #f)))  ; center of the screen when panning
   (define dragxypx '(0 . 0))  ; last xy of drag in pixels
   (define dragstate "none")  ; "none", "start", "drag"
   
@@ -182,7 +182,7 @@
 
       (for ((f fowlist))
         (define rad (caddr f))
-        (define-values (x y) (obj->screen (obj #f #f (posvel 0 (car f) (cadr f) 0 0 0 0)) center (get-scale)))
+        (define-values (x y) (xy->screen (car f) (cadr f) center (get-scale)))
         (append! sprites (sprite x y (sprite-idx csd 'circle) #:layer LAYER_FOW_BLACK
                                  #:m (* rad (get-scale) (/ 1.0 50)))))
 
@@ -711,7 +711,7 @@
                 (send-commands cmds)))
              #;((#\m)
               (when ownspace
-                (send-commands (message (next-id) (space-time ownspace) #f
+                (send-commands (message (next-id) (space-time ownspace) #t #f
                                         (~a "message " (space-time ownspace))))))
              ((wheel-up)
               (when (and ownspace (not showsector?))
@@ -821,12 +821,14 @@
   (send frame show #t)
   
   
-  (define (tick-space! space)
+  (define (tick-space-client! space)
     (set-space-time! space (+ (space-time space) TICK))
-    (for ((o (in-list (space-objects space))))
+    (for ((o (in-list (space-objects space)))
+          #:when (obj-alive? o))
       (update-physics! space o (/ TICK 1000.0))
       (when (ship? o) (update-ship! space o (/ TICK 1000.0)))
-      (add-backeffects! space o)))
+      (add-backeffects! space o))
+    (set-space-objects! ownspace (filter obj-alive? (space-objects ownspace))))
   
   
   (define (drop-connection msg)
@@ -986,7 +988,7 @@
               (when ((space-time ownspace) . < . (update-time input))
                 ;(printf "client ticking ownspace forward for input ~a\n" (update-time input))
                 (set! num-ticks (+ 1 num-ticks))
-                (tick-space! ownspace))
+                (tick-space-client! ownspace))
 
               (when ((space-time ownspace) . < . (update-time input))
                 (error "client ownspace still behind update time\n"))
@@ -1036,7 +1038,7 @@
           )
           )
 
-        (tick-space! ownspace)
+        (tick-space-client! ownspace)
         (set! motion? #t)
         (set! num-ticks (+ num-ticks 1))
 
@@ -1107,10 +1109,10 @@
     (define total (+ loop-time sleep-time))
 
     (when (extra-time . < . min-sleep)
-      (printf "client extra-time ~a ~a\n"
-              extra-time (if ownspace (length (space-objects ownspace)) 0))
+      (printf "client extra-time ~a num objects ~a\n"
+              extra-time (if ownspace (length (space-objects ownspace)) #f))
       (outputtime "client"
-                 (space-time ownspace)
+                 (if ownspace (space-time ownspace) #f)
                  time-updates
                  time-predict
                  time-copy
