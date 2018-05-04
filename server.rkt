@@ -511,25 +511,17 @@
 
 (define previous-physics-time #f)
 
-(define time-new-clients 0)
-(define time-commands 0)
-(define time-tick 0)
-(define time-effects 0)
-(define time-ai 0)
-(define time-output 0)
-
-(define-syntax-rule (timeit var e ...)
-  (begin
-    (define t (current-milliseconds))
-    e ...
-    (set! var (- (current-milliseconds) t))))
-
-(define-syntax-rule (outputtime v ...)
-  (begin
-    (when (v . > . 1)
-      (printf "~a : server ~a ~a\n" (space-time ownspace) 'v v)) ...))
     
 (define (server-loop)
+
+  (define time-new-clients 0)
+  (define time-commands 0)
+  (define time-tick 0)
+  (define time-effects 0)
+  (define time-ai 0)
+  (define time-output 0)
+  (define time-housekeeping 0)
+  
   (define current-time (current-milliseconds))
   (when (not previous-physics-time)
     (set! previous-physics-time current-time))
@@ -679,7 +671,12 @@
             (client-id c) (player-name (client-player c)))
     (send-to-client c msg)
     (set-client-status! c CLIENT_STATUS_OK))
-  
+
+  ; housekeeping
+  (timeit time-housekeeping
+  (flush-output)
+  (collect-garbage 'incremental)
+  )
   
   ; sleep so we don't hog the whole racket vm
   (define sleep-time (- (+ previous-physics-time TICK 1)
@@ -689,12 +686,15 @@
      (sleep (/ sleep-time 1000.0)))
     (else
      (printf "~a : server skipping sleep ~a\n" (space-time ownspace) sleep-time)
-     (outputtime time-new-clients
+     (outputtime "server"
+                 (space-time ownspace)
+                 time-new-clients
                  time-commands
                  time-tick
                  time-effects
                  time-ai
-                 time-output)
+                 time-output
+                 time-housekeeping)
      ))
   
   (server-loop))

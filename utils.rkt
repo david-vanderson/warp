@@ -81,6 +81,17 @@
           (printf "out-thread ~a stopping\n" id)
           (sync never-evt)))))))
 
+(define-syntax-rule (timeit var e ...)
+  (begin
+    (define t (current-milliseconds))
+    e ...
+    (set! var (- (current-milliseconds) t))))
+
+(define-syntax-rule (outputtime who time v ...)
+  (begin
+    (when (v . > . 1)
+      (printf "~a : ~a ~a ~a\n" time who 'v v)) ...))
+
 (define (standard-quit-scenario-button (tab? #f))
   (ann-button (next-id) 0 (posvel 0 60 100 0 120 50 0) tab? "Quit Scenario" "quit-scenario"))
 
@@ -94,18 +105,19 @@
 (define (findfid id list)
   (findf (lambda (o) (equal? id (ob-id o))) list))
 
-(define copy-param (make-parameter #f))
-
-(define (make-copy)
-  (define-values (copy-in copy-out) (make-pipe))
-  (lambda (s)
-    (write s copy-out)
-    (read copy-in)))
-
 (define (copy s)
-  (when (not (copy-param))
-    (copy-param (make-copy)))
-  ((copy-param) s))
+  (cond
+    ((struct? s)
+     (apply make-prefab-struct (prefab-struct-key s) (map copy (struct->list s))))
+    ((list? s)
+     (map copy s))
+    ((or (number? s)
+         (boolean? s)
+         (string? s)
+         (symbol? s))
+     s)
+    (else
+     (error "copy unknown datatype:\n" s))))
 
 (define (load-bitmap name)
   (read-bitmap (string-append "images/" name ".png")))

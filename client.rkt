@@ -865,9 +865,16 @@
   (define target-time #f)
   ; saved ownspace if we predicted forward
   (define oldspace #f)
-
+  
   
   (define (client-loop)
+
+    (define time-updates 0)
+    (define time-predict 0)
+    (define time-copy 0)
+    (define time-setup 0)
+    (define time-render 0)
+    (define time-housekeeping 0)
     
     (when (not server-in-port)
       (define newname
@@ -914,6 +921,7 @@
     (define num-ticks 0)
     
     ; process received info
+    (timeit time-updates
     (let loop ()
       (define v (thread-try-receive))
       (when v
@@ -1002,9 +1010,12 @@
                    (printf "client dropped pvupdate couldn't find obj id ~v\n"
                            (pvupdate-id pvu)))))))))
         (loop)))
+    )
 
+    
     (when ownspace
 
+      (timeit time-predict
       (when ((+ target-time (- TICK)) . > . (space-time ownspace))
         ; maybe our lag increased, so slowly reduce the target-time
         (printf "target-time-- ~a\n" (- (+ target-time (- TICK)) (space-time ownspace)))
@@ -1020,7 +1031,10 @@
         (when (and (not oldspace)
                    (last-update-time . < . (space-time ownspace)))
           ;(printf "client saving oldspace ~a\n" (space-time ownspace))
-          (set! oldspace (copy ownspace)))
+          (timeit time-copy
+          (set! oldspace (copy ownspace))
+          )
+          )
 
         (tick-space! ownspace)
         (set! motion? #t)
@@ -1029,9 +1043,11 @@
         (when oldspace
           ;(printf "client forward predict to ~a\n" (space-time ownspace))
           (set! num-ticks (- num-ticks 1))))
+      )
 
       ;(printf "updates ~a ticks ~a ~a\n" num-updates num-ticks (if motion? "motion" ""))
 
+      (timeit time-setup
       (define ahead (- (space-time ownspace) last-update-time))
       (set! aheads (add-frame-time ahead aheads))
       ;(when (ahead . > . AHEAD_THRESHOLD)
@@ -1055,10 +1071,13 @@
                                                      #:when (member t MOUSE_TOOLS))
                                            t))))))
       )
+      )
     
     ; render a frame
+    (timeit time-render
     (set! frames (add-frame-time (current-milliseconds) frames))
     (send canvas refresh-now)
+    )
 
     ; for debugging low-fps situations
     ;(define sum 0)
@@ -1066,8 +1085,10 @@
     ;  (set! sum (+ i sum)))
 
     ; housekeeping
+    (timeit time-housekeeping
     (flush-output)
     (collect-garbage 'incremental)
+    )
     
 ;    (when (time-for (current-milliseconds) 1000)
 ;      (displayln (~a "mem: " (~r (/ (current-memory-use) (* 1024.0 1024.0)) #:precision 2))))
@@ -1085,8 +1106,17 @@
     (define sleep-time (max min-sleep extra-time))
     (define total (+ loop-time sleep-time))
 
-    ;(when (extra-time . < . min-sleep)
-    ;  (printf "client extra-time ~a\n" extra-time))
+    (when (extra-time . < . min-sleep)
+      (printf "client extra-time ~a ~a\n"
+              extra-time (if ownspace (length (space-objects ownspace)) 0))
+      (outputtime "client"
+                 (space-time ownspace)
+                 time-updates
+                 time-predict
+                 time-copy
+                 time-setup
+                 time-render
+                 time-housekeeping))
 
     ; set the start of the loop time to be exactly when we want to wake up
     ; we might actually sleep a bit longer, that will count as part of loop-time
