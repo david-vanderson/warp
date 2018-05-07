@@ -1,5 +1,8 @@
 #lang racket/base
 
+(require mode-lambda
+         mode-lambda/static)
+
 (require "defs.rkt"
          "utils.rkt"
          "draw-utils.rkt")
@@ -9,6 +12,18 @@
 
 (define PLASMA_LIFE 3000)  ; ms after which plasma starts fading
 (define PLASMA_FADE 2.0)  ; energy loss per second after PLASMA_LIFE
+
+(define (plasma-setup-pre! sd)
+  (add-sprite!/file sd 'plasma (string-append "images/plasma.png")))
+
+(define PLASMA_SPRITE_IDX #f)
+(define PLASMA_SPRITE_SIZE #f)
+
+(define (plasma-setup! csd)
+  (set! PLASMA_SPRITE_IDX (sprite-idx csd 'plasma))
+  (define w (sprite-width csd PLASMA_SPRITE_IDX))
+  (define h (sprite-height csd PLASMA_SPRITE_IDX))
+  (set! PLASMA_SPRITE_SIZE (max w h)))
 
 (define (plasma-damage space p)
   (plasma-energy space p))
@@ -41,11 +56,10 @@
 
 
 (define (draw-plasma csd center scale p space fowa)
-  (define-values (x y) (obj->screen p center scale))
   (define cycle 1000.0)
   (define t (modulo (obj-age space p) cycle))
   (define rot (* 2pi (/ t cycle)))
-  (obj-sprite p csd center scale LAYER_SHIPS 'plasma
-              (max 2.0 (* 2.0 (plasma-radius space p)))
-              fowa rot "black"))
-
+  (define-values (x y) (obj->screen p center scale))
+  (define size (/ (* (max 2.0 (* 2.0 (plasma-radius space p))) scale) PLASMA_SPRITE_SIZE))
+  (sprite x y PLASMA_SPRITE_IDX
+          #:layer LAYER_SHIPS #:a fowa #:theta (exact->inexact (- rot)) #:m size))

@@ -243,10 +243,9 @@
             #:when (obj-alive? o))
         (define fowa (if (obj-posvel o) (get-alpha (obj-x o) (obj-y o) fowlist) 1.0))
         (when (fowa . > . 0)
-          (set! sprites
-                (cons
-                 (draw-object csd textr textsr center (get-scale) o ownspace meid showtab fowa LAYER_SHIPS fac)
-                 sprites))))
+          (define spr (draw-object csd textr textsr center (get-scale) o ownspace meid
+                                 showtab fowa LAYER_EFFECTS fac))
+          (prepend! sprites spr)))
       )
 
       ; draw stuff specific to the ship you are on
@@ -841,12 +840,13 @@
     )
   (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))
   (load-ships sd)
-  (add-sprite!/file sd 'plasma (string-append "images/plasma.png"))
+  (plasma-setup-pre! sd)
   (add-sprite!/file sd 'missile (string-append "images/missile.png"))
   (add-sprite!/file sd 'cannonball (string-append "images/asteroid_43.png"))
   
   (define csd (compile-sprite-db sd #:padding 2))
   ;(save-csd! csd "csd" #:debug? #t)
+  (plasma-setup-post! csd)
   (define textr (make-text-aligned-renderer textfont csd))
   (define textsr (make-text-aligned-sizer textfont csd))
   (gl:gl-smoothing? #t)

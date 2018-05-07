@@ -107,8 +107,7 @@
   spr)
 
 (define (draw-object csd textr textsr center scale o space pid showplayers? fowa layer_effects faction)
-  (define spr '())
-  (cond       
+  (cond
     #;((ptsize . < . 0.25)  ; "sector" view - ships are triangles
      (cond ((ship? o)
             (define col
@@ -145,17 +144,20 @@
             (send dc draw-point (obj-x o) (obj-y o)))))
     (else
      (cond ((plasma? o)
-            (append! spr (draw-plasma csd center scale o space fowa)))
+            (draw-plasma csd center scale o space fowa))
            ((shield? o)
-            (append! spr (draw-shield csd center scale space o fowa)))
+            (draw-shield csd center scale space o fowa))
            ((effect? o)
-            (append! spr (draw-effect csd center scale space o fowa layer_effects)))
+            (draw-effect csd center scale space o fowa layer_effects))
            ((upgrade? o)
+            (define spr '())
             (append! spr (draw-upgrade csd center scale space o fowa))
             (when showplayers?
               (append! spr (draw-cargolist csd textr textsr center scale o "gray" fowa
-                                           (list (upgrade-type o)) '()))))
+                                           (list (upgrade-type o)) '())))
+            spr)
            ((ship? o)
+            (define spr '())
             (append! spr (obj-sprite o csd center scale LAYER_SHIPS
                                      (string->symbol (ship-type o))
                                      (ship-info-size (hash-ref ship-list (ship-type o)))
@@ -168,8 +170,8 @@
               ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
               (append! spr (draw-cargolist csd textr textsr center scale o colstr fowa
                                            (cons (ship-name o) (map upgrade-type (ship-cargo o)))
-                                           (map player-name players))))))))
-  spr)
+                                           (map player-name players))))
+            spr)))))
 
 
 (define (draw-cargolist csd textr textsr center scale obj colstr fowa text-above text-below)

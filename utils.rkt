@@ -98,6 +98,9 @@
 (define-syntax-rule (append! lst e ...)
   (set! lst (append lst (flatten (list e ...)))))
 
+(define-syntax-rule (prepend! lst e ...)
+  (set! lst (append (flatten (list e ...)) lst)))
+
 (define (remove-id id list)
   (filter (lambda (o) (not (equal? (ob-id o) id)))
           list))

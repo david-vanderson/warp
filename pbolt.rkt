@@ -67,7 +67,7 @@
                         ((distance ownship o) . < . 400)))
 
         (define r (theta ownship o))
-        (define xy (obj -1 -1 (posvel -1
+        (define xy (obj -1 -1 #t (posvel -1
                                       (+ (obj-x ownship) (* d (cos r)))
                                       (+ (obj-y ownship) (* d (sin r)))
                                       0 0 0 0)))
