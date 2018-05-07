@@ -131,9 +131,7 @@
     (for ((p (space-players ownspace)))
       (when (not (player-faction p))
         ; new player
-        (append! changes (chfaction (ob-id p) "Empire"))
-        (when frig
-          (append! changes (chmov (ob-id p) (ob-id frig) #f))))
+        (append! changes (chfaction (ob-id p) "Empire")))
       (when (and frig (not (find-id ownspace ownspace (ob-id p))))
         (append! changes (chmov (ob-id p) (ob-id frig) #f))))
 
@@ -173,11 +171,13 @@
         (and (upgrade? o) (equal? "unscouted" (upgrade-type o))))
       
       (for ((s (space-objects ownspace))
-            #:when (and (spaceship? s)
+            #:when (and (obj-alive? s)
+                        (spaceship? s)
                         (equal? "Empire" (ship-faction s))
                         (not (equal? "probe" (ship-type s))))
             (a (space-objects ownspace))
-            #:when (and (spaceship? a)
+            #:when (and (obj-alive? a)
+                        (spaceship? a)
                         ((distance s a) . < . (ship-radar s))
                         (find-id ownspace a unscouted-cargo)))
         ; remove the unscouted cargo

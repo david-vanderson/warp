@@ -31,7 +31,7 @@
   (define pr (plasma-radius space p))
   (set-plasma-e! p (- (plasma-e p) damage))
   (when (plasma-dead? space p)
-    (set-space-objects! space (remove p (space-objects space)))
+    (set-obj-alive?! p #f)
     (when (client?)
       (define e (effect (next-id) (space-time space) #t
                         (posvel (space-time space) (obj-x p) (obj-y p) 0.0 0.0 0.0 0.0)

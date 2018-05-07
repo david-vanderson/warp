@@ -227,7 +227,11 @@
         ; if both s and p, do s first because we need to remove a player
         ; from a ship before we remove the player
         (when s
-          (rem! (car s) (cadr s) who))
+          (cond
+            ((and (space? (cadr s)) (not (player? (car s))))
+             (set-obj-alive?! (car s) #f))
+            (else
+             (rem! (car s) (cadr s) who))))
         (when p
           (rem! p space who)
           (append! changes (player-cleanup! space p)))
@@ -249,33 +253,45 @@
         (cond
           (s
            (define changes '())
-           (rem! (car s) (cadr s) who)
-           (when (and (server?) (player? (car s)) (spacesuit? (cadr s)))
-             ; leaving a space suit, remove the suit
-             (append! changes (chrm (ob-id (cadr s)))))
-           (cond ((and (player? (car s)) (space? to))
-                  (when (and (server?) (not (spacesuit? (get-ship s))))
-                    ; jumping into spacesuit
-                    (define ship (get-topship s))
-                    (define ss (make-spacesuit (player-name p) ship))
-                    (define sspv (obj-posvel ss))
-                    ; push spacesuit away from parent ship
-                    (define t (atan0 (posvel-dy sspv) (posvel-dx sspv)))
-                    (define r (+ 3 (hit-distance ship ss)))
-                    (set-posvel-x! sspv (+ (posvel-x sspv) (* r (cos t))))
-                    (set-posvel-y! sspv (+ (posvel-y sspv) (* r (sin t))))
-                    (append! changes (chadd ss #f) (chmov (ob-id p) (ob-id ss) #f))))
-                 (else
-                  (add! (car s) to who)
-                  ; whenever a player moves somewhere, need to clear out all existing commands
-                  (when (player? (car s))
-                    (append! changes (player-cleanup! space (car s))))
-                  (when (obj? (car s)) (set-obj-posvel! (car s) (chmov-pv c)))
-                  (when (and (ship? (car s)) (ship? to))
-                    (define ship (car s))
-                    ; ship is docking, clean up warp if we have it
-                    (when (ship-tool ship 'warp)
-                      (append! changes (command (ob-id ship) #f 'warp 'stop))))))
+
+           ; remove (car s) from wherever it is
+           (cond
+             ((space? (cadr s))
+              ; moving from space-objects, so copy, mark as dead
+              (define t (copy (car s)))
+              (set-obj-alive?! (car s) #f)
+              (set! s (cons t (cdr s))))
+             (else
+              (rem! (car s) (cadr s) who)
+              (when (and (server?) (player? (car s)) (spacesuit? (cadr s)))
+                ; leaving a space suit, remove the suit
+                (append! changes (chrm (ob-id (cadr s)))))))
+
+           ; add (car s) to where it should go
+           (cond
+             ((and (player? (car s)) (space? to))
+              (when (and (server?) (not (spacesuit? (get-ship s))))
+                ; jumping into spacesuit
+                (define ship (get-topship s))
+                (define ss (make-spacesuit (player-name p) ship))
+                (define sspv (obj-posvel ss))
+                ; push spacesuit away from parent ship
+                (define t (atan0 (posvel-dy sspv) (posvel-dx sspv)))
+                (define r (+ 3 (hit-distance ship ss)))
+                (set-posvel-x! sspv (+ (posvel-x sspv) (* r (cos t))))
+                (set-posvel-y! sspv (+ (posvel-y sspv) (* r (sin t))))
+                (append! changes (chadd ss #f) (chmov (ob-id p) (ob-id ss) #f))))
+             (else
+              (add! (car s) to who)
+              ; whenever a player moves somewhere, need to clear out all existing commands
+              (when (player? (car s))
+                (append! changes (player-cleanup! space (car s))))
+              (when (obj? (car s)) (set-obj-posvel! (car s) (chmov-pv c)))
+              (when (and (ship? (car s)) (ship? to))
+                (define ship (car s))
+                ; ship is docking, clean up warp if we have it
+                (when (ship-tool ship 'warp)
+                  (append! changes (command (ob-id ship) #f 'warp 'stop))))))
            (values #t changes))
           (p
            (add! p to who)

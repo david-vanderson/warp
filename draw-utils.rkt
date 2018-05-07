@@ -129,7 +129,7 @@
 
 (define (get-alpha x y fowlist)
   (define a 0.0)
-  (for ((f fowlist))
+  (for ((f (in-list fowlist)))
     (define dx (- x (car f)))
     (define dy (- y (cadr f)))
     (define r (caddr f))

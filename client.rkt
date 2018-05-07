@@ -135,6 +135,17 @@
 ;    (when (and serverspace ownspace)
 ;      (printf "serverspace time ~a\n   ownspace time ~a\n" (space-time serverspace) (space-time ownspace)))
 
+    (define t1 0)
+    (define t2 0)
+    (define t3 0)
+    (define t4 0)
+    (define t5 0)
+    (define t6 0)
+    (define t7 0)
+    (define t8 0)
+    (define t9 0)
+
+    (timeit t1
     (set! buttons '())
     (set! sprites '())
     (define cursordrawn #f)
@@ -163,8 +174,10 @@
       (for* ((i (in-range (left) (right) w))
              (j (in-range (top) (bottom) h)))
         (append! sprites (text-sprite textr textsr txt i j LAYER_UI))))
+    )
     
     (when ownspace
+      (timeit t2
       (define p (findfid meid (space-players ownspace)))
       (define fac (if p (player-faction p) #f))
       (define ordertree (get-space-orders-for ownspace fac))
@@ -185,7 +198,9 @@
         (define-values (x y) (xy->screen (car f) (cadr f) center (get-scale)))
         (append! sprites (sprite x y (sprite-idx csd 'circle) #:layer LAYER_FOW_BLACK
                                  #:m (* rad (get-scale) (/ 1.0 50)))))
+      )
 
+      (timeit t3
       (append! sprites (draw-sector-lines csd center (get-scale) ownspace))
 
       ; map annotations
@@ -219,17 +234,24 @@
                                                        (* 4.0 (ship-radius s))) (send col alpha) 0.0 col))))
                   (else
                    (error "don't know how to draw annotation ~v" a))))))))
+      )
 
       ;(append! sprites (draw-background-stars csd center (get-scale) fowlist))
 
-      (for ((o (in-list (space-objects ownspace))))
+      (timeit t4
+      (for ((o (in-list (space-objects ownspace)))
+            #:when (obj-alive? o))
         (define fowa (if (obj-posvel o) (get-alpha (obj-x o) (obj-y o) fowlist) 1.0))
         (when (fowa . > . 0)
-          (append! sprites
-                   (draw-object csd textr textsr center (get-scale) o ownspace meid showtab fowa LAYER_EFFECTS fac))))
-      
+          (set! sprites
+                (cons
+                 (draw-object csd textr textsr center (get-scale) o ownspace meid showtab fowa LAYER_SHIPS fac)
+                 sprites))))
+      )
+
       ; draw stuff specific to the ship you are on
       ; - stacked if we are on a ship inside another ship
+      (timeit t5
       (when my-stack
         (define p (car my-stack))
         (define rcship (if (player-rcid p) (find-id ownspace ownspace (player-rcid p)) #f))
@@ -326,8 +348,10 @@
         ;(draw-docking csd center (get-scale) (get-space my-stack) my-stack)))
         
         ) ; when my-stack
+      )
       
       ; draw annotations that exist in canon space
+      (timeit t6
       (for ((a (in-list (space-objects ownspace)))
             #:when (ann? a))
         (when (and (ann-button? a) (or (not (ann-showtab? a)) showtab))
@@ -563,9 +587,10 @@
           (append! sprites
                    (obj-sprite o csd center (get-scale) LAYER_UI_TEXT 'circle
                                (/ 7.0 (get-scale)) 1.0 0.0 "pink"))))
-      
+      )
       ) ; when ownspace
 
+    (timeit t7
     (send canvas set-cursor (make-object cursor% (if cursordrawn 'blank 'arrow)))
 
     ; framerate
@@ -592,9 +617,18 @@
     (define width (+ canon-width dmgx))
     (define height (+ canon-height dmgy))
     (define layers (for/vector ((i LAYER_NUM)) (layer width height)))
-    
+    )
+    (timeit t8
     (define r (render layers '() sprites))
-    (r (fl->fx canon-width) (fl->fx canon-height) dc))
+    )
+    (timeit t9
+    (r (fl->fx canon-width) (fl->fx canon-height) dc)
+    )
+
+    (outputtime "client render"
+                (if ownspace (space-time ownspace) #f)
+                t1 t2 t3 t4 t5 t6 t7 t8 t9)
+    )
     
   
   (define-values (left-inset top-inset) (get-display-left-top-inset))
@@ -827,8 +861,7 @@
           #:when (obj-alive? o))
       (update-physics! space o (/ TICK 1000.0))
       (when (ship? o) (update-ship! space o (/ TICK 1000.0)))
-      (add-backeffects! space o))
-    (set-space-objects! ownspace (filter obj-alive? (space-objects ownspace))))
+      (add-backeffects! space o)))
   
   
   (define (drop-connection msg)
@@ -1017,16 +1050,18 @@
     
     (when ownspace
 
-      (timeit time-predict
+      (timeit time-predict      
       (when ((+ target-time (- TICK)) . > . (space-time ownspace))
         ; maybe our lag increased, so slowly reduce the target-time
         (printf "target-time-- ~a\n" (- (+ target-time (- TICK)) (space-time ownspace)))
         (set! target-time (- target-time 1)))
 
+      
       (define motion? #f)
 
       ; for debugging to artificially make the client predict ahead
       (define future 0)
+
       
       (while ((+ target-time future) . > . (space-time ownspace))
         ; we are behind, forward predict
@@ -1046,6 +1081,8 @@
           ;(printf "client forward predict to ~a\n" (space-time ownspace))
           (set! num-ticks (- num-ticks 1))))
       )
+
+      (set-space-objects! ownspace (filter obj-alive? (space-objects ownspace)))
 
       ;(printf "updates ~a ticks ~a ~a\n" num-updates num-ticks (if motion? "motion" ""))
 

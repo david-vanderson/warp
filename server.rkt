@@ -358,21 +358,6 @@
 
 (define num-collide 0)
 
-; Is object o still in the running for collisions?
-(define (live? space o)
-  (cond
-    ((ship? o)
-     (and (ship-flying? o)
-          ((ship-con o) . > . 0)))
-    ((plasma? o)
-     (not (plasma-dead? space o)))
-    ((upgrade? o)
-     (and (obj-posvel o)
-          (upgrade-alive? space o)))
-    (else
-     (printf "live? called on ~v\n" o)
-     #f)))
-
 ; return a list of final changes
 (define (update-effects! space)
   (define changes '())
@@ -383,18 +368,20 @@
 
   ;(timeit time-collide
   (define qt (qt-new 0 0 (space-width space) (space-height space)))
-  (for ((o (space-objects space)))
+  (for ((o (space-objects space))
+        #:when (obj-alive? o))
     (define precs (upkeep! space o))
     (define cs (apply-all-changes! space precs "server"))
     (append! changes cs)
-    
-    (define rad (obj-radius space o))
-    (when rad
-      (qt-add! qt o (obj-x o) (obj-y o) rad)))
+
+    (when (obj-alive? o)
+      (define rad (obj-radius space o))
+      (when rad
+        (qt-add! qt o (obj-x o) (obj-y o) rad))))
 
   (define (coll! a b)
-    (when (and (live? space a)
-               (live? space b))
+    (when (and (obj-alive? a)
+               (obj-alive? b))
       (define precs (if ((priority a) . <= . (priority b))
                         (collide! space a b)
                         (collide! space b a)))
@@ -556,7 +543,6 @@
     (for ((o (space-objects ownspace)))
       (update-physics! ownspace o (/ TICK 1000.0))
       (when (ship? o) (update-ship! ownspace o (/ TICK 1000.0))))
-    (set-space-objects! ownspace (filter obj-alive? (space-objects ownspace)))
     )
 
     ; process player commands
@@ -617,9 +603,11 @@
     ; ai
     (timeit time-ai
     (append! updates (apply-all-changes! ownspace (run-ai! ownspace)
-                                         (space-time ownspace) "server"))
+                                         "server"))
     )
-    
+
+    ; cull dead
+    (set-space-objects! ownspace (filter obj-alive? (space-objects ownspace)))
     
     (timeit time-output
     ; send any 0-time posvels and least-recently sent

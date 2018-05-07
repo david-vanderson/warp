@@ -118,21 +118,21 @@
      (physics! pv dt 0.4)
      (push-back! space o dt)
      (when (shield-dead? space o)
-       (set-space-objects! space (remove o (space-objects space)))))
+       (set-obj-alive?! o #f)))
     ((effect? o)
      (physics! pv dt)
      (when (effect-dead? space o)
-       (set-space-objects! space (remove o (space-objects space)))))
+       (set-obj-alive?! o #f)))
     ((message? o)
      (when ((obj-age space o) . > . MSG_FADE_TIME)
-       (set-space-objects! space (remove o (space-objects space)))))
+       (set-obj-alive?! o #f)))
     ((and (ann-text? o) (ann-text-life o))
      (when ((obj-age space o) . > . (+ (ann-text-life o) MSG_FADE_TIME))
-       (set-space-objects! space (remove o (space-objects space)))))
+       (set-obj-alive?! o #f)))
     ((upgrade? o)
      (physics! pv dt 0.4)
      (when (not (upgrade-alive? space o))
-       (set-space-objects! space (remove o (space-objects space)))))))
+       (set-obj-alive?! o #f)))))
 
 
 ; return list of additional changes
@@ -141,7 +141,8 @@
   (set-stats-con! (ship-stats ship) (- (ship-con ship) damage))
   
   (when ((ship-con ship) . <= . 0)
-    (set-space-objects! space (remove ship (space-objects space)))
+    (set-obj-alive?! ship #f)
+    
     (define pv (obj-posvel ship))
     (define energy (ship-mass ship))
     

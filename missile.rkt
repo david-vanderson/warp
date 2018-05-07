@@ -14,7 +14,7 @@
   (set-stats-con! (ship-stats m) (- (ship-con m) damage))
 
   (when ((ship-con m) . <= . 0)
-    (set-space-objects! space (remove-id (ob-id m) (space-objects space)))
+    (set-obj-alive?! m #f)
     
     (when (client?)
       (define e (effect (next-id) (space-time space) #t

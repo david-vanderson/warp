@@ -30,7 +30,7 @@
 (define (reduce-shield! space s damage)
   (set-shield-e! s (- (shield-e s) damage))
   (when ((shield-energy space s) . < . 1)
-    (set-space-objects! space (remove s (space-objects space)))))
+    (set-obj-alive?! s #f)))
 
 
 (define (draw-shield csd center scale space s fowa)
