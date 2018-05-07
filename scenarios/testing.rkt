@@ -6,6 +6,8 @@
          "../utils.rkt"
          "../ships.rkt"
          "../order.rkt"
+         "../physics.rkt"
+         "../effect.rkt"
          "../upgrade.rkt")
 
 (provide (all-defined-out))
@@ -15,14 +17,44 @@
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "Rebel"))
 
-  (define ownspace (space (next-id) 0 20000 20000 players '()
+  (define ownspace (space (next-id) 0 10000 10000 players '()
                           `(,(standard-quit-scenario-button #t))))
   
-  (set-space-objects! ownspace
+  #;(set-space-objects! ownspace
                       (append (space-objects ownspace)
                               (for/list (((name si) (in-hash ship-list))
                                          (x (in-range -1000 1000 100)))
                                 (make-ship name name "Rebel" #:x x #:start-ship? #t))))
+
+  (define (new-blue-fighter (x 0) (y 0))
+    (define s (make-ship "blue-fighter" "a" "a" #:ai? #t #:x x #:y y))
+    (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
+                              ;con maxcon radius mass radar drag start-ship?
+                              5000.0 5000.0 6.0 20.0 300.0 0.4 #t))
+    (set-ship-tools!
+     s (append (tools-pilot 50.0 #f 1.5)
+               (list ;(tool-missile 5.0 10.0)
+                     (tool-pbolt 5.0))))
+    s)
+  
+  (define (new-red-fighter (x 0) (y 0))
+    (define s (make-ship "red-fighter" "a" "a" #:ai? #t #:x x #:y y))
+    (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
+                              ;con maxcon radius mass radar drag start
+                              5000.0 5000.0 6.0 20.0 300.0 0.4 #f))
+    (set-ship-tools!
+     s (append (tools-pilot 50.0 #f 1.5)
+               (list ;(tool-missile 5.0 10.0)
+                     (tool-pbolt 5.0))))
+    s)
+
+  (define bf (for/list ((i 50)) (new-blue-fighter (* 50 i) 50)))
+  (define rf (for/list ((i 50)) (new-red-fighter  (* 50 i) 150)))
+  
+  (set-space-objects! ownspace
+                      (append ;bf rf
+                       ;(list (new-blue-fighter) (new-red-fighter 100 100))
+                              (space-objects ownspace)))
   
   (define real-orders (space 0 0 0 0 '() '() '()))  ; only care about orders
   
@@ -39,6 +71,20 @@
       (check ownspace (car fo) (cadr fo)))
     
     (append! changes (order-changes ownspace real-orders))
+
+    (for ((i 10))
+      (define x (* (random) 5000))
+      (define y (* (random) 5000))
+      (define p (plasma (next-id) (space-time ownspace) #t
+                        (posvel (space-time ownspace)
+                                x
+                                y
+                                0
+                                0
+                                0
+                                0)
+                        10))
+      (append! changes (chadd p #f)))
     
     changes)
   
@@ -52,3 +98,44 @@
   (values ownspace on-tick on-message))
 
 
+(module+ main
+  (define ps (for/list ((i 1000))
+               (plasma (next-id) 0 #t
+                       (posvel 0
+                               (* (random) 5000)
+                               (* (random) 5000)
+                               0
+                               0
+                               0
+                               0)
+                       1)))
+  (define ownspace (space (next-id) 0 10000 10000 '() '() '()))
+
+  (for ((i 200))
+    (when (time-for (space-time ownspace) 500)
+      (for ((i 100))
+        (define p (plasma (next-id) (space-time ownspace) #t
+                          (posvel (space-time ownspace)
+                                  (* (random) 5000)
+                                  (* (random) 5000)
+                                  0
+                                  0
+                                  0
+                                  0)
+                          1))
+        (set-space-objects! ownspace (cons p (space-objects ownspace)))))
+    (define-values (ret cpu real gc)
+      (time-apply
+       (lambda ()
+         (set-space-time! ownspace (+ (space-time ownspace) TICK))
+         (for ((o (in-list (space-objects ownspace)))
+               #:when (obj-alive? o))
+           (update-physics! ownspace o (/ TICK 1000.0)))
+         (set-space-objects! ownspace (filter obj-alive? (space-objects ownspace))))
+       '()))
+    (when #t;(cpu . > . 1)
+      (printf "ownspace ~a ~a time ~a real ~a gc ~a\n"
+              (space-time ownspace) (length (space-objects ownspace))
+              cpu real gc)))
+  )
+  

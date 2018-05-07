@@ -624,9 +624,9 @@
     (r (fl->fx canon-width) (fl->fx canon-height) dc)
     )
 
-    (outputtime "client render"
-                (if ownspace (space-time ownspace) #f)
-                t1 t2 t3 t4 t5 t6 t7 t8 t9)
+    ;(outputtime "client render"
+    ;            (if ownspace (space-time ownspace) #f)
+    ;            t1 t2 t3 t4 t5 t6 t7 t8 #;t9)
     )
     
   
@@ -977,7 +977,7 @@
            (set! target-time (space-time ownspace))
            (set! last-update-time (space-time ownspace))
            (set! last-pbolt-time (space-time ownspace))
-           (printf "client new ownspace ~a\n" (space-time ownspace))
+           ;(printf "client new ownspace ~a\n" (space-time ownspace))
 
            ; new ownspace, reset view stuff
            (set! showsector? #f)
@@ -1008,7 +1008,7 @@
 
               (when ((update-time input) . > . target-time)
                 ; got this update sooner than expected, maybe our lag decreased?
-                (printf "client jumping forward to ~a\n" (update-time input))
+                ;(printf "client jumping forward to ~a\n" (update-time input))
                 (set! target-time (update-time input)))
 
               (when oldspace
@@ -1053,7 +1053,7 @@
       (timeit time-predict      
       (when ((+ target-time (- TICK)) . > . (space-time ownspace))
         ; maybe our lag increased, so slowly reduce the target-time
-        (printf "target-time-- ~a\n" (- (+ target-time (- TICK)) (space-time ownspace)))
+        ;(printf "target-time-- ~a\n" (- (+ target-time (- TICK)) (space-time ownspace)))
         (set! target-time (- target-time 1)))
 
       

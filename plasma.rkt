@@ -19,7 +19,7 @@
 (define PLASMA_SPRITE_IDX #f)
 (define PLASMA_SPRITE_SIZE #f)
 
-(define (plasma-setup! csd)
+(define (plasma-setup-post! csd)
   (set! PLASMA_SPRITE_IDX (sprite-idx csd 'plasma))
   (define w (sprite-width csd PLASMA_SPRITE_IDX))
   (define h (sprite-height csd PLASMA_SPRITE_IDX))

@@ -532,7 +532,7 @@
   ; simulation tick
   (define tick? #t)
   (when ((- current-time previous-physics-time) . < . TICK)
-    (printf "server woke up too early, no tick\n")
+    ;(printf "server woke up too early, no tick\n")
     (set! tick? #f))
     
   (when tick?
@@ -657,8 +657,8 @@
         #:when (= (client-status c) CLIENT_STATUS_WAITING_FOR_SPACE))
     (when (not msg)
       (set! msg (copy ownspace)))
-    (printf "server sending ownspace to client ~a ~a\n"
-            (client-id c) (player-name (client-player c)))
+    ;(printf "server sending ownspace to client ~a ~a\n"
+    ;        (client-id c) (player-name (client-player c)))
     (send-to-client c msg)
     (set-client-status! c CLIENT_STATUS_OK))
 
