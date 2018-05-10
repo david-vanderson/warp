@@ -729,7 +729,8 @@
           (else
            (case kc
              ((#\f)
-              (send frame fullscreen (not (send frame is-fullscreened?))))
+              (when (send event get-control-down)
+                (send frame fullscreen (not (send frame is-fullscreened?)))))
              #;((#\d)
               (when ownspace
                 (define cmds '())
