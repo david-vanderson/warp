@@ -30,7 +30,7 @@
     (define s (make-ship "blue-fighter" "a" "a" #:ai? #t #:x x #:y y))
     (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
                               ;con maxcon radius mass radar drag start-ship?
-                              5000.0 5000.0 6.0 20.0 300.0 0.4 #t))
+                              500.0 500.0 6.0 20.0 300.0 0.4 #t))
     (set-ship-tools!
      s (append (tools-pilot 50.0 #f 1.5)
                (list ;(tool-missile 5.0 10.0)
@@ -41,7 +41,7 @@
     (define s (make-ship "red-fighter" "a" "a" #:ai? #t #:x x #:y y))
     (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
                               ;con maxcon radius mass radar drag start
-                              5000.0 5000.0 6.0 20.0 300.0 0.4 #f))
+                              500.0 500.0 6.0 20.0 300.0 0.4 #f))
     (set-ship-tools!
      s (append (tools-pilot 50.0 #f 1.5)
                (list ;(tool-missile 5.0 10.0)
@@ -52,7 +52,7 @@
   (define rf (for/list ((i 50)) (new-red-fighter  (* 50 i) 150)))
   
   (set-space-objects! ownspace
-                      (append ;bf rf
+                      (append (list (new-blue-fighter))
                        ;(list (new-blue-fighter) (new-red-fighter 100 100))
                               (space-objects ownspace)))
   
@@ -72,7 +72,7 @@
     
     (append! changes (order-changes ownspace real-orders))
 
-    (for ((i 10))
+    #;(for ((i 10))
       (define x (* (random) 5000))
       (define y (* (random) 5000))
       (define p (plasma (next-id) (space-time ownspace) #t

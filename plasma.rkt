@@ -32,7 +32,7 @@
   (- (plasma-e p) (* (max 0.0 (- (obj-age space p) PLASMA_LIFE)) (/ PLASMA_FADE 1000.0))))
 
 (define (plasma-energy->radius e)
-  (/ e 2.0))
+  (* 2.0 (sqrt (max 1.0 e))))
 
 (define (plasma-radius space p)
   (plasma-energy->radius (plasma-energy space p)))
@@ -60,6 +60,6 @@
   (define t (modulo (obj-age space p) cycle))
   (define rot (* 2pi (/ t cycle)))
   (define-values (x y) (obj->screen p center scale))
-  (define size (/ (* (max 2.0 (* 2.0 (plasma-radius space p))) scale) PLASMA_SPRITE_SIZE))
+  (define size (/ (* (* 2.0 (plasma-radius space p)) scale) PLASMA_SPRITE_SIZE))
   (sprite x y PLASMA_SPRITE_IDX
           #:layer LAYER_SHIPS #:a fowa #:theta (exact->inexact (- rot)) #:m size))

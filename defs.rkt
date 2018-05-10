@@ -155,7 +155,7 @@
 ; players is a list of the player ids on this ship
 ; hangar is list of ships in the hangar or #f if this ship has no hangar
 ; cargo is stuff you're carrying
-; dmgfx is list of dmgfx affecting this ship
+; dmgfx is size of dmgfx affecting this ship
 ; ai? is #t if the ship is ai when no players are aboard
 ; ai-freq is ms between when we should run the ai
 ; ai-strategy is a list of strategies, do them in order
@@ -187,6 +187,18 @@
 (struct plasma obj (e) #:mutable #:prefab)
 ; e energy
 
+(struct explosion obj (size maxsize expand dmg-rate) #:mutable #:prefab)
+; disc where everything touching it takes damage
+; size is current radius
+; maxsize is radius where it stops growing
+; expand is how fast radius grows per sec
+; dmg is how much damage per second things take when they touch it
+
+(define (make-explosion space x y size max speed dmg)
+  (explosion (next-id) (space-time space) #t
+             (posvel (space-time space) x y 0.0 0.0 0.0 0.0)
+             size max speed dmg))
+
 (struct effect obj (size duration) #:mutable #:prefab)
 
 (struct backeffect effect () #:mutable #:prefab)
@@ -209,10 +221,6 @@
 ; t is the time we made this strategy
 ; - used for "has it been a long time since we revisited this old strat?"
 ; name is the state we are in, arg is the parameter(s) for that state
-
-(struct dmgfx obj (type size) #:mutable #:prefab)
-; type is a string that tells us how to show this
-; size is how big to show this
 
 (struct dmg ob (type size energy fixing?) #:mutable #:prefab)
 ; dmg details how a part of a pod is damaged

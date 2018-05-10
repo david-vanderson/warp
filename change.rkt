@@ -24,7 +24,6 @@
     (cond ((ship? fto)
            (cond ((player? o) (values set-ship-playerids! ship-playerids))
                  ((upgrade? o) (values set-ship-cargo! ship-cargo))
-                 ((dmgfx? o) (values set-ship-dmgfx! ship-dmgfx))
                  (else (values set-ship-hangar! ship-hangar))))
           ((space? fto)
            (cond ((player? o) (values set-space-players! space-players))
@@ -325,9 +324,7 @@
                           ((ship? o)
                            (define cs (reduce-ship! space o d))
                            (when (and (obj-alive? o) (client?) (chdam-fx c))
-                             (append! cs (chadd
-                                          (dmgfx (next-id) (space-time space) #t #f "translation" d)
-                                          (ob-id o))))
+                             (set-ship-dmgfx! o (min 12.0 (+ (ship-dmgfx o) d))))
                            cs))))
            (else
             (printf "~a chdam - couldn't find obj id ~a\n" who (chdam-id c))

@@ -16,27 +16,29 @@
   (when ((ship-con m) . <= . 0)
     (set-obj-alive?! m #f)
     
-    (when (client?)
-      (define e (effect (next-id) (space-time space) #t
-                        (posvel (space-time space) (obj-x m) (obj-y m) 0.0 0.0 0.0 0.0)
-                        10.0 500))
-      (append! changes (chadd e #f)))
+;    (when (client?)
+;      (define e (effect (next-id) (space-time space) #t
+;                        (posvel (space-time space) (obj-x m) (obj-y m) 0.0 0.0 0.0 0.0)
+;                        10.0 500))
+;      (append! changes (chadd e #f)))
     
     (when (server?)
       ; missile is detonating
-      (define basea (remain (* .001 (obj-age space m)) 2pi))
-      (define num 8)
-      (for ((i (in-range num)))
-        (define r (* i (/ 2pi num)))
-        (define a (angle-add basea r))
-        (define p (plasma (next-id) (space-time space) #t
-                          (posvel (space-time space)
-                                  (obj-x m) (obj-y m) (obj-r m)
-                                  (+ (* PLASMA_SPEED 0.8 (cos a)))
-                                  (+ (* PLASMA_SPEED 0.8 (sin a)))
-                                  0)
-                          (/ (* 5.0 (ship-maxcon m)) num)))
-        (append! changes (chadd p #f)))))
+      (define e (make-explosion space (obj-x m) (obj-y m) 2.0 20.0 50.0 50.0))
+      (append! changes (chadd e #f))))
+;      (define basea (remain (* .001 (obj-age space m)) 2pi))
+;      (define num 8)
+;      (for ((i (in-range num)))
+;        (define r (* i (/ 2pi num)))
+;        (define a (angle-add basea r))
+;        (define p (plasma (next-id) (space-time space) #t
+;                          (posvel (space-time space)
+;                                  (obj-x m) (obj-y m) (obj-r m)
+;                                  (+ (* PLASMA_SPEED 0.8 (cos a)))
+;                                  (+ (* PLASMA_SPEED 0.8 (sin a)))
+;                                  0)
+;                          (/ (* 5.0 (ship-maxcon m)) num)))
+;        (append! changes (chadd p #f)))))
   changes)
 
 

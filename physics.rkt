@@ -5,6 +5,7 @@
 (require "defs.rkt"
          "utils.rkt"
          "plasma.rkt"
+         "explosion.rkt"
          "shield.rkt"
          "effect.rkt"
          "ships.rkt"
@@ -114,6 +115,10 @@
      (push-back! space o dt)
      (when (plasma-dead? space o)
        (set-obj-alive?! o #f)))
+    ((explosion? o)
+     (physics! pv dt)
+     (when (explosion-dead? o)
+       (set-obj-alive?! o #f)))
     ((shield? o)
      (physics! pv dt 0.4)
      (push-back! space o dt)
@@ -185,6 +190,13 @@
   changes)
 
 
+
+(define (update-stats! space o dt)
+  (cond
+    ((ship? o) (update-ship! space o (/ TICK 1000.0)))
+    ((explosion? o) (update-explosion! space o (/ TICK 1000.0)))))
+
+
 (define (update-ship! space ship dt)
   (define w (ship-tool ship 'warp))
   (when w
@@ -203,9 +215,16 @@
        (set-tool-val! w (list (warp-speed w)
                               (warp-threshold w)
                               (max 0.0 (- (warp-energy w) (* 10.0 dt))))))))
+
+  (set-ship-dmgfx! ship (max 0.0 (- (ship-dmgfx ship) (* 20.0 dt))))
+  
+  (define stats (ship-stats ship))
+  (set-stats-con! stats (min (stats-maxcon stats)
+                             (+ (stats-con stats) (* 1.0 dt))))
+  
   (for ((s (in-list (ship-ships ship))))
     (define stats (ship-stats s))
     (set-stats-con! stats (min (stats-maxcon stats)
-                               (+ (stats-con stats) (* 5.0 dt))))
+                               (+ (stats-con stats) (* 10.0 dt))))
     (update-ship! space s dt)))
 

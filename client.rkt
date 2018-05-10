@@ -22,6 +22,7 @@
   "order.rkt"
   "missile.rkt"
   "warp.rkt"
+  "explosion.rkt"
   "plasma.rkt")
 
 (provide start-client)
@@ -609,9 +610,13 @@
     (append! sprites (button-sprites csd textr buttons (if ownspace (space-time ownspace) 0)))
     
     (define-values (dmgx dmgy)
-      (if (and (not DEBUG) my-stack)
-          (get-dmgfx my-stack)
-          (values 0.0 0.0)))
+      (cond (my-stack
+             (define ship (get-ship (reverse my-stack)))
+             (define d (ship-dmgfx ship))
+             (values (random-between (- d) d)
+                     (random-between (- d) d)))
+            (else
+             (values 0.0 0.0))))
 
     (define width (+ canon-width dmgx))
     (define height (+ canon-height dmgy))
@@ -747,6 +752,10 @@
               (when ownspace
                 (send-commands (message (next-id) (space-time ownspace) #t #f
                                         (~a "message " (space-time ownspace))))))
+             #;((#\e)
+              (when ownspace
+                (send-commands (chadd (make-explosion ownspace
+                                                      0.0 0.0 10.0 50.0 100.0 100.0) #f))))
              ((wheel-up)
               (when (and ownspace (not showsector?))
                 (zoom-mouse 1.05)))
@@ -842,12 +851,14 @@
   (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))
   (load-ships sd)
   (plasma-setup-pre! sd)
+  (explosion-setup-pre! sd)
   (add-sprite!/file sd 'missile (string-append "images/missile.png"))
   (add-sprite!/file sd 'cannonball (string-append "images/asteroid_43.png"))
   
   (define csd (compile-sprite-db sd #:padding 2))
   ;(save-csd! csd "csd" #:debug? #t)
   (plasma-setup-post! csd)
+  (explosion-setup-post! csd)
   (define textr (make-text-aligned-renderer textfont csd))
   (define textsr (make-text-aligned-sizer textfont csd))
   (gl:gl-smoothing? #t)
@@ -861,7 +872,7 @@
     (for ((o (in-list (space-objects space)))
           #:when (obj-alive? o))
       (update-physics! space o (/ TICK 1000.0))
-      (when (ship? o) (update-ship! space o (/ TICK 1000.0)))
+      (update-stats! space o (/ TICK 1000.0))
       (add-backeffects! space o)))
   
   

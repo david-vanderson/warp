@@ -10,6 +10,7 @@
          "utils.rkt"
          "draw-utils.rkt"
          "plasma.rkt"
+         "explosion.rkt"
          "missile.rkt"
          "cannon.rkt"
          "probe.rkt"
@@ -145,6 +146,8 @@
     (else
      (cond ((plasma? o)
             (draw-plasma csd center scale o space fowa))
+           ((explosion? o)
+            (draw-explosion csd center scale o space fowa))
            ((shield? o)
             (draw-shield csd center scale space o fowa))
            ((effect? o)
@@ -515,41 +518,4 @@
          (define ob (add-offline-button! t b send-commands))
          (when ob (append! buttons (list ob))))))
   (values buttons spr))
-
-
-(define (get-dmgfx stack)
-  (define x 0.0)
-  (define y 0.0)
-  (define space (get-space stack))
-  (define ship (get-ship (reverse stack)))
-  (define keep
-    (for/list ((d (in-list (ship-dmgfx ship))))
-      (case (dmgfx-type d)
-        (("translation")
-         (define t (* (dmgfx-size d) (linear-fade (obj-age space d) 0 1000)))
-         (set! x (random-between (- t) t))
-         (set! y (random-between (- t) t))
-         (if (t . > . 0) d #f))
-;        (("shear")
-;         (define t (* (dmgfx-size d) 0.02 (linear-fade (obj-age space d) 0 500)))
-;         (if ((random) . < . 0.5)
-;             (send dc transform (vector 1 (random-between (- t) t) 0 1 0 0))
-;             (send dc transform (vector 1 0 (random-between (- t) t) 1 0 0)))
-;         (if (t . > . 0) d #f))
-;        (("rotation")
-;         (define t (* (dmgfx-size d) 0.02 (linear-fade (obj-age space d) 0 500)))
-;         (send dc rotate (random-between (- t) t))
-;         (if (t . > . 0) d #f))
-;        (("fade")
-;         (define t (linear-fade (obj-age space d) 0 (* 30 (dmgfx-size d))))
-;         (send dc set-alpha (- 1.0 t))
-;         (if (t . > . 0) d #f))
-;        (("flicker")
-;         (define t (linear-fade (obj-age space d) 0 (* 100 (dmgfx-size d))))
-;         (send dc set-alpha (if ((random) . < . 0.3) 0 1))
-;         (if (t . > . 0) d #f))
-        )))
-  
-  (set-ship-dmgfx! ship (filter values keep))
-  (values x y))
 

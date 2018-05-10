@@ -85,7 +85,7 @@
                 '()  ; players
                 in-hangar  ; hangar
                 cargo
-                '()  ; empty dmgfx
+                0.0  ; no dmgfx
                 ai?
                 1000 ; ai-freq
                 '()  ; empty ai-strategy

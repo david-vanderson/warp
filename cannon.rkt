@@ -21,25 +21,28 @@
     (set-obj-alive?! b #f)
     
     ; explode
-    (when (client?)
-      (define e (effect (next-id) (space-time space) #t
-                        (posvel (space-time space) (obj-x b) (obj-y b) 0.0 0.0 0.0 0.0)
-                        15.0 600))
-      (append! changes (chadd e #f)))
-    
     (when (server?)
-      (define num 16)
-      (for ((i (in-range num)))
-        (define r (* i (/ 2pi num)))
-        (define a (angle-add (obj-r b) r))
-        (define p (plasma (next-id) (space-time space) #t
-                          (posvel (space-time space)
-                                  (obj-x b) (obj-y b) (obj-r b)
-                                  (+ (* PLASMA_SPEED 0.7 (cos a)))
-                                  (+ (* PLASMA_SPEED 0.7 (sin a)))
-                                  0)
-                          (/ (* 5.0 (ship-maxcon b)) num)))
-        (append! changes (chadd p #f)))))
+      (define e (make-explosion space (obj-x b) (obj-y b) 10.0 50.0 100.0 100.0))
+      (append! changes (chadd e #f))))
+;    (when (client?)
+;      (define e (effect (next-id) (space-time space) #t
+;                        (posvel (space-time space) (obj-x b) (obj-y b) 0.0 0.0 0.0 0.0)
+;                        15.0 600))
+;      (append! changes (chadd e #f)))
+;    
+;    (when (server?)
+;      (define num 16)
+;      (for ((i (in-range num)))
+;        (define r (* i (/ 2pi num)))
+;        (define a (angle-add (obj-r b) r))
+;        (define p (plasma (next-id) (space-time space) #t
+;                          (posvel (space-time space)
+;                                  (obj-x b) (obj-y b) (obj-r b)
+;                                  (+ (* PLASMA_SPEED 0.7 (cos a)))
+;                                  (+ (* PLASMA_SPEED 0.7 (sin a)))
+;                                  0)
+;                          (/ (* 5.0 (ship-maxcon b)) num)))
+;        (append! changes (chadd p #f)))))
   
   changes)
 

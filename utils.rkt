@@ -213,6 +213,7 @@
       (cond
         ((or (player? o)
              (plasma? o)
+             (explosion? o)
              (missile? o)
              (shield? o)
              (effect? o)

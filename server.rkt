@@ -12,6 +12,7 @@
          "pilot.rkt"
          "warp.rkt"
          "plasma.rkt"
+         "explosion.rkt"
          "pbolt.rkt"
          "missile.rkt"
          "cannon.rkt"
@@ -269,6 +270,7 @@
   (cond
     ((ship? o) (ship-radius o))
     ((plasma? o) (plasma-radius space o))
+    ((explosion? o) (explosion-radius o))
     ((upgrade? o) (upgrade-radius space o))
     (else #f)))
 
@@ -301,23 +303,34 @@
 
 ; numeric priority that controls the order that objects are seen by collide!
 (define (priority o)
-  (cond ((plasma? o) 0)
-        ((cannonball? o) 1)
-        ((missile? o) 2)
-        ((upgrade? o) 3)
-        ((spaceship? o) 4)
-        ((probe? o) 4)
-        ((spacesuit? o) 4)
-        (else (printf "priority unknown for ~v\n" o) 5)))
+  (cond ((explosion? o) 0)
+        ((plasma? o) 1)
+        ((cannonball? o) 2)
+        ((missile? o) 3)
+        ((upgrade? o) 4)
+        ((spaceship? o) 5)
+        ((probe? o) 5)
+        ((spacesuit? o) 5)
+        (else (printf "priority unknown for ~v\n" o) 6)))
 
 
 ; called on every pair of objects that might be colliding
 ; called only once for each pair
 ; (priority a) <= (priority b)
 ; return a list of changes
-(define (collide! space a b)
+(define (collide! space a b dt)
   (set! num-collide (+ 1 num-collide))
   (cond
+    ((explosion? a)
+     (cond ((plasma? b)
+            (when ((distance a b) . < . (+ (plasma-radius space b) (explosion-radius a)))
+              (list (chdam (ob-id b) (explosion-damage a dt) #t))))
+           ((or (cannonball? b)
+                (missile? b)
+                (spaceship? b)
+                (probe? b))
+            (when ((distance a b) . < . (+ (ship-radius b) (explosion-radius a)))
+              (list (chdam (ob-id b) (explosion-damage a dt) #t))))))
     ((plasma? a)
      (cond ((or (spaceship? b)
                 (probe? b)
@@ -359,7 +372,7 @@
 (define num-collide 0)
 
 ; return a list of final changes
-(define (update-effects! space)
+(define (update-effects! space dt)
   (define changes '())
 
   (define num (length (space-objects space)))
@@ -383,8 +396,8 @@
     (when (and (obj-alive? a)
                (obj-alive? b))
       (define precs (if ((priority a) . <= . (priority b))
-                        (collide! space a b)
-                        (collide! space b a)))
+                        (collide! space a b dt)
+                        (collide! space b a dt)))
       (when (not (void? precs))
         (define cs (apply-all-changes! space precs "server"))
         (append! changes cs))))
@@ -536,13 +549,15 @@
     (set! tick? #f))
     
   (when tick?
+    (define dt (/ TICK 1000.0))
+    
     ; physics
     (timeit time-tick
     (set! previous-physics-time (+ previous-physics-time TICK))
     (set-space-time! ownspace (+ (space-time ownspace) TICK))
     (for ((o (space-objects ownspace)))
-      (update-physics! ownspace o (/ TICK 1000.0))
-      (when (ship? o) (update-ship! ownspace o (/ TICK 1000.0))))
+      (update-physics! ownspace o dt)
+      (update-stats! ownspace o dt))
     )
 
     ; process player commands
@@ -593,7 +608,7 @@
     ; collisions
     ; update-effects! returns already-applied changes
     (timeit time-effects
-    (append! updates (update-effects! ownspace))
+    (append! updates (update-effects! ownspace dt))
     )
 
     ; scenario hook
