@@ -12,10 +12,10 @@
   (define total-secs (/ (- end begin-time) 1000.0))
   (when (loop-time . > . 1)
     (set! times-stopped (+ times-stopped 1))
-    (define stops-per-sec (/ times-stopped total-secs))
-    (printf "loop-time ~a num ~a stops-per-sec ~a\n"
-            loop-time num stops-per-sec)
+    (printf "loop-time ~a num ~a\n" loop-time num)
     (set! num 0))
-  (if (total-secs . < . 3)
-    (loop)
-    (exit)))
+  (cond ((total-secs . < . 1)
+         (loop))
+        (else
+         (printf "times-stopped ~a\n" times-stopped)
+         (exit))))
