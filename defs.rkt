@@ -10,7 +10,7 @@
 (define AI_INTERVAL 1000)  ; ms between ai runs (at least)
 (define AHEAD_THRESHOLD 100)  ; if client is ahead by this many ms you see it on the screen
 
-(define TEXTH (if (equal? 'windows (system-type)) 12.0 16.0))
+(define TEXTH (if (equal? 'macosx (system-type)) 16.0 12.0))
 
 (define 2pi (* 2 pi))
 (define pi/2 (* 0.5 pi))
