@@ -353,7 +353,7 @@
 
 ;; UI
 
-(struct button (draw key x y width height label f) #:mutable #:prefab)
+(struct button (draw key ctrl? x y width height label f) #:mutable #:prefab)
 ; draw is:
 ;  'normal - draw button and respond to clicks
 ;  'disabled - draw button disabled and no clicks
@@ -361,6 +361,7 @@
 ;  'hidden - draw nothing, respond to clicks
 ;  'dmg - draw offline button, no clicks
 ; key is the hotkey for this button
+; ctrl? is #t if the hotkey is ctrl-<hotkey>
 ; x y is bottom left corner
 ; if height is #f, then x y is center of circle with radius width
 ; label is what is written on the button

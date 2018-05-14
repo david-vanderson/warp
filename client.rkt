@@ -109,9 +109,10 @@
                                     (/ (button-width b) 2.0)))))
       b))
 
-  (define (key-button? buttons key)
+  (define (key-button? buttons key ctrl?)
     (for/first ((b (in-list buttons))
                 #:when (and (equal? (button-key b) key)
+                            (equal? (button-ctrl? b) ctrl?)
                             (not (member (button-draw b) '(disabled dmg)))))
       b))
   
@@ -298,7 +299,7 @@
                                       #:my (/ 4.0 (sprite-height csd (sprite-idx csd 'square)))
                                       #:r (send concol red) #:g (send concol green) #:b (send concol blue)))
 
-             (define b (button 'normal #f
+             (define b (button 'normal #f #f
                                (+ x (/ shipmax 2) 80)
                                (+ y (- (/ shipmax 2)) 15) 150 30 (ship-name s)
                                (lambda (x y)
@@ -334,11 +335,14 @@
             (append! buttons bs)
             (append! sprites ss)))
 
-        (when (and (not rcship) (ship-hangar ship) (not (unbox in-hangar?)))
-          (define b (button 'normal #\h (- (right) 80) (+ (top) 70) 140 40
+        (when (and (not rcship) (ship-hangar ship))
+          (define b (button 'normal #\h #f (- (right) 80) (+ (top) 70) 140 40
                             (~a "Hangar [h] " (length (ship-hangar ship)))
                             (lambda (x y)
                               (set-box! in-hangar? #t))))
+          (when (unbox in-hangar?)
+            (set-button-label! b "Exit Hangar [h]")
+            (set-button-f! b (lambda (x y) (set-box! in-hangar? #f))))
           (append! buttons b))
 
         ; tool overlay
@@ -355,7 +359,7 @@
       (for ((a (in-list (space-objects ownspace)))
             #:when (ann? a))
         (when (and (ann-button? a) (or (not (ann-showtab? a)) showtab))
-          (define ab (button 'normal #f
+          (define ab (button 'normal #f #f
                              (+ (left) (obj-x a)) (+ (top) (obj-y a))
                              (obj-dx a) (obj-dy a) (ann-txt a)
                              (lambda (k y) (send-commands (anncmd (ob-id a))))))
@@ -433,7 +437,7 @@
               (i (in-naturals)))
           (define x (+ (left) 100 (* (remainder i 3) 250)))
           (define y (+ (top) 30 (* (quotient i 3) 60)))
-          (define b (button 'normal #f x y 200 30
+          (define b (button 'normal #f #f x y 200 30
                             (format "~a" (ship-name s))
                             (lambda (x y)
                               ; leaving sector overview, so center on ship and reset scale
@@ -461,40 +465,52 @@
                          (- (log (max-scale)) (log (min-scale)))))
         (append! sprites (sprite zcx (+ zcy (/ zh 2) (- (* zfrac zh))) (sprite-idx csd '20x2)
                                  #:layer LAYER_UI #:b (send mapcol blue)))
-        (define zbutton (button 'hidden #f zcx zcy zw zh "Zoom"
+        (define zbutton (button 'hidden #f #f zcx zcy zw zh "Zoom"
                                 (lambda (x y)
                                   (define zfracy (/ (+ (/ zh 2) (- y)) zh))
                                   (define z (exp (+ (log (min-scale))
                                                     (* zfracy (- (log (max-scale)) (log (min-scale)))))))
                                   (set-scale z))))
-        (define zkeyb (button 'hidden #\r 0 0 0 0 "Zoom In"
+        (define zkeyb (button 'hidden #\r #f 0 0 0 0 "Zoom In"
                               (lambda (k y) (set-scale (* scale-play 1.1)))))
         
-        (define xkeyb (button 'hidden #\t 0 0 0 0 "Zoom Out"
+        (define xkeyb (button 'hidden #\t #f 0 0 0 0 "Zoom Out"
                               (lambda (k y) (set-scale (/ scale-play 1.1)))))
         
         (append! buttons zbutton zkeyb xkeyb))
 
       ; auto-center button
       (when (not center-follow?)
-        (define b (button 'normal #\z 0.0 (+ (top) 50) 120 50 "Auto Center"
+        (define b (button 'normal #\z #f 0.0 (+ (top) 50) 120 50 "Auto Center"
                           (lambda (x y) (set! center-follow? #t))))
         (append! buttons b))
         
-      (define leave-button (button 'normal 'escape (+ (left) 50) (+ (top) 25) 100 50 "Exit" #f))
-      (define quit-button (button 'normal 'escape (- (right) 50) (- (bottom) 25) 100 50 "Quit" #f))
+      ; normally quit with ctrl-q
+      (define quit-button
+        (button 'hidden #\q #t
+                0 0 0 0 "Quit"
+                (lambda (x y)
+                  (define ans (message-box/custom "Quit?" "Done Playing?"
+                                                  "Quit" "Keep Playing" #f
+                                                  frame '(default=2)))
+                  (when (equal? 1 ans)
+                    (drop-connection "clicked exit")
+                    (set! playing? #f)
+                    (send frame show #f)))))
+      (when (not my-stack)
+        ; if we are not in the game, show the button
+        (set-button-draw! quit-button 'normal)
+        (set-button-x! quit-button (- (right) 50))
+        (set-button-y! quit-button (- (bottom) 25))
+        (set-button-width! quit-button 100)
+        (set-button-height! quit-button 50))
+      (prepend! buttons quit-button)
+
+      (define leave-button (button 'normal 'escape #f (+ (left) 50) (+ (top) 25) 100 50 "Exit" #f))
       (cond
         ((not my-stack)
-         (set-button-f! quit-button
-                        (lambda (x y)
-                          (define ans (message-box/custom "Quit?" "Done Playing?"
-                                                          "Quit" "Keep Playing" #f
-                                                          frame '(default=2)))
-                          (when (equal? 1 ans)
-                            (drop-connection "clicked exit")
-                            (set! playing? #f)
-                            (send frame show #f))))
-         (append! buttons quit-button))
+         ; nothing to leave
+         )
         ((spacesuit? (get-ship my-stack))
          ; dying
          (set-button-f! leave-button (lambda (x y)
@@ -504,17 +520,12 @@
         ((and (player-rcid (car my-stack)) (find-id ownspace ownspace (player-rcid (car my-stack))))
          ; remote controlling something
          )
-        ((unbox in-hangar?)
-         ; looking into a hangar, just stop looking
-         (set-button-f! leave-button (lambda (x y)
-                                       (set-box! in-hangar? #f)))
-         (append! buttons leave-button))
         ((ship-flying? (get-ship my-stack))
          ; jumping ship
-         (set-button-label! quit-button "Jump")
-         (set-button-key! quit-button #f)  ; turn off keyboard shortcut
-         (set-button-f! quit-button (lambda (x y) (send-commands (chmov meid #f #f))))
-         (append! buttons quit-button))
+         (set-button-label! leave-button "Jump")
+         (set-button-key! leave-button #f)  ; turn off keyboard shortcut
+         (set-button-f! leave-button (lambda (x y) (send-commands (chmov meid #f #f))))
+         (append! buttons leave-button))
         (else
          ; leaving this ship into mothership
          (define ms (cadr (get-ships my-stack)))
@@ -573,9 +584,9 @@
                                       #:r 100 #:g 100 #:b 255 #:m 0.7))))))
       
       (append! buttons
-               (button 'hidden #\tab 0 0 0 0 "Mission Info"
+               (button 'hidden #\tab #f 0 0 0 0 "Mission Info"
                        (lambda (k y) (set! showtab (not showtab))))
-               (button 'hidden #\` 0 0 0 0 "Show Sector"
+               (button 'hidden #\` #f 0 0 0 0 "Show Sector"
                        (lambda (k y) (set! showsector? (not showsector?)))))
 
       (append! sprites (draw-overlay textr textsr ownspace my-stack))
@@ -642,13 +653,8 @@
   
   (define frame (new frame%
                      (label "Warp")
-                     ; use below instead for fullscreen
-                     ; (x (- left-inset))
-                     ; (y (- top-inset))
                      (width (fl->fx canon-width))
-                     (height (fl->fx canon-height))
-                     ; (style '(hide-menu-bar no-caption no-resize-border))
-                     ))
+                     (height (fl->fx canon-height))))
 
 
   (define (zoom-mouse z)
@@ -671,7 +677,7 @@
     (class canvas%
       (super-new)
       (define/override (on-size w h)
-        (printf "canvas on-size ~a ~a\n" w h)
+        ;(printf "canvas on-size ~a ~a\n" w h)
         (when (odd? w) (set! w (- w 1)))
         (when (odd? h) (set! h (- h 1)))
         (set-canon-width! (fx->fl w))
@@ -708,12 +714,12 @@
           ))
       (define/override (on-char event)
         (define kc (send event get-key-code))
-        (define b (key-button? buttons kc))
+        (define b (key-button? buttons kc (send event get-control-down)))
         ;(printf "on-char ~v ~v\n" kc b)
         (define v (assoc kc holding))
         (cond
           ((not kc)
-           (printf "got #f for on-char get-key-code\n")
+           ;(printf "got #f for on-char get-key-code\n")
            )
           (v
            ; repeated keypress from holding the key down, drop it
@@ -916,6 +922,9 @@
   
   (define (client-loop)
 
+    (when (not start-loop-time)
+      (set! start-loop-time (current-milliseconds)))
+
     (define time-updates 0)
     (define time-predict 0)
     (define time-copy 0)
@@ -1021,7 +1030,14 @@
               (when ((update-time input) . > . target-time)
                 ; got this update sooner than expected, maybe our lag decreased?
                 ;(printf "client jumping forward to ~a\n" (update-time input))
-                (set! target-time (update-time input)))
+                (set! target-time (update-time input))
+
+                ; target-time usually gets the loop time added to it, but
+                ; we are resetting target-time here, so restart the loop time
+                ; otherwise target-time goes too far into the future
+                ; - test case is run combined.rkt, click "Quit", wait a few secs
+                ; - then click keep playing
+                (set! start-loop-time (current-milliseconds)))
 
               (when oldspace
                 (when (not (equal? (space-time oldspace) (update-time input)))
@@ -1058,7 +1074,6 @@
                            (pvupdate-id pvu)))))))))
         (loop)))
     )
-
     
     (when ownspace
 
@@ -1143,9 +1158,6 @@
     
 ;    (when (time-for (current-milliseconds) 1000)
 ;      (displayln (~a "mem: " (~r (/ (current-memory-use) (* 1024.0 1024.0)) #:precision 2))))
-    
-    (when (not start-loop-time)
-      (set! start-loop-time (current-milliseconds)))
 
     ; sleep so we don't hog the whole racket vm
     (define now (current-milliseconds))

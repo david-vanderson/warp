@@ -191,7 +191,7 @@
   (cond
     (offline
      (set-button-draw! b 'dmg)
-     (dmgbutton 'normal #f
+     (dmgbutton 'normal #f #f
                 (button-x b) (- (button-y b) (button-height b))
                 (button-width b) (button-height b)
      "Offline"

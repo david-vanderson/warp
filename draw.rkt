@@ -402,7 +402,7 @@
            ((engine) (values "Go [w]" #\w 0))
            ((turnleft) (values "Left [a]" #\a -100))
            ((turnright) (values "Right [d]" #\d 100))))
-       (define b (holdbutton 'normal key x (- (bottom) 35) 80 30 str
+       (define b (holdbutton 'normal key #f x (- (bottom) 35) 80 30 str
                              (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))
                              (lambda () (send-commands (command pid cmdlevel (tool-name t) #f)))))
        (when (or (not (ship-flying? ship))
@@ -412,7 +412,7 @@
        (define ob (add-offline-button! t b send-commands))
        (when ob (append! buttons (list ob))))
       ((pbolt)
-       (define b (button 'disabled #f (+ (left) 65) (- (bottom) 35) 100 50 "Plasma" #f))
+       (define b (button 'disabled #f #f (+ (left) 65) (- (bottom) 35) 100 50 "Plasma" #f))
        (when (and (not (equal? 'pbolt (unbox active-mouse-tool)))
                   (ship-flying? ship)
                   (or (tool-while-warping? t) (not (warping? ship))))
@@ -432,7 +432,7 @@
        (append! buttons bs)
        (append! spr ss))
       ((missile)
-       (define b (button 'normal #\q (+ (left) 80) (- (bottom) 350) 100 50 "Missile [q]"
+       (define b (button 'normal #\q #f (+ (left) 80) (- (bottom) 350) 100 50 "Missile [q]"
                          (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'left)))))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
@@ -440,7 +440,7 @@
        (append! buttons b)
        (define ob (add-offline-button! t b send-commands))
        (when ob (append! buttons ob))
-       (define b2 (button 'normal #\e (- (right) 80) (- (bottom) 350) 100 50 "Missile [e]"
+       (define b2 (button 'normal #\e #f (- (right) 80) (- (bottom) 350) 100 50 "Missile [e]"
                           (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'right)))))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
@@ -449,7 +449,7 @@
        (define ob2 (add-offline-button! t b2 send-commands))
        (when ob2 (append! buttons ob2)))
       ((probe)
-       (define b (button 'normal #\x (- (right) 80) (- (bottom) 250) 100 50 "Probe [x]"
+       (define b (button 'normal #\x #f (- (right) 80) (- (bottom) 250) 100 50 "Probe [x]"
                          (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
@@ -458,7 +458,7 @@
        (define ob (add-offline-button! t b send-commands))
        (when ob (append! buttons ob)))
       ((cannon)
-       (define b (holdbutton 'normal #\c (- (right) 80) (- (bottom) 400) 100 50 "Cannon [c]"
+       (define b (holdbutton 'normal #\c #f (- (right) 80) (- (bottom) 400) 100 50 "Cannon [c]"
                              (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) (obj-r (get-ship stack)))))
                              (lambda () (send-commands (endcb pid #t)))))
        (when (or (not (ship-flying? ship))
@@ -474,14 +474,14 @@
                             #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square)) 1.0)
                             #:r 255))
      
-       (define b (button 'normal #\s 0 (- (bottom) 35) 70 30 "Stop [s]"
+       (define b (button 'normal #\s #f 0 (- (bottom) 35) 70 30 "Stop [s]"
                          (lambda (x y)
                            (send-commands (endrc pid #t)))))
        (append! buttons b))
       #;((steer? t)
          (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))
          (when offline
-           (define ob (dmgbutton 'normal #f
+           (define ob (dmgbutton 'normal #f #f
                                  0.0 (- (bottom) 105) 200 30
                                  "Steer Offline"
                                  (lambda (x y) (send-commands (command (ob-id offline)
@@ -489,7 +489,7 @@
                                  (/ (dmg-energy offline) (dmg-size offline)) (dmg-fixing? offline)))
            (append! buttons (list ob))))     
       ((dock)
-       (define b (button 'normal #\v (- (right) 80) (- (bottom) 100) 120.0 30.0 (if (tool-rc t) "Dock On [v]" "Dock Off [v]")
+       (define b (button 'normal #\v #f (- (right) 80) (- (bottom) 100) 120.0 30.0 (if (tool-rc t) "Dock On [v]" "Dock Off [v]")
                          (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) (not (tool-rc t)))))))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
@@ -498,7 +498,7 @@
        (define ob (add-offline-button! t b send-commands))
        (when ob (append! buttons (list ob)))
        (when (can-launch? stack)
-         (define lb (button 'normal #\w (- (right) 80) (- (bottom) 150) 120.0 30.0 "Launch [w]"
+         (define lb (button 'normal #\w #f (- (right) 80) (- (bottom) 150) 120.0 30.0 "Launch [w]"
                             (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'launch)))))
          (append! buttons (list lb))
          (define lob (add-offline-button! t lb send-commands "nolaunch"))
@@ -507,7 +507,7 @@
       #;((shbolt? t)
          (define ship (get-ship stack))
          (define pod (get-pod stack))
-         (define b (button 'normal #\space (+ (left) 65) (- (bottom) 35) 50.0 50.0 "Shield [_]" #f))
+         (define b (button 'normal #\space #f (+ (left) 65) (- (bottom) 35) 50.0 50.0 "Shield [_]" #f))
          (cond
            ((and (ship-flying? ship) ((pod-energy pod) . > . (shbolt-shield-size t)))
             (define a (+ (obj-r ship) (pod-facing (get-pod stack))))

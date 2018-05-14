@@ -76,7 +76,7 @@
   ; - player presses and holds the shortcut key
   ; - player clicks the button with the mouse (overwrites holding?)
   ; this means you can get multiple holdbutton-frelease calls
-  (define b (holdbutton 'outline #\s x y maxw h "Charge Warp [s]"
+  (define b (holdbutton 'outline #\s #f x y maxw h "Charge Warp [s]"
                         (lambda (x y) (void))
                         (lambda ()
                           (send-commands (command pid cmdlevel (tool-name t) #f)))))
