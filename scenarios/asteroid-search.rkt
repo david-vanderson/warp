@@ -53,6 +53,7 @@
                          #:con 50.0))
     (define e (ship-tool s 'engine))
     (set-tool-val! e 55.0)
+    (set-ship-tools! s (append (list (tool-regen 1.0)) (ship-tools s)))
     (set-obj-posvel! s #f)
     s)
 
@@ -71,6 +72,7 @@
   (set-ship-tools!
    goodship (append (tools-pilot 25.0 #f 0.4)
                     (list (tool-warp 200.0 80.0)
+                          (tool-regen 1.0)
                           (tool-pbolt 10.0)
                           (tool-probe 10.0)
                           (tool-missile 5.0 10.0)

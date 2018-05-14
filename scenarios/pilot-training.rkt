@@ -60,6 +60,7 @@
     (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
                               ;con maxcon radius mass drag radar start?
                               20.0 20.0 6.0 20.0 300.0 0.4 #t))
+    (set-ship-tools! s (append (list (tool-regen 1.0)) (ship-tools s)))
     s)
   
   (define (on-tick space change-scenario!)

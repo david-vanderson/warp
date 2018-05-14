@@ -33,7 +33,7 @@
                               50.0 50.0 6.0 20.0 300.0 0.4 #f))
     (set-ship-tools!
      s (append (tools-pilot 50.0 #f 1.5)
-               (list (tool-pbolt 8.0))))
+               (list (tool-pbolt 8.0) (tool-regen 1.0))))
     (set-obj-posvel! s #f)
     s)
   
@@ -60,7 +60,8 @@
                          (tool-probe 10.0)
                          (tool-missile 5.0 10.0)
                          (tool-cannon 21.0)
-                         (tool-warp 200.0 80.0))))
+                         (tool-warp 200.0 80.0)
+                         (tool-regen 1.0))))
   
   
   (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:ai? #t #:hangar '()))

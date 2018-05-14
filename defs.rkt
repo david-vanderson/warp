@@ -131,6 +131,9 @@
 (define (tool-warp speed threshold)
   (tool (next-id) 'warp (list speed threshold 0.0) #f #t #t '()))
 
+(define (tool-regen hp-per-sec)
+  (tool (next-id) 'regen hp-per-sec #f #f #t '()))
+
 
 (define MOUSE_TOOLS '(pbolt))
 

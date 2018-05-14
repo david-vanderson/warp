@@ -217,10 +217,12 @@
                               (max 0.0 (- (warp-energy w) (* 10.0 dt))))))))
 
   (set-ship-dmgfx! ship (max 0.0 (- (ship-dmgfx ship) (* 20.0 dt))))
-  
-  (define stats (ship-stats ship))
-  (set-stats-con! stats (min (stats-maxcon stats)
-                             (+ (stats-con stats) (* 1.0 dt))))
+
+  (define r (ship-tool ship 'regen))
+  (when r
+    (define stats (ship-stats ship))
+    (set-stats-con! stats (min (stats-maxcon stats)
+                               (+ (stats-con stats) (* (tool-val r) dt)))))
   
   (for ((s (in-list (ship-ships ship))))
     (define stats (ship-stats s))
