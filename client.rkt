@@ -68,7 +68,8 @@
   (define center-follow? #t)  ; show player position in the center?
 
   ; when (not center-follow?)
-  (define centerxy (obj #f #f #f (posvel #f 0.0 0.0 #f #f #f #f)))  ; center of the screen when panning
+  ; center of the screen when panning
+  (define centerxy (obj #f #f #f (posvel #f 0.0 0.0 #f #f #f #f)))
   (define dragxypx '(0 . 0))  ; last xy of drag in pixels
   (define dragstate "none")  ; "none", "start", "drag"
   
@@ -81,7 +82,8 @@
   
   (define (min-scale)
     (if ownspace
-        (min (/ canon-width (space-width ownspace)) (/ canon-height (space-height ownspace)))
+        (min (/ canon-width (space-width ownspace))
+             (/ canon-height (space-height ownspace)))
         .01))
   (define (max-scale) 30.0)
     
@@ -134,8 +136,6 @@
   
   
   (define (draw-screen canvas dc)
-;    (when (and serverspace ownspace)
-;      (printf "serverspace time ~a\n   ownspace time ~a\n" (space-time serverspace) (space-time ownspace)))
 
     (define t1 0)
     (define t2 0)
@@ -175,7 +175,7 @@
       (define-values (w h) (textsr txt))
       (for* ((i (in-range (left) (right) w))
              (j (in-range (top) (bottom) h)))
-        (append! sprites (text-sprite textr textsr txt i j LAYER_UI))))
+        (prepend! sprites (text-sprite textr textsr txt i j LAYER_UI))))
     )
     
     (when ownspace
@@ -185,25 +185,28 @@
       (define ordertree (get-space-orders-for ownspace fac))
       
       ; make background be fog of war gray
-      (append! sprites (sprite 0.0 0.0 (sprite-idx csd '100x100) #:layer LAYER_FOW_GRAY
-                               #:m (* 2.0 (/ (max canon-width canon-height) 100.0)) #:r (send fowcol red)
-                               #:g (send fowcol green) #:b (send fowcol blue)))
+      (prepend! sprites (sprite 0.0 0.0 (sprite-idx csd '100x100) #:layer LAYER_FOW_GRAY
+                                #:m (* 2.0 (/ (max canon-width canon-height) 100.0))
+                                #:r (send fowcol red)
+                                #:g (send fowcol green)
+                                #:b (send fowcol blue)))
 
       ; put a black circle wherever we can see
       (define fowlist
         (for/list ((s (in-list (space-objects ownspace)))
-                   #:when (and fac (ship? s) ((faction-check fac (ship-faction s)) . > . 0)))
+                   #:when (and fac (ship? s)
+                               ((faction-check fac (ship-faction s)) . > . 0)))
           (list (obj-x s) (obj-y s) (ship-radar s))))
 
       (for ((f fowlist))
         (define rad (caddr f))
         (define-values (x y) (xy->screen (car f) (cadr f) center (get-scale)))
-        (append! sprites (sprite x y (sprite-idx csd 'circle) #:layer LAYER_FOW_BLACK
-                                 #:m (* rad (get-scale) (/ 1.0 50)))))
+        (prepend! sprites (sprite x y (sprite-idx csd 'circle) #:layer LAYER_FOW_BLACK
+                                  #:m (* rad (get-scale) (/ 1.0 50)))))
       )
 
       (timeit t3
-      (append! sprites (draw-sector-lines csd center (get-scale) ownspace))
+      (prepend! sprites (draw-sector-lines csd center (get-scale) ownspace))
 
       ; map annotations
       
@@ -219,26 +222,31 @@
                 (cond
                   ((ann-circle? a)
                    (define col (if highlight? bright dim))
-                   (append! sprites
-                            (obj-sprite a csd center (get-scale) LAYER_MAP 'circle-outline
-                                        (* 2.0 (ann-circle-radius a)) (send col alpha) 0.0 col))
+                   (prepend! sprites
+                             (obj-sprite a csd center (get-scale) LAYER_MAP 'circle-outline
+                                         (* 2.0 (ann-circle-radius a))
+                                         (send col alpha) 0.0 col))
                    (define-values (x y) (obj->screen a center (get-scale)))
-                   (append! sprites (textr (ann-txt a)
-                                           x y #:layer LAYER_MAP #:a (send col alpha)
-                                           #:r (send col red) #:g (send col green) #:b (send col blue))))
+                   (prepend! sprites (textr (ann-txt a)
+                                            x y #:layer LAYER_MAP #:a (send col alpha)
+                                            #:r (send col red)
+                                            #:g (send col green)
+                                            #:b (send col blue))))
                   ((ann-ship? a)
                    (define st (find-stack ownspace ownspace (ann-ship-id a)))
                    (when st
                      (define s (get-topship st))
                      (define col (if highlight? bright dim))
-                     (append! sprites (obj-sprite s csd center (get-scale) LAYER_MAP 'target
-                                                  (max (/ 35.0 (get-scale))
-                                                       (* 4.0 (ship-radius s))) (send col alpha) 0.0 col))))
+                     (prepend! sprites (obj-sprite s csd center (get-scale)
+                                                   LAYER_MAP 'target
+                                                   (max (/ 35.0 (get-scale))
+                                                        (* 4.0 (ship-radius s)))
+                                                   (send col alpha) 0.0 col))))
                   (else
                    (error "don't know how to draw annotation ~v" a))))))))
       )
 
-      ;(append! sprites (draw-background-stars csd center (get-scale) fowlist))
+      ;(prepend! sprites (draw-background-stars csd center (get-scale) fowlist))
 
       (timeit t4
       (for ((o (in-list (space-objects ownspace)))
@@ -265,75 +273,94 @@
           ((unbox in-hangar?)
            ; hangar background
            (define size (* 0.8 (min canon-width canon-height)))
-           (append! sprites (sprite 0.0 0.0 (sprite-idx csd 'square-outline) #:layer LAYER_SHIPS
-                         #:m (/ (+ size 2.0) (sprite-width csd (sprite-idx csd 'square-outline)))
-                         #:r 255 #:g 255 #:b 255))
-           (append! sprites (sprite 0.0 0.0 (sprite-idx csd 'square) #:layer LAYER_EFFECTS
-                                   #:m (/ size (sprite-width csd (sprite-idx csd 'square))) #:a 0.9))
+           (prepend! sprites (sprite 0.0 0.0 (sprite-idx csd 'square-outline)
+                                     #:layer LAYER_SHIPS
+                                     #:m (/ (+ size 2.0)
+                                            (sprite-width csd
+                                              (sprite-idx csd
+                                                'square-outline)))
+                                     #:r 255 #:g 255 #:b 255))
+           (prepend! sprites (sprite 0.0 0.0 (sprite-idx csd 'square)
+                                     #:layer LAYER_EFFECTS
+                                     #:m (/ size (sprite-width csd
+                                                   (sprite-idx csd 'square)))
+                                     #:a 0.9))
            ; draw all the ships in the hangar
            (define shipmax 54)
            (for ((s (in-list (ship-hangar ship)))
                  (i (in-naturals)))
              (define x (+ (* -0.5 size) 10 (* (quotient i 4) 180) (/ shipmax 2)))
              (define y (+ (* -0.5 size) 10 (* (remainder i 4) 150) (/ shipmax 2)))
-             (append! sprites (sprite x y (sprite-idx csd (string->symbol (ship-type s)))
-                                      #:layer LAYER_OVERLAY #:theta (- pi/2)
-                                      #:r (get-red ownspace s)))
+             (prepend! sprites (sprite x y (sprite-idx csd (string->symbol (ship-type s)))
+                                       #:layer LAYER_OVERLAY #:theta (- pi/2)
+                                       #:r (get-red ownspace s)))
 
              ; draw ship hp/res
              (define con (/ (ship-con s) 10.0))
              (define mcon (/ (ship-maxcon s) 10.0))
              (define concol (send the-color-database find-color (stoplight-color con mcon)))
-             (append! sprites (sprite (+ x (* 0.5 shipmax) (- (/ mcon 2.0)))
+             (prepend! sprites (sprite (+ x (* 0.5 shipmax) (- (/ mcon 2.0)))
                                       (- y (* 0.5 shipmax))
                                       (sprite-idx csd 'square-outline)
                                       #:layer LAYER_OVERLAY
-                                      #:mx (/ (+ 2.0 mcon) (sprite-width csd (sprite-idx csd 'square-outline)))
-                                      #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square-outline)))
+                                      #:mx (/ (+ 2.0 mcon)
+                                              (sprite-width csd
+                                                (sprite-idx csd 'square-outline)))
+                                      #:my (/ 6.0 (sprite-height csd
+                                                    (sprite-idx csd 'square-outline)))
                                       #:r 255 #:g 255 #:b 255))
-             (append! sprites (sprite (+ x (* 0.5 shipmax) (- (/ con 2.0)))
-                                      (+ y (* -0.5 shipmax))
-                                      (sprite-idx csd 'square)
-                                      #:layer LAYER_UI
-                                      #:mx (/ con (sprite-width csd (sprite-idx csd 'square)) 1.0)
-                                      #:my (/ 4.0 (sprite-height csd (sprite-idx csd 'square)))
-                                      #:r (send concol red) #:g (send concol green) #:b (send concol blue)))
+             (prepend! sprites (sprite (+ x (* 0.5 shipmax) (- (/ con 2.0)))
+                                       (+ y (* -0.5 shipmax))
+                                       (sprite-idx csd 'square)
+                                       #:layer LAYER_UI
+                                       #:mx (/ con (sprite-width csd
+                                                     (sprite-idx csd 'square)) 1.0)
+                                       #:my (/ 4.0 (sprite-height csd
+                                                     (sprite-idx csd 'square)))
+                                       #:r (send concol red)
+                                       #:g (send concol green)
+                                       #:b (send concol blue)))
 
              (define b (button 'normal #f #f
                                (+ x (/ shipmax 2) 80)
                                (+ y (- (/ shipmax 2)) 15) 150 30 (ship-name s)
                                (lambda (x y)
                                  (send-commands (chmov meid (ob-id s) #f)))))
-             (append! buttons b)
+             (prepend! buttons b)
              (define players (find-all ownspace s player?))
-             ;(append! players (player -1 "player1" "fac1" '() #f #f) (player -1 "player2" "fac2" '() #f #f))
+             ;(append! players (player -1 "player1" "fac1" '() #f #f)
+             ;                  (player -1 "player2" "fac2" '() #f #f))
              (for ((p (in-list players))
                    (i (in-naturals)))
-               (append! sprites (text-sprite textr textsr (player-name p)
-                                             (+ x (/ shipmax 2) 10)
-                                             (+ y (- (/ shipmax 2)) 40 (* i 20)) LAYER_UI_TEXT)))))
+               (prepend! sprites (text-sprite textr textsr (player-name p)
+                                              (+ x (/ shipmax 2) 10)
+                                              (+ y (- (/ shipmax 2)) 40 (* i 20))
+                                              LAYER_UI_TEXT)))))
           ((not (ship-flying? ship))
            ; our ship is inside another
            ; draw black circle on top of topship
-           (append! sprites (obj-sprite topship csd center (get-scale) LAYER_EFFECTS 'circle
-                                        (* 2.2 (ship-radius topship)) 0.9 0.0 "black"))
+           (prepend! sprites (obj-sprite topship csd center (get-scale)
+                                         LAYER_EFFECTS 'circle
+                                         (* 2.2 (ship-radius topship))
+                                         0.9 0.0 "black"))
            ; draw our ship inside black circle
            (define-values (x y) (obj->screen topship center (get-scale)))
-           (append! sprites (sprite x y (sprite-idx csd (string->symbol (ship-type ship)))
-                                    #:layer LAYER_OVERLAY #:m (get-scale) #:theta (- pi/2)
-                                    #:r (get-red ownspace ship)))))
+           (prepend! sprites (sprite x y (sprite-idx csd (string->symbol (ship-type ship)))
+                                     #:layer LAYER_OVERLAY #:m (get-scale) #:theta (- pi/2)
+                                     #:r (get-red ownspace ship)))))
 
         ; draw ship UI
-        (append! sprites (draw-ship-hp csd textr center (get-scale) my-stack))
+        (prepend! sprites (draw-ship-hp csd textr center (get-scale) my-stack))
         
         ; draw tool UI
         (when (not (unbox in-hangar?))
           (define tools (filter tool-visible? (ship-tools (or rcship ship))))
           (for ((t (in-list tools)))
             (define-values (bs ss)
-              (draw-tool-ui csd center (get-scale) ownspace meid (or rcship ship) t my-stack send-commands active-mouse-tool last-pbolt-time))
-            (append! buttons bs)
-            (append! sprites ss)))
+              (draw-tool-ui csd center (get-scale) ownspace meid (or rcship ship)
+                            t my-stack send-commands active-mouse-tool last-pbolt-time))
+            (prepend! buttons bs)
+            (prepend! sprites ss)))
 
         (when (and (not rcship) (ship-hangar ship))
           (define b (button 'normal #\h #f (- (right) 80) (+ (top) 70) 140 40
@@ -343,7 +370,7 @@
           (when (unbox in-hangar?)
             (set-button-label! b "Exit Hangar [h]")
             (set-button-f! b (lambda (x y) (set-box! in-hangar? #f))))
-          (append! buttons b))
+          (prepend! buttons b))
 
         ; tool overlay
         ; XXX when we have dock on
@@ -363,7 +390,7 @@
                              (+ (left) (obj-x a)) (+ (top) (obj-y a))
                              (obj-dx a) (obj-dy a) (ann-txt a)
                              (lambda (k y) (send-commands (anncmd (ob-id a))))))
-          (append! buttons ab))
+          (prepend! buttons ab))
         (when (and (ann-text? a) (or (not (ann-showtab? a)) showtab))
           (define z
             (cond
@@ -375,36 +402,38 @@
           (define txts (string-split (ann-txt a) "\n"))
           (for ((t (in-list txts))
                 (i (in-naturals)))
-            (append! sprites (text-sprite textr textsr t
-                                          (obj-x a) (+ (obj-y a) (* i 20)) LAYER_UI_TEXT z)))))
+            (prepend! sprites (text-sprite textr textsr t
+                                          (obj-x a) (+ (obj-y a) (* i 20))
+                                          LAYER_UI_TEXT z)))))
 
       (when showtab
         ; list all players
-        (append! sprites (text-sprite textr textsr "Players:"
+        (prepend! sprites (text-sprite textr textsr "Players:"
                                       200 (+ (top) 80) LAYER_UI_TEXT))
         (for ((p (in-list (space-players ownspace)))
               (i (in-naturals)))
           (define str (if (player-faction p)
                           (~a (player-name p) " " (player-faction p))
                           (player-name p)))
-          (append! sprites (text-sprite textr textsr str
+          (prepend! sprites (text-sprite textr textsr str
                                         200 (+ (top) 100 (* i 20)) LAYER_UI_TEXT))))
       
       ; draw orders
       (define line 0)
       (when ordertree
         (define lefte (+ (left) 150))
-        (append! sprites (text-sprite textr textsr "Orders:"
-                                      lefte (top) LAYER_UI_TEXT))
+        (prepend! sprites (text-sprite textr textsr "Orders:"
+                                       lefte (top) LAYER_UI_TEXT))
         (set! lefte (+ lefte 80))
         (define tope (top))
         (for-orders ordertree showtab
           (lambda (ot depth highlight?)
             (when showtab
               (define color (if (ord-done? ot) "green" "red"))
-              (append! sprites (xy-sprite (+ lefte (* 10 depth) 5) (+ tope (* 20 line) 10)
-                                          csd (get-scale) LAYER_UI 'circle (/ 5.0 (get-scale))
-                                          1.0 0.0 color)))
+              (prepend! sprites (xy-sprite (+ lefte (* 10 depth) 5) (+ tope (* 20 line) 10)
+                                           csd (get-scale) LAYER_UI 'circle
+                                           (/ 5.0 (get-scale))
+                                           1.0 0.0 color)))
             (define color (if highlight? "white" "gray"))
             (define txt (ord-text ot))
             (when (and (ordertime? ot) (string-contains? txt "~a"))
@@ -413,11 +442,14 @@
                                           1000)))
               (define-values (min sec) (quotient/remainder secleft 60))
               (set! txt (format (ord-text ot)
-                                (~a (~a min #:min-width 2 #:align 'right #:pad-string "0")
+                                (~a (~a min #:min-width 2 #:align 'right
+                                        #:pad-string "0")
                                     ":"
-                                    (~a sec #:min-width 2 #:align 'right #:pad-string "0")))))
-            (append! sprites (text-sprite textr textsr txt
-                                      (+ lefte 12 (* 10 depth)) (+ tope (* 20 line)) LAYER_UI_TEXT 1.0 color))
+                                    (~a sec #:min-width 2 #:align 'right
+                                        #:pad-string "0")))))
+            (prepend! sprites (text-sprite textr textsr txt
+                                      (+ lefte 12 (* 10 depth)) (+ tope (* 20 line))
+                                      LAYER_UI_TEXT 1.0 color))
             (set! line (+ line 1)))))
       
       (when (not my-stack)
@@ -429,9 +461,9 @@
                                              (equal? fac (ship-faction o))))))
         
         (when (not fac)
-          (append! sprites (textr "Waiting for faction assignment..."
-                                  0.0 0.0 #:layer LAYER_UI
-                                  #:r 255 #:g 255 #:b 255)))
+          (prepend! sprites (textr "Waiting for faction assignment..."
+                                   0.0 0.0 #:layer LAYER_UI
+                                   #:r 255 #:g 255 #:b 255)))
         
         (for ((s (in-list start-ships))
               (i (in-naturals)))
@@ -444,7 +476,7 @@
                               (set! scale-play 1.0)
                               (set! center-follow? #t)
                               (send-commands (chmov meid (ob-id s) #f)))))
-          (append! buttons b)))
+          (prepend! buttons b)))
             
       ; draw game UI
       
@@ -454,22 +486,24 @@
         (define zh 150)
         (define zcx (- (right) 10 (/ zw 2)))
         (define zcy (+ (top) 100 (/ zh 2)))
-        (append! sprites (sprite zcx (+ zcy (- (/ zh 2))) (sprite-idx csd '20x2)
-                                 #:layer LAYER_UI #:b (send mapcol blue)))
-        (append! sprites (sprite zcx (+ zcy (/ zh 2)) (sprite-idx csd '20x2)
-                                 #:layer LAYER_UI #:b (send mapcol blue)))
-        (append! sprites (sprite zcx zcy (sprite-idx csd '2x150)
-                                 #:layer LAYER_UI #:b (send mapcol blue)))
+        (prepend! sprites (sprite zcx (+ zcy (- (/ zh 2))) (sprite-idx csd '20x2)
+                                  #:layer LAYER_UI #:b (send mapcol blue)))
+        (prepend! sprites (sprite zcx (+ zcy (/ zh 2)) (sprite-idx csd '20x2)
+                                  #:layer LAYER_UI #:b (send mapcol blue)))
+        (prepend! sprites (sprite zcx zcy (sprite-idx csd '2x150)
+                                  #:layer LAYER_UI #:b (send mapcol blue)))
         
         (define zfrac (/ (- (log scale-play) (log (min-scale)))
                          (- (log (max-scale)) (log (min-scale)))))
-        (append! sprites (sprite zcx (+ zcy (/ zh 2) (- (* zfrac zh))) (sprite-idx csd '20x2)
-                                 #:layer LAYER_UI #:b (send mapcol blue)))
+        (prepend! sprites (sprite zcx (+ zcy (/ zh 2) (- (* zfrac zh)))
+                                  (sprite-idx csd '20x2)
+                                  #:layer LAYER_UI #:b (send mapcol blue)))
         (define zbutton (button 'hidden #f #f zcx zcy zw zh "Zoom"
                                 (lambda (x y)
                                   (define zfracy (/ (+ (/ zh 2) (- y)) zh))
                                   (define z (exp (+ (log (min-scale))
-                                                    (* zfracy (- (log (max-scale)) (log (min-scale)))))))
+                                                    (* zfracy (- (log (max-scale))
+                                                                 (log (min-scale)))))))
                                   (set-scale z))))
         (define zkeyb (button 'hidden #\r #f 0 0 0 0 "Zoom In"
                               (lambda (k y) (set-scale (* scale-play 1.1)))))
@@ -477,13 +511,13 @@
         (define xkeyb (button 'hidden #\t #f 0 0 0 0 "Zoom Out"
                               (lambda (k y) (set-scale (/ scale-play 1.1)))))
         
-        (append! buttons zbutton zkeyb xkeyb))
+        (prepend! buttons zbutton zkeyb xkeyb))
 
       ; auto-center button
       (when (not center-follow?)
         (define b (button 'normal #\z #f 0.0 (+ (top) 50) 120 50 "Auto Center"
                           (lambda (x y) (set! center-follow? #t))))
-        (append! buttons b))
+        (prepend! buttons b))
         
       ; normally quit with ctrl-q
       (define quit-button
@@ -506,7 +540,9 @@
         (set-button-height! quit-button 50))
       (prepend! buttons quit-button)
 
-      (define leave-button (button 'normal 'escape #f (+ (left) 50) (+ (top) 25) 100 50 "Exit" #f))
+      (define leave-button (button 'normal 'escape #f
+                                   (+ (left) 50) (+ (top) 25) 100 50
+                                   "Exit" #f))
       (cond
         ((not my-stack)
          ; nothing to leave
@@ -516,8 +552,9 @@
          (set-button-f! leave-button (lambda (x y)
                                        (set! center-follow? #t)  ; sector/ship centered
                                        (send-commands (chmov meid #f #f))))
-         (append! buttons leave-button))
-        ((and (player-rcid (car my-stack)) (find-id ownspace ownspace (player-rcid (car my-stack))))
+         (prepend! buttons leave-button))
+        ((and (player-rcid (car my-stack))
+              (find-id ownspace ownspace (player-rcid (car my-stack))))
          ; remote controlling something
          )
         ((ship-flying? (get-ship my-stack))
@@ -525,21 +562,22 @@
          (set-button-label! leave-button "Jump")
          (set-button-key! leave-button #f)  ; turn off keyboard shortcut
          (set-button-f! leave-button (lambda (x y) (send-commands (chmov meid #f #f))))
-         (append! buttons leave-button))
+         (prepend! buttons leave-button))
         (else
          ; leaving this ship into mothership
          (define ms (cadr (get-ships my-stack)))
          (set-button-f! leave-button (lambda (x y)
                                        (send-commands (chmov meid (ob-id ms) #f))))
-         (append! buttons leave-button)))
+         (prepend! buttons leave-button)))
       
       ; draw mouse cursor and green corners
       (when my-stack
         (define player (car my-stack))
-        (define rcship (if (player-rcid player) (find-id ownspace ownspace (player-rcid player)) #f))
+        (define rcship (if (player-rcid player)
+                           (find-id ownspace ownspace (player-rcid player)) #f))
 
         (define topship (or rcship (get-topship my-stack)))
-        (append! sprites (draw-green-corners topship csd center (get-scale)))
+        (prepend! sprites (draw-green-corners topship csd center (get-scale)))
       
         (define ship (or rcship (get-ship my-stack)))
         
@@ -561,11 +599,13 @@
              (set! clickcmds (command
                               (cond (mt (mtube-mid mt))
                                     (pt
-                                     (define probe (find-id ownspace ownspace (ptube-pid pt)))
-                                     (ob-id (findf steer? (pod-tools (car (ship-pods probe))))))
+                                     (define probe (find-id ownspace ownspace
+                                                            (ptube-pid pt)))
+                                     (ob-id (findf steer?
+                                                   (pod-tools (car (ship-pods probe))))))
                                     (else (ob-id st)))
                               a))
-             (append! sprites (sprite (exact->inexact x) (exact->inexact y)
+             (prepend! sprites (sprite (exact->inexact x) (exact->inexact y)
                                       (sprite-idx csd 'arrowhead) #:layer LAYER_UI_TEXT
                                       #:theta (- a) #:b 150)))
             ((and (equal? 'pbolt (unbox active-mouse-tool))
@@ -579,25 +619,25 @@
              (set! clickcmds (lambda ()
                                (set! last-pbolt-time (space-time ownspace))
                                cmds))
-             (append! sprites (sprite (exact->inexact x) (exact->inexact y)
-                                      (sprite-idx csd 'target) #:layer LAYER_UI_TEXT
-                                      #:r 100 #:g 100 #:b 255 #:m 0.7))))))
+             (prepend! sprites (sprite (exact->inexact x) (exact->inexact y)
+                                       (sprite-idx csd 'target) #:layer LAYER_UI_TEXT
+                                       #:r 100 #:g 100 #:b 255 #:m 0.7))))))
       
-      (append! buttons
+      (prepend! buttons
                (button 'hidden #\tab #f 0 0 0 0 "Mission Info"
                        (lambda (k y) (set! showtab (not showtab))))
                (button 'hidden #\` #f 0 0 0 0 "Show Sector"
                        (lambda (k y) (set! showsector? (not showsector?)))))
 
-      (append! sprites (draw-overlay textr textsr ownspace my-stack))
+      (prepend! sprites (draw-overlay textr textsr ownspace my-stack))
 
       ; debugging
       (when (and sspace (unbox sspace))
         (for ((o (space-objects (unbox sspace)))
               #:when (ship? o))
-          (append! sprites
-                   (obj-sprite o csd center (get-scale) LAYER_UI_TEXT 'circle
-                               (/ 7.0 (get-scale)) 1.0 0.0 "pink"))))
+          (prepend! sprites
+                    (obj-sprite o csd center (get-scale) LAYER_UI_TEXT 'circle
+                                (/ 7.0 (get-scale)) 1.0 0.0 "pink"))))
       )
       ) ; when ownspace
 
@@ -610,15 +650,16 @@
       (define end (first frames))
       (define span (/ (- end start) 1000))
       (define txt (format "FPS: ~a" (round (/ (- (length frames) 1) span))))
-      (append! sprites (text-sprite textr textsr txt (- (right) 80) (top) LAYER_UI)))
+      (prepend! sprites (text-sprite textr textsr txt (- (right) 80) (top) LAYER_UI)))
 
     ; network issues?
     (define ma (apply max 0 aheads))
     (when (ma . > . AHEAD_THRESHOLD)
       (define txt (format "Ahead: ~a" ma))
-      (append! sprites (text-sprite textr textsr txt (- (right) 200) (top) LAYER_UI)))
+      (prepend! sprites (text-sprite textr textsr txt (- (right) 200) (top) LAYER_UI)))
     
-    (append! sprites (button-sprites csd textr buttons (if ownspace (space-time ownspace) 0)))
+    (prepend! sprites (button-sprites csd textr buttons
+                                      (if ownspace (space-time ownspace) 0)))
     
     (define-values (dmgx dmgy)
       (cond (my-stack
@@ -682,7 +723,10 @@
         (when (odd? h) (set! h (- h 1)))
         (set-canon-width! (fx->fl w))
         (set-canon-height! (fx->fl h))
-        (set! render (gl:stage-draw/dc csd (fl->fx canon-width) (fl->fx canon-height) LAYER_NUM)))
+        (set! render (gl:stage-draw/dc csd
+                                       (fl->fx canon-width)
+                                       (fl->fx canon-height)
+                                       LAYER_NUM)))
       (define/override (on-event event)
         (case (send event get-event-type)
           ((left-down)
@@ -770,15 +814,27 @@
                 (zoom-mouse (/ 1.0 1.05))))
              #;((#\u)
               (when ownspace
-                (send-commands (chadd (random-upgrade ownspace (posvel -1 0 0 0 (random 100) (random 100) 0)) #f))))
+                (send-commands (chadd (random-upgrade ownspace
+                                                      (posvel -1 0 0 0
+                                                              (random 100)
+                                                              (random 100) 0)) #f))))
              #;((#\p)
               (when ownspace
-                (send-commands (chadd (plasma (next-id) (space-time ownspace) (posvel -1 0 0 (random-between 0 2pi) (random 100) (random 100) 0) (random 10)) #f))))
+                (send-commands (chadd (plasma (next-id)
+                                              (space-time ownspace)
+                                              (posvel -1 0 0
+                                                      (random-between 0 2pi)
+                                                      (random 100)
+                                                      (random 100) 0)
+                                              (random 10)) #f))))
 ;             ((#\s)
 ;              (when ownspace
 ;                (define r (random-between 0 2pi))
 ;                (define s (random 100))
-;                (send-commands (chadd (shield (next-id) (space-time ownspace) (posvel -1 0 0 r (* s (cos r)) (* s (sin r)) 0) (random 30)) #f)))) 
+;                (send-commands (chadd (shield (next-id)
+;                                              (space-time ownspace)
+;                                              (posvel -1 0 0 r (* s (cos r)) (* s (sin r)) 0)
+;                                              (random 30)) #f)))) 
 ;             ((#\n)
 ;              (new-stars))
              ))))
@@ -830,7 +886,8 @@
     (add-sprite!/value sd 'circle
                        (colorize (filled-ellipse 100 100) "black"))
     (add-sprite!/value sd 'shield
-                       (colorize (filled-rounded-rectangle 10 100 -.5 #:draw-border? #f) "black"))
+                       (colorize (filled-rounded-rectangle 10 100 -.5 #:draw-border? #f)
+                                 "black"))
     (add-sprite!/value sd 'circle-outline
                        (colorize (inset
                                   (ellipse 100 100 #:border-color "black" #:border-width 2)
@@ -838,7 +895,8 @@
     (add-sprite!/value sd 'square
                        (colorize (filled-rectangle 100 100) "black"))
     (add-sprite!/value sd 'square-outline
-                       (colorize (rectangle 100 100 #:border-color "black" #:border-width 10) "black"))
+                       (colorize (rectangle 100 100 #:border-color "black" #:border-width 10)
+                                 "black"))
     (add-sprite!/value sd 'star
                        (colorize (cc-superimpose (hline 1 1) (vline 1 1)) "white"))
     (add-sprite!/value sd 'arrowhead
@@ -868,7 +926,10 @@
   (define textr (make-text-aligned-renderer textfont csd))
   (define textsr (make-text-aligned-sizer textfont csd))
   (gl:gl-smoothing? #t)
-  (define render (gl:stage-draw/dc csd (fl->fx canon-width) (fl->fx canon-height) LAYER_NUM))
+  (define render (gl:stage-draw/dc csd
+                                   (fl->fx canon-width)
+                                   (fl->fx canon-height)
+                                   LAYER_NUM))
   
   (send frame show #t)
   
