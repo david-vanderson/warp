@@ -9,6 +9,7 @@
 (define TICK 33)  ; ms time slice for physics, also determines max client frame rate
 (define AI_INTERVAL 1000)  ; ms between ai runs (at least)
 (define AHEAD_THRESHOLD 100)  ; if client is ahead by this many ms you see it on the screen
+(define BUTTON_PRESS_TIME 100)  ; time a button is shown as pressed
 
 (define TEXTH (if (equal? 'macosx (system-type)) 16.0 12.0))
 
@@ -50,6 +51,10 @@
     (lambda ()
       (set! id (add1 id))
       (make-rectangular id (idimag)))))
+
+; clients set this to a function that's called whenever they change seats
+; - used to clear out held and pressed button states
+(define player-cleanup-client! (make-parameter (lambda () #f)))
 
 
 ;; Game State
@@ -363,13 +368,18 @@
 ;  'outline - draw button outline and text and respond to clicks
 ;  'hidden - draw nothing, respond to clicks
 ;  'dmg - draw offline button, no clicks
-; key is the hotkey for this button
+; key is the hotkey for this button or unique id
+; - id is used for pressed animation
 ; ctrl? is #t if the hotkey is ctrl-<hotkey>
 ; x y is bottom left corner
 ; if height is #f, then x y is center of circle with radius width
 ; label is what is written on the button
 ; f is function to call when the button is clicked or key pressed
 ;  - takes two args x y of where in the button the click was or <key-code> #f if key pressed
+
+(struct press (key time) #:prefab)
+; key is the keyboard shortcut (for id purposes)
+; time is current-milliseconds when the button was pressed
 
 (struct holdbutton button (frelease) #:mutable #:prefab)
 ; button that responds to click-hold-release instead of click

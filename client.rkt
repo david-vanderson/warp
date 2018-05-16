@@ -48,9 +48,21 @@
   (define in-hangar? (box #f))
   (define last-pbolt-time 0)  ; space-time of last pbolt fire
 
+  (define pressed '())
+  ; list of press structs from recently pressed buttons
+  (define (press! key)
+    (prepend! pressed (press key (current-milliseconds))))
+  
   (define holding '())
   ; if you are holding a key/mouse button (from a holdbutton?)
   ; this is a list of holds structs
+
+  (player-cleanup-client!
+   (lambda ()
+     (set! pressed '())
+     (for ((h (in-list holding)))
+       ((hold-frelease h)))
+     (set! holding '())))
   
   ; if the mouse is over something (other than a button) that when clicked will
   ; do some action, clickcmds is a lambda that returns a list of commands we send
@@ -127,8 +139,11 @@
        (when (not (member (button-draw b) '(disabled dmg)))
          ;(printf "clicked button ~v\nship is ~v\n" b (if my-stack (get-ship my-stack) #f))
          ((button-f b) (- x (button-x b)) (- y (button-y b)))
-         (when (holdbutton? b)
-           (prepend! holding (hold 'mouse (button-key b) (holdbutton-frelease b))))
+         (cond
+           ((holdbutton? b)
+            (prepend! holding (hold 'mouse (button-key b) (holdbutton-frelease b))))
+           (else
+            (press! (button-key b))))
          ))
       (clickcmds
        (send-commands (clickcmds)))))
@@ -245,7 +260,7 @@
                    (error "don't know how to draw annotation ~v" a))))))))
       )
 
-      ;(prepend! sprites (draw-background-stars csd center (get-scale) fowlist))
+      ;(set! sprites (cons (draw-background-stars csd center (get-scale) fowlist) sprites))
 
       (timeit t4
       (for ((o (in-list (space-objects ownspace)))
@@ -320,7 +335,7 @@
                                        #:g (send concol green)
                                        #:b (send concol blue)))
 
-             (define b (button 'normal #f #f
+             (define b (button 'normal (ob-id s) #f
                                (+ x (/ shipmax 2) 80)
                                (+ y (- (/ shipmax 2)) 15) 150 30 (ship-name s)
                                (lambda (x y)
@@ -357,8 +372,7 @@
           (for ((t (in-list tools)))
             (define-values (bs ss)
               (draw-tool-ui csd center (get-scale) ownspace meid (or rcship ship)
-                            t my-stack send-commands active-mouse-tool holding
-                            last-pbolt-time))
+                            t my-stack send-commands active-mouse-tool last-pbolt-time))
             (prepend! buttons bs)
             (prepend! sprites ss)))
 
@@ -386,7 +400,7 @@
       (for ((a (in-list (space-objects ownspace)))
             #:when (ann? a))
         (when (and (ann-button? a) (or (not (ann-showtab? a)) showtab))
-          (define ab (button 'normal #f #f
+          (define ab (button 'normal (ob-id a) #f
                              (+ (left) (obj-x a)) (+ (top) (obj-y a))
                              (obj-dx a) (obj-dy a) (ann-txt a)
                              (lambda (k y) (send-commands (anncmd (ob-id a))))))
@@ -469,7 +483,7 @@
               (i (in-naturals)))
           (define x (+ (left) 100 (* (remainder i 3) 250)))
           (define y (+ (top) 30 (* (quotient i 3) 60)))
-          (define b (button 'normal #f #f x y 200 30
+          (define b (button 'normal (ob-id s) #f x y 200 30
                             (format "~a" (ship-name s))
                             (lambda (x y)
                               ; leaving sector overview, so center on ship and reset scale
@@ -498,7 +512,7 @@
         (prepend! sprites (sprite zcx (+ zcy (/ zh 2) (- (* zfrac zh)))
                                   (sprite-idx csd '20x2)
                                   #:layer LAYER_UI #:b (send mapcol blue)))
-        (define zbutton (button 'hidden #f #f zcx zcy zw zh "Zoom"
+        (define zbutton (button 'hidden -1 #f zcx zcy zw zh "Zoom"
                                 (lambda (x y)
                                   (define zfracy (/ (+ (/ zh 2) (- y)) zh))
                                   (define z (exp (+ (log (min-scale))
@@ -672,7 +686,8 @@
       (prepend! sprites (text-sprite textr textsr txt (- (right) 200) (top) LAYER_UI)))
     
     (prepend! sprites (button-sprites csd textr buttons
-                                      (if ownspace (space-time ownspace) 0)))
+                                      (if ownspace (space-time ownspace) 0)
+                                      holding pressed))
     
     (define-values (dmgx dmgy)
       (cond (my-stack
@@ -774,10 +789,10 @@
       (define/override (on-char event)
         (define kc (send event get-key-code))
         (define b (key-button? buttons kc (send event get-control-down)))
-        ;(printf "on-char ~v ~v\n" kc b)
         (define h (for/first ((h (in-list holding))
                               #:when (equal? kc (hold-key h)))
                     h))
+        ;(printf "on-char ~v ~v ~v\n" kc b h)
         (cond
           ((not kc)
            ;(printf "got #f for on-char get-key-code\n")
@@ -796,10 +811,13 @@
              (set! holding (remove h holding))))  ; cancel the hold
           (b
            ((button-f b) kc #f)
-           (when (holdbutton? b)
-             (prepend! holding (hold kc kc (holdbutton-frelease b)))
-             (when ((length holding) . > . 5)
-               (printf "holding ~a\n" (length holding)))))
+           (cond
+             ((holdbutton? b)
+              (prepend! holding (hold kc kc (holdbutton-frelease b)))
+              (when ((length holding) . > . 5)
+                (printf "holding ~a\n" (length holding))))
+             (else
+              (press! kc))))
           (else
            (case kc
              ((#\f)
@@ -1221,7 +1239,11 @@
     
     ; render a frame
     (timeit time-render
-    (set! frames (add-frame-time (current-milliseconds) frames))
+    (define now (current-milliseconds))
+    ; filter button presses
+    (set! pressed (filter (lambda (p) ((- now (press-time p)) . < . BUTTON_PRESS_TIME))
+                          pressed))
+    (set! frames (add-frame-time now frames))
     (send canvas refresh-now)
     )
 
@@ -1240,9 +1262,8 @@
 ;      (displayln (~a "mem: " (~r (/ (current-memory-use) (* 1024.0 1024.0)) #:precision 2))))
 
     ; sleep so we don't hog the whole racket vm
-    (define now (current-milliseconds))
     ; how long has it been since we should have woken up?
-    (define loop-time (- now start-loop-time))
+    (define loop-time (- (current-milliseconds) start-loop-time))
     ; how long should we sleep (always at least 5ms for the GUI to process GUI events)
     (define extra-time (- TICK loop-time))
     (define min-sleep 5)

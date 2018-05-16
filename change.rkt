@@ -52,12 +52,14 @@
   (adj! o to who #f))
 
 ; returns a list of changes you want whenever a player moves or leaves
-(define (player-cleanup! space p)
+(define (player-cleanup! space p #:endrc? (endrc? #t))
   (define changes '())
   (set-player-commands! p '())
   (set-player-cmdlevel! p (add1 (player-cmdlevel p)))
   ;(printf "player cleanup ~a cmdlevel ~a\n" (player-name p) (player-cmdlevel p))
-  (when (server?)
+  (when (client?)
+    ((player-cleanup-client!)))
+  (when (and (server?) endrc?)
     (append! changes (endrc (ob-id p) (player-rcid p)))
     (append! changes (endcb (ob-id p) (player-cbid p))))
   changes)
@@ -168,9 +170,7 @@
         (values #t '()))
        (else
         (set-player-rcid! p (chrc-rcid c))
-        (set-player-commands! p '())
-        (set-player-cmdlevel! p (add1 (player-cmdlevel p)))
-        ;(printf "player chrc ~a cmdlevel ~a\n" (player-name p) (player-cmdlevel p))
+        (player-cleanup! space p #:endrc? #f)
         (values #t '()))))
     ((endrc? c)
      (define changes '())
@@ -188,9 +188,7 @@
                 (command (ob-id o) #f 'turnright #f)))
      (when p       
        (set-player-rcid! p #f)
-       (set-player-cmdlevel! p (add1 (player-cmdlevel p)))
-       ;(printf "player endrc ~a cmdlevel ~a\n" (player-name p) (player-cmdlevel p))
-       )
+       (player-cleanup! space p #:endrc? #f))
      (values #t changes))
     ((endcb? c)
      (define changes '())

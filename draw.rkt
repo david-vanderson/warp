@@ -270,7 +270,7 @@
         (else "green")))
 
 
-(define (button-sprites csd textr buttons time)
+(define (button-sprites csd textr buttons time holding pressed)
   (define spr '())
   (for ((b (in-list buttons))
         #:when (not (equal? (button-draw b) 'hidden)))
@@ -283,12 +283,21 @@
 
     (define sprname (if (dmgbutton? b) 'dmgbutton-normal 'button-normal))
     (define txtcol 255)
-    (case (button-draw b)
-      ((disabled dmg)
+    (cond
+      ((member (button-draw b) '(outline))
+       (set! sprname 'button-outline))
+      ((or (member (button-draw b) '(disabled dmg))
+           (if (holdbutton? b)
+               ; if we are holding the button, draw it as pressed
+               (ormap (lambda (h)
+                        (equal? (hold-key h) (button-key b)))
+                      holding)
+               ; if we recently pressed the button, draw it as pressed
+               (ormap (lambda (p)
+                        (equal? (press-key p) (button-key b)))
+                      pressed)))
        (set! sprname 'button-disabled)
-       (set! txtcol 150))
-      ((outline)
-       (set! sprname 'button-outline)))
+       (set! txtcol 150)))
 
     (when (not h)
       (set! sprname (string->symbol (string-append (symbol->string sprname) "-circle"))))
@@ -361,7 +370,7 @@
 
 ; drawn in canon transform (buttons, dmgs, warnings)
 (define (draw-tool-ui csd center scale space pid ship t stack
-                      send-commands active-mouse-tool holding last-pbolt-time)
+                      send-commands active-mouse-tool last-pbolt-time)
   (define buttons '())
   (define spr '())
   (define cmdlevel (player-cmdlevel (car stack)))
@@ -376,11 +385,6 @@
        (define b (holdbutton 'normal key #f x (- (bottom) 35) 80 30 str
                              (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))
                              (lambda () (send-commands (command pid cmdlevel (tool-name t) #f)))))
-       ; if we are holding the button, draw it as pressed
-       (for/first ((h (in-list holding))
-                   #:when (equal? key (hold-key h)))
-         (set-button-draw! b 'disabled))
-         
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
          (set-button-draw! b 'disabled))
@@ -388,7 +392,7 @@
        (define ob (add-offline-button! t b send-commands))
        (when ob (prepend! buttons (list ob))))
       ((pbolt)
-       (define b (button 'disabled #f #f (+ (left) 65) (- (bottom) 35) 100 50 "Plasma" #f))
+       (define b (button 'disabled -1 #f (+ (left) 65) (- (bottom) 35) 100 50 "Plasma" #f))
        (when (and (not (equal? 'pbolt (unbox active-mouse-tool)))
                   (ship-flying? ship)
                   (or (tool-while-warping? t) (not (warping? ship))))
@@ -408,22 +412,27 @@
        (prepend! buttons bs)
        (prepend! spr ss))
       ((missile)
-       (define b (button 'normal #\q #f (+ (left) 80) (- (bottom) 350) 100 50 "Missile [q]"
-                         (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'left)))))
-       (when (or (not (ship-flying? ship))
-                 (and (warping? ship) (not (tool-while-warping? t))))
-         (set-button-draw! b 'disabled))
-       (prepend! buttons b)
-       (define ob (add-offline-button! t b send-commands))
-       (when ob (prepend! buttons ob))
-       (define b2 (button 'normal #\e #f (- (right) 80) (- (bottom) 350) 100 50 "Missile [e]"
-                          (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'right)))))
-       (when (or (not (ship-flying? ship))
-                 (and (warping? ship) (not (tool-while-warping? t))))
-         (set-button-draw! b2 'disabled))
-       (prepend! buttons b2)
-       (define ob2 (add-offline-button! t b2 send-commands))
-       (when ob2 (prepend! buttons ob2)))
+       (let ()
+         (define b (button 'normal #\q #f (+ (left) 80) (- (bottom) 350) 100 50 "Missile [q]"
+                           (lambda (x y)
+                             (send-commands (command pid cmdlevel (tool-name t) 'left)))))
+         (when (or (not (ship-flying? ship))
+                   (and (warping? ship) (not (tool-while-warping? t))))
+           (set-button-draw! b 'disabled))
+         (prepend! buttons b)
+         (define ob (add-offline-button! t b send-commands))
+         (when ob (prepend! buttons ob)))
+
+       (let ()
+         (define b (button 'normal #\e #f (- (right) 80) (- (bottom) 350) 100 50 "Missile [e]"
+                           (lambda (x y)
+                             (send-commands (command pid cmdlevel (tool-name t) 'right)))))
+         (when (or (not (ship-flying? ship))
+                   (and (warping? ship) (not (tool-while-warping? t))))
+           (set-button-draw! b 'disabled))
+         (prepend! buttons b)
+         (define ob (add-offline-button! t b send-commands))
+         (when ob (prepend! buttons ob))))
       ((probe)
        (define b (button 'normal #\x #f (- (right) 80) (- (bottom) 250) 100 50 "Probe [x]"
                          (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))))
@@ -434,14 +443,9 @@
        (define ob (add-offline-button! t b send-commands))
        (when ob (prepend! buttons ob)))
       ((cannon)
-       (define key #\c)
-       (define b (holdbutton 'normal key #f (- (right) 80) (- (bottom) 400) 100 50 "Cannon [c]"
+       (define b (holdbutton 'normal #\c #f (- (right) 80) (- (bottom) 400) 100 50 "Cannon [c]"
                              (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) (obj-r (get-ship stack)))))
                              (lambda () (send-commands (endcb pid #t)))))
-       ; if we are holding the button, draw it as pressed
-       (for/first ((h (in-list holding))
-                   #:when (equal? key (hold-key h)))
-         (set-button-draw! b 'disabled))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
          (set-button-draw! b 'disabled))
