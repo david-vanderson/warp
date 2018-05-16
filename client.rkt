@@ -629,7 +629,20 @@
                (button 'hidden #\` #f 0 0 0 0 "Show Sector"
                        (lambda (k y) (set! showsector? (not showsector?)))))
 
-      (prepend! sprites (draw-overlay textr textsr ownspace my-stack))
+      ; messages
+      (when ownspace
+        (define max 6)
+        (define num 0)
+        (let loop ((l (space-objects ownspace)))
+          (when (and (not (null? l)) (num . < . max))
+            (when (message? (car l))
+              (define m (car l))
+              (set! num (+ num 1))
+              (define z (linear-fade (obj-age ownspace m) (/ MSG_FADE_TIME 2) MSG_FADE_TIME))
+              (prepend! sprites (text-sprite textr textsr (message-msg m)
+                                             (+ (left) 5.0) (+ (top) 200.0 (* num 20))
+                                             LAYER_UI_TEXT z)))
+            (loop (cdr l)))))
 
       ; debugging
       (when (and sspace (unbox sspace))

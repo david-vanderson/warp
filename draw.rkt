@@ -264,35 +264,6 @@
   sprites)
 
 
-(define (draw-overlay textr textsr space stack)
-  (define spr '())
-  ; string saying where you are
-  (when stack
-    (define str #f)
-    (for ((s (in-list (get-ships stack))))
-      (if str
-          (set! str (format "~a on ~a" str (ship-name s)))
-          (set! str (ship-name s))))
-    (append! spr (textr str 0.0 (+ (top) 10) #:layer LAYER_UI_TEXT
-                        #:r 255 #:g 255 #:b 255)))
-
-  ; messages
-  (when space
-    (define max 6)
-    (define num 0)
-    (let loop ((l (space-objects space)))
-      (when (and (not (null? l)) (num . < . max))
-        (when (message? (car l))
-          (define m (car l))
-          (set! num (+ num 1))
-          (define z (linear-fade (obj-age space m) (/ MSG_FADE_TIME 2) MSG_FADE_TIME))
-          (append! spr (text-sprite textr textsr (message-msg m)
-                                    (+ (left) 5.0) (+ (top) 200.0 (* num 20))
-                                    LAYER_UI_TEXT z)))
-        (loop (cdr l)))))
-  spr)
-
-
 (define (stoplight-color v max)
   (cond ((v . < . (* max (/ 1.0 3.0))) "red")
         ((v . < . (* max (/ 2.0 3.0))) "yellow")
