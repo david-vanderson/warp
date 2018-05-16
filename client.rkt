@@ -49,9 +49,8 @@
   (define last-pbolt-time 0)  ; space-time of last pbolt fire
 
   (define holding '())
-  ; if you are holding a key/mouse button (from a holdbutton?), this is a list of pairs
-  ; car is keycode (or 'mouse) of the key that's being held
-  ; cdr is the holdbutton-frelease function
+  ; if you are holding a key/mouse button (from a holdbutton?)
+  ; this is a list of holds structs
   
   ; if the mouse is over something (other than a button) that when clicked will
   ; do some action, clickcmds is a lambda that returns a list of commands we send
@@ -129,7 +128,7 @@
          ;(printf "clicked button ~v\nship is ~v\n" b (if my-stack (get-ship my-stack) #f))
          ((button-f b) (- x (button-x b)) (- y (button-y b)))
          (when (holdbutton? b)
-           (set! holding (cons (cons 'mouse (holdbutton-frelease b)) holding)))
+           (prepend! holding (hold 'mouse (button-key b) (holdbutton-frelease b))))
          ))
       (clickcmds
        (send-commands (clickcmds)))))
@@ -358,7 +357,8 @@
           (for ((t (in-list tools)))
             (define-values (bs ss)
               (draw-tool-ui csd center (get-scale) ownspace meid (or rcship ship)
-                            t my-stack send-commands active-mouse-tool last-pbolt-time))
+                            t my-stack send-commands active-mouse-tool holding
+                            last-pbolt-time))
             (prepend! buttons bs)
             (prepend! sprites ss)))
 
@@ -745,9 +745,11 @@
           ((left-down)
            (click this event))
           ((left-up)
-           (define v (assoc 'mouse holding))
-           (when v ((cdr v)))  ; run the release function
-           (set! holding (remove v holding)))  ; cancel hold
+           (define h (for/first ((h (in-list holding))
+                                 #:when (equal? 'mouse (hold-held h)))
+                       h))
+           (when h ((hold-frelease h)))  ; run the release function
+           (set! holding (remove h holding)))  ; cancel hold
           ((right-down)
            (when (not showsector?)
              (set! dragstate "start")
@@ -773,25 +775,29 @@
         (define kc (send event get-key-code))
         (define b (key-button? buttons kc (send event get-control-down)))
         ;(printf "on-char ~v ~v\n" kc b)
-        (define v (assoc kc holding))
+        (define h (for/first ((h (in-list holding))
+                              #:when (equal? kc (hold-key h)))
+                    h))
         (cond
           ((not kc)
            ;(printf "got #f for on-char get-key-code\n")
            )
-          (v
+          (h
            ; repeated keypress from holding the key down, drop it
            )
           ((equal? kc 'release)
            (set! kc (send event get-key-release-code))
-           (define v (assoc kc holding))
-           (when v
+           (define h (for/first ((h (in-list holding))
+                                 #:when (equal? kc (hold-key h)))
+                       h))
+           (when h
              ; released the key being held
-             ((cdr v))  ; run the release function
-             (set! holding (remove v holding))))  ; cancel the hold
+             ((hold-frelease h))  ; run the release function
+             (set! holding (remove h holding))))  ; cancel the hold
           (b
            ((button-f b) kc #f)
            (when (holdbutton? b)
-             (set! holding (cons (cons kc (holdbutton-frelease b)) holding))
+             (prepend! holding (hold kc kc (holdbutton-frelease b)))
              (when ((length holding) . > . 5)
                (printf "holding ~a\n" (length holding)))))
           (else

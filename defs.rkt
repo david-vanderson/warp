@@ -376,6 +376,11 @@
 ; button-f is run on mouse/key down
 ; frelease is run on mouse/key up (or if you leave the pod)
 
+(struct hold (held key frelease) #:prefab)
+; held is the keyboard shortcut (or 'mouse)
+; key is the keyboard shortcut (for id purposes)
+; frelease is the holdbutton-frelease function
+
 (struct dmgbutton button (frac fixing?) #:mutable #:prefab)
 ; frac is percentage fixed
 ; fixing? is #t if this is being fixed

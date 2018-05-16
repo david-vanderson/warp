@@ -102,8 +102,8 @@
         (define y (+ origy (* k height) (cdr s)))
         (when ((get-alpha x y fowlist) . = . 1.0)
           (define-values (sx sy) (xy->screen x y center scale))
-          (append! spr (sprite sx sy (sprite-idx csd 'star)
-                               #:layer LAYER_MAP #:m m)))
+          (prepend! spr (sprite sx sy (sprite-idx csd 'star)
+                                #:layer LAYER_MAP #:m m)))
         )))
   spr)
 
@@ -154,26 +154,26 @@
             (draw-effect csd center scale space o fowa layer_effects))
            ((upgrade? o)
             (define spr '())
-            (append! spr (draw-upgrade csd center scale space o fowa))
+            (prepend! spr (draw-upgrade csd center scale space o fowa))
             (when showplayers?
-              (append! spr (draw-cargolist csd textr textsr center scale o "gray" fowa
-                                           (list (upgrade-type o)) '())))
+              (prepend! spr (draw-cargolist csd textr textsr center scale o "gray" fowa
+                                            (list (upgrade-type o)) '())))
             spr)
            ((ship? o)
             (define spr '())
-            (append! spr (obj-sprite o csd center scale LAYER_SHIPS
-                                     (string->symbol (ship-type o))
-                                     (ship-info-size (hash-ref ship-list (ship-type o)))
-                                     fowa (obj-r o) (make-color (get-red space o) 0 0 1.0)))
+            (prepend! spr (obj-sprite o csd center scale LAYER_SHIPS
+                                      (string->symbol (ship-type o))
+                                      (ship-info-size (hash-ref ship-list (ship-type o)))
+                                      fowa (obj-r o) (make-color (get-red space o) 0 0 1.0)))
             
-            ;(append! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
+            ;(prepend! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
             (when showplayers?
               (define colstr (faction-check-color faction (ship-faction o)))
               (define players (find-all space o player?))
               ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
-              (append! spr (draw-cargolist csd textr textsr center scale o colstr fowa
-                                           (cons (ship-name o) (map upgrade-type (ship-cargo o)))
-                                           (map player-name players))))
+              (prepend! spr (draw-cargolist csd textr textsr center scale o colstr fowa
+                                            (cons (ship-name o) (map upgrade-type (ship-cargo o)))
+                                            (map player-name players))))
             spr)))))
 
 
@@ -181,23 +181,23 @@
   (define spr '())
   (define col (send the-color-database find-color colstr))
   (define-values (sx sy) (obj->screen obj center scale))
-  (append! spr (sprite (+ sx 25.0) (+ sy 25.0) (sprite-idx csd 'square) #:layer LAYER_MAP
-                       #:mx (/ 71.0 (sprite-width csd (sprite-idx csd 'square)))
-                       #:my (/ 2.0 (sprite-height csd (sprite-idx csd 'square)))
-                       #:r (send col red) #:g (send col green) #:b (send col blue)
-                       #:theta (/ pi 4) #:a fowa))
-  (append! spr (sprite (+ sx 85.0) (+ sy 50.0) (sprite-idx csd 'square) #:layer LAYER_MAP
-                       #:mx (/ 70.0 (sprite-width csd (sprite-idx csd 'square)))
-                       #:my (/ 2.0 (sprite-height csd (sprite-idx csd 'square)))
-                       #:r (send col red) #:g (send col green) #:b (send col blue) #:a fowa))
+  (prepend! spr (sprite (+ sx 25.0) (+ sy 25.0) (sprite-idx csd 'square) #:layer LAYER_MAP
+                        #:mx (/ 71.0 (sprite-width csd (sprite-idx csd 'square)))
+                        #:my (/ 2.0 (sprite-height csd (sprite-idx csd 'square)))
+                        #:r (send col red) #:g (send col green) #:b (send col blue)
+                        #:theta (/ pi 4) #:a fowa))
+  (prepend! spr (sprite (+ sx 85.0) (+ sy 50.0) (sprite-idx csd 'square) #:layer LAYER_MAP
+                        #:mx (/ 70.0 (sprite-width csd (sprite-idx csd 'square)))
+                        #:my (/ 2.0 (sprite-height csd (sprite-idx csd 'square)))
+                        #:r (send col red) #:g (send col green) #:b (send col blue) #:a fowa))
   (for ((t text-above) (i (in-naturals)))
-    (append! spr (text-sprite textr textsr t
-                              (+ sx 55.0) (+ sy 50.0 (- (* (+ i 1) 14)))
-                              LAYER_MAP fowa colstr)))
+    (prepend! spr (text-sprite textr textsr t
+                               (+ sx 55.0) (+ sy 50.0 (- (* (+ i 1) 14)))
+                               LAYER_MAP fowa colstr)))
   (for ((t text-below) (i (in-naturals)))
-    (append! spr (text-sprite textr textsr t
-                              (+ sx 55.0) (+ sy 55.0 (* i 14))
-                              LAYER_MAP fowa colstr)))
+    (prepend! spr (text-sprite textr textsr t
+                               (+ sx 55.0) (+ sy 55.0 (* i 14))
+                               LAYER_MAP fowa colstr)))
   spr)
     
    
@@ -227,19 +227,19 @@
   (define w 2.0)
   
   (define-values (x y) (xy->screen 0.0 0.0 center scale))
-  (append! spr (sprite x y idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2 #:b (send mapcol blue)))
+  (prepend! spr (sprite x y idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2 #:b (send mapcol blue)))
   (for ((i (in-range 1 (+ 1 (inexact->exact (floor (/ max-x sw)))))))
     (define-values (x y) (xy->screen (exact->inexact (* sw i)) 0.0 center scale))
-    (append! spr (sprite x y idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2 #:b (send mapcol blue)))
+    (prepend! spr (sprite x y idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2 #:b (send mapcol blue)))
     (define-values (x2 y2) (xy->screen (exact->inexact (* sw (- i))) 0.0 center scale))
-    (append! spr (sprite x2 y2 idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2 #:b (send mapcol blue))))
+    (prepend! spr (sprite x2 y2 idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2 #:b (send mapcol blue))))
   
-  (append! spr (sprite x y idx #:layer LAYER_MAP #:my w #:mx mx #:b (send mapcol blue)))
+  (prepend! spr (sprite x y idx #:layer LAYER_MAP #:my w #:mx mx #:b (send mapcol blue)))
   (for ((i (in-range 1 (+ 1 (inexact->exact (floor (/ max-y sw)))))))
     (define-values (x y) (xy->screen 0.0 (exact->inexact (* sw i)) center scale))
-    (append! spr (sprite x y idx #:layer LAYER_MAP #:my w #:mx mx #:b (send mapcol blue)))
+    (prepend! spr (sprite x y idx #:layer LAYER_MAP #:my w #:mx mx #:b (send mapcol blue)))
     (define-values (x2 y2) (xy->screen 0.0 (exact->inexact (* sw (- i))) center scale))
-    (append! spr (sprite x2 y2 idx #:layer LAYER_MAP #:my w #:mx mx #:b (send mapcol blue))))
+    (prepend! spr (sprite x2 y2 idx #:layer LAYER_MAP #:my w #:mx mx #:b (send mapcol blue))))
   spr)
 
 
@@ -249,17 +249,17 @@
   (define w 2.0)
   (define h 2.5)
   (define-values (x y) (obj->screen o center scale))
-  (append! sprites (sprite (+ x 25 (- h)) (+ y 24) idx #:my w #:layer LAYER_UI #:g 200))
-  (append! sprites (sprite (+ x 24) (+ y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (+ x 25 (- h)) (+ y 24) idx #:my w #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (+ x 24) (+ y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
 
-  (append! sprites (sprite (- x 25 (- h)) (+ y 24) idx #:my w #:layer LAYER_UI #:g 200))
-  (append! sprites (sprite (- x 24) (+ y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (- x 25 (- h)) (+ y 24) idx #:my w #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (- x 24) (+ y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
 
-  (append! sprites (sprite (+ x 25 (- h)) (- y 24) idx #:my w #:layer LAYER_UI #:g 200))
-  (append! sprites (sprite (+ x 24) (- y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (+ x 25 (- h)) (- y 24) idx #:my w #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (+ x 24) (- y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
 
-  (append! sprites (sprite (- x 25 (- h)) (- y 24) idx #:my w #:layer LAYER_UI #:g 200))
-  (append! sprites (sprite (- x 24) (- y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (- x 25 (- h)) (- y 24) idx #:my w #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (- x 24) (- y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
 
   sprites)
 
@@ -298,18 +298,18 @@
       (set! br
             (if (dmgbutton-fixing? b) 255
                 (if (time-toggle time 1000) 255 100)))
-      (append! spr (sprite x y (sprite-idx csd 'dmgbutton-fill) #:layer LAYER_UI
+      (prepend! spr (sprite x y (sprite-idx csd 'dmgbutton-fill) #:layer LAYER_UI
                          #:mx (/ w (sprite-width csd (sprite-idx csd 'dmgbutton-fill)) 1.0)
                          #:my (/ (exact->inexact (* h (dmgbutton-frac b)))
                                  (sprite-height csd (sprite-idx csd 'dmgbutton-fill)) 1.0)
                          #:r br))
       )
 
-    (append! spr (sprite x y (sprite-idx csd sprname) #:layer LAYER_UI
+    (prepend! spr (sprite x y (sprite-idx csd sprname) #:layer LAYER_UI
                          #:mx (/ w (sprite-width csd (sprite-idx csd sprname)) 1.0)
                          #:my (/ (if h h w) (sprite-height csd (sprite-idx csd sprname)) 1.0)
                          #:r br))
-    (append! spr (textr (button-label b) x y #:layer LAYER_UI_TEXT
+    (prepend! spr (textr (button-label b) x y #:layer LAYER_UI_TEXT
                         #:r txtcol #:g txtcol #:b txtcol)))
   spr)
 
@@ -324,7 +324,7 @@
                (not (= (ob-id ship) (ob-id s)))
                (will-dock? ship s))
       (define-values (x y) (obj->screen s center scale))
-      (append! spr (sprite x y (sprite-idx csd 'circle-outline)
+      (prepend! spr (sprite x y (sprite-idx csd 'circle-outline)
                            #:layer LAYER_OVERLAY #:m (/ scale 20.0)
                            #:r (send col red) #:g (send col green) #:b (send col blue)))))
   spr)
@@ -344,24 +344,24 @@
 
   ; ship hp
   (define s (get-ship stack))
-  (append! spr (sprite (- (right) 45 (/ (ship-maxcon s) 2)) (+ (top) 30) (sprite-idx csd 'square-outline)
+  (prepend! spr (sprite (- (right) 45 (/ (ship-maxcon s) 2)) (+ (top) 30) (sprite-idx csd 'square-outline)
                          #:layer LAYER_UI
                          #:mx (/ (+ 2.0 (ship-maxcon s)) (sprite-width csd (sprite-idx csd 'square-outline)) 1.0)
                          #:my (/ 22.0 (sprite-height csd (sprite-idx csd 'square-outline)))
                          #:r 255 #:g 255 #:b 255))
   (define col (send the-color-database find-color (stoplight-color (ship-con s) (ship-maxcon s))))
-  (append! spr (sprite (- (right) 45 (/ (ship-con s) 2)) (+ (top) 30) (sprite-idx csd 'square)
+  (prepend! spr (sprite (- (right) 45 (/ (ship-con s) 2)) (+ (top) 30) (sprite-idx csd 'square)
                          #:layer LAYER_UI #:my (/ 20.0 (sprite-height csd (sprite-idx csd 'square)))
                          #:mx (/ (ship-con s) (sprite-width csd (sprite-idx csd 'square)) 1.0)
                          #:r (send col red) #:g (send col green) #:b (send col blue)))
-  (append! spr (textr "Hull" (- (right) 20) (+ (top) 30) #:layer LAYER_UI
+  (prepend! spr (textr "Hull" (- (right) 20) (+ (top) 30) #:layer LAYER_UI
                       #:r 255 #:g 255 #:b 255))
   spr)
 
 
 ; drawn in canon transform (buttons, dmgs, warnings)
 (define (draw-tool-ui csd center scale space pid ship t stack
-                      send-commands active-mouse-tool last-pbolt-time)
+                      send-commands active-mouse-tool holding last-pbolt-time)
   (define buttons '())
   (define spr '())
   (define cmdlevel (player-cmdlevel (car stack)))
@@ -376,12 +376,17 @@
        (define b (holdbutton 'normal key #f x (- (bottom) 35) 80 30 str
                              (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))
                              (lambda () (send-commands (command pid cmdlevel (tool-name t) #f)))))
+       ; if we are holding the button, draw it as pressed
+       (for/first ((h (in-list holding))
+                   #:when (equal? key (hold-key h)))
+         (set-button-draw! b 'disabled))
+         
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
          (set-button-draw! b 'disabled))
-       (append! buttons (list b))
+       (prepend! buttons (list b))
        (define ob (add-offline-button! t b send-commands))
-       (when ob (append! buttons (list ob))))
+       (when ob (prepend! buttons (list ob))))
       ((pbolt)
        (define b (button 'disabled #f #f (+ (left) 65) (- (bottom) 35) 100 50 "Plasma" #f))
        (when (and (not (equal? 'pbolt (unbox active-mouse-tool)))
@@ -389,66 +394,71 @@
                   (or (tool-while-warping? t) (not (warping? ship))))
          (set-button-draw! b 'normal)
          (set-button-f! b (lambda (x y) (set-box! active-mouse-tool 'pbolt))))
-       (append! buttons b)
+       (prepend! buttons b)
        (define f (pbolt-frac last-pbolt-time (space-time space)))
-       (append! spr (sprite (+ (left) 65) (- (bottom) 48) (sprite-idx csd '5x1)
-                            #:layer LAYER_UI_TEXT
-                            #:mx (* f 10.0)
-                            #:my 4.0
-                            #:r 255))
+       (prepend! spr (sprite (+ (left) 65) (- (bottom) 48) (sprite-idx csd '5x1)
+                             #:layer LAYER_UI_TEXT
+                             #:mx (* f 10.0)
+                             #:my 4.0
+                             #:r 255))
        (define ob (add-offline-button! t b send-commands))
-       (when ob (append! buttons (list ob))))
+       (when ob (prepend! buttons (list ob))))
       ((warp)
        (define-values (bs ss) (draw-warp-ui! csd center scale space ship t stack send-commands))
-       (append! buttons bs)
-       (append! spr ss))
+       (prepend! buttons bs)
+       (prepend! spr ss))
       ((missile)
        (define b (button 'normal #\q #f (+ (left) 80) (- (bottom) 350) 100 50 "Missile [q]"
                          (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'left)))))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
          (set-button-draw! b 'disabled))
-       (append! buttons b)
+       (prepend! buttons b)
        (define ob (add-offline-button! t b send-commands))
-       (when ob (append! buttons ob))
+       (when ob (prepend! buttons ob))
        (define b2 (button 'normal #\e #f (- (right) 80) (- (bottom) 350) 100 50 "Missile [e]"
                           (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'right)))))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
          (set-button-draw! b2 'disabled))
-       (append! buttons b2)
+       (prepend! buttons b2)
        (define ob2 (add-offline-button! t b2 send-commands))
-       (when ob2 (append! buttons ob2)))
+       (when ob2 (prepend! buttons ob2)))
       ((probe)
        (define b (button 'normal #\x #f (- (right) 80) (- (bottom) 250) 100 50 "Probe [x]"
                          (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
          (set-button-draw! b 'disabled))
-       (append! buttons b)
+       (prepend! buttons b)
        (define ob (add-offline-button! t b send-commands))
-       (when ob (append! buttons ob)))
+       (when ob (prepend! buttons ob)))
       ((cannon)
-       (define b (holdbutton 'normal #\c #f (- (right) 80) (- (bottom) 400) 100 50 "Cannon [c]"
+       (define key #\c)
+       (define b (holdbutton 'normal key #f (- (right) 80) (- (bottom) 400) 100 50 "Cannon [c]"
                              (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) (obj-r (get-ship stack)))))
                              (lambda () (send-commands (endcb pid #t)))))
+       ; if we are holding the button, draw it as pressed
+       (for/first ((h (in-list holding))
+                   #:when (equal? key (hold-key h)))
+         (set-button-draw! b 'disabled))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
          (set-button-draw! b 'disabled))
-       (append! buttons b)
+       (prepend! buttons b)
        (define ob (add-offline-button! t b send-commands))
-       (when ob (append! buttons ob)))
+       (when ob (prepend! buttons ob)))
       ((endrc)
        (define life (max 0 ((tool-rc t) . - . (/ (obj-age space ship) 1000.0))))
-       (append! spr (sprite 0.0 (- (bottom) 4) (sprite-idx csd 'square) #:layer LAYER_UI
-                            #:mx (/ life .1 (sprite-width csd (sprite-idx csd 'square)) 1.0)
-                            #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square)) 1.0)
-                            #:r 255))
+       (prepend! spr (sprite 0.0 (- (bottom) 4) (sprite-idx csd 'square) #:layer LAYER_UI
+                             #:mx (/ life .1 (sprite-width csd (sprite-idx csd 'square)) 1.0)
+                             #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square)) 1.0)
+                             #:r 255))
      
        (define b (button 'normal #\s #f 0 (- (bottom) 35) 70 30 "Stop [s]"
                          (lambda (x y)
                            (send-commands (endrc pid #t)))))
-       (append! buttons b))
+       (prepend! buttons b))
       #;((steer? t)
          (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))
          (when offline
@@ -458,14 +468,14 @@
                                  (lambda (x y) (send-commands (command (ob-id offline)
                                                                        (not (dmg-fixing? offline)))))
                                  (/ (dmg-energy offline) (dmg-size offline)) (dmg-fixing? offline)))
-           (append! buttons (list ob))))     
+           (prepend! buttons (list ob))))     
       ((dock)
        (when (can-launch? stack)
          (define lb (button 'normal #\w #f (- (right) 80) (- (bottom) 150) 120.0 30.0 "Launch [w]"
                             (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'launch)))))
-         (append! buttons (list lb))
+         (prepend! buttons (list lb))
          (define lob (add-offline-button! t lb send-commands "nolaunch"))
-         (when lob (append! buttons (list lob)))))
+         (when lob (prepend! buttons (list lob)))))
     
       #;((shbolt? t)
          (define ship (get-ship stack))
@@ -477,8 +487,8 @@
             (set-button-f! b (lambda (x y) (send-commands (command (ob-id t) a)))))
            (else
             (set-button-draw! b 'disabled)))
-         (append! buttons (list b))
+         (prepend! buttons (list b))
          (define ob (add-offline-button! t b send-commands))
-         (when ob (append! buttons (list ob))))))
+         (when ob (prepend! buttons (list ob))))))
   (values buttons spr))
 
