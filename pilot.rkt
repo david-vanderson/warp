@@ -12,6 +12,10 @@
 
 (provide (all-defined-out))
 
+; distance between ships (so add hit-distance)
+(define TOO_CLOSE 75.0)
+(define TOO_FAR 150.0)
+
 
 ; return a number representing how good ship's position is
 (define (pilot-fitness space ship)
@@ -25,12 +29,10 @@
                (not (will-dock? o ship))
                (not (will-dock? ship o)))
       (define d (distance ship o))
-      (define maxd (* 3.0 (hit-distance ship o)))
-      (define ad (abs (angle-frto (posvel-r (obj-posvel ship)) (theta ship o))))
+      (define maxd (+ (hit-distance ship o) TOO_CLOSE))
       (when (d . < . maxd)
-        (define z (- 1.0 (/ d maxd)))
-        (set! f (+ f (* -1000.0 z z)))
-        (set! f (+ f (* 360.0 (/ ad pi)))))))
+        (define z (- maxd d))  ; meters inside maxd
+        (set! f (- f (* z z))))))
   
   
   (case (and strat (strategy-name strat))
@@ -47,7 +49,7 @@
      (define ne (find-top-id space (strategy-arg strat)))
      (when ne
        (define d (distance ship ne))
-       (set! f (+ f (- 1000.0 d)))
+       (set! f (- f d))
        
        (define ad (abs (angle-frto (posvel-r (obj-posvel ship))
                                    (theta ship ne))))
@@ -58,7 +60,7 @@
      (define mship (find-top-containing-id space (strategy-arg strat)))
      (when mship
        (define d (distance ship mship))
-       (set! f (+ f (- 1000.0 d)))
+       (set! f (- f d))
 
        (define ad (abs (angle-frto (posvel-r (obj-posvel ship))
                                    (theta ship mship))))
@@ -124,7 +126,7 @@
            ;(printf "new enemy\n")
            (define ns (strategy (space-time space) "attack" (ob-id ne)))
            (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))
-          ((or ((distance ship e) . > . (* 10 (hit-distance ship e)))
+          ((or ((distance ship e) . > . (+ (hit-distance ship e) TOO_FAR))
                ((current-strat-age space ship) . > . 10000))
            ; done retreating
            ;(printf "done retreating\n")
@@ -142,7 +144,7 @@
            ;(printf "new enemy\n")
            (define ns (strategy (space-time space) "attack" (ob-id ne)))
            (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))
-          ((and ((distance ship e) . < . (* 5 (hit-distance ship e)))
+          ((and ((distance ship e) . < . (+ (hit-distance ship e) TOO_CLOSE))
                 ((current-strat-age space ship) . > . 10000))
            ; too close, retreat
            ;(printf "too close\n")
