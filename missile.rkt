@@ -125,7 +125,9 @@
   (for ((o (in-list (space-objects space)))
         #:when (spaceship? o))
     (define d (distance o m))
-    (define z (max 0.0 (- 1000.0 d)))
-    (define foe? ((faction-check (ship-faction m) (ship-faction o)) . < . 0))
-    (set! f (+ f (* z z (if foe? 1.0 -1.0)))))
+    (define maxd (+ (hit-distance o m) AI_TOO_CLOSE))
+    (when (d . < . maxd)
+      (define foe? ((faction-check (ship-faction m) (ship-faction o)) . < . 0))
+      (define z (- maxd d))  ; meters inside maxd
+      (set! f (+ f (* z z (if foe? 1.0 -1.0))))))
   f)
