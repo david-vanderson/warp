@@ -486,7 +486,7 @@
 ;(define delay-ch (make-async-channel))
 ;(thread
 ; (lambda ()
-;   (define delay 0.0)
+;   (define delay 250.0)
 ;   (define count 0)
 ;   (let loop ()
 ;     (define vs (async-channel-get delay-ch))
@@ -496,7 +496,7 @@
 ;       (sleep (/ d 1000.0)))
 ;     (thread-send (cadr vs) (caddr vs))
 ;     (set! count (+ 1 count))
-;     (when (= 0 (modulo count 600))
+;     #;(when (= 0 (modulo count 600))
 ;       (if (equal? 0.0 delay)
 ;           (set! delay 400.0)
 ;           (set! delay 0.0))

@@ -249,17 +249,25 @@
   (define w 2.0)
   (define h 2.5)
   (define-values (x y) (obj->screen o center scale))
-  (prepend! sprites (sprite (+ x 25 (- h)) (+ y 24) idx #:my w #:layer LAYER_UI #:g 200))
-  (prepend! sprites (sprite (+ x 24) (+ y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (+ x 25 (- h)) (+ y 24)
+                            idx #:my w #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (+ x 24) (+ y 25 (- h))
+                            idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
 
-  (prepend! sprites (sprite (- x 25 (- h)) (+ y 24) idx #:my w #:layer LAYER_UI #:g 200))
-  (prepend! sprites (sprite (- x 24) (+ y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (- x 25 (- h)) (+ y 24)
+                            idx #:my w #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (- x 24) (+ y 25 (- h))
+                            idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
 
-  (prepend! sprites (sprite (+ x 25 (- h)) (- y 24) idx #:my w #:layer LAYER_UI #:g 200))
-  (prepend! sprites (sprite (+ x 24) (- y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (+ x 25 (- h)) (- y 24)
+                            idx #:my w #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (+ x 24) (- y 25 (- h))
+                            idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
 
-  (prepend! sprites (sprite (- x 25 (- h)) (- y 24) idx #:my w #:layer LAYER_UI #:g 200))
-  (prepend! sprites (sprite (- x 24) (- y 25 (- h)) idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (- x 25 (- h)) (- y 24)
+                            idx #:my w #:layer LAYER_UI #:g 200))
+  (prepend! sprites (sprite (- x 24) (- y 25 (- h))
+                            idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
 
   sprites)
 

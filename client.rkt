@@ -561,6 +561,9 @@
         ((not my-stack)
          ; nothing to leave
          )
+        ((unbox in-hangar?)
+         (set-button-f! leave-button (lambda (x y) (set-box! in-hangar? #f)))
+         (prepend! buttons leave-button))
         ((spacesuit? (get-ship my-stack))
          ; dying
          (set-button-f! leave-button (lambda (x y)
@@ -590,8 +593,9 @@
         (define rcship (if (player-rcid player)
                            (find-id ownspace ownspace (player-rcid player)) #f))
 
-        (define topship (or rcship (get-topship my-stack)))
-        (prepend! sprites (draw-green-corners topship csd center (get-scale)))
+        (when (not (unbox in-hangar?))
+          (define topship (or rcship (get-topship my-stack)))
+          (prepend! sprites (draw-green-corners topship csd center (get-scale))))
       
         (define ship (or rcship (get-ship my-stack)))
         
