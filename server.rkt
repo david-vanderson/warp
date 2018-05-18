@@ -157,50 +157,41 @@
 
 
 (define (ship-collide! s1 s2)
-  (cond
-    ((and (= 0 (dmag s1)) (= 0 (dmag s2)))
-     ; ships aren't moving, but somehow collided, just push them back apart
-     (define t (theta s1 s2))
-     (define d (+ 1 (- (hit-distance s1 s2) (distance s1 s2))))
-     (define pv1 (obj-posvel s1))
-     (set-posvel-x! pv1 (- (posvel-x pv1) (* (/ d 2) (cos t))))
-     (set-posvel-y! pv1 (- (posvel-y pv1) (* (/ d 2) (sin t))))
-     (define pv2 (obj-posvel s2))
-     (set-posvel-x! pv2 (+ (posvel-x pv2) (* (/ d 2) (cos t))))
-     (set-posvel-y! pv2 (+ (posvel-y pv2) (* (/ d 2) (sin t)))))
-    (else
-     (define m1 (stats-mass (ship-stats s1)))
-     (define m2 (stats-mass (ship-stats s2)))
-     (define phi (theta s1 s2))
-     (define perpv1 (perpv s1 m1 s2 m2))
-     (define perpv2 (- (perpv s2 m2 s1 m1)))
-     ;(printf "perpv1 ~a perpv2 ~a\n" perpv1 perpv2)
+  (when (and (= 0.0 (dmag s1)) (= 0.0 (dmag s2)))
+    ; ships aren't moving, but somehow collided, maybe launched at the same time?
+    ; fake as if the less massive one was moving towards the other
+    (when ((ship-mass s2) . < . (ship-mass s1))
+      (define t s1)
+      (set! s1 s2)
+      (set! s2 t))
+    (define t (theta s1 s2))
+    (define pv1 (obj-posvel s1))
+    (define d (- (+ 1.0 (hit-distance s1 s2))
+                 (distance s1 s2)))
+    (set-posvel-dx! pv1 (* d (cos t)))
+    (set-posvel-dy! pv1 (* d (sin t))))
      
-     (set-posvel-dx! (obj-posvel s1)
-                     (+ (* perpv1 (cos phi))
-                        (* (dmag s1) (sin (- (dtheta s1) phi)) (cos (+ phi pi/2)))))
-     (set-posvel-dy! (obj-posvel s1)
-                     (+ (* perpv1 (sin phi))
-                        (* (dmag s1) (sin (- (dtheta s1) phi)) (sin (+ phi pi/2)))))
-     
-     
-     (set-posvel-dx! (obj-posvel s2)
-                     (+ (* perpv2 (cos phi))
-                        (* (dmag s2) (sin (- (dtheta s2) phi)) (cos (+ phi pi/2)))))
-     (set-posvel-dy! (obj-posvel s2)
-                     (+ (* perpv2 (sin phi))
-                        (* (dmag s2) (sin (- (dtheta s2) phi)) (sin (+ phi pi/2)))))
-     
-     ; push the ships out along their new velocities until they aren't colliding
-     
-     (define dv (abs (- (* (dmag s1) (cos (- (dtheta s1) phi)))
-                        (* (dmag s2) (cos (- (dtheta s2) phi))))))
-     
-     (define dt (/ (+ 1 (- (hit-distance s1 s2) (distance s1 s2))) dv))
+  (define m1 (stats-mass (ship-stats s1)))
+  (define m2 (stats-mass (ship-stats s2)))
+  (define phi (theta s1 s2))
+  (define perpv1 (perpv s1 m1 s2 m2))
+  (define perpv2 (- (perpv s2 m2 s1 m1)))
+  ;(printf "perpv1 ~a perpv2 ~a\n" perpv1 perpv2)
   
-     ;(printf "dv ~a dt ~a\n" dv (- dt (/ TICK 1000.0)))
-     (physics! (obj-posvel s1) (- dt (/ TICK 1000.0)))
-     (physics! (obj-posvel s2) (- dt (/ TICK 1000.0)))))
+  (set-posvel-dx! (obj-posvel s1)
+                  (* 0.9 (+ (* perpv1 (cos phi))
+                            (* (dmag s1) (sin (- (dtheta s1) phi)) (cos (+ phi pi/2))))))
+  (set-posvel-dy! (obj-posvel s1)
+                  (* 0.9 (+ (* perpv1 (sin phi))
+                            (* (dmag s1) (sin (- (dtheta s1) phi)) (sin (+ phi pi/2))))))
+  
+  
+  (set-posvel-dx! (obj-posvel s2)
+                  (* 0.9 (+ (* perpv2 (cos phi))
+                            (* (dmag s2) (sin (- (dtheta s2) phi)) (cos (+ phi pi/2))))))
+  (set-posvel-dy! (obj-posvel s2)
+                  (* 0.9 (+ (* perpv2 (sin phi))
+                            (* (dmag s2) (sin (- (dtheta s2) phi)) (sin (+ phi pi/2))))))
   
   ; make sure we send the new posvels right away
   (set-posvel-t! (obj-posvel s1) 0)
@@ -234,35 +225,21 @@
     ((will-dock? s ship)
      (append! changes (dock! s ship)))
     (else
-     (cond
-       ((or (warping? ship) (warping? s))
-        (when (warping? ship)
-          (append! changes (command (ob-id ship) #f 'warp 'stop))
-          (define t (theta ship s))
-          (define d (+ 1.0 (- (hit-distance ship s) (distance ship s))))
-          (when (warping? s)
-            ; if other ship is also warping, it will do half the work
-            (set! d (/ d 2.0)))
-          (define pv1 (obj-posvel ship))
-          (set-posvel-x! pv1 (- (posvel-x pv1) (* d (cos t))))            
-          (set-posvel-y! pv1 (- (posvel-y pv1) (* d (sin t))))
-          (set-posvel-dx! pv1 (* -10.0 (cos t)))
-          (set-posvel-dy! pv1 (* -10.0 (sin t)))
-          ; make sure we send the new posvel right away
-          (set-posvel-t! pv1 0))
-        (when (warping? s)
-          (append! changes (command (ob-id s) #f 'warp 'stop))
-          (define t (theta s ship))
-          (define d (+ 1.0 (- (hit-distance ship s) (distance ship s))))
-          (define pv1 (obj-posvel s))
-          (set-posvel-x! pv1 (- (posvel-x pv1) (* d (cos t))))
-          (set-posvel-y! pv1 (- (posvel-y pv1) (* d (sin t))))
-          (set-posvel-dx! pv1 (* -10.0 (cos t)))
-          (set-posvel-dy! pv1 (* -10.0 (sin t)))
-          ; make sure we send the new posvel right away
-          (set-posvel-t! pv1 0)))
-       (else
-        (ship-collide! ship s)))))
+     (when (warping? ship)
+       (append! changes (command (ob-id ship) #f 'warp 'stop)))
+     (when (warping? s)
+       (append! changes (command (ob-id s) #f 'warp 'stop)))
+     ; get relative velocity of s with respect to ship
+     (define vx (- (obj-dx s) (obj-dx ship)))
+     (define vy (- (obj-dy s) (obj-dy ship)))
+     ; get position vector from ship to s
+     (define sx (- (obj-x s) (obj-x ship)))
+     (define sy (- (obj-y s) (obj-y ship)))
+     ; dot velocity to position
+     (define dot (+ (* vx sx) (* vy sy)))
+     (when (dot . <= . 0.0)
+       ; only collide if the ships are moving towards each other
+       (ship-collide! ship s))))
   changes)
 
 

@@ -16,7 +16,6 @@
 
 
 (define (steer! space ownship dt)
-  (define trying? #f)
   (define pv (obj-posvel ownship))
   ;(printf "steer! for ~a\n" (ship-name ownship))
   
@@ -25,8 +24,7 @@
      (define w (ship-tool ownship 'warp))
      (set-posvel-dx! pv (* (warp-speed w) (cos (posvel-r pv))))
      (set-posvel-dy! pv (* (warp-speed w) (sin (posvel-r pv))))
-     (set-posvel-dr! pv 0.0)
-     (set! trying? #t))
+     (set-posvel-dr! pv 0.0))
     (else
      (define st (ship-tool ownship 'steer))
      (define tl (ship-tool ownship 'turnleft))
@@ -45,8 +43,7 @@
            (set-posvel-r! pv course)
            (set-posvel-dr! pv 0.0))
           (else
-           (set-posvel-dr! pv (if ((angle-frto r course) . > . 0.0) racc (- racc)))
-           (set! trying? #t))))
+           (set-posvel-dr! pv (if ((angle-frto r course) . > . 0.0) racc (- racc))))))
        ((or tl tr)
         (define cl (tool-count space tl ownship))
         (define cr (tool-count space tr ownship))
@@ -62,15 +59,11 @@
          (define ddx (* xy_acc (cos (posvel-r pv))))
          (define ddy (* xy_acc (sin (posvel-r pv))))
          (set-posvel-dx! pv (+ (posvel-dx pv) (* ddx dt)))
-         (set-posvel-dy! pv (+ (posvel-dy pv) (* ddy dt)))
-         (set! trying? #t)))))
-  
-  trying?)
+         (set-posvel-dy! pv (+ (posvel-dy pv) (* ddy dt))))))))
 
 
-(define (drag dv dt coef epsilon)
-  (define newv (* dv (expt (1 . - . coef) dt)))
-  (if ((abs newv) . < . epsilon) 0 newv))
+(define (drag dv dt coef)
+  (* dv (expt (1.0 . - . coef) dt)))
 
 
 (define (physics! pv dt (drag_xy #f) (acc? #f))
@@ -78,8 +71,8 @@
   (set-posvel-y! pv (+ (posvel-y pv) (* dt (posvel-dy pv))))
   (set-posvel-r! pv (angle-add (posvel-r pv) (* dt (posvel-dr pv))))
   (when drag_xy
-    (set-posvel-dx! pv (drag (posvel-dx pv) dt drag_xy (if acc? 0 dt)))
-    (set-posvel-dy! pv (drag (posvel-dy pv) dt drag_xy (if acc? 0 dt)))))
+    (set-posvel-dx! pv (drag (posvel-dx pv) dt drag_xy))
+    (set-posvel-dy! pv (drag (posvel-dy pv) dt drag_xy))))
 
 
 (define EDGE_THRUST 10.0)
@@ -108,7 +101,8 @@
   (define pv (obj-posvel o))
   (cond
     ((ship? o)
-     (physics! pv dt (if (warping? o) #f (ship-drag o)) (steer! space o dt))
+     (physics! pv dt (ship-drag o))
+     (steer! space o dt)
      (push-back! space o dt))
     ((plasma? o)
      (physics! pv dt)

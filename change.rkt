@@ -274,7 +274,7 @@
                 (define sspv (obj-posvel ss))
                 ; push spacesuit away from parent ship
                 (define t (atan0 (posvel-dy sspv) (posvel-dx sspv)))
-                (define r (+ 3 (hit-distance ship ss)))
+                (define r (+ 3.0 (hit-distance ship ss)))
                 (set-posvel-x! sspv (+ (posvel-x sspv) (* r (cos t))))
                 (set-posvel-y! sspv (+ (posvel-y sspv) (* r (sin t))))
                 (append! changes (chadd ss #f) (chmov (ob-id p) (ob-id ss) #f))))
