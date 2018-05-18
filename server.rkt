@@ -157,19 +157,26 @@
 
 
 (define (ship-collide! s1 s2)
+  (define changes '())
+  (define s1dx (obj-dx s1))
+  (define s1dy (obj-dy s1))
+  (define s2dx (obj-dx s2))
+  (define s2dy (obj-dy s2))
+
   (when (and (= 0.0 (dmag s1)) (= 0.0 (dmag s2)))
     ; ships aren't moving, but somehow collided, maybe launched at the same time?
     ; fake as if the less massive one was moving towards the other
-    (when ((ship-mass s2) . < . (ship-mass s1))
-      (define t s1)
-      (set! s1 s2)
-      (set! s2 t))
-    (define t (theta s1 s2))
-    (define pv1 (obj-posvel s1))
-    (define d (- (+ 1.0 (hit-distance s1 s2))
-                 (distance s1 s2)))
-    (set-posvel-dx! pv1 (* d (cos t)))
-    (set-posvel-dy! pv1 (* d (sin t))))
+    (let ((s1 s1) (s2 s2))
+      (when ((ship-mass s2) . < . (ship-mass s1))
+        (define t s1)
+        (set! s1 s2)
+        (set! s2 t))
+      (define t (theta s1 s2))
+      (define pv1 (obj-posvel s1))
+      (define d (- (+ 1.0 (hit-distance s1 s2))
+                   (distance s1 s2)))
+      (set-posvel-dx! pv1 (* d (cos t)))
+      (set-posvel-dy! pv1 (* d (sin t)))))
      
   (define m1 (stats-mass (ship-stats s1)))
   (define m2 (stats-mass (ship-stats s2)))
@@ -195,7 +202,20 @@
   
   ; make sure we send the new posvels right away
   (set-posvel-t! (obj-posvel s1) 0)
-  (set-posvel-t! (obj-posvel s2) 0))
+  (set-posvel-t! (obj-posvel s2) 0)
+
+  ; damage ships by how much their velocities changed
+  (define s1xch (- s1dx (obj-dx s1)))
+  (define s1ych (- s1dy (obj-dy s1)))
+  (define s1dam (/ (sqrt (+ (* s1xch s1xch) (* s1ych s1ych))) 4.0))
+  (append! changes (chdam (ob-id s1) s1dam #t))
+
+  (define s2xch (- s2dx (obj-dx s2)))
+  (define s2ych (- s2dy (obj-dy s2)))
+  (define s2dam (/ (sqrt (+ (* s2xch s2xch) (* s2ych s2ych))) 4.0))
+  (append! changes (chdam (ob-id s2) s2dam #t))
+
+  changes)
 
 
 ; return a list of changes
@@ -239,7 +259,7 @@
      (define dot (+ (* vx sx) (* vy sy)))
      (when (dot . <= . 0.0)
        ; only collide if the ships are moving towards each other
-       (ship-collide! ship s))))
+       (append! changes (ship-collide! ship s)))))
   changes)
 
 
