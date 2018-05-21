@@ -163,7 +163,7 @@
             (define spr '())
             (prepend! spr (obj-sprite o csd center scale LAYER_SHIPS
                                       (string->symbol (ship-type o))
-                                      (ship-info-size (hash-ref ship-list (ship-type o)))
+                                      (ship-sprite-size o)
                                       fowa (obj-r o) (make-color (get-red space o) 0 0 1.0)))
             
             ;(prepend! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))

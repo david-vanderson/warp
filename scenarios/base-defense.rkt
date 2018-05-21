@@ -29,8 +29,8 @@
   (define (new-blue-fighter)
     (define s (make-ship "blue-fighter" "a" "a" #:ai? #t))
     (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
-                              ;con maxcon radius mass radar drag start-ship?
-                              50.0 50.0 6.0 20.0 300.0 0.4 #f))
+                              ;con maxcon mass radar drag start-ship?
+                              50.0 50.0 20.0 300.0 0.4 #f))
     (set-ship-tools!
      s (append (tools-pilot 50.0 #f 1.5)
                (list (tool-pbolt 8.0) (tool-regen 1.0))))
@@ -40,8 +40,8 @@
   (define (new-red-fighter)
     (define s (make-ship "red-fighter" "a" "a" #:ai? #t))
     (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
-                              ;con maxcon radius mass radar drag start
-                              20.0 20.0 6.0 20.0 300.0 0.4 #f))
+                              ;con maxcon mass radar drag start
+                              20.0 20.0 20.0 300.0 0.4 #f))
     (set-ship-tools!
      s (append (tools-pilot 50.0 #f 2.0)
                (list (tool-pbolt 8.0))))
@@ -52,8 +52,8 @@
   (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50 #:ai? #t
                              #:hangar (list (new-blue-fighter))))
   (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
-                                  ;con maxcon radius mass radar drag start?
-                                  200.0 200.0 15.0 100.0 500.0 0.4 #t))
+                                  ;con maxcon mass radar drag start?
+                                  200.0 200.0 100.0 500.0 0.4 #t))
   (set-ship-tools!
    cruiser (append (tools-pilot 25.0 #f 1.0)
                    (list (tool-pbolt 10.0)
@@ -66,8 +66,8 @@
   
   (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:ai? #t #:hangar '()))
   (set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
-                               ;con maxcon radius mass radar drag start-ship?
-                               1000.0 1000.0 26.0 1000.0 1000.0 0.4 #t))
+                               ;con maxcon mass radar drag start-ship?
+                               1000.0 1000.0 1000.0 1000.0 0.4 #t))
   (set-ship-tools!
    base (list (tool-pbolt 10.0)
               (tool-probe 30.0)
@@ -80,8 +80,8 @@
   (set-ship-stats! destroyer (stats (next-id)
                                     ;type name faction
                                     "red-destroyer" "Empire Destroyer" "Empire"
-                                    ;con maxcon radius mass radar drag start?
-                                    1000.0 1000.0 23.0 500.0 1000.0 0.4 #f))
+                                    ;con maxcon mass radar drag start?
+                                    1000.0 1000.0 500.0 1000.0 0.4 #f))
   (set-ship-tools!
    destroyer (append (tools-pilot 6.0 #f 0.1 #:dock? #f)
                      (list (tool-pbolt 10.0)

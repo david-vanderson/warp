@@ -93,8 +93,8 @@
   
   (define (min-scale)
     (if ownspace
-        (min (/ canon-width (space-width ownspace))
-             (/ canon-height (space-height ownspace)))
+        (min (/ canon-width (space-width ownspace) 1.25)
+             (/ canon-height (space-height ownspace) 1.25))
         .01))
   (define (max-scale) 30.0)
     

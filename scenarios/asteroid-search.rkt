@@ -1,6 +1,8 @@
 #lang racket/base
 
-(require racket/math)
+(require racket/math
+         racket/class
+         racket/draw)
 
 (require "../defs.rkt"
          "../utils.rkt"
@@ -15,10 +17,43 @@
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "Empire"))
 
-  (define hidden-base #f)
+  (define hidden-base-id #f)
+
+  (define r (new region%))
+  (send r set-polygon
+        '((-1000.0 . -2000.0)
+          (-2000.0 . 2000.0)
+          (1000.0 . 2000.0)
+          (2000.0 . -2000.0)))
+  (define-values (rx ry rw rh) (send r get-bounding-box))
+
+  (define asteroids '())
+  (define sep 500.0)
+  (define sep/2 (/ sep 2))
+  (define dd 10.0)
+  (for* ((x (in-range (+ rx sep/2) rw sep))
+         (y (in-range (+ ry sep/2) rh sep))
+         #:when (send r in-region? x y))
+    (define diam (round (exp (exp (random-between (log (log 25.0)) (log (log 300.0)))))))
+    (define xd (random-between (* sep -0.5) (* sep 0.5)))
+    (define yd (random-between (* sep -0.5) (* sep 0.5)))
+    (define dx (random-between (- dd) dd))
+    (define dy (random-between (- dd) dd))
+    (define dr (random-between -0.5 0.5))
+    (define a (make-ship "asteroid_87" "Asteroid" "_neutral" #:drag 0.1
+                         #:size (inexact->exact diam)
+                         #:x (+ x xd) #:y (+ y yd) #:dr dr #:dx dx #:dy dy))
+    (set-ship-cargo! a (list (upgrade (next-id) 0 #t #f "unscouted" #f)))
+    (prepend! asteroids a))
+
+  ; pick which asteroid will have the hidden base
+  (define idx (random (length asteroids)))
+  (define a (list-ref asteroids idx))
+  (set! hidden-base-id (ob-id a))
+  (set-ship-hangar! a '())
 
   (define ownspace
-    (space (next-id) 0 6000 4000 players '()
+    (space (next-id) 0 4000 4000 players '()
            `(
              ,(standard-quit-scenario-button #t)
              ,(ann-text (next-id) 0 #t (posvel 0 -200 -100 0 0 0 0) #f
@@ -28,20 +63,7 @@
                          "Bring replacement parts back to the ship.\n"
                          "Once mobile again, destroy the outpost on the far side of the field.\n")
                         10000)
-             ,@(for/list ((i 30))
-                 (define x (+ -1500.0 (* i 100.0)))
-                 (define y (random-between -2000 2000))
-                 (define dx 0.0)
-                 (define dy (random-between -150.0 150.0))
-                 (define dr (random-between -1.0 1.0))
-                 (define s (make-ship (if ((random) . > . 0.5) "asteroid_43" "asteroid_87")
-                                      "Asteroid" "_neutral" #:x x #:y y
-                                      #:dx dx #:dy dy #:dr dr))
-                 (set-ship-cargo! s (list (upgrade (next-id) 0 #t #f "unscouted" #f)))
-                 (when (not hidden-base)
-                   (set! hidden-base s)
-                   (set-ship-hangar! s '()))
-                 s)
+             ,@asteroids
              )))
 
   ; put the spare parts upgrade in the hidden base
@@ -57,10 +79,10 @@
     (set-obj-posvel! s #f)
     s)
 
-  (define goodship (make-ship "red-frigate" "a" "a" #:x -2500.0 #:y -200.0 #:r 0.0))
+  (define goodship (make-ship "red-frigate" "a" "a" #:x -1500.0 #:y -800.0 #:r 0.0))
   (set-ship-stats! goodship (stats (next-id) "red-frigate" "Empire Frigate" "Empire"
-                                   ;con maxcon radius mass radar drag start
-                                   500.0 500.0 18.0 100.0 300.0 0.4 #t))
+                                   ;con maxcon mass radar drag start
+                                   500.0 500.0 100.0 300.0 0.4 #t))
 
   ; ship starts with pilot tools damaged beyond repair
   ; we will manually remove the dmgs when the engine parts are recovered
@@ -88,10 +110,10 @@
     (set-obj-posvel! s #f)
     s)
 
-  (define enemy-base (make-ship "blue-station" "a" "a" #:x 2500.0 #:y 200.0 #:ai? #t #:hangar '()))
+  (define enemy-base (make-ship "blue-station" "a" "a" #:x 1500.0 #:y 1200.0 #:ai? #t #:hangar '()))
   (set-ship-stats! enemy-base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
-                               ;con maxcon radius mass radar drag start-ship?
-                               750.0 750.0 26.0 1000.0 600.0 0.4 #t))
+                               ;con maxcon mass radar drag start-ship?
+                               750.0 750.0 1000.0 600.0 0.4 #t))
   (set-ship-tools!
    enemy-base
    (list
@@ -166,7 +188,7 @@
                 (strategy (space-time ownspace) "return" (ob-id enemy-base))))
         (append! changes (chadd f (ob-id enemy-base)) m))
 
-      (define hb (find-id ownspace ownspace (ob-id hidden-base)))
+      (define hb (find-id ownspace ownspace hidden-base-id))
       
       ; update scouted status of asteroids
       (define (unscouted-cargo o)

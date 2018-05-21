@@ -150,19 +150,20 @@
 ; shield-size is how big of a shield we shoot
 ; aim is like for pbolt
 
-(struct stats ob (type name faction con maxcon radius mass radar drag start) #:mutable #:prefab)
+(struct stats ob (type name faction con maxcon mass radar drag start) #:mutable #:prefab)
 ; carries all the stats for a ship
 ; name is the name of the ship
 ; faction is the name that this ship belongs to
 ; con (containment) is how much health you have left
 ; maxcon is the max containment you can have
-; radius is how big your hit area is
 ; mass controls how you bump into other ships
 ; radar is fog of war radius for this ship, also agro distance
 ; drag is the coeffecient for how fast this ship slows down
 ; start is if you can start on this ship
 
-(struct ship obj (stats tools playerids hangar cargo dmgfx ai? ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
+(struct ship obj (sprite-size radius stats tools playerids hangar cargo dmgfx ai? ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
+; sprite-size is how many meters wide the sprite should show as
+; radius is how big your hit area is
 ; tools is a list of the systems available on this ship
 ; players is a list of the player ids on this ship
 ; hangar is list of ships in the hangar or #f if this ship has no hangar
@@ -183,7 +184,6 @@
 (define (ship-faction s) (stats-faction (ship-stats s)))
 (define (ship-con s) (stats-con (ship-stats s)))
 (define (ship-maxcon s) (stats-maxcon (ship-stats s)))
-(define (ship-radius s) (stats-radius (ship-stats s)))
 (define (ship-mass s) (stats-mass (ship-stats s)))
 (define (ship-strategy s) (if (null? (ship-ai-strategy s)) #f (car (ship-ai-strategy s))))
 (define (ship-radar s) (stats-radar (ship-stats s)))
