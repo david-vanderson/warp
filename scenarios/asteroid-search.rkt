@@ -59,8 +59,8 @@
              ,(ann-text (next-id) 0 #t (posvel 0 -200 -100 0 0 0 0) #f
                         (string-append
                          "On mission to destroy a rebel outpost your engines have failed.\n"
-                         "Use your fighters to search the asteroid field for a hidden cache.\n"
-                         "Bring replacement parts back to the ship.\n"
+                         "Use probes to search the asteroid field for a hidden cache.\n"
+                         "Bring replacement parts back to the ship with fighters.\n"
                          "Once mobile again, destroy the outpost on the far side of the field.\n")
                         10000)
              ,@asteroids
@@ -79,7 +79,7 @@
     (set-obj-posvel! s #f)
     s)
 
-  (define goodship (make-ship "red-frigate" "a" "a" #:x -1500.0 #:y -800.0 #:r 0.0))
+  (define goodship (make-ship "red-frigate" "a" "a" #:x -1500.0 #:y -1500.0 #:r 0.0))
   (set-ship-stats! goodship (stats (next-id) "red-frigate" "Empire Frigate" "Empire"
                                    ;con maxcon mass radar drag start
                                    500.0 500.0 100.0 300.0 0.4 #t))
@@ -96,7 +96,7 @@
                     (list (tool-warp 200.0 80.0)
                           (tool-regen 1.0)
                           (tool-pbolt 10.0)
-                          (tool-probe 10.0)
+                          (tool-probe 20.0)
                           (tool-missile 5.0 10.0)
                           (tool-cannon 21.0))))
 
@@ -110,7 +110,7 @@
     (set-obj-posvel! s #f)
     s)
 
-  (define enemy-base (make-ship "blue-station" "a" "a" #:x 1500.0 #:y 1200.0 #:ai? #t #:hangar '()))
+  (define enemy-base (make-ship "blue-station" "a" "a" #:x 1500.0 #:y 1500.0 #:ai? #t #:hangar '()))
   (set-ship-stats! enemy-base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
                                ;con maxcon mass radar drag start-ship?
                                750.0 750.0 1000.0 600.0 0.4 #t))
@@ -196,9 +196,8 @@
       
       (for ((s (space-objects ownspace))
             #:when (and (obj-alive? s)
-                        (spaceship? s)
-                        (equal? "Empire" (ship-faction s))
-                        (not (equal? "probe" (ship-type s))))
+                        (or (spaceship? s) (probe? s))
+                        (equal? "Empire" (ship-faction s)))
             (a (space-objects ownspace))
             #:when (and (obj-alive? a)
                         (spaceship? a)
