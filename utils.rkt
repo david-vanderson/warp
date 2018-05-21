@@ -7,7 +7,8 @@
          ffi/unsafe
          racket/draw)
 
-(require "defs.rkt")
+(require "defs.rkt"
+         "quadtree.rkt")
 
 (provide (all-defined-out))
 
@@ -381,14 +382,12 @@
 
 ;; ai utils
 
-(define (nearest-enemy space ownship)
-  (define enemies (filter (lambda (o)
-                            (and (spaceship? o)
-                                 ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)))
-                          (space-objects space)))
+(define (nearest-enemy qt ownship filterf?)
   (define ne #f)
   (define ne-dist #f)
-  (for ((e (in-list enemies)))
+  (for ((e (in-list (qt-retrieve qt (obj-x ownship) (obj-y ownship) (ship-radar ownship))))
+        #:when (and (filterf? e)
+                    ((faction-check (ship-faction ownship) (ship-faction e)) . < . 0)))
     (define d (distance ownship e))
     (when (and (d . < . (ship-radar ownship))
                (or (not ne) (d . < . ne-dist)))
@@ -397,19 +396,20 @@
   ne)
 
 
-(define (ship-behind? space ship)
-  (define max-dist 75)
+(define (ship-behind? qt ship)
+  (define max-dist 75.0)
   (define max-ang pi/2)
-  (define ships (filter (lambda (o)
-                          (and (spaceship? o)
-                               (not (= (ob-id ship) (ob-id o)))
-                               ((distance ship o) . < . max-dist)))
-                        (space-objects space)))
   (define ns #f)
-  (for ((s (in-list ships)))
-    (define a (angle-frto (angle-add pi (posvel-r (obj-posvel ship))) (theta ship s)))
+  
+  (for ((o (in-list (qt-retrieve qt (obj-x ship) (obj-y ship) max-dist)))
+        #:when (and (spaceship? o)
+                    (not (= (ob-id ship) (ob-id o)))
+                    ((distance ship o) . < . max-dist)))
+    
+    (define a (angle-frto (angle-add pi (posvel-r (obj-posvel ship))) (theta ship o)))
     (when ((abs a) . < . max-ang)
-      (set! ns s)))
+      (set! ns o)))
+  
   ns)
 
 
@@ -432,21 +432,3 @@
      (when (< -1 sin-aim 1)
        (set! t (angle-add st-r (asin sin-aim))))))
   t)
-  
-
-(define (nearest-incoming-plasma space ownship)
-  (define agro-dist 200)  ; ignore plasmas farther away than this
-  
-  (define plasmas (filter plasma? (space-objects space)))
-  (define np #f)
-  (define np-dist #f)
-  (for ((p (in-list plasmas)))
-    (define d (distance ownship p))
-    (when (d . < . agro-dist)
-      (define t (target-angle p #f ownship ownship PLASMA_SPEED))
-      (when (and t
-                 ((abs (angle-frto t (dtheta p))) . < . (degrees->radians 3))  ; incoming
-                 (or (not np) (d . < . np-dist)))
-        (set! np p)
-        (set! np-dist d))))
-  np)

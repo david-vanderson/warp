@@ -272,6 +272,14 @@
     (else #f)))
 
 
+(define (add-all! qt objs)
+  (for ((o objs)
+        #:when (obj-alive? o))
+    (define rad (obj-radius ownspace o))
+    (when rad
+      (qt-add! qt o (obj-x o) (obj-y o) rad))))
+
+
 ; called once on every object
 ; return a list of changes
 (define (upkeep! space o)
@@ -316,7 +324,6 @@
 ; (priority a) <= (priority b)
 ; return a list of changes
 (define (collide! space a b dt)
-  (set! num-collide (+ 1 num-collide))
   (cond
     ((explosion? a)
      (cond ((plasma? b)
@@ -366,43 +373,16 @@
         (when ((distance a b) . < . (hit-distance a b))
           (ship-hit-ship! space a b)))))))
 
-(define num-collide 0)
 
 ; return a list of final changes
 (define (update-effects! space dt)
   (define changes '())
 
-  (define num (length (space-objects space)))
-  (set! num-collide 0)
-  (define time-collide 0)
-
-  ;(timeit time-collide
-  (define qt (qt-new 0 0 (space-width space) (space-height space)))
   (for ((o (space-objects space))
         #:when (obj-alive? o))
     (define precs (upkeep! space o))
     (define cs (apply-all-changes! space precs "server"))
-    (append! changes cs)
-
-    (when (obj-alive? o)
-      (define rad (obj-radius space o))
-      (when rad
-        (qt-add! qt o (obj-x o) (obj-y o) rad))))
-
-  (define (coll! a b)
-    (when (and (obj-alive? a)
-               (obj-alive? b))
-      (define precs (if ((priority a) . <= . (priority b))
-                        (collide! space a b dt)
-                        (collide! space b a dt)))
-      (when (not (void? precs))
-        (define cs (apply-all-changes! space precs "server"))
-        (append! changes cs))))
-  
-  (qt-collide! qt coll!)
-  ;)
-
-  ;(printf "collision test took ~a ms (~a : ~a)\n" time-collide num num-collide)
+    (append! changes cs))
 
   ; find out if any player's rc objects went away
   (for ((p (space-players space))
@@ -410,18 +390,19 @@
                     (not (find-id space space (player-rcid p)))))
     (define cs (apply-all-changes! space (list (endrc (ob-id p) #f)) "server"))
     (append! changes cs))
-  
+
   changes)
 
 
 ; return a list of commands
-(define (run-ai! space)
-  (define changes '())
+(define (run-ai! space qt)
+  (define updates '())
   
   (define stacks (search space space ai-ship? #t))
 
   ; if we haven't seen this ship before, set ai runtime to 0
   (for ((s (in-list stacks)))
+    (define changes '())
     (define ship (car s))
     (when (equal? #t (ship-ai? ship))
       (set-ship-ai?! ship 0))
@@ -434,26 +415,29 @@
       ; run this ship's ai
       (when (and (ship-tool ship 'engine) (ship-tool ship 'steer))
         (when (not (missile? ship))
-          (append! changes (pilot-ai-strategy! space s)))
+          (append! changes (pilot-ai-strategy! space qt s)))
         (when (ship-flying? (get-ship s))
           (append! changes (pilot-ai-fly! space s))))
 
       (when (ship-tool ship 'pbolt)
-        (append! changes (pbolt-ai! space s)))
+        (append! changes (pbolt-ai! space qt s)))
 
       (when (ship-tool ship 'cannon)
         (append! changes (cannon-ai! space s)))
       (when (cannonball? ship)
         (append! changes (cannonball-ai! space s)))
 
-      #;(when (findf shbolt? (pod-tools p))
-        (append! changes (shbolt-ai! space s)))
-
       (when (ship-tool ship 'missile)
         (append! changes (missile-ai! space s)))
-      ))
+      )
+
+    ; if the ai does something that adds to space-objects (like launching)
+    ; then add those to the quadtree so later ais see it
+    (define (addf o)
+      (add-all! qt (list o)))
+    (append! updates (apply-all-changes! ownspace changes "server" addf)))
   
-  changes)
+  updates)
 
 
 (define updates '())
@@ -515,6 +499,7 @@
   (define time-commands 0)
   (define time-tick 0)
   (define time-effects 0)
+  (define time-collide 0)
   (define time-ai 0)
   (define time-output 0)
   (define time-housekeeping 0)
@@ -602,21 +587,54 @@
         (loop)))
     )
 
-    ; collisions
     ; update-effects! returns already-applied changes
     (timeit time-effects
     (append! updates (update-effects! ownspace dt))
     )
 
+    (define qt (qt-new 0 0 (space-width ownspace) (space-height ownspace)))
+
+    ; need to delay adding new things to quadtree during qt-collide!
+    (define objs-added '())
+    (define (addf o)
+      (set! objs-added (cons o objs-added)))
+    
+    (timeit time-collide
+    ; add everything to quadtree
+    (add-all! qt (space-objects ownspace))
+
+    (define (coll! a b)
+      (when (and (obj-alive? a)
+                 (obj-alive? b))
+        (define precs (if ((priority a) . <= . (priority b))
+                          (collide! ownspace a b dt)
+                          (collide! ownspace b a dt)))
+        (when (not (void? precs))
+          (define cs (apply-all-changes! ownspace precs "server" addf))
+          (append! updates cs))))
+    
+    (qt-collide! qt coll!)
+
+    ; add all new things to the quadtree
+    (add-all! qt objs-added)
+    (set! objs-added '())
+    )
+
     ; scenario hook
-    (append! updates (apply-all-changes! ownspace (scenario-on-tick ownspace change-scenario!)
-                                         "server"))
+    (append! updates (apply-all-changes! ownspace
+                                         (scenario-on-tick ownspace qt change-scenario!)
+                                         "server" addf))
+    (add-all! qt objs-added)
+    (set! objs-added '())
 
     ; ai
     (timeit time-ai
-    (append! updates (apply-all-changes! ownspace (run-ai! ownspace)
-                                         "server"))
+    ; run-ai! returns already-applied changes
+    (append! updates (run-ai! ownspace qt))
     )
+    (outputtime "server"
+                 (space-time ownspace)
+                 time-ai)
 
     ; cull dead
     (set-space-objects! ownspace (filter obj-alive? (space-objects ownspace)))
@@ -695,6 +713,7 @@
                  time-commands
                  time-tick
                  time-effects
+                 time-collide
                  time-ai
                  time-output
                  time-housekeeping)

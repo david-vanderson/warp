@@ -14,7 +14,7 @@
 
 ;; Scenario function
 ; oldspace old-on-tick old-on-message -> (values newspace on-tick on-message)
-; on-tick: space change-scenario! -> list of commands/changes
+; on-tick: space quadtree change-scenario! -> list of commands/changes
 ; on-message: space command-message change-scenario! -> list of commands/changes
 
 
@@ -33,7 +33,7 @@
              ,(ann-button (next-id) 0 #t (posvel 0 200 200 0 200 50 0) #f "Base Defense" "base-defense")
              ,(ann-button (next-id) 0 #t (posvel 0 200 300 0 200 50 0) #f "Asteroid Search" "asteroid-search")
              )))
-  (define (on-tick space change-scenario!)
+  (define (on-tick space qt change-scenario!)
     (define changes '())
     (for ((p (space-players space)))
       (when (not (player-faction p))

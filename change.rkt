@@ -19,16 +19,16 @@
 (provide (all-defined-out))
 
 
-(define (adj! o fto who rem?)
-  (define-values (ss! ss)
+(define (adj! o fto who rem? addf)
+  (define-values (ss! ss add-to-space?)
     (cond ((ship? fto)
-           (cond ((player? o) (values set-ship-playerids! ship-playerids))
-                 ((upgrade? o) (values set-ship-cargo! ship-cargo))
-                 (else (values set-ship-hangar! ship-hangar))))
+           (cond ((player? o) (values set-ship-playerids! ship-playerids #f))
+                 ((upgrade? o) (values set-ship-cargo! ship-cargo #f))
+                 (else (values set-ship-hangar! ship-hangar #f))))
           ((space? fto)
-           (cond ((player? o) (values set-space-players! space-players))
-                 (else (values set-space-objects! space-objects))))
-          ((tool? fto) (values set-tool-dmgs! tool-dmgs))
+           (cond ((player? o) (values set-space-players! space-players #f))
+                 (else (values set-space-objects! space-objects #t))))
+          ((tool? fto) (values set-tool-dmgs! tool-dmgs #f))
           (else
            (error "adj! hit else" o fto))))
   #;(printf "~a ~a ~v\n-- ~v\n"
@@ -40,16 +40,18 @@
          (if rem?
              (ss! fto (remove (ob-id o) (ss fto)))
              (ss! fto (cons (ob-id o) (ss fto)))))
+        (rem?
+         (ss! fto (remove-id (ob-id o) (ss fto))))
         (else
-         (if rem?
-             (ss! fto (remove-id (ob-id o) (ss fto)))
-             (ss! fto (cons o (ss fto)))))))
+         (ss! fto (cons o (ss fto)))
+         (when (and addf add-to-space?)
+           (addf o)))))
 
 (define (rem! o from who)
-  (adj! o from who #t))
+  (adj! o from who #t #f))
 
-(define (add! o to who)
-  (adj! o to who #f))
+(define (add! o to who addf)
+  (adj! o to who #f addf))
 
 ; returns a list of changes you want whenever a player moves or leaves
 (define (player-cleanup! space p #:endrc? (endrc? #t))
@@ -95,8 +97,9 @@
 ; (or even the same player clicking a button twice before the server sees it)
 ;
 ; who is a string? for message reporting
+; addf is #f or a function to call when we add something to space-objects
 ;
-(define (apply-change! space c who)
+(define (apply-change! space c who (addf #f))
   ;(printf "~a (~a) applying change ~v\n" who (space-time space) c)
   (cond
     ((command? c)
@@ -208,7 +211,7 @@
      (cond
        (to
         (define o (chadd-o c))
-        (add! o to who)
+        (add! o to who addf)
         (values #t '()))
        (else
         (printf "~a dropping chadd (can't find chadd-to) ~v\n" who c)
@@ -279,11 +282,11 @@
                 (set-posvel-y! sspv (+ (posvel-y sspv) (* r (sin t))))
                 (append! changes (chadd ss #f) (chmov (ob-id p) (ob-id ss) #f))))
              (else
-              (add! (car s) to who)
+              (when (obj? (car s)) (set-obj-posvel! (car s) (chmov-pv c)))
+              (add! (car s) to who addf)
               ; whenever a player moves somewhere, need to clear out all existing commands
               (when (player? (car s))
                 (append! changes (player-cleanup! space (car s))))
-              (when (obj? (car s)) (set-obj-posvel! (car s) (chmov-pv c)))
               (when (and (ship? (car s)) (ship? to))
                 (define ship (car s))
                 ; ship is docking, clean up warp if we have it
@@ -291,7 +294,7 @@
                   (append! changes (command (ob-id ship) #f 'warp 'stop))))))
            (values #t changes))
           (p
-           (add! p to who)
+           (add! p to who addf)
            ; player could have had commands from a previous ship/scenario
            (define changes (player-cleanup! space p))
            (values #t changes))
@@ -375,11 +378,11 @@
      (error "apply-change! hit ELSE clause" c))))
 
 
-(define (apply-all-changes! space changes who)
+(define (apply-all-changes! space changes who (addf #f))
   (if (null? changes)
       '()
       (apply append
              (for/list ((c (in-list changes)))
-               (define-values (forward? new-changes) (apply-change! space c who))
+               (define-values (forward? new-changes) (apply-change! space c who addf))
                (append (if forward? (list (copy c)) '())
-                       (apply-all-changes! space new-changes who))))))
+                       (apply-all-changes! space new-changes who addf))))))

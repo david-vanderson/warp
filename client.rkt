@@ -13,7 +13,6 @@
   "draw-utils.rkt"
   "draw.rkt"
   "pilot.rkt"
-  "weapons.rkt"
   "pbolt.rkt"
   "effect.rkt"
   "ships.rkt"

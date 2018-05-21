@@ -25,30 +25,35 @@
                (not (will-dock? o ship))
                (not (will-dock? ship o)))
       (define d (distance ship o))
-      (define maxd (+ (hit-distance ship o) AI_TOO_CLOSE))
+      (define hd (hit-distance ship o))
+      (define maxd (+ hd AI_TOO_CLOSE))
       (when (d . < . maxd)
         (define z (- maxd d))  ; meters inside maxd
-        (set! f (- f (* z z))))))
+        (set! f (- f (* z z)))
+        (define ad (abs (angle-frto (posvel-r (obj-posvel ship)) (theta ship o))))
+        (define az (min 90.0 (* 360.0 (/ ad pi))))
+        (set! f (+ f (* az az)))
+        )))
   
   
   (case (and strat (strategy-name strat))
     (("retreat")
-     (define ne (find-top-id space (strategy-arg strat)))
-     (when ne
-       (define d (distance ship ne))
+     (define e (find-top-id space (strategy-arg strat)))
+     (when e
+       (define d (distance ship e))
        (set! f (+ f d))
        (define ad (abs (angle-frto (posvel-r (obj-posvel ship))
-                                   (theta ship ne))))
+                                   (theta ship e))))
        (set! f (+ f (* 360.0 (/ ad pi))))
        ))
     (("attack" "attack*" "attack-only")
-     (define ne (find-top-id space (strategy-arg strat)))
-     (when ne
-       (define d (distance ship ne))
+     (define e (find-top-id space (strategy-arg strat)))
+     (when e
+       (define d (distance ship e))
        (set! f (- f d))
        
        (define ad (abs (angle-frto (posvel-r (obj-posvel ship))
-                                   (theta ship ne))))
+                                   (theta ship e))))
        ; 360 for angle is fairly precise, needed for cannon
        (set! f (+ f (* 360.0 (- 1.0 (/ ad pi)))))
        ))
@@ -68,15 +73,16 @@
 ;; server
 
 (define (return-to-base? space ship)
-  ; we have a return strategy somewhere that is old enough
-  (for/first ((s (ship-ai-strategy ship))
-              #:when (and (equal? "return" (strategy-name s))
-                          ((strategy-age space s) . > . 30000)))
-              #t))
+  #f)
+;  ; we have a return strategy somewhere that is old enough
+;  (for/first ((s (ship-ai-strategy ship))
+;              #:when (and (equal? "return" (strategy-name s))
+;                          ((strategy-age space s) . > . 30000)))
+;              #t))
 
 ; return a list of changes
 ; update strategy, pilot-ai! plans the route
-(define (pilot-ai-strategy! space stack)
+(define (pilot-ai-strategy! space qt stack)
   (define changes '())
   (define ship (get-ship stack))
   (define strats (ship-ai-strategy ship))
@@ -86,7 +92,7 @@
   (define e (ship-tool ship 'engine))
   (cond
     ((ship-flying? ship)
-     (define ne (nearest-enemy space ship))
+     (define ne (nearest-enemy qt ship spaceship?))
      (case (and strat (strategy-name strat))
        ((#f)
         (cond
@@ -162,7 +168,7 @@
            (cond
              ((not (= (ob-id mothership) (strategy-arg strat)))
               (when (and (find-top-id space (strategy-arg strat))
-                         (not (ship-behind? space mothership))
+                         (not (ship-behind? qt mothership))
                          (tool-online? d "nolaunch"))
                 ; we accidentally docked with not our real mothership, launch again
                 (set! changes (list (command (ob-id ship) #f 'dock 'launch)))))
@@ -172,16 +178,16 @@
           (strat
            (when (and (tool-online? d "nolaunch")
                       (= (ship-con ship) (ship-maxcon ship))
-                      (not (ship-behind? space mothership)))
+                      (not (ship-behind? qt mothership)))
              ; we have a strat to do and ready to go, launch
              (set! changes (list (command (ob-id ship) #f 'dock 'launch)))))
           (else
-           (define ne (nearest-enemy space mothership))
+           (define ne (nearest-enemy qt mothership spaceship?))
            (when (and ne
                       ((distance mothership ne) . < . (* 2 (ship-radar ship)))
                       (tool-online? d "nolaunch")
                       (= (ship-con ship) (ship-maxcon ship))
-                      (not (ship-behind? space mothership)))
+                      (not (ship-behind? qt mothership)))
              ; there's an enemy and we're ready to go - launch and attack
              (define returnstrat (strategy (space-time space) "return" (ob-id mothership)))
              (define attackstrat (strategy (space-time space) "attack" (ob-id ne)))
@@ -221,7 +227,7 @@
   (define origc (if st (tool-rc st) #f))
   (define basec (or origc (obj-r ownship)))
   
-  ; only worry about ships
+  ; only worry about ships that are close to us
   (define ships (filter (lambda (o)
                           (and (spaceship? o)
                                (not (= (ob-id ownship) (ob-id o)))))

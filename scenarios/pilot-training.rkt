@@ -63,7 +63,7 @@
     (set-ship-tools! s (append (list (tool-regen 1.0)) (ship-tools s)))
     s)
   
-  (define (on-tick space change-scenario!)
+  (define (on-tick space qt change-scenario!)
     (define changes '())
     (for ((p (space-players space)))
       (define s (find-id space space (lambda (o) (and (ship? o) (equal? (ship-faction o) (player-faction p))))))

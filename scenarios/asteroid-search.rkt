@@ -6,6 +6,7 @@
 
 (require "../defs.rkt"
          "../utils.rkt"
+         "../quadtree.rkt"
          "../ships.rkt"
          "../order.rkt"
          "../upgrade.rkt")
@@ -13,7 +14,7 @@
 (provide (all-defined-out))
 
 (define (asteroid-search-scenario oldspace oldtick oldmessage)
-  (define ai? #f)
+  
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "Empire"))
 
@@ -28,13 +29,13 @@
   (define-values (rx ry rw rh) (send r get-bounding-box))
 
   (define asteroids '())
-  (define sep 500.0)
+  (define sep 450.0)
   (define sep/2 (/ sep 2))
   (define dd 10.0)
   (for* ((x (in-range (+ rx sep/2) rw sep))
          (y (in-range (+ ry sep/2) rh sep))
          #:when (send r in-region? x y))
-    (define diam (round (exp (exp (random-between (log (log 25.0)) (log (log 300.0)))))))
+    (define diam (round (exp (exp (random-between (log (log 25.0)) (log (log 200.0)))))))
     (define xd (random-between (* sep -0.5) (* sep 0.5)))
     (define yd (random-between (* sep -0.5) (* sep 0.5)))
     (define dx (random-between (- dd) dd))
@@ -106,7 +107,7 @@
 
   ; the bad guys
   (define (new-blue-fighter)
-    (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:ai? ai?))
+    (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:ai? #t))
     (set-obj-posvel! s #f)
     s)
 
@@ -146,7 +147,7 @@
   (set-space-orders-for! real-orders "Empire" orders)
   
   ; return a list of changes
-  (define (on-tick ownspace change-scenario!)
+  (define (on-tick ownspace qt change-scenario!)
     (define changes '())
 
     (define frig (find-id ownspace ownspace (ob-id goodship)))
@@ -198,7 +199,7 @@
             #:when (and (obj-alive? s)
                         (or (spaceship? s) (probe? s))
                         (equal? "Empire" (ship-faction s)))
-            (a (space-objects ownspace))
+            (a (qt-retrieve qt (obj-x s) (obj-y s) (ship-radar s)))
             #:when (and (obj-alive? a)
                         (spaceship? a)
                         ((distance s a) . < . (ship-radar s))

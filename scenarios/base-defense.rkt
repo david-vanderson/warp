@@ -124,7 +124,7 @@
   (define playing? #t)
   
   ; return a list of changes
-  (define (on-tick ownspace change-scenario!)
+  (define (on-tick ownspace qt change-scenario!)
     (define changes '())
 
     (define hb (find-id ownspace ownspace (ob-id base)))

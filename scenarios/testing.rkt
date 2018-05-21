@@ -26,40 +26,47 @@
                                          (x (in-range -1000 1000 100)))
                                 (make-ship name name "Rebel" #:x x #:start-ship? #t))))
 
-  (define (new-blue-fighter (x 0) (y 0))
-    (define s (make-ship "blue-fighter" "a" "a" #:ai? #t #:x x #:y y))
+  (define (new-blue-fighter (x 0) (y 0) (r pi/2))
+    (define s (make-ship "blue-fighter" "a" "a" #:ai? #f #:x x #:y y #:r r))
     (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
-                              ;con maxcon radius mass radar drag start-ship?
-                              500.0 500.0 6.0 20.0 300.0 0.4 #t))
+                              ;con maxcon mass radar drag start-ship?
+                              1000.0 1000.0 20.0 300.0 0.4 #t))
     (set-ship-tools!
      s (append (tools-pilot 50.0 #f 1.5)
-               (list ;(tool-missile 5.0 10.0)
-                     (tool-pbolt 5.0))))
+               (list (tool-missile 5.0 10.0)
+                     (tool-warp 200.0 8.0)
+                     #;(tool-pbolt 5.0))))
     s)
   
   (define (new-red-fighter (x 0) (y 0))
     (define s (make-ship "red-fighter" "a" "a" #:ai? #t #:x x #:y y))
     (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
-                              ;con maxcon radius mass radar drag start
-                              500.0 500.0 6.0 20.0 300.0 0.4 #f))
+                              ;con maxcon mass radar drag start
+                              500.0 500.0 20.0 300.0 0.4 #f))
     (set-ship-tools!
-     s (append (tools-pilot 50.0 #f 1.5)
-               (list ;(tool-missile 5.0 10.0)
-                     (tool-pbolt 5.0))))
+     s (append ;(tools-pilot 50.0 #f 1.5)
+               (list (tool-missile 5.0 10.0)
+                     #;(tool-pbolt 5.0))))
     s)
 
   (define bf (for/list ((i 50)) (new-blue-fighter (* 50 i) 50)))
   (define rf (for/list ((i 50)) (new-red-fighter  (* 50 i) 150)))
+
+  (define b1 (make-ship "blue-station" "b1" "a" #:x 75 #:y 100 #:ai? #f #:hangar '()))
+  (define b2 (make-ship "blue-station" "b2" "a" #:x 125 #:y 100 #:ai? #f #:hangar '()))
   
   (set-space-objects! ownspace
-                      (append (list (new-blue-fighter))
-                       ;(list (new-blue-fighter) (new-red-fighter 100 100))
+                      (append ;(list (new-blue-fighter))
+                       (list (new-blue-fighter 100 0)
+                             b1 b2
+                             ;(new-red-fighter 0 0)
+                             )
                               (space-objects ownspace)))
   
   (define real-orders (space 0 0 0 0 '() '() '()))  ; only care about orders
   
   ; return a list of changes
-  (define (on-tick ownspace change-scenario!)
+  (define (on-tick ownspace qt change-scenario!)
     (define changes '())
 
     (for ((p (space-players ownspace)))
