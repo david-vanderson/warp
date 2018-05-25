@@ -2,6 +2,7 @@
 
 (require "defs.rkt"
          "utils.rkt"
+         "quadtree.rkt"
          "ships.rkt")
 
 (provide (all-defined-out))
@@ -16,29 +17,10 @@
   (when ((ship-con m) . <= . 0)
     (set-obj-alive?! m #f)
     
-;    (when (client?)
-;      (define e (effect (next-id) (space-time space) #t
-;                        (posvel (space-time space) (obj-x m) (obj-y m) 0.0 0.0 0.0 0.0)
-;                        10.0 500))
-;      (append! changes (chadd e #f)))
-    
     (when (server?)
       ; missile is detonating
       (define e (make-explosion space (obj-x m) (obj-y m) 2.0 20.0 50.0 50.0))
       (append! changes (chadd e #f))))
-;      (define basea (remain (* .001 (obj-age space m)) 2pi))
-;      (define num 8)
-;      (for ((i (in-range num)))
-;        (define r (* i (/ 2pi num)))
-;        (define a (angle-add basea r))
-;        (define p (plasma (next-id) (space-time space) #t
-;                          (posvel (space-time space)
-;                                  (obj-x m) (obj-y m) (obj-r m)
-;                                  (+ (* PLASMA_SPEED 0.8 (cos a)))
-;                                  (+ (* PLASMA_SPEED 0.8 (sin a)))
-;                                  0)
-;                          (/ (* 5.0 (ship-maxcon m)) num)))
-;        (append! changes (chadd p #f)))))
   changes)
 
 
@@ -75,6 +57,7 @@
        (define m (make-ship "missile" "Missile" (ship-faction ship)
                             #:ai? (not (player? (car stack)))
                             #:r a
+                            #:radar (ship-radar ship)
                             #:start-time (space-time space)
                             #:life (car (tool-val tool))
                             #:con (cadr (tool-val tool))))
@@ -96,8 +79,10 @@
 
 
 ; return a list of changes
-(define (missile-ai! space stack)
+(define (missile-ai! space qt stack)
   (define changes '())
+  (define (filterf? o)
+    (or (spaceship? o) (probe? o)))
   (define ownship (get-ship stack))
   (define t (ship-tool ownship 'missile))
   (define last-time (tool-rc t))
@@ -105,29 +90,31 @@
                  ((- (space-time space) last-time) . > . 5000.0))
              (ship-flying? ownship)
              (tool-online? t))
-    (for/first ((o (in-list (space-objects space)))
-                #:when (and (spaceship? o)
-                            ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)
-                            ((distance ownship o) . < . (ship-radar ownship))))
+    (define ne (nearest-enemy qt ownship filterf?))
+    (when ne
       ;(printf "firing\n")
       (set-tool-rc! t (space-time space))
       (define a (angle-frto (posvel-r (obj-posvel ownship))
-                            (theta ownship o)))
+                            (theta ownship ne)))
       (define side (if (a . > . 0) 'left 'right))
-      (append! changes (command (ob-id ownship) #f 'missile side))
-      ))
+      (append! changes (command (ob-id ownship) #f 'missile side))))
   changes)
 
 
-(define (missile-fitness space m)
+(define (missile-fitness space qt m)
   (define f 0.0)
-  
-  (for ((o (in-list (space-objects space)))
+
+  (for ((o (in-list (qt-retrieve qt (obj-x m) (obj-y m) (ship-radar m))))
         #:when (spaceship? o))
     (define d (distance o m))
-    (define maxd (+ (hit-distance o m) AI_TOO_CLOSE))
-    (when (d . < . maxd)
+    (when (d . <= . (ship-radar m))
       (define foe? ((faction-check (ship-faction m) (ship-faction o)) . < . 0))
-      (define z (- maxd d))  ; meters inside maxd
-      (set! f (+ f (* z z (if foe? 1.0 -1.0))))))
+      (when foe?
+        ; linearly incentivize flying towards enemies in general
+        (set! f (- f d)))
+      
+      (define maxd (+ (hit-distance o m) AI_HIT_CLOSE))
+      (when (d . < . maxd)
+        (define z (- maxd d))  ; meters inside maxd
+        (set! f (+ f (* z z (if foe? 1.0 -1.0)))))))
   f)

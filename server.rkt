@@ -399,6 +399,7 @@
   (define updates '())
   
   (define stacks (search space space ai-ship? #t))
+  (define delay 0)
 
   ; if we haven't seen this ship before, set ai runtime to 0
   (for ((s (in-list stacks)))
@@ -407,8 +408,10 @@
     (when (equal? #t (ship-ai? ship))
       (set-ship-ai?! ship 0))
     
-    (when ((- (space-time space) (ship-ai? ship)) . > . (ship-ai-freq ship))
-      (set-ship-ai?! ship (space-time space))  ; set runtime
+    (when (and (obj-alive? ship)
+               ((- (space-time space) (ship-ai? ship)) . > . (ship-ai-freq ship)))
+      (set-ship-ai?! ship (+ (space-time space) delay))  ; set runtime
+      (set! delay (+ TICK delay))  ; push ais away from running in the same tick
 
       ;(printf "running ai for ship ~a\n" (ship-name ship))
       
@@ -417,18 +420,18 @@
         (when (not (missile? ship))
           (append! changes (pilot-ai-strategy! space qt s)))
         (when (ship-flying? (get-ship s))
-          (append! changes (pilot-ai-fly! space s))))
+          (append! changes (pilot-ai-fly! space qt s))))
 
       (when (ship-tool ship 'pbolt)
-        (append! changes (pbolt-ai! space qt s)))
+        (append! changes (pbolt-ai! qt s)))
 
       (when (ship-tool ship 'cannon)
-        (append! changes (cannon-ai! space s)))
+        (append! changes (cannon-ai! qt s)))
       (when (cannonball? ship)
-        (append! changes (cannonball-ai! space s)))
+        (append! changes (cannonball-ai! qt s)))
 
       (when (ship-tool ship 'missile)
-        (append! changes (missile-ai! space s)))
+        (append! changes (missile-ai! space qt s)))
       )
 
     ; if the ai does something that adds to space-objects (like launching)
@@ -436,6 +439,8 @@
     (define (addf o)
       (add-all! qt (list o)))
     (append! updates (apply-all-changes! ownspace changes "server" addf)))
+
+  ;(printf "ran ~a ai\n" (/ delay TICK))
   
   updates)
 
@@ -632,9 +637,9 @@
     ; run-ai! returns already-applied changes
     (append! updates (run-ai! ownspace qt))
     )
-    (outputtime "server"
-                 (space-time ownspace)
-                 time-ai)
+    ;(outputtime "server"
+    ;             (space-time ownspace)
+    ;             time-ai)
 
     ; cull dead
     (set-space-objects! ownspace (filter obj-alive? (space-objects ownspace)))

@@ -56,7 +56,7 @@
   (or (spaceship? o) (missile? o) (probe? o) (cannonball? o)))
 
 ; return a list of changes
-(define (pbolt-ai! space qt stack)
+(define (pbolt-ai! qt stack)
   (define changes '())
   (define ownship (get-ship stack))
   (define pb (ship-tool ownship 'pbolt))
@@ -64,7 +64,7 @@
   (when (and (ship-flying? ownship)
              (tool-online? pb))
     (define ne (nearest-enemy qt ownship filterf?))
-    (when ne
+    (when (and ne ((distance ownship ne) . < . 300.0))
       (define r (theta ownship ne))
       (define xy (obj -1 -1 #t (posvel -1
                                        (+ (obj-x ownship) (* d (cos r)))

@@ -4,11 +4,12 @@
 
 (require "defs.rkt"
          "utils.rkt"
+         "quadtree.rkt"
          "ships.rkt")
 
 (provide (all-defined-out))
 
-(define CANNON_MAX_SPEED 75.0)
+(define CANNON_SPEED 75.0)
 
 
 ; return list of changes
@@ -80,10 +81,11 @@
        (define b (make-ship "cannonball" "Cannonball" (ship-faction ship)
                             #:ai? (not (player? (car stack)))
                             #:r a
+                            #:radar (ship-radar ship)
                             #:start-time (space-time space)
                             #:life (tool-val tool)))
        (define d (+ (ship-radius ship) (ship-radius b) 0.1))
-       (define speed CANNON_MAX_SPEED)
+       (define speed CANNON_SPEED)
        (set-obj-posvel! b (posvel (space-time space)
                                   (+ (obj-x ship) (* d (cos a)))
                                   (+ (obj-y ship) (* d (sin a)))
@@ -100,19 +102,18 @@
 
 
 ; return a list of changes
-(define (cannon-ai! space stack)
+(define (cannon-ai! qt stack)
   (define changes '())
   (define ownship (get-ship stack))
   (define c (ship-tool ownship 'cannon))
   (when (and (ship-flying? ownship)
              (tool-online? c))
     (let/ec done
-      (for ((o (in-list (space-objects space)))
+      (for ((o (in-list (qt-retrieve qt (obj-x ownship) (obj-y ownship) (ship-radar ownship))))
             #:when (and (or (spaceship? o) (missile? o) (probe? o) (cannonball? o))
-                        ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)
-                        ((distance ownship o) . < . 600)))
-        
-        (define t (target-angle ownship ownship o o CANNON_MAX_SPEED))
+                        ((distance ownship o) . <= . (ship-radar ownship))
+                        ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)))
+        (define t (target-angle ownship ownship o o CANNON_SPEED))
         (when (and t ((abs (angle-frto (obj-r ownship) t)) . < . 0.1))
           (append! changes (list (command (ob-id ownship) #f 'cannon t)))
           (done)))))
@@ -120,15 +121,15 @@
 
 
 ; return a list of changes
-(define (cannonball-ai! space stack)
+(define (cannonball-ai! qt stack)
   (define changes '())
   (define ownship (get-ship stack))
   (when (and (ship-flying? ownship))
     (define any-closer?
-      (for/or ((o (in-list (space-objects space)))
+      (for/or ((o (in-list (qt-retrieve qt (obj-x ownship) (obj-y ownship) (ship-radar ownship))))
                #:when (and (or (spaceship? o) (missile? o) (probe? o))
-                           ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)
-                           ((distance ownship o) . < . 650)))
+                           ((distance ownship o) . <= . (ship-radar ownship))
+                           ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)))
         ; get our relative motion to target
         (define vx (- (obj-dx ownship) (obj-dx o)))
         (define vy (- (obj-dy ownship) (obj-dy o)))

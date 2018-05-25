@@ -5,6 +5,7 @@
 
 (require "defs.rkt"
          "utils.rkt"
+         "quadtree.rkt"
          "draw-utils.rkt"
          "draw.rkt"
          "missile.rkt"
@@ -12,28 +13,24 @@
 
 (provide (all-defined-out))
 
-
 ; return a number representing how good ship's position is
-(define (pilot-fitness space ship)
+(define (pilot-fitness space qt ship)
   (define f 0.0)
   (define strat (ship-strategy ship))
   
   ; reduce fitness for hitting ships
-  (for ((o (in-list (space-objects space))))
+  (for ((o (in-list (qt-retrieve qt (obj-x ship) (obj-y ship)
+                                 (+ (ship-radius ship) AI_HIT_CLOSE)))))
     (when (and (spaceship? o)
                (not (= (ob-id ship) (ob-id o)))
                (not (will-dock? o ship))
                (not (will-dock? ship o)))
       (define d (distance ship o))
       (define hd (hit-distance ship o))
-      (define maxd (+ hd AI_TOO_CLOSE))
+      (define maxd (+ hd AI_HIT_CLOSE))
       (when (d . < . maxd)
         (define z (- maxd d))  ; meters inside maxd
-        (set! f (- f (* z z)))
-        (define ad (abs (angle-frto (posvel-r (obj-posvel ship)) (theta ship o))))
-        (define az (min 90.0 (* 360.0 (/ ad pi))))
-        (set! f (+ f (* az az)))
-        )))
+        (set! f (- f (* z z))))))
   
   
   (case (and strat (strategy-name strat))
@@ -128,7 +125,7 @@
            ;(printf "new enemy\n")
            (define ns (strategy (space-time space) "attack" (ob-id ne)))
            (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))
-          ((or ((distance ship e) . > . (+ (hit-distance ship e) AI_TOO_FAR))
+          ((or ((distance ship e) . > . (+ (hit-distance ship e) AI_STRAT_TOO_FAR))
                ((current-strat-age space ship) . > . 10000))
            ; done retreating
            ;(printf "done retreating\n")
@@ -146,7 +143,7 @@
            ;(printf "new enemy\n")
            (define ns (strategy (space-time space) "attack" (ob-id ne)))
            (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))
-          ((and ((distance ship e) . < . (+ (hit-distance ship e) AI_TOO_CLOSE))
+          ((and ((distance ship e) . < . (+ (hit-distance ship e) AI_STRAT_TOO_CLOSE))
                 ((current-strat-age space ship) . > . 10000))
            ; too close, retreat
            ;(printf "too close\n")
@@ -201,91 +198,120 @@
   changes)
 
 
+(struct state (origf f origc c pv fitness) #:mutable #:prefab)
+
 ; return a list of changes
-(define (pilot-ai-fly! space stack)
+(define (pilot-ai-fly! space qt stack)
   (define changes '())
   
   (define ownship (get-ship stack))
   
   ; check if we need to change pilot-dock
-  (define dt (ship-tool ownship 'dock))
-  (when (and dt (tool-online? dt))
-    (define strat (ship-strategy ownship))
-    (when (and strat
-               (equal? "return" (strategy-name strat))
-               (not (tool-rc dt)))
-      (set! changes (append changes (list (command (ob-id ownship) #f 'dock #t)))))
-    (when (and strat
-               (not (equal? "return" (strategy-name strat)))
-               (tool-rc dt))
-      (set! changes (append changes (list (command (ob-id ownship) #f 'dock #f))))))
+;  (define dt (ship-tool ownship 'dock))
+;  (when (and dt (tool-online? dt))
+;    (define strat (ship-strategy ownship))
+;    (when (and strat
+;               (equal? "return" (strategy-name strat))
+;               (not (tool-rc dt)))
+;      (set! changes (append changes (list (command (ob-id ownship) #f 'dock #t)))))
+;    (when (and strat
+;               (not (equal? "return" (strategy-name strat)))
+;               (tool-rc dt))
+;      (set! changes (append changes (list (command (ob-id ownship) #f 'dock #f))))))
 
 
   (define st (ship-tool ownship 'steer))
   (define ft (ship-tool ownship 'engine))
   (define origf (if ft (tool-rc ft) #f))
   (define origc (if st (tool-rc st) #f))
-  (define basec (or origc (obj-r ownship)))
+  (define basec (obj-r ownship))
   
   ; only worry about ships that are close to us
   (define ships (filter (lambda (o)
                           (and (spaceship? o)
                                (not (= (ob-id ownship) (ob-id o)))))
-                        (space-objects space)))
+                        (qt-retrieve qt (obj-x ownship) (obj-y ownship) 500.0)))
+
+  (define predict-secs
+    (if (missile? ownship)
+        (inexact->exact (round (max 0 (- (tool-rc (ship-tool ownship 'endrc))
+                                         (/ (obj-age space ownship) 1000.0)))))
+        ;(inexact->exact (round (/ 250.0 (tool-val ft))))
+        8
+        ))
+
+  (define origpv (struct-copy posvel (obj-posvel ownship)))
   
-  ; search space around our original inputs
-  (define bestf origf)
-  (define flist
-    (if (missile? ownship) '(#t)
+  (define (newf)
+    (if (missile? ownship)
+        #t
         (if (and ft (tool-online? ft))
-                    (list origf (not origf))
-                    '(#f))))
-  (define bestc (tool-rc st))
-  (define clist (if (and st (tool-online? st))
-                    '(0 -10 10 -40 40 -100 100 -170 170)
-                    '(0)))
-  (define bestfit #f)
-  (for* ((f (in-list flist))
-         (c (in-list clist)))
-    (define origpv (struct-copy posvel (obj-posvel ownship)))
-    (when ft (set-tool-rc! ft f))
-    (when st (set-tool-rc! st (angle-add basec (degrees->radians c))))
-    (define maxfit -inf.0)
-    (define curfit 0.0)
-    
-    (define predict-secs
-      (if (missile? ownship)
-          (inexact->exact (round (max 0 (- (tool-rc (ship-tool ownship 'endrc))
-                                           (/ (obj-age space ownship) 1000.0)))))
-          (inexact->exact (round (/ 150 (tool-val ft))))))
-    (for ((i (in-range (* 2 predict-secs))))
-      (for ((s (in-list ships))) (physics! (obj-posvel s) 0.5))
+            (if ((random) . < . 0.1) #f #t)
+            #f)))
+  (define (newc)
+    (if (and st (tool-online? st))
+        (random-between 0.0 2pi)
+        0))
+
+  (define (perturb-state! s (initial? #f))
+    (set-state-f! s (newf))
+    (when initial? (set-state-origf! s (state-f s)))
+    (set-state-c! s (angle-add (state-c s) (newc)))
+    (when initial? (set-state-origc! s (state-c s))))
+
+  (define states
+    (for/list ((i 16))
+      (state origf origf basec basec (struct-copy posvel origpv) 0.0)))
+
+  (for ((i (in-range predict-secs)))
+    (for ((s (in-list ships))) (physics! (obj-posvel s) 1.0))
+
+    ;(printf "states is now ~v\n" states)
+    (for ((s (in-list states))
+          (k (in-naturals)))
+      ; randomly pick what to do next in this state
+      ; but keep the first state as "what if we don't change anything?"
+      (when (k . > . 0)
+        (perturb-state! s (= i 0)))
+      ; put state into ownship
+      (set-obj-posvel! ownship (state-pv s))
+      (when ft (set-tool-rc! ft (state-f s)))
+      (when st (set-tool-rc! st (state-c s)))
+      ; time update ownship
       (for ((z (in-range 5)))
-        (update-physics! space ownship 0.1))
-      (define f ((if (missile? ownship) missile-fitness pilot-fitness) space ownship))
-      (set! curfit (+ curfit f))
-      (set! maxfit (max maxfit (/ curfit (add1 i)))))
-    
-    (for ((s (in-list ships))) (physics! (obj-posvel s) (- predict-secs)))
-    (set-obj-posvel! ownship origpv)
-    
-    ;(printf "fit ~a ~a ~a\n" maxfit f c)
-    
-    (when (or (not bestfit)  ; first pass
-              (maxfit . > . (+ bestfit 1.0)))  ; need at least 1 more point to be better
-      ;(printf "better fit ~a ~a ~a\n" maxfit f c)
-      (set! bestfit maxfit)
-      (set! bestf f)
-      (set! bestc (tool-rc st))))
+        (update-physics! space ownship 0.2))
+      ; calculate fitness
+      (define f
+        ((if (missile? ownship) missile-fitness pilot-fitness) space qt ownship))
+      (set-state-fitness! s (+ (state-fitness s) f))))
+      
+  (define bestfit #f)
+  (define bestf #f)
+  (define bestc #f)
+  (for ((s (in-list states)))
+    (append! changes (chadd (effect (next-id) (space-time space) #t
+                                    (struct-copy posvel (state-pv s) [dx 0.0] [dy 0.0])
+                                    1.0 1000) #f))
+    ;(printf "state ~v\n" s)
+    (when (or (not bestfit)
+              ((state-fitness s) . > . (+ bestfit 1.0)))
+      (set! bestfit (state-fitness s))
+      (set! bestf (state-origf s))
+      (set! bestc (state-origc s))))
+
+  ;(printf "\n\n")
+  
+  (for ((s (in-list ships))) (physics! (obj-posvel s) (- predict-secs)))
+  (set-obj-posvel! ownship origpv)
 
   (when ft
     (set-tool-rc! ft origf)
     (when (and (not (equal? origf bestf)) (tool-online? ft))
-      (set! changes (append changes (list (command (ob-id ownship) #f 'engine bestf))))))
+      (append! changes (command (ob-id ownship) #f 'engine bestf))))
   (when st
     (set-tool-rc! st origc)
     (when (and (not (equal? origc bestc)) (tool-online? st))
-      (set! changes (append changes (list (command (ob-id ownship) #f 'steer bestc))))))
+      (append! changes (command (ob-id ownship) #f 'steer bestc))))
   
   changes)
 

@@ -207,7 +207,9 @@
       ; put a black circle wherever we can see
       (define fowlist
         (for/list ((s (in-list (space-objects ownspace)))
-                   #:when (and fac (ship? s)
+                   #:when (and fac
+                               (or (spaceship? s)
+                                   (probe? s))
                                ((faction-check fac (ship-faction s)) . > . 0)))
           (list (obj-x s) (obj-y s) (ship-radar s))))
 
@@ -1003,15 +1005,8 @@
       (set! cmds (list cmds)))
     (when (and server-out-t ((length cmds) . > . 0))
       ;(printf "send-commands ~v\n" cmds)
-      (define ma (apply max 0 aheads))
-      (cond
-        ((ma . < . 1000)
-         (thread-send server-out-t (update (if ownspace (space-id ownspace) #f)
-                                           last-update-time cmds #f)))
-        (else
-         ; if the client is 1 second ahead of the server then something is wrong
-         ; - drop input until the server comes back
-         (printf "client dropping commands (ahead ~a)\n" ma)))))
+      (thread-send server-out-t (update (if ownspace (space-id ownspace) #f)
+                                        last-update-time cmds #f))))
   
 
   (define start-loop-time #f)

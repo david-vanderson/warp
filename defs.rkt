@@ -14,8 +14,9 @@
 (define TEXTH (if (equal? 'macosx (system-type)) 16.0 12.0))
 
 ; distance between ships (so add hit-distance)
-(define AI_TOO_CLOSE 75.0)
-(define AI_TOO_FAR 150.0)
+(define AI_HIT_CLOSE 50.0)
+(define AI_STRAT_TOO_CLOSE 100.0)
+(define AI_STRAT_TOO_FAR 200.0)
 
 (define 2pi (* 2 pi))
 (define pi/2 (* 0.5 pi))
