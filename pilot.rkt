@@ -16,6 +16,7 @@
 ; return a number representing how good ship's position is
 (define (pilot-fitness space qt ship)
   (define f 0.0)
+  (define live? #t)
   (define strat (ship-strategy ship))
   
   ; reduce fitness for hitting ships
@@ -59,12 +60,14 @@
      (when mship
        (define d (distance ship mship))
        (set! f (- f d))
+       (when (d . < . (hit-distance ship mship))
+         (set! live? #f))
 
        (define ad (abs (angle-frto (posvel-r (obj-posvel ship))
                                    (theta ship mship))))
        (set! f (+ f (* 360.0 (- 1.0 (/ ad pi))))))))
      
-  f)
+  (values f live?))
 
 
 ;; server
@@ -198,7 +201,7 @@
   changes)
 
 
-(struct state (origf f origc c pv fitness) #:mutable #:prefab)
+(struct state (origf f origc c pv fitness length live?) #:mutable #:prefab)
 
 ; return a list of changes
 (define (pilot-ai-fly! space qt stack)
@@ -261,14 +264,15 @@
 
   (define states
     (for/list ((i 16))
-      (state origf origf basec basec (struct-copy posvel origpv) 0.0)))
+      (state origf origf basec basec (struct-copy posvel origpv) 0.0 1 #t)))
 
   (for ((i (in-range predict-secs)))
     (for ((s (in-list ships))) (physics! (obj-posvel s) 1.0))
 
     ;(printf "states is now ~v\n" states)
     (for ((s (in-list states))
-          (k (in-naturals)))
+          (k (in-naturals))
+          #:when (state-live? s))
       ; randomly pick what to do next in this state
       ; but keep the first state as "what if we don't change anything?"
       (when (k . > . 0)
@@ -277,25 +281,30 @@
       (set-obj-posvel! ownship (state-pv s))
       (when ft (set-tool-rc! ft (state-f s)))
       (when st (set-tool-rc! st (state-c s)))
-      ; time update ownship
+      ; time update ownship      
       (for ((z (in-range 5)))
         (update-physics! space ownship 0.2))
       ; calculate fitness
-      (define f
+      (define-values (f live?)
         ((if (missile? ownship) missile-fitness pilot-fitness) space qt ownship))
-      (set-state-fitness! s (+ (state-fitness s) f))))
+
+      (set-state-fitness! s (+ (state-fitness s) f))
+      (set-state-live?! s live?)
+      (set-state-length! s (+ 1 (state-length s)))
+      ))
       
   (define bestfit #f)
   (define bestf #f)
   (define bestc #f)
   (for ((s (in-list states)))
-    (append! changes (chadd (effect (next-id) (space-time space) #t
-                                    (struct-copy posvel (state-pv s) [dx 0.0] [dy 0.0])
-                                    1.0 1000) #f))
+    ;(append! changes (chadd (effect (next-id) (space-time space) #t
+    ;                                (struct-copy posvel (state-pv s) [dx 0.0] [dy 0.0])
+    ;                                1.0 1000) #f))
     ;(printf "state ~v\n" s)
+    (define f (/ (state-fitness s) (state-length s)))
     (when (or (not bestfit)
-              ((state-fitness s) . > . (+ bestfit 1.0)))
-      (set! bestfit (state-fitness s))
+              (f . > . (+ bestfit 1.0)))
+      (set! bestfit f)
       (set! bestf (state-origf s))
       (set! bestc (state-origc s))))
 

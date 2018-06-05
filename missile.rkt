@@ -103,6 +103,7 @@
 
 (define (missile-fitness space qt m)
   (define f 0.0)
+  (define live? #t)
 
   (for ((o (in-list (qt-retrieve qt (obj-x m) (obj-y m) (ship-radar m))))
         #:when (spaceship? o))
@@ -112,9 +113,12 @@
       (when foe?
         ; linearly incentivize flying towards enemies in general
         (set! f (- f d)))
-      
-      (define maxd (+ (hit-distance o m) AI_HIT_CLOSE))
+
+      (define hd (hit-distance o m))
+      (define maxd (+ hd AI_HIT_CLOSE))
       (when (d . < . maxd)
         (define z (- maxd d))  ; meters inside maxd
-        (set! f (+ f (* z z (if foe? 1.0 -1.0)))))))
-  f)
+        (set! f (+ f (* z z (if foe? 1.0 -1.0))))
+        (when (d . < . hd)
+          (set! live? #f)))))
+  (values f live?))
