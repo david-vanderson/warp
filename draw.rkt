@@ -161,9 +161,30 @@
             spr)
            ((ship? o)
             (define spr '())
+            (define si (hash-ref ship-list (ship-type o)))
+            (define sym (ship-info-bm si))
+            (define eng (ship-tool o 'engine))
+            (cond
+              ((warping? o)
+               ; something
+               (void))
+              (eng
+               (define c (tool-count space eng o))
+               (define symlist (ship-info-engine-bms si))
+               (define i (min c (length symlist)))
+               (when (i . > . 0)
+                 (define syms (list-ref symlist (- i 1)))
+                 (define k (remainder (quotient (obj-age space o) 100) (length syms)))
+                 (set! sym (string->symbol (string-append (symbol->string sym)
+                                                          "-e"
+                                                          (number->string i)
+                                                          (number->string (+ k 1))))))))
+
+            
             (prepend! spr (obj-sprite o csd center scale LAYER_SHIPS
-                                      (string->symbol (ship-type o))
-                                      (ship-sprite-size o)
+                                      sym
+                                      (/ (ship-sprite-size o)
+                                         (sprite-size csd (ship-info-bm si)))
                                       fowa (obj-r o) (make-color (get-red space o) 0 0 1.0)))
             
             ;(prepend! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))

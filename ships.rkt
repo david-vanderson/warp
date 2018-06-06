@@ -10,44 +10,80 @@
 
 (provide (all-defined-out))
 
-(struct ship-info (file size bm) #:mutable #:prefab)
+(struct ship-info (filename size bm engine-bms) #:mutable #:prefab)
 
 (define ship-list
-  (hash "spacesuit" (ship-info "spacesuit" #f #f)
-        "probe" (ship-info "probe" #f #f)
-        "missile" (ship-info "missile" 10.0 #f)
-        "cannonball" (ship-info "asteroid_43" 10.0 #f)
-        "asteroid_87" (ship-info "asteroid_87" #f #f)
-        "asteroid_43" (ship-info "asteroid_43" #f #f)
-        "blue-station" (ship-info "blue-station" #f #f)
-        "red-station" (ship-info "red-station" #f #f)
-        "blue-frigate" (ship-info "blue-frigate" #f #f)
-        "red-frigate" (ship-info "red-frigate" #f #f)
-        "blue-fighter" (ship-info "blue-fighter" #f #f)
-        "red-fighter" (ship-info "red-fighter" #f #f)
-        "red-destroyer" (ship-info "red-destroyer" #f #f)
-        "blue-cruiser" (ship-info "blue-cruiser" #f #f)
+  (for/hash ((name '("spacesuit" 
+                     "probe"
+                     "missile"
+                     "cannonball"
+                     "asteroid_87"
+                     "asteroid_43"
+                     "blue-station"
+                     "red-station"
+                     "blue-frigate"
+                     "red-frigate"
+                     "blue-fighter"
+                     "red-fighter"
+                     "red-destroyer"
+                     "blue-cruiser"
+                     "blue-frigate1"
         
-        ;"missile1" (ship-info "missile1" 16.0 #f)
-        ;"missile2" (ship-info "missile2" #f #f)
-        ;"missile3" (ship-info "missile3" #f #f)
-        ;"probe1" (ship-info "probe1" #f #f)
-        ;"probe2a" (ship-info "probe2a" #f #f)
-        ;"probe2b" (ship-info "probe2b" #f #f)
-        ;"probe3" (ship-info "probe3" #f #f)
-    ))
+                     ;"missile1" (ship-info "missile1" 16.0 #f)
+                     ;"missile2" (ship-info "missile2" #f #f)
+                     ;"missile3" (ship-info "missile3" #f #f)
+                     ;"probe1" (ship-info "probe1" #f #f)
+                     ;"probe2a" (ship-info "probe2a" #f #f)
+                     ;"probe2b" (ship-info "probe2b" #f #f)
+                     ;"probe3" (ship-info "probe3" #f #f)
+                     )))
+    (define size #f)
+    (define filename name)
+    (cond
+      ((equal? name "missile")
+       (set! size 10.0))
+      ((equal? name "cannonball")
+       (set! filename "asteroid_43")
+       (set! size 10.0)))
+    (values name (ship-info filename size #f '()))))
 
+(define (engine-filename base i k (ext ".png"))
+  (string-append base "-e" (number->string i) (number->string k) ext))
 
 (for (((name si) (in-hash ship-list)))
-  (define bm (read-bitmap (string-append "images/" (ship-info-file si) ".png")
-                          'png/alpha))
+  (define basename (string-append "images/" (ship-info-filename si)))
+  (define bm (read-bitmap (string-append basename ".png") 'png/alpha))
   (set-ship-info-bm! si bm)
   (when (not (ship-info-size si))
-    (set-ship-info-size! si (max (send bm get-width) (send bm get-height)))))
+    (set-ship-info-size! si (max (send bm get-width) (send bm get-height))))
+  (for ((i (in-naturals 1)))
+    #:break (not (file-exists? (engine-filename basename i 1)))
+    (set-ship-info-engine-bms! si
+                               (append (ship-info-engine-bms si) (list (list))))
+    (for ((k (in-naturals 1)))
+      (define filename (engine-filename basename i k))
+      #:break (not (file-exists? filename))
+      (define bm (read-bitmap filename 'png/alpha))
+      (set-ship-info-engine-bms! si
+        (for/list ((bms (ship-info-engine-bms si))
+                   (z (in-naturals 1)))
+          (if (equal? i z)
+              (append bms (list bm))
+              bms))))))
 
 (define (load-ships sd)
   (for (((name si) (in-hash ship-list)))
-    (add-sprite!/value sd (string->symbol (ship-info-file si)) (ship-info-bm si))))
+    (define sym (string->symbol name))
+    (add-sprite!/value sd sym (ship-info-bm si))
+    (set-ship-info-bm! si sym)
+    (set-ship-info-engine-bms! si
+      (for/list ((engine-bms (ship-info-engine-bms si))
+                 (i (in-naturals 1)))
+        (for/list ((bm engine-bms)
+                   (k (in-naturals 1)))
+          (define sym (string->symbol (engine-filename name i k "")))
+          (add-sprite!/value sd sym bm)
+          sym)))))
 
 
 (define (make-spacesuit name ship)

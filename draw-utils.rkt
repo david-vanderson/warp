@@ -47,15 +47,17 @@
       (round x)
       (- (round (+ x 0.5)) 0.5)))
 
+(define (sprite-size csd sym)
+  (define w (sprite-width csd (sprite-idx csd sym)))
+  (define h (sprite-height csd (sprite-idx csd sym)))
+  (max w h))
+
 (define (xy-sprite x y csd scale layer sprsym size a r color)
   (when (string? color)
     (set! color (send the-color-database find-color color)))
-  (define w (sprite-width csd (sprite-idx csd sprsym)))
-  (define h (sprite-height csd (sprite-idx csd sprsym)))
-  (define sprite-size (max w h))
   (sprite x y (sprite-idx csd sprsym)
           #:layer layer #:a (exact->inexact a) #:theta (exact->inexact (- r))
-          #:m (exact->inexact (/ (* size scale) sprite-size))
+          #:m (exact->inexact (* scale size))
           #:r (send color red) #:g (send color green) #:b (send color blue)))
 
 (define (obj-sprite o csd center scale layer sprsym size a r color)

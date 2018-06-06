@@ -239,7 +239,7 @@
                    (define col (if highlight? bright dim))
                    (prepend! sprites
                              (obj-sprite a csd center (get-scale) LAYER_MAP 'circle-outline
-                                         (* 2.0 (ann-circle-radius a))
+                                         (/ (* 2.0 (ann-circle-radius a)) 104)
                                          (send col alpha) 0.0 col))
                    (define-values (x y) (obj->screen a center (get-scale)))
                    (prepend! sprites (textr (ann-txt a)
@@ -254,8 +254,8 @@
                      (define col (if highlight? bright dim))
                      (prepend! sprites (obj-sprite s csd center (get-scale)
                                                    LAYER_MAP 'target
-                                                   (max (/ 35.0 (get-scale))
-                                                        (* 4.0 (ship-radius s)))
+                                                   (max (/ 35.0 110 (get-scale))
+                                                        (/ (* 4.0 (ship-radius s)) 110))
                                                    (send col alpha) 0.0 col))))
                   (else
                    (error "don't know how to draw annotation ~v" a))))))))
@@ -356,7 +356,7 @@
            ; draw black circle on top of topship
            (prepend! sprites (obj-sprite topship csd center (get-scale)
                                          LAYER_EFFECTS 'circle
-                                         (* 2.2 (ship-radius topship))
+                                         (/ (* 2.2 (ship-radius topship)) 100)
                                          0.9 0.0 "black"))
            ; draw our ship inside black circle
            (define-values (x y) (obj->screen topship center (get-scale)))
@@ -447,7 +447,7 @@
               (define color (if (ord-done? ot) "green" "red"))
               (prepend! sprites (xy-sprite (+ lefte (* 10 depth) 5) (+ tope (* 20 line) 10)
                                            csd (get-scale) LAYER_UI 'circle
-                                           (/ 5.0 (get-scale))
+                                           (/ 0.05 (get-scale))
                                            1.0 0.0 color)))
             (define color (if highlight? "white" "gray"))
             (define txt (ord-text ot))
@@ -669,7 +669,7 @@
               #:when (ship? o))
           (prepend! sprites
                     (obj-sprite o csd center (get-scale) LAYER_UI_TEXT 'circle
-                                (/ 7.0 (get-scale)) 1.0 0.0 "pink"))))
+                                (/ 7.0 100 (get-scale)) 1.0 0.0 "pink"))))
       )
       ) ; when ownspace
 

@@ -70,11 +70,13 @@
          (define agep (linear-fade (obj-age space e) 0 (effect-duration e)))
          (define col (linear-color "yellow" "yellow" 0 agep))
          (define rad (* (+ 1.0 (- 1.0 agep)) (effect-size e)))
-         (obj-sprite e csd center scale layer_effects 'circle (* 2.0 rad) (* fowa agep) 0 col))))
+         (obj-sprite e csd center scale layer_effects 'circle
+                     (/ (* 2.0 rad) 100) (* fowa agep) 0 col))))
 
 
 (define (draw-backeffect csd center scale space e fowa)
   (define z (linear-fade (obj-age space e) 0.0 (effect-duration e)))
   (define col (linear-color "white" "red" (- 1.0 z) z))
-  (obj-sprite e csd center scale LAYER_MAP 'circle 3.0 (* fowa z) 0 col))
+  (obj-sprite e csd center scale LAYER_MAP 'circle
+              (/ 3.0 100) (* fowa z) 0 col))
 

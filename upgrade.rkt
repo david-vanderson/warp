@@ -28,7 +28,8 @@
     ))
 
 (define (draw-upgrade csd center scale space u fowa)
-  (obj-sprite u csd center scale LAYER_SHIPS 'circle (* 2.0 (upgrade-radius space u)) fowa 0.0 (upgrade-color u)))
+  (obj-sprite u csd center scale LAYER_SHIPS 'circle
+              (/ (* 2.0 (upgrade-radius space u)) 100) fowa 0.0 (upgrade-color u)))
 
 (define types '("engines" "turning" "hull" "radar"))
 
