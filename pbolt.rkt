@@ -70,7 +70,9 @@
                                        (+ (obj-x ownship) (* d (cos r)))
                                        (+ (obj-y ownship) (* d (sin r)))
                                        0 0 0 0)))
-      (define t (target-angle xy ownship ne ne PLASMA_SPEED))
+      (define t (target-angle xy ownship ne ne
+                              PLASMA_SPEED (+ (/ PLASMA_LIFE 1000.0)
+                                              (/ (tool-val pb) PLASMA_FADE))))
       (when t
         (append! changes (list (command (ob-id ownship) #f 'pbolt (list r t 1.0)))))))
   changes)

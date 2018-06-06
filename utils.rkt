@@ -413,7 +413,7 @@
   ns)
 
 
-(define (target-angle source-pos source-vel target-pos target-vel shot-speed)
+(define (target-angle source-pos source-vel target-pos target-vel shot-speed shot-life-secs)
   ; relative velocity
   (define vx (- (if target-vel (posvel-dx (obj-posvel target-vel)) 0)
                 (if source-vel (posvel-dx (obj-posvel source-vel)) 0)))
@@ -426,9 +426,32 @@
      ; nobody's moving, so shoot directly at them
      (set! t st-r))
     (else
-     (define v-r (atan vy vx))
+     ; use law of sines
+     ; v-l and shot-speed are the lengths of the sides
      (define v-l (sqrt (+ (* vx vx) (* vy vy))))
-     (define sin-aim (* (sin (angle-frto st-r v-r)) (/ v-l shot-speed)))
-     (when (< -1 sin-aim 1)
-       (set! t (angle-add st-r (asin sin-aim))))))
+
+     ; this is angle opposite shot-speed
+     ; between side connecting ships and enemy velocity
+     (define v-r (atan vy vx))
+     
+     ; should be sin(pi - x) but that's equal to sin(x)
+     (define rel-angle (angle-frto v-r st-r))
+     (define sin-aim (* (sin rel-angle)
+                        (/ v-l shot-speed)))
+     (when (<= -1 sin-aim 1)
+       (define maybe-t (angle-add st-r (- (asin sin-aim))))
+
+       ; answer could be going backwards in time
+       (define secs #f)
+       (define dx (- (* shot-speed (cos maybe-t)) vx))
+       (cond
+         ((not (= dx 0))
+          (set! secs (/ (- (obj-x target-pos) (obj-x source-pos)) dx)))
+         (else
+          (define dy (- (* shot-speed (sin maybe-t)) vy))
+          (when (not (= dy 0))
+            (set! secs (/ (- (obj-y target-pos) (obj-y source-pos)) dy)))))
+
+       (when (and secs (< 0 secs shot-life-secs))
+         (set! t maybe-t)))))
   t)

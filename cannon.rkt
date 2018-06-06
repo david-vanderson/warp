@@ -113,7 +113,7 @@
             #:when (and (or (spaceship? o) (missile? o) (probe? o) (cannonball? o))
                         ((distance ownship o) . <= . (ship-radar ownship))
                         ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)))
-        (define t (target-angle ownship ownship o o CANNON_SPEED))
+        (define t (target-angle ownship ownship o o CANNON_SPEED 30.0))
         (when (and t ((abs (angle-frto (obj-r ownship) t)) . < . 0.1))
           (append! changes (list (command (ob-id ownship) #f 'cannon t)))
           (done)))))
