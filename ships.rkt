@@ -27,7 +27,6 @@
                      "red-fighter"
                      "red-destroyer"
                      "blue-cruiser"
-                     "blue-frigate1"
         
                      ;"missile1" (ship-info "missile1" 16.0 #f)
                      ;"missile2" (ship-info "missile2" #f #f)
