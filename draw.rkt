@@ -171,14 +171,17 @@
               (eng
                (define c (tool-count space eng o))
                (define symlist (ship-info-engine-bms si))
-               (define i (min c (length symlist)))
-               (when (i . > . 0)
-                 (define syms (list-ref symlist (- i 1)))
-                 (define k (remainder (quotient (obj-age space o) 100) (length syms)))
-                 (set! sym (string->symbol (string-append (symbol->string sym)
-                                                          "-e"
-                                                          (number->string i)
-                                                          (number->string (+ k 1))))))))
+               (define len (length symlist))
+               (when (len . > . 0)
+                 (define i (min (+ c (remainder (debug-num) (+ 1 len)))
+                                len))
+                 (when (i . > . 0)
+                   (define syms (list-ref symlist (- i 1)))
+                   (define k (remainder (quotient (obj-age space o) 100) (length syms)))
+                   (set! sym (string->symbol (string-append (symbol->string sym)
+                                                            "-e"
+                                                            (number->string i)
+                                                            (number->string (+ k 1)))))))))
 
             
             (prepend! spr (obj-sprite o csd center scale LAYER_SHIPS

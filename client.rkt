@@ -828,6 +828,8 @@
              ((#\f)
               (when (send event get-control-down)
                 (send frame fullscreen (not (send frame is-fullscreened?)))))
+             ((#\0)
+              (debug-num (+ 1 (debug-num))))
              #;((#\d)
               (when ownspace
                 (define cmds '())

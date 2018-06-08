@@ -61,6 +61,8 @@
 ; - used to clear out held and pressed button states
 (define player-cleanup-client! (make-parameter (lambda () #f)))
 
+; debugging
+(define debug-num (make-parameter 0))
 
 ;; Game State
 
