@@ -52,6 +52,9 @@
   (define a (list-ref asteroids idx))
   (set! hidden-base-id (ob-id a))
   (set-ship-hangar! a '())
+  (set-ship-tools! a (list (tool-regen 1.0)
+                           (tool-pbolt 5.0)))
+  (set-ship-ai?! a #t)
 
   (define ownspace
     (space (next-id) 0 4000 4000 players '()
@@ -60,7 +63,7 @@
              ,(ann-text (next-id) 0 #t (posvel 0 -200 -100 0 0 0 0) #f
                         (string-append
                          "On mission to destroy a rebel outpost your engines have failed.\n"
-                         "Use probes to search the asteroid field for a hidden cache.\n"
+                         "Use probes to search the asteroid field for a hidden base.\n"
                          "Bring replacement parts back to the ship with fighters.\n"
                          "Once mobile again, destroy the outpost on the far side of the field.\n")
                         10000)
@@ -73,7 +76,7 @@
   ; the good guys in this scenario
   (define (new-red-fighter)
     (define s (make-ship "red-fighter" "Empire Fighter" "Empire"
-                         #:con 50.0))
+                         #:con 100.0))
     (define e (ship-tool s 'engine))
     (set-tool-val! e 55.0)
     (set-ship-tools! s (append (list (tool-regen 1.0)) (ship-tools s)))
@@ -106,11 +109,28 @@
   
 
   ; the bad guys
-  (define (new-blue-fighter)
-    (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:ai? #t))
+  (define (new-blue-fighter ownspace)
+    (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:ai? #t #:con 50.0))
     (set-obj-posvel! s #f)
+    (set-ship-ai-strategy! s (scout-strat ownspace))
     s)
 
+  (define (scout-strat ownspace)
+    (cond
+      (found-base?
+       (define hb (find-id ownspace ownspace hidden-base-id))
+       (list (strategy (space-time ownspace) "scout" hb)
+             (strategy (space-time ownspace) "return" (ob-id enemy-base))))
+      (else
+       (list (strategy (space-time ownspace) "scout" (obj -1 -1 #t
+                                                          (posvel -1 0.0 #;-1500.0 1500.0 500.0
+                                                                  0 0 0)))
+             #;(strategy (space-time ownspace) "scout" (obj -1 -1 #t
+                                                          (posvel -1 1500.0 -1500.0 500.0
+                                                                  0 0 0)))
+             (strategy (space-time ownspace) "return" (ob-id enemy-base))))))
+
+  
   (define enemy-base (make-ship "blue-station" "a" "a" #:x 1500.0 #:y 1500.0 #:ai? #t #:hangar '()))
   (set-ship-stats! enemy-base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
                                ;con maxcon mass radar drag start-ship?
@@ -125,14 +145,12 @@
                                        (list goodship enemy-base)))
 
   (define playing? #t)
-  (define time-limit (* 1000 60 15))  ; 15 min
   (define found-base? #f)
   (define dock-base? #f)
   (define parts-returned? #f)
   
   (define orders
-    (timeout "Within ~a" 0 time-limit
-             (ordercomb #f "" 'and
+    (ordercomb #f "" 'and
                (list (alive "Keep Frigate Alive" (ob-id goodship))
                      (ordercomb #f "" 'seq
                                 (list (order #f "Find Asteroid Base with Fighters" '()
@@ -141,10 +159,20 @@
                                              (lambda (s f o) dock-base?))
                                       (order #f "Return Parts to Frigate" '()
                                              (lambda (s f o) parts-returned?))
-                                      (kill "Destroy Enemy Outpost" (ob-id enemy-base))))))))
+                                      (kill "Destroy Enemy Outpost" (ob-id enemy-base)))))))
   
   (define real-orders (space 0 0 0 0 '() '() '()))  ; only care about orders
   (set-space-orders-for! real-orders "Empire" orders)
+
+  (define (end! win? txt)
+    (define changes '())
+    (set! playing? #f)  ; end scenario
+    (append! changes (chadd (ann-text (next-id) (space-time ownspace) #t
+                                      (posvel 0 -200 -100 0 0 0 0) #f
+                                      txt #f) #f))
+    ; add end scenario button
+    (append! changes (chadd (standard-quit-scenario-button) #f))
+    changes)
   
   ; return a list of changes
   (define (on-tick ownspace qt change-scenario!)
@@ -163,31 +191,35 @@
     (for ((fo (space-orders real-orders)))
       (check ownspace (car fo) (cadr fo)))
 
-    (when (and playing? (or (not frig) (not eb) ((space-time ownspace) . > . time-limit)))
-      (set! playing? #f)  ; end scenario
-      (define txt
-        (cond ((not frig)
-               "Frigate Destroyed, You Lose")
-              ((not eb)
-               "Enemy Outpost Destroyed, You Win!")
-              (else
-               "Ran Out of Time, You Lose")))
+    (when (and playing? (not frig))
+      (append! changes (end! #f "Cruiser Destroyed, You Lose")))
+
+    (when (and playing? (not eb))
+      (append! changes (end! #t "Enemy Outpost Destroyed, You Win!")))
+
+    (when (and found-base?
+               (not parts-returned?)
+               (not (find-id ownspace ownspace (ob-id parts))))
+      (append! changes (end! #f "Parts Lost, You Lose")))
       
-      (append! changes (chadd (ann-text (next-id) (space-time ownspace) #t
-                                        (posvel 0 -200 -100 0 0 0 0) #f
-                                        txt #f) #f))
-      ; add end scenario button
-      (append! changes (chadd (standard-quit-scenario-button) #f))
-      )
 
     (when playing?
       (when (time-for (space-time ownspace) 55000 0000)
-        (define m (message (next-id) (space-time ownspace) #t #f "New Fighter at Outpost"))
-        (define f (new-blue-fighter))
-        (set-ship-ai-strategy! f
-          (list (strategy (space-time ownspace) "attack*" (ob-id goodship))
-                (strategy (space-time ownspace) "return" (ob-id enemy-base))))
+        (define m (message (next-id) (space-time ownspace) #t #f "New Enemy Scout Detected"))
+        (define f (new-blue-fighter ownspace))
         (append! changes (chadd f (ob-id enemy-base)) m))
+
+      (when (not (find-id ownspace ownspace
+                          (lambda (o) (and (ship? o)
+                                           (equal? (ship-type o) "red-fighter")))))
+        (define f (new-red-fighter))
+        (append! changes (chadd f (ob-id frig))))
+
+      (for ((f (ship-hangar eb)))
+        (when (and (not (ship-strategy f))
+                   ((current-strat-age ownspace f) . > . 10000))
+          ; fighter has been docked without a strat, send them to scout again
+          (append! changes (new-strat (ob-id f) (scout-strat ownspace)))))
 
       (define hb (find-id ownspace ownspace hidden-base-id))
       
@@ -228,7 +260,7 @@
         (define p (find-stack ownspace gs (ob-id parts)))
         (when p
           (set! parts-returned? #t)
-          ; need to actually repair the engine somehow...
+          ; repair the engine
           (append! changes (chrm (ob-id parts))
                    (chrm enginedmgid) (chrm warpdmgid)
                    (message (next-id) (space-time ownspace) #t #f "Frigate Engine Repaired!"))))
