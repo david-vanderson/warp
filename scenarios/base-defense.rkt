@@ -22,7 +22,7 @@
                                        (string-append
                                         "Defend your base from the incoming destroyer.\n"
                                         "Use your cruiser to attack, dock on the station to repair.\n"
-                                        "Enemy frigates drop upgrades when killed.")
+                                        "Enemy cruisers drop upgrades when killed.")
                                        10000)
                             )))
   
@@ -49,9 +49,9 @@
     s)
   
   
-  (define cruiser (make-ship "blue-frigate1" "z" "z" #:x -1800 #:y -50 #:ai? #t
+  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50 #:ai? #t
                              #:hangar (list (new-blue-fighter))))
-  (set-ship-stats! cruiser (stats (next-id) "blue-frigate1" "Rebel Cruiser" "Rebel"
+  (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
                                   ;con maxcon mass radar drag start?
                                   200.0 200.0 100.0 500.0 0.4 #t))
   (set-ship-tools!
