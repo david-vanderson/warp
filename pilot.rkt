@@ -35,6 +35,10 @@
   
   
   (case (and strat (strategy-name strat))
+    (("scout")
+     (define o (strategy-arg strat))
+     (define d (distance ship o))
+     (set! f (- f d)))
     (("retreat")
      (define e (find-top-id space (strategy-arg strat)))
      (when e
@@ -108,6 +112,17 @@
            (when (and e (tool-online? e) (tool-rc e))
              (append! changes (command (ob-id ship) #f 'engine #f)))
            )))
+       (("scout")
+        (define o (strategy-arg strat))
+        (define d (distance ship o))
+        (cond
+          ((d . < . (obj-r o))
+           ; close enough, remove strat
+           (set! changes (list (new-strat (ob-id ship) (cdr strats)))))
+          (ne
+           ; attack takes precedence over scouting
+           (define ns (strategy (space-time space) "attack" (ob-id ne)))
+           (set! changes (list (new-strat (ob-id ship) (cons ns strats)))))))
        (("return")
         (define mothership (find-top-containing-id space (strategy-arg strat)))
         (cond

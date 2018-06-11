@@ -397,14 +397,14 @@
 
 
 (define (ship-behind? qt ship)
-  (define max-dist 75.0)
+  (define max-dist 50.0)
   (define max-ang pi/2)
   (define ns #f)
   
   (for ((o (in-list (qt-retrieve qt (obj-x ship) (obj-y ship) max-dist)))
         #:when (and (spaceship? o)
                     (not (= (ob-id ship) (ob-id o)))
-                    ((distance ship o) . < . max-dist)))
+                    ((distance ship o) . < . (+ (hit-distance ship o) max-dist))))
     
     (define a (angle-frto (angle-add pi (posvel-r (obj-posvel ship))) (theta ship o)))
     (when ((abs a) . < . max-ang)
