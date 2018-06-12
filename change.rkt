@@ -355,7 +355,6 @@
         (case (chstat-what c)
           ((ai)
            (set-ship-ai?! o (chstat-val c))
-           (printf "ship ~a turned off ai\n" (ship-name o))
            (values #t '()))
           ((toolval)
            (define t (ship-tool o (car (chstat-val c))))
@@ -364,6 +363,14 @@
                  (else
                   (printf "~a chstat - couldn't find tool ~v\n" c)
                   (values #f '()))))
+          ((overlay)
+           (define others (filter-not (lambda (ov)
+                                        (equal? (car ov) (car (chstat-val c))))
+                                      (ship-overlays o)))
+           (set-ship-overlays! o (if (cdr (chstat-val c))
+                                     (cons (chstat-val c) others)
+                                     others))
+           (values #t '()))
           (else
            (printf "~a chstat - didn't understand chstat-what ~v\n" c)
            (values #f '()))))

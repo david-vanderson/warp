@@ -6,6 +6,7 @@
   mode-lambda/static
   mode-lambda/text
   (prefix-in gl: mode-lambda/backend/gl)
+  pict
   "defs.rkt"
   "utils.rkt"
   "change.rkt"
@@ -196,6 +197,13 @@
       (define p (findfid meid (space-players ownspace)))
       (define fac (if p (player-faction p) #f))
       (define ordertree (get-space-orders-for ownspace fac))
+
+      (define myshipid #f)
+      (when my-stack
+        (define rcship (if (player-rcid p)
+                           (find-id ownspace ownspace (player-rcid p)) #f))
+        (define topship (or rcship (get-topship my-stack)))
+        (set! myshipid (ob-id topship)))
       
       ; make background be fog of war gray
       (prepend! sprites (sprite 0.0 0.0 (sprite-idx csd '100x100) #:layer LAYER_FOW_GRAY
@@ -268,7 +276,7 @@
             #:when (obj-alive? o))
         (define fowa (if (obj-posvel o) (get-alpha (obj-x o) (obj-y o) fowlist) 1.0))
         (when (fowa . > . 0)
-          (define spr (draw-object csd textr textsr center (get-scale) o ownspace meid
+          (define spr (draw-object csd textr textsr center (get-scale) o ownspace myshipid
                                  showtab fowa LAYER_EFFECTS fac))
           (prepend! sprites spr)))
       )
@@ -593,10 +601,6 @@
         (define player (car my-stack))
         (define rcship (if (player-rcid player)
                            (find-id ownspace ownspace (player-rcid player)) #f))
-
-        (when (not (unbox in-hangar?))
-          (define topship (or rcship (get-topship my-stack)))
-          (prepend! sprites (draw-green-corners topship csd center (get-scale))))
       
         (define ship (or rcship (get-ship my-stack)))
         
@@ -897,7 +901,6 @@
   
   (define sd (make-sprite-db))
   (let ()
-    (local-require pict)
     (add-sprite!/value sd 'button-normal
                        (inset (filled-rectangle 100 50 #:color "gray"
                                                 #:border-color "white" #:border-width 2) 1))
@@ -955,6 +958,21 @@
                                          (send dc draw-line 5 55 105 55)
                                          (send dc set-brush b))
                                        110 110)) "black"))
+    (add-sprite!/value sd 'overlay-qm
+                       (text "?" '(bold) 24))
+    (add-sprite!/value sd 'overlay-cargo
+                       (colorize (linewidth 2.5
+                                   (dc (lambda (dc dx dy)
+                                         (define b (send dc get-brush))
+                                         (send dc set-brush nocolor 'transparent)
+                                         (send dc draw-line 5 5 5 15)
+                                         (send dc draw-line 5 15 15 15)
+                                         (send dc draw-line 15 15 15 5)
+                                         (send dc draw-line 5 5 15 5)
+                                         (send dc draw-line 5 5 15 15)
+                                         (send dc draw-line 5 15 15 5)
+                                         (send dc set-brush b))
+                                       20 20)) "black"))
     )
   (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))
   (load-ships sd)

@@ -131,6 +131,7 @@
                 '()  ; tools
                 '()  ; players
                 in-hangar  ; hangar
+                '()  ; overlays
                 cargo
                 0.0  ; no dmgfx
                 ai?

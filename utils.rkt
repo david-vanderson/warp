@@ -113,6 +113,8 @@
   (cond
     ((struct? s)
      (apply make-prefab-struct (prefab-struct-key s) (map copy (struct->list s))))
+    ((cons? s)
+     (cons (copy (car s)) (copy (cdr s))))
     ((list? s)
      (map copy s))
     ((or (number? s)
@@ -141,12 +143,6 @@
         ((or (equal? "_neutral" my-faction)
              (equal? "_neutral" other-faction)) 0)
         (else -1)))
-
-(define (faction-check-color my-faction other-faction)
-  (define fc (faction-check my-faction other-faction))
-  (cond ((fc . > . 0) "blue")
-        ((fc . < . 0) "red")
-        (else "gray")))
 
 (define (strategy-age space s)
   (- (space-time space) (strategy-t s)))

@@ -29,13 +29,13 @@
 (define LAYER_FOW_BLACK 1)  ; paint black everywhere you can see
 (define LAYER_MAP 2)  ; map lines, annotations, stars, backeffects
 (define LAYER_SHIPS 3)  ; ships, plasmas, normal objects
-(define LAYER_EFFECTS 4)  ; explosions, damage dots
-(define LAYER_OVERLAY 5)  ; pod tool overlay
+(define LAYER_EFFECTS 4)  ; explosions
+(define LAYER_OVERLAY 5)  ; overlays
 ; when your ship is on another ship, or when inside a hangar:
 ; - normal effects are pushed down to LAYER_SHIPS
 ; - hangar or circular background on LAYER_EFFECTS
 ; - ships or hangar contents on LAYER_OVERLAY
-; - your ship's pod energy arcs/damage dots on LAYER_UI
+; - overlays on LAYER_UI
 (define LAYER_UI 6)
 (define LAYER_UI_TEXT 7)
 (define LAYER_NUM 8)
@@ -164,12 +164,13 @@
 ; drag is the coeffecient for how fast this ship slows down
 ; start is if you can start on this ship
 
-(struct ship obj (sprite-size radius stats tools playerids hangar cargo dmgfx ai? ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
+(struct ship obj (sprite-size radius stats tools playerids hangar overlays cargo dmgfx ai? ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
 ; sprite-size is how many meters wide the sprite should show as
 ; radius is how big your hit area is
 ; tools is a list of the systems available on this ship
 ; players is a list of the player ids on this ship
 ; hangar is list of ships in the hangar or #f if this ship has no hangar
+; overlays is an assoc list of (faction . symbol)
 ; cargo is stuff you're carrying
 ; dmgfx is size of dmgfx affecting this ship
 ; ai? is #t if the ship is ai when no players are aboard

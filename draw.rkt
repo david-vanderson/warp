@@ -107,7 +107,7 @@
         )))
   spr)
 
-(define (draw-object csd textr textsr center scale o space pid showplayers? fowa layer_effects faction)
+(define (draw-object csd textr textsr center scale o space myshipid showplayers? fowa layer-effects faction)
   (cond
     #;((ptsize . < . 0.25)  ; "sector" view - ships are triangles
      (cond ((ship? o)
@@ -151,7 +151,7 @@
            ((shield? o)
             (draw-shield csd center scale space o fowa))
            ((effect? o)
-            (draw-effect csd center scale space o fowa layer_effects))
+            (draw-effect csd center scale space o fowa layer-effects))
            ((upgrade? o)
             (define spr '())
             (prepend! spr (draw-upgrade csd center scale space o fowa))
@@ -189,15 +189,35 @@
                                       (/ (ship-sprite-size o)
                                          (sprite-size csd (ship-info-bm si)))
                                       fowa (obj-r o) (make-color (get-red space o) 0 0 1.0)))
+
+            (when showplayers?
+              (define overlay (assoc faction (ship-overlays o)))
+              (when overlay
+                (prepend! spr (obj-sprite o csd center scale LAYER_OVERLAY
+                                          (cdr overlay) (/ 1.0 scale)
+                                          fowa 0.0 (make-color 0 255 0 1.0))))
+
+              (when (not (equal? (ob-id o) myshipid))
+                (define fc (faction-check faction (ship-faction o)))
+                (define col
+                  (cond ((fc . > . 0) (make-color 0 0 200 fowa))
+                        ((fc . < . 0) (make-color 200 0 0 fowa))
+                        (else #f)))
+                (when col
+                  (prepend! spr (draw-corners o csd center scale col)))))
+
+            (when (equal? myshipid (ob-id o))
+              ; green corners for our ship
+              (prepend! spr (draw-corners o csd center scale (make-color 0 200 0 1.0))))
             
             ;(prepend! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
-            (when showplayers?
-              (define colstr (faction-check-color faction (ship-faction o)))
-              (define players (find-all space o player?))
-              ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
-              (prepend! spr (draw-cargolist csd textr textsr center scale o colstr fowa
-                                            (cons (ship-name o) (map upgrade-type (ship-cargo o)))
-                                            (map player-name players))))
+            ;(when showplayers?
+            ;  
+            ;  (define players (find-all space o player?))
+            ;  ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
+            ;  (prepend! spr (draw-cargolist csd textr textsr center scale o colstr fowa
+            ;                                (cons (ship-name o) (map upgrade-type (ship-cargo o)))
+            ;                                (map player-name players))))
             spr)))))
 
 
@@ -267,31 +287,39 @@
   spr)
 
 
-(define (draw-green-corners o csd center scale)
+(define (draw-corners o csd center scale color)
   (define sprites '())
   (define idx (sprite-idx csd '5x1))
   (define w 2.0)
   (define h 2.5)
   (define-values (x y) (obj->screen o center scale))
   (prepend! sprites (sprite (+ x 25 (- h)) (+ y 24)
-                            idx #:my w #:layer LAYER_UI #:g 200))
+                            idx #:my w #:layer LAYER_OVERLAY
+                            #:r (send color red) #:g (send color green) #:b (send color blue)))
   (prepend! sprites (sprite (+ x 24) (+ y 25 (- h))
-                            idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+                            idx #:my w #:theta pi/2 #:layer LAYER_OVERLAY
+                            #:r (send color red) #:g (send color green) #:b (send color blue)))
 
   (prepend! sprites (sprite (- x 25 (- h)) (+ y 24)
-                            idx #:my w #:layer LAYER_UI #:g 200))
+                            idx #:my w #:layer LAYER_OVERLAY
+                            #:r (send color red) #:g (send color green) #:b (send color blue)))
   (prepend! sprites (sprite (- x 24) (+ y 25 (- h))
-                            idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+                            idx #:my w #:theta pi/2 #:layer LAYER_OVERLAY
+                            #:r (send color red) #:g (send color green) #:b (send color blue)))
 
   (prepend! sprites (sprite (+ x 25 (- h)) (- y 24)
-                            idx #:my w #:layer LAYER_UI #:g 200))
+                            idx #:my w #:layer LAYER_OVERLAY
+                            #:r (send color red) #:g (send color green) #:b (send color blue)))
   (prepend! sprites (sprite (+ x 24) (- y 25 (- h))
-                            idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+                            idx #:my w #:theta pi/2 #:layer LAYER_OVERLAY
+                            #:r (send color red) #:g (send color green) #:b (send color blue)))
 
   (prepend! sprites (sprite (- x 25 (- h)) (- y 24)
-                            idx #:my w #:layer LAYER_UI #:g 200))
+                            idx #:my w #:layer LAYER_OVERLAY
+                            #:r (send color red) #:g (send color green) #:b (send color blue)))
   (prepend! sprites (sprite (- x 24) (- y 25 (- h))
-                            idx #:my w #:theta pi/2 #:layer LAYER_UI #:g 200))
+                            idx #:my w #:theta pi/2 #:layer LAYER_OVERLAY
+                            #:r (send color red) #:g (send color green) #:b (send color blue)))
 
   sprites)
 

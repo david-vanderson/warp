@@ -44,7 +44,7 @@
     (define a (make-ship "asteroid_87" "Asteroid" "_neutral" #:drag 0.1
                          #:size (inexact->exact diam)
                          #:x (+ x xd) #:y (+ y yd) #:dr dr #:dx dx #:dy dy))
-    (set-ship-cargo! a (list (upgrade (next-id) 0 #t #f "unscouted" #f)))
+    (set-ship-overlays! a (list (cons "Empire" 'overlay-qm)))
     (prepend! asteroids a))
 
   ; pick which asteroid will have the hidden base
@@ -54,7 +54,6 @@
   (set-ship-hangar! a '())
   (set-ship-tools! a (list (tool-regen 1.0)
                            (tool-pbolt 5.0)))
-  (set-ship-ai?! a #t)
 
   (define ownspace
     (space (next-id) 0 4000 4000 players '()
@@ -123,9 +122,9 @@
              (strategy (space-time ownspace) "return" (ob-id enemy-base))))
       (else
        (list (strategy (space-time ownspace) "scout" (obj -1 -1 #t
-                                                          (posvel -1 0.0 #;-1500.0 1500.0 500.0
+                                                          (posvel -1 -1500.0 1500.0 500.0
                                                                   0 0 0)))
-             #;(strategy (space-time ownspace) "scout" (obj -1 -1 #t
+             (strategy (space-time ownspace) "scout" (obj -1 -1 #t
                                                           (posvel -1 1500.0 -1500.0 500.0
                                                                   0 0 0)))
              (strategy (space-time ownspace) "return" (ob-id enemy-base))))))
@@ -222,30 +221,35 @@
           (append! changes (new-strat (ob-id f) (scout-strat ownspace)))))
 
       (define hb (find-id ownspace ownspace hidden-base-id))
-      
-      ; update scouted status of asteroids
-      (define (unscouted-cargo o)
-        (and (upgrade? o) (equal? "unscouted" (upgrade-type o))))
-      
-      (for ((s (space-objects ownspace))
-            #:when (and (obj-alive? s)
-                        (or (spaceship? s) (probe? s))
-                        (equal? "Empire" (ship-faction s)))
-            (a (qt-retrieve qt (obj-x s) (obj-y s) (ship-radar s)))
-            #:when (and (obj-alive? a)
-                        (spaceship? a)
-                        ((distance s a) . < . (ship-radar s))
-                        (find-id ownspace a unscouted-cargo)))
-        ; remove the unscouted cargo
-        (append! changes (chrm (ob-id (find-id ownspace a unscouted-cargo))))
-        ; check if this was the hidden base
-        (when (and (not found-base?) (equal? (ob-id hb) (ob-id a)))
-          (set! found-base? #t)
-          (define newstats (struct-copy stats (ship-stats hb)))
-          (set-stats-faction! newstats "Empire")
-          (append! changes (chstats (ob-id hb) newstats)
-                   (chadd parts (ob-id hb))
-                   (message (next-id) (space-time ownspace) #t #f "Discovered Hidden Base!"))))
+
+      (when (not found-base?)
+        (for ((s (space-objects ownspace))
+              #:when (and (obj-alive? s)
+                          (or (spaceship? s) (probe? s))
+                          (equal? "Empire" (ship-faction s)))
+              (a (qt-retrieve qt (obj-x s) (obj-y s) (ship-radar s)))
+              #:when (and (obj-alive? a)
+                          (spaceship? a)
+                          (assoc "Empire" (ship-overlays a))
+                          ((distance s a) . < . (ship-radar s))))
+          ; remove the overlay
+          (append! changes (chstat (ob-id a) 'overlay (cons "Empire" #f)))
+          ; check if this was the hidden base
+          (when (and (not found-base?) (equal? (ob-id hb) (ob-id a)))
+            (set! found-base? #t)
+            (define newstats (struct-copy stats (ship-stats hb)))
+            (set-stats-faction! newstats "Empire")
+            (append! changes
+                     (chstats (ob-id hb) newstats)
+                     (chstat (ob-id hb) 'ai #t)
+                     (chadd parts (ob-id hb))
+                     (message (next-id) (space-time ownspace) #t #f "Discovered Hidden Base!"))))
+
+        (when found-base?
+          ; just found the base, remove all overlays
+          (for ((o (space-objects ownspace))
+                #:when (and (ship? o) (assoc "Empire" (ship-overlays o))))
+            (prepend! changes (chstat (ob-id o) 'overlay (cons "Empire" #f))))))
 
       ; check if the good guys docked
       (when (and found-base? (not dock-base?))
