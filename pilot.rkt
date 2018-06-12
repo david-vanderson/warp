@@ -247,7 +247,8 @@
   ; only worry about ships that are close to us
   (define ships (filter (lambda (o)
                           (and (spaceship? o)
-                               (not (= (ob-id ownship) (ob-id o)))))
+                               (not (= (ob-id ownship) (ob-id o)))
+                               ((distance ownship o) . <= . 500.0)))
                         (qt-retrieve qt (obj-x ownship) (obj-y ownship) 500.0)))
 
   (define predict-secs

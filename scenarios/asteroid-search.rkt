@@ -227,11 +227,11 @@
               #:when (and (obj-alive? s)
                           (or (spaceship? s) (probe? s))
                           (equal? "Empire" (ship-faction s)))
-              (a (qt-retrieve qt (obj-x s) (obj-y s) (ship-radar s)))
+              (a (qt-retrieve qt (obj-x s) (obj-y s) (/ (ship-radar s) 2.0)))
               #:when (and (obj-alive? a)
                           (spaceship? a)
                           (assoc "Empire" (ship-overlays a))
-                          ((distance s a) . < . (ship-radar s))))
+                          ((distance s a) . < . (/ (ship-radar s) 2.0))))
           ; remove the overlay
           (append! changes (chstat (ob-id a) 'overlay (cons "Empire" #f)))
           ; check if this was the hidden base
