@@ -307,16 +307,18 @@
 (define (ship-tool ship sym)
   (findf (lambda (t) (equal? sym (tool-name t))) (ship-tools ship)))
 
+(define (player-using-tool? p t)
+  (findf (lambda (c)
+           (equal? c (tool-name t)))
+         (player-commands p)))
+
 (define (tool-count space t ship)
   (cond
     ((not t) 0)
     ((empty? (ship-playerids ship))
      (if (tool-rc t) 1 0))
     (else
-     (count (lambda (p)
-              (findf (lambda (c)
-                       (equal? c (tool-name t)))
-                     (player-commands p)))
+     (count (lambda (p) (player-using-tool? p t))
             (ship-players space ship)))))
 
 (define (tool-online? t (dmgtype "offline"))

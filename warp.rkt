@@ -61,8 +61,9 @@
   (define y (- (bottom) 135.0))
   (define z (clamp 0.0 1.0 (/ w maxw)))
 
-  (define pid (ob-id (car stack)))
-  (define cmdlevel (player-cmdlevel (car stack)))
+  (define p (car stack))
+  (define pid (ob-id p))
+  (define cmdlevel (player-cmdlevel p))
 
   ; fill
   (append! spr (sprite x y (sprite-idx csd 'square) #:layer LAYER_UI
@@ -87,7 +88,7 @@
      (set-button-f! b (lambda (x y)
                         (send-commands (command pid cmdlevel (tool-name t) 'stop)))))
     (else
-     (when (warp-charging? space ship)
+     (when (player-using-tool? p t)
        (set-button-label! b "Charging Warp [s]"))
      (set-button-f! b (lambda (x y)
                         (send-commands (command pid cmdlevel (tool-name t) #t))))))
