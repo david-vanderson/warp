@@ -47,15 +47,15 @@
        ((or tl tr)
         (define cl (tool-count space tl ownship))
         (define cr (tool-count space tr ownship))
-        (define racc (- (* cl (if tl (tool-val tl) 0.0))
-                        (* cr (if tr (tool-val tr) 0.0))))
+        (define racc (- (* (geom-sum 1.0 PLAYER_RATIO cl) (if tl (tool-val tl) 0.0))
+                        (* (geom-sum 1.0 PLAYER_RATIO cr) (if tr (tool-val tr) 0.0))))
         (set-posvel-dr! pv racc)))
      
      (define eng (ship-tool ownship 'engine))
      (when eng
        (define c (tool-count space eng ownship))
        (when (c . > . 0)
-         (define xy_acc (* c (tool-val eng)))
+         (define xy_acc (* (geom-sum 1.0 PLAYER_RATIO c) (tool-val eng)))
          (define ddx (* xy_acc (cos (posvel-r pv))))
          (define ddy (* xy_acc (sin (posvel-r pv))))
          (set-posvel-dx! pv (+ (posvel-dx pv) (* ddx dt)))
@@ -203,7 +203,8 @@
        (set-tool-val! w (list (warp-speed w)
                               (warp-threshold w)
                               (min (warp-threshold w)
-                                   (+ (warp-energy w) (* 10.0 dt wc))))))
+                                   (+ (warp-energy w)
+                                      (* 10.0 dt (geom-sum 1.0 PLAYER_RATIO wc)))))))
       (else
        ; drain it
        (set-tool-val! w (list (warp-speed w)

@@ -169,6 +169,14 @@
   (define a (/ (remain age cycletime) cycletime))  ; goes 0-1,0-1
   (abs (* 2.0 (- a 0.5))))  ; goes 1-0-1
 
+; calculates partial sum of geometric series
+; a is first term
+; r is ratio
+; n is number of terms in the sum
+(define (geom-sum a r n)
+  (* a (/ (- 1 (expt r n))
+          (- 1 r))))
+
 (define (sigmoid x div)
   (- (/ 2.0 (+ 1.0 (exp (- (/ x div))))) 1.0))
 

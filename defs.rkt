@@ -10,6 +10,7 @@
 (define AI_INTERVAL 1000)  ; ms between ai runs (at least)
 (define AHEAD_THRESHOLD 100)  ; if client is ahead by this many ms you see it on the screen
 (define BUTTON_PRESS_TIME 100)  ; time a button is shown as pressed
+(define PLAYER_RATIO 0.666)  ; how much extra does each player add to engines/warp
 
 (define TEXTH (if (equal? 'macosx (system-type)) 16.0 12.0))
 
