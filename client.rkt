@@ -925,6 +925,8 @@
                        (colorize (filled-rectangle 100 1) "black"))
     (add-sprite!/value sd '5x1
                        (colorize (filled-rectangle 5 1) "black"))
+    (add-sprite!/value sd '1x1
+                       (colorize (filled-rectangle 1 1) "black"))
     (add-sprite!/value sd '20x2
                        (colorize (filled-rectangle 20 2) "black"))
     (add-sprite!/value sd '2x150

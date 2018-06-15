@@ -484,10 +484,12 @@
        (define ob (add-offline-button! t b send-commands))
        (when ob (prepend! buttons ob)))
       ((endrc)
-       (define life (max 0 ((tool-rc t) . - . (/ (obj-age space ship) 1000.0))))
-       (prepend! spr (sprite 0.0 (- (bottom) 4) (sprite-idx csd 'square) #:layer LAYER_UI
-                             #:mx (/ life .1 (sprite-width csd (sprite-idx csd 'square)) 1.0)
-                             #:my (/ 6.0 (sprite-height csd (sprite-idx csd 'square)) 1.0)
+       (define life (/ (max 0 ((tool-rc t) . - . (/ (obj-age space ship) 1000.0)))
+                       (tool-rc t)))
+       (define-values (x y) (obj->screen ship center scale))
+       (prepend! spr (sprite x (+ y 26) (sprite-idx csd '1x1) #:layer LAYER_UI
+                             #:mx (* life 56.0)
+                             #:my 4.0
                              #:r 255))
      
        (define b (button 'normal #\s #f 0 (- (bottom) 35) 70 30 "Stop [s]"
