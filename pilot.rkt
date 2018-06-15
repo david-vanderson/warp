@@ -9,6 +9,7 @@
          "draw-utils.rkt"
          "draw.rkt"
          "missile.rkt"
+         "warp.rkt"
          "physics.rkt")
 
 (provide (all-defined-out))
@@ -83,6 +84,10 @@
 ;              #:when (and (equal? "return" (strategy-name s))
 ;                          ((strategy-age space s) . > . 30000)))
 ;              #t))
+
+(define (can-launch-from? qt mothership)
+  (and (not (warping? mothership))
+       (not (ship-behind? qt mothership))))
 
 ; return a list of changes
 ; update strategy, pilot-ai! plans the route
@@ -183,7 +188,7 @@
            (cond
              ((not (= (ob-id mothership) (strategy-arg strat)))
               (when (and (find-top-id space (strategy-arg strat))
-                         (not (ship-behind? qt mothership))
+                         (can-launch-from? qt mothership)
                          (tool-online? d "nolaunch"))
                 ; we accidentally docked with not our real mothership, launch again
                 (set! changes (list (command (ob-id ship) #f 'dock 'launch)))))
@@ -193,7 +198,7 @@
           (strat
            (when (and (tool-online? d "nolaunch")
                       (= (ship-con ship) (ship-maxcon ship))
-                      (not (ship-behind? qt mothership)))
+                      (can-launch-from? qt mothership))
              ; we have a strat to do and ready to go, launch
              (set! changes (list (command (ob-id ship) #f 'dock 'launch)))))
           (else
@@ -202,7 +207,7 @@
                       ((distance mothership ne) . < . (* 2 (ship-radar ship)))
                       (tool-online? d "nolaunch")
                       (= (ship-con ship) (ship-maxcon ship))
-                      (not (ship-behind? qt mothership)))
+                      (can-launch-from? qt mothership))
              ; there's an enemy and we're ready to go - launch and attack
              (define returnstrat (strategy (space-time space) "return" (ob-id mothership)))
              (define attackstrat (strategy (space-time space) "attack" (ob-id ne)))
