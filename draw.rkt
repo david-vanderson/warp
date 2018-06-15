@@ -197,7 +197,9 @@
                                           (cdr overlay) (/ 1.0 scale)
                                           fowa 0.0 (make-color 0 255 0 1.0))))
 
-              (when (not (equal? (ob-id o) myshipid))
+              (when (and (not (equal? (ob-id o) myshipid))
+                         (not (cannonball? o))
+                         (not (missile? o)))
                 (define fc (faction-check faction (ship-faction o)))
                 (define col
                   (cond ((fc . > . 0) (make-color 0 0 200 fowa))
@@ -288,40 +290,9 @@
 
 
 (define (draw-corners o csd center scale color)
-  (define sprites '())
-  (define idx (sprite-idx csd '5x1))
-  (define w 2.0)
-  (define h 2.5)
   (define-values (x y) (obj->screen o center scale))
-  (prepend! sprites (sprite (+ x 25 (- h)) (+ y 24)
-                            idx #:my w #:layer LAYER_OVERLAY
-                            #:r (send color red) #:g (send color green) #:b (send color blue)))
-  (prepend! sprites (sprite (+ x 24) (+ y 25 (- h))
-                            idx #:my w #:theta pi/2 #:layer LAYER_OVERLAY
-                            #:r (send color red) #:g (send color green) #:b (send color blue)))
-
-  (prepend! sprites (sprite (- x 25 (- h)) (+ y 24)
-                            idx #:my w #:layer LAYER_OVERLAY
-                            #:r (send color red) #:g (send color green) #:b (send color blue)))
-  (prepend! sprites (sprite (- x 24) (+ y 25 (- h))
-                            idx #:my w #:theta pi/2 #:layer LAYER_OVERLAY
-                            #:r (send color red) #:g (send color green) #:b (send color blue)))
-
-  (prepend! sprites (sprite (+ x 25 (- h)) (- y 24)
-                            idx #:my w #:layer LAYER_OVERLAY
-                            #:r (send color red) #:g (send color green) #:b (send color blue)))
-  (prepend! sprites (sprite (+ x 24) (- y 25 (- h))
-                            idx #:my w #:theta pi/2 #:layer LAYER_OVERLAY
-                            #:r (send color red) #:g (send color green) #:b (send color blue)))
-
-  (prepend! sprites (sprite (- x 25 (- h)) (- y 24)
-                            idx #:my w #:layer LAYER_OVERLAY
-                            #:r (send color red) #:g (send color green) #:b (send color blue)))
-  (prepend! sprites (sprite (- x 24) (- y 25 (- h))
-                            idx #:my w #:theta pi/2 #:layer LAYER_OVERLAY
-                            #:r (send color red) #:g (send color green) #:b (send color blue)))
-
-  sprites)
+  (sprite x y (sprite-idx csd 'corners) #:layer LAYER_OVERLAY #:m 3.0
+          #:r (send color red) #:g (send color green) #:b (send color blue)))
 
 
 (define (stoplight-color v max)
