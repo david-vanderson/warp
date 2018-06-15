@@ -60,7 +60,7 @@
   (set-player-cmdlevel! p (add1 (player-cmdlevel p)))
   ;(printf "player cleanup ~a cmdlevel ~a\n" (player-name p) (player-cmdlevel p))
   (when (client?)
-    ((player-cleanup-client!)))
+    ((player-cleanup-client!) (ob-id p)))
   (when (and (server?) endrc?)
     (append! changes (endrc (ob-id p) (player-rcid p)))
     (append! changes (endcb (ob-id p) (player-cbid p))))

@@ -58,11 +58,12 @@
   ; this is a list of holds structs
 
   (player-cleanup-client!
-   (lambda ()
-     (set! pressed '())
-     (for ((h (in-list holding)))
-       ((hold-frelease h)))
-     (set! holding '())))
+   (lambda (pid)
+     (when (equal? pid meid)
+       (set! pressed '())
+       (for ((h (in-list holding)))
+         ((hold-frelease h)))
+       (set! holding '()))))
   
   ; if the mouse is over something (other than a button) that when clicked will
   ; do some action, clickcmds is a lambda that returns a list of commands we send

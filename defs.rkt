@@ -59,7 +59,7 @@
 
 ; clients set this to a function that's called whenever they change seats
 ; - used to clear out held and pressed button states
-(define player-cleanup-client! (make-parameter (lambda () #f)))
+(define player-cleanup-client! (make-parameter (lambda (pid) #f)))
 
 ; debugging
 (define debug-num (make-parameter 0))
