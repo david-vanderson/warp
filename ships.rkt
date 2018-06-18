@@ -123,6 +123,7 @@
                             (exact->inexact dy)
                             (exact->inexact dr))
                     #f)
+                #t
                 size
                 (if hit-radius
                     hit-radius
@@ -147,11 +148,13 @@
   (case type
     (("spacesuit")
      (define s (apply spacesuit args))
+     (set-ship-hp-bar?! s #f)
      ;type name faction con maxcon mass radar drag start?
      (set-ship-stats! s (stats (next-id) type name faction 1.0 1.0 1.0 200.0 0.5 start-ship?))
      s)
     (("missile")
      (define s (apply missile args))
+     (set-ship-hp-bar?! s #f)
      (set-ship-ai-freq! s 500)
      ;type name faction con maxcon mass radar drag start?
      (set-ship-stats! s (stats (next-id) type name faction con con 1.0 radar 0.5 #f))
@@ -161,6 +164,7 @@
      s)
     (("cannonball")
      (define s (apply cannonball args))
+     (set-ship-hp-bar?! s #f)
      ;type name faction con maxcon mass radar drag start?
      (set-ship-stats! s (stats (next-id) type name faction life life 1.0 radar 0.0 #f))
      (set-ship-tools!
@@ -176,10 +180,12 @@
      s)
     (("asteroid_87")
      (define s (apply spaceship args))
+     (set-ship-hp-bar?! s #f)
      (set-ship-stats! s (stats (next-id) type name faction 10000.0 10000.0 10000.0 200.0 drag start-ship?))
      s)
     (("asteroid_43")
      (define s (apply spaceship args))
+     (set-ship-hp-bar?! s #f)
      (set-ship-stats! s (stats (next-id) type name faction 5000.0 5000.0 5000.0 200.0 drag start-ship?))
      s)
     (("blue-station" "red-station")

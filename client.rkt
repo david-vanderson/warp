@@ -310,7 +310,8 @@
                                                    (sprite-idx csd 'square)))
                                      #:a 0.9))
            ; draw all the ships in the hangar
-           (define shipmax 54)
+           (define shipmax (* 2.0 (apply max (map (lambda (s) (ship-w s 1.0))
+                                                  (ship-hangar ship)))))
            (for ((s (in-list (ship-hangar ship)))
                  (i (in-naturals)))
              (define x (+ (* -0.5 size) 10 (* (quotient i 4) 180) (/ shipmax 2)))
@@ -319,32 +320,9 @@
                                        #:layer LAYER_OVERLAY #:theta (- pi/2)
                                        #:r (get-red ownspace s)))
 
-             ; draw ship hp/res
-             (define con (/ (ship-con s) 10.0))
-             (define mcon (/ (ship-maxcon s) 10.0))
-             (define concol (send the-color-database find-color (stoplight-color con mcon)))
-             (prepend! sprites (sprite (+ x (* 0.5 shipmax) (- (/ mcon 2.0)))
-                                      (- y (* 0.5 shipmax))
-                                      (sprite-idx csd 'square-outline)
-                                      #:layer LAYER_OVERLAY
-                                      #:mx (/ (+ 2.0 mcon)
-                                              (sprite-width csd
-                                                (sprite-idx csd 'square-outline)))
-                                      #:my (/ 6.0 (sprite-height csd
-                                                    (sprite-idx csd 'square-outline)))
-                                      #:r 255 #:g 255 #:b 255))
-             (prepend! sprites (sprite (+ x (* 0.5 shipmax) (- (/ con 2.0)))
-                                       (+ y (* -0.5 shipmax))
-                                       (sprite-idx csd 'square)
-                                       #:layer LAYER_UI
-                                       #:mx (/ con (sprite-width csd
-                                                     (sprite-idx csd 'square)) 1.0)
-                                       #:my (/ 4.0 (sprite-height csd
-                                                     (sprite-idx csd 'square)))
-                                       #:r (send concol red)
-                                       #:g (send concol green)
-                                       #:b (send concol blue)))
-
+             (define w (ship-w s 1.0))
+             (prepend! sprites (draw-hp-bar s x y w csd))
+             
              (define b (button 'normal (ob-id s) #f
                                (+ x (/ shipmax 2) 80)
                                (+ y (- (/ shipmax 2)) 15) 150 30 (ship-name s)
@@ -366,12 +344,14 @@
            (prepend! sprites (obj-sprite topship csd center (get-scale)
                                          LAYER_EFFECTS 'circle
                                          (/ (* 2.2 (ship-radius topship)) 100)
-                                         0.9 0.0 "black"))
+                                         0.75 0.0 (make-color 0 0 0 1.0)))
            ; draw our ship inside black circle
            (define-values (x y) (obj->screen topship center (get-scale)))
            (prepend! sprites (sprite x y (sprite-idx csd (string->symbol (ship-type ship)))
                                      #:layer LAYER_OVERLAY #:m (get-scale) #:theta (- pi/2)
-                                     #:r (get-red ownspace ship)))))
+                                     #:r (get-red ownspace ship)))
+           (define w (ship-w ship (get-scale)))
+           (prepend! sprites (draw-hp-bar ship x y w csd))))
 
         ; draw ship UI
         (prepend! sprites (draw-ship-hp csd textr center (get-scale) my-stack))
@@ -453,12 +433,12 @@
         (for-orders ordertree showtab
           (lambda (ot depth highlight?)
             (when showtab
-              (define color (if (ord-done? ot) "green" "red"))
+              (define color (send the-color-database find-color (if (ord-done? ot) "green" "red")))
               (prepend! sprites (xy-sprite (+ lefte (* 10 depth) 5) (+ tope (* 20 line) 10)
                                            csd (get-scale) LAYER_UI 'circle
                                            (/ 0.05 (get-scale))
                                            1.0 0.0 color)))
-            (define color (if highlight? "white" "gray"))
+            (define color (send the-color-database find-color (if highlight? "white" "gray")))
             (define txt (ord-text ot))
             (when (and (ordertime? ot) (string-contains? txt "~a"))
               (define secleft (ceiling (/ (- (ordertime-subtotal ot)
@@ -976,24 +956,15 @@
                                          (send dc draw-line 5 15 15 5)
                                          (send dc set-brush b))
                                        20 20)) "black"))
-    (let ()
-      (define cw 20)
-      (define cm 1)
-      (add-sprite!/value sd 'corners
-        (colorize
-         (dc (lambda (dc dx dy)
-               (define b (send dc get-brush))
-               (send dc set-brush nocolor 'transparent)
-               (send dc draw-line 0 0 cm 0)
-               (send dc draw-line 0 0 0 cm)
-               (send dc draw-line (- cw cm 1) 0 (- cw 1) 0)
-               (send dc draw-line (- cw 1) 0 (- cw 1) cm)
-               (send dc draw-line (- cw cm 1) (- cw 1) (- cw 1) (- cw 1))
-               (send dc draw-line (- cw 1) (- cw cm 1) (- cw 1) (- cw 1))
-               (send dc draw-line 0 (- cw 1) cm (- cw 1))
-               (send dc draw-line 0 (- cw cm 1) 0 (- cw 1))
-               (send dc set-brush b))
-             cw cw) "black")))
+    (add-sprite!/value sd 'corner
+                       (colorize
+                        (dc (lambda (dc dx dy)
+                              (define b (send dc get-brush))
+                              (send dc set-brush nocolor 'transparent)
+                              (send dc draw-line 0 0 1 0)
+                              (send dc draw-line 0 0 0 1)
+                              (send dc set-brush b))
+                            2 2) "black"))
     )
   (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))
   (load-ships sd)

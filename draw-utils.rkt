@@ -42,10 +42,10 @@
 (define (obj->screen o center scale)
   (xy->screen (obj-x o) (obj-y o) center scale))
 
-(define (snap x w)
-  (if (even? w)
-      (round x)
-      (- (round (+ x 0.5)) 0.5)))
+(define (ship-w s scale)
+  ; multiply ship width by 0.7, which is roughly sqrt(2)/2
+  ; to make sure the corners and hp bar are above a rotated square ship
+  (max 8.0 (* scale (* (max 32 (ship-sprite-size s)) 0.7))))
 
 (define (sprite-size csd sym)
   (define w (sprite-width csd (sprite-idx csd sym)))
@@ -53,8 +53,6 @@
   (max w h))
 
 (define (xy-sprite x y csd scale layer sprsym size a r color)
-  (when (string? color)
-    (set! color (send the-color-database find-color color)))
   (sprite x y (sprite-idx csd sprsym)
           #:layer layer #:a (exact->inexact a) #:theta (exact->inexact (- r))
           #:m (exact->inexact (* scale size))

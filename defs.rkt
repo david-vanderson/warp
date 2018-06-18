@@ -165,7 +165,9 @@
 ; drag is the coeffecient for how fast this ship slows down
 ; start is if you can start on this ship
 
-(struct ship obj (sprite-size radius stats tools playerids hangar overlays cargo dmgfx ai? ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
+(struct ship obj (hp-bar? sprite-size radius stats tools playerids hangar overlays cargo dmgfx ai? ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
+; hp-bar? is #t if we should show the health bar
+; - #f for asteroids, missiles, cannonballs, etc.
 ; sprite-size is how many meters wide the sprite should show as
 ; radius is how big your hit area is
 ; tools is a list of the systems available on this ship

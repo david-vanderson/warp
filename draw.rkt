@@ -190,6 +190,8 @@
                                          (sprite-size csd (ship-info-bm si)))
                                       fowa (obj-r o) (make-color (get-red space o) 0 0 1.0)))
 
+            (define w (ship-w o scale))
+
             (when showplayers?
               (define overlay (assoc faction (ship-overlays o)))
               (when overlay
@@ -206,11 +208,15 @@
                         ((fc . < . 0) (make-color 200 0 0 fowa))
                         (else #f)))
                 (when col
-                  (prepend! spr (draw-corners o csd center scale col)))))
+                  (prepend! spr (draw-corners o w csd center scale col)))))
 
             (when (equal? myshipid (ob-id o))
               ; green corners for our ship
-              (prepend! spr (draw-corners o csd center scale (make-color 0 200 0 1.0))))
+              (prepend! spr (draw-corners o w csd center scale (make-color 0 200 0 1.0))))
+
+            
+            (define-values (x y) (obj->screen o center scale))
+            (prepend! spr (draw-hp-bar o x y w csd))
             
             ;(prepend! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
             ;(when showplayers?
@@ -289,16 +295,44 @@
   spr)
 
 
-(define (draw-corners o csd center scale color)
+(define (draw-corners o w csd center scale color)
+  (define spr '())
   (define-values (x y) (obj->screen o center scale))
-  (sprite x y (sprite-idx csd 'corners) #:layer LAYER_OVERLAY #:m 3.0
-          #:r (send color red) #:g (send color green) #:b (send color blue)))
+  (prepend! spr (sprite (- x w) (- y w) (sprite-idx csd 'corner)
+                        #:layer LAYER_OVERLAY #:m 3.0
+                        #:r (send color red) #:g (send color green) #:b (send color blue)))
+  (prepend! spr (sprite (+ x w) (- y w) (sprite-idx csd 'corner)
+                        #:layer LAYER_OVERLAY #:m 3.0 #:theta pi/2
+                        #:r (send color red) #:g (send color green) #:b (send color blue)))
+  (prepend! spr (sprite (+ x w) (+ y w) (sprite-idx csd 'corner)
+                        #:layer LAYER_OVERLAY #:m 3.0 #:theta pi
+                        #:r (send color red) #:g (send color green) #:b (send color blue)))
+  (prepend! spr (sprite (- x w) (+ y w) (sprite-idx csd 'corner)
+                        #:layer LAYER_OVERLAY #:m 3.0 #:theta (+ pi pi/2)
+                        #:r (send color red) #:g (send color green) #:b (send color blue)))
+  spr)
+
+
+(define (draw-hp-bar o x y w csd)
+  (define max (ship-maxcon o))
+  (define hp (ship-con o))
+  (cond
+    ((and (ship-hp-bar? o)
+          (hp . < . max))
+     (define frac (clamp 0.0 1.0 (/ hp max)))
+     (define color (stoplight-color hp max))
+     (sprite x (- y w 5.0) (sprite-idx csd '1x1) #:layer LAYER_OVERLAY
+             #:mx (* frac 2.0 (min w 48.0))
+             #:my 3.0
+             #:r (send color red) #:g (send color green) #:b (send color blue)))
+    (else
+     '())))
 
 
 (define (stoplight-color v max)
-  (cond ((v . < . (* max (/ 1.0 3.0))) "red")
-        ((v . < . (* max (/ 2.0 3.0))) "yellow")
-        (else "green")))
+  (cond ((v . < . (* max (/ 1.0 3.0))) (make-color 255 0 0 1.0))
+        ((v . < . (* max (/ 2.0 3.0))) (make-color 255 255 0 1.0))
+        (else (make-color 0 255 0 1.0))))
 
 
 (define (button-sprites csd textr buttons time holding pressed)
@@ -389,7 +423,7 @@
                          #:mx (/ (+ 2.0 (ship-maxcon s)) (sprite-width csd (sprite-idx csd 'square-outline)) 1.0)
                          #:my (/ 22.0 (sprite-height csd (sprite-idx csd 'square-outline)))
                          #:r 255 #:g 255 #:b 255))
-  (define col (send the-color-database find-color (stoplight-color (ship-con s) (ship-maxcon s))))
+  (define col (stoplight-color (ship-con s) (ship-maxcon s)))
   (prepend! spr (sprite (- (right) 45 (/ (ship-con s) 2)) (+ (top) 30) (sprite-idx csd 'square)
                          #:layer LAYER_UI #:my (/ 20.0 (sprite-height csd (sprite-idx csd 'square)))
                          #:mx (/ (ship-con s) (sprite-width csd (sprite-idx csd 'square)) 1.0)
@@ -486,9 +520,10 @@
       ((endrc)
        (define life (/ (max 0 ((tool-rc t) . - . (/ (obj-age space ship) 1000.0)))
                        (tool-rc t)))
+       (define w (ship-w ship scale))
        (define-values (x y) (obj->screen ship center scale))
-       (prepend! spr (sprite x (+ y 26) (sprite-idx csd '1x1) #:layer LAYER_UI
-                             #:mx (* life 56.0)
+       (prepend! spr (sprite x (+ y w 5.0) (sprite-idx csd '1x1) #:layer LAYER_UI
+                             #:mx (* life 2.0 (min w 48.0))
                              #:my 4.0
                              #:r 255))
      

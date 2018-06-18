@@ -71,8 +71,7 @@
   (set-ship-tools!
    base (list (tool-pbolt 10.0)
               (tool-probe 30.0)
-              (tool-missile 5.0 10.0)
-          ))
+              (tool-missile 5.0 10.0)))
   
   
   (define destroyer (make-ship "red-destroyer" "b" "b" #:x 2400 #:y 100 #:r pi #:ai? #t
@@ -91,14 +90,6 @@
   (set-ship-ai-strategy! destroyer
                          (list (strategy (space-time ownspace) "attack-only" (ob-id base))))
   
-  
-  ;(define special (new-blue-fighter))
-  ;(set-obj-posvel! special (posvel 0 -2100.0 -100.0 0.0 0.0 0.0 0.0))
-  ;(set-ship-cargo! special (list (random-upgrade ownspace #f) (random-upgrade ownspace #f)))
-  ;(define special2 (new-red-fighter))
-  ;(set-obj-posvel! special2 (posvel 0 1000.0 0.0 0.0 0.0 0.0 0.0))
-  
-  
   (set-space-objects! ownspace (append (space-objects ownspace) (list cruiser base destroyer #;special)))
 
   (define rebel-orders
@@ -111,16 +102,6 @@
   (set-space-orders-for! real-orders "Rebel" rebel-orders)
 
   
-  ;(for ((i 10) (t (in-cycle '("power" "thrust" "bat" "con"))))
-  ;  (define u (upgrade (next-id) (space-time ownspace)
-  ;                     (posvel (space-time ownspace) -1700 (+ -250 (* i 50)) 0 0 0 0)
-  ;                     t))      
-  ;  (set-space-objects! ownspace (cons u (space-objects ownspace))))
-  
-  
-  (define next-enemy-count 0)
-  (define last-base-con 10000)
-  (define last-enemy-base-con 10000)
   (define playing? #t)
   
   ; return a list of changes
@@ -180,20 +161,7 @@
                              #:hangar fighters #:cargo (list (random-upgrade ownspace #f)
                                                                 (random-upgrade ownspace #f))))
         (set-ship-ai-strategy! f (list (strategy (space-time ownspace) "attack*" (ob-id base))))
-        (append! changes (chadd f #f) m))
-      
-      
-      
-      (when ((ship-con hb) . < . (- last-base-con 100))
-        (define m (message (next-id) (space-time ownspace) #t #f (format "Outpost Health: ~a" (inexact->exact (round (ship-con hb))))))
-        (append! changes m)
-        (set! last-base-con (ship-con hb)))
-      
-      
-      (when (< (ship-con eb) (- last-enemy-base-con 50))
-        (define m (message (next-id) (space-time ownspace) #t #f (format "Empire Destroyer Health: ~a" (inexact->exact (round (ship-con eb))))))
-        (append! changes m)
-        (set! last-enemy-base-con (ship-con eb))))
+        (append! changes (chadd f #f) m)))
 
     (append! changes (order-changes ownspace real-orders))
     
