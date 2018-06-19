@@ -64,7 +64,8 @@
                          (tool-regen 1.0))))
   
   
-  (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:ai? #t #:hangar '()))
+  (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:ai? #t #:hangar '()
+                          #:dr 0.1))
   (set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
                                ;con maxcon mass radar drag start-ship?
                                1000.0 1000.0 1000.0 1000.0 0.4 #t))
