@@ -45,6 +45,15 @@
     (setsockopt_tcp_nodelay socket enabled?)))
 
 
+(define (to-bytes v)
+  (define ob (open-output-bytes))
+  (write v ob)
+  (define ib (open-input-bytes (get-output-bytes ob)))
+  (define ob2 (open-output-bytes))
+  (deflate ib ob2)
+  (get-output-bytes ob2))
+
+
 (define (make-in-thread id in-port)
   (define orig-thread (current-thread))
   (define-values (pin pout) (make-pipe))
@@ -76,10 +85,7 @@
        ; send it out
        (define ret
          (with-handlers ((exn:fail:network? (lambda (exn) #f)))
-           (define-values (pin pout) (make-pipe))
-           (write v pout)
-           (close-output-port pout)
-           (deflate pin out-port)
+           (write-bytes v out-port)
            (flush-output out-port)))
        (cond
          ((void? ret)

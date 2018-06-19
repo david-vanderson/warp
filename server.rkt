@@ -1,8 +1,7 @@
 #lang racket/base
 
-(require racket/tcp)
-
-(require racket/async-channel)
+(require racket/tcp
+         racket/async-channel)
 
 (require "defs.rkt"
          "utils.rkt"
@@ -525,7 +524,7 @@
                       in out
                       (make-in-thread cid in)
                       (make-out-thread cid out)))
-    (send-to-client c (client-player c))  ; assign an id
+    (send-to-client c (to-bytes (client-player c)))  ; assign an id
     (append! clients (list c)))
   )
   
@@ -678,7 +677,9 @@
     (set! updates '())
   
     ;(printf "~a server queuing time ~v\n" (current-milliseconds) (update-time u))
-    (define msg (copy u))
+    ; to-bytes also serves to copy the info in u so it doesn't change
+    ; because send-to-client is asynchronous
+    (define msg (to-bytes u))
     (for ((c clients)
           #:when (= (client-status c) CLIENT_STATUS_OK))
       (send-to-client c msg))
@@ -691,7 +692,7 @@
   (for ((c clients)
         #:when (= (client-status c) CLIENT_STATUS_WAITING_FOR_SPACE))
     (when (not msg)
-      (set! msg (copy ownspace)))
+      (set! msg (to-bytes ownspace)))
     ;(printf "server sending ownspace to client ~a ~a\n"
     ;        (client-id c) (player-name (client-player c)))
     (send-to-client c msg)
