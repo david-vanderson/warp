@@ -45,13 +45,17 @@
     (setsockopt_tcp_nodelay socket enabled?)))
 
 
-(define (to-bytes v)
-  (define ob (open-output-bytes))
-  (write v ob)
-  (define ib (open-input-bytes (get-output-bytes ob)))
-  (define ob2 (open-output-bytes))
-  (deflate ib ob2)
-  (get-output-bytes ob2))
+(define (copy/serialize v)
+  (cond
+    (COMPRESS
+     (define ob (open-output-bytes))
+     (write v ob)
+     (define ib (open-input-bytes (get-output-bytes ob)))
+     (define ob2 (open-output-bytes))
+     (deflate ib ob2)
+     (get-output-bytes ob2))
+    (else
+     (copy v))))
 
 
 (define (make-in-thread id in-port)
@@ -62,9 +66,13 @@
      (let loop ()
        ; read from in-port
        (define v
-         (with-handlers ((exn:fail:network? (lambda (exn) #f)))
-           (inflate in-port pout)
-           (read pin)))
+         (with-handlers ((exn:fail? (lambda (exn) #f)))
+           (cond
+             (COMPRESS
+              (inflate in-port pout)
+              (read pin))
+             (else
+              (read in-port)))))
        (cond
          ((and v (not (eof-object? v)))
           ; send to client/server thread
@@ -84,8 +92,12 @@
        (define v (thread-receive))
        ; send it out
        (define ret
-         (with-handlers ((exn:fail:network? (lambda (exn) #f)))
-           (write-bytes v out-port)
+         (with-handlers ((exn:fail? (lambda (exn) #f)))
+           (cond
+             (COMPRESS
+              (write-bytes v out-port))
+             (else
+              (write v out-port)))
            (flush-output out-port)))
        (cond
          ((void? ret)

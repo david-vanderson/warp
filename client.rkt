@@ -1025,8 +1025,10 @@
       (set! cmds (list cmds)))
     (when (and server-out-t ((length cmds) . > . 0))
       ;(printf "send-commands ~v\n" cmds)
-      (thread-send server-out-t (to-bytes (update (if ownspace (space-id ownspace) #f)
-                                                  last-update-time cmds #f)))))
+      (thread-send server-out-t
+                   (copy/serialize
+                    (update (if ownspace (space-id ownspace) #f)
+                            last-update-time cmds #f)))))
   
 
   (define start-loop-time #f)
