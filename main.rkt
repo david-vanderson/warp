@@ -7,6 +7,8 @@
 (define show-help #f)
 (define port PORT)
 (define run-server? #f)
+(define gui? #t)
+(define name "Name")
 
 (command-line
   #:program "warp"
@@ -15,6 +17,11 @@
   [("-p" "--port") p
                    "Specify port to use for tcp"
                    (set! port p)]
+  [("-g" "--nogui") "Run headless client for testing"
+                    (set! gui? #f)]
+  [("-n" "--name") n
+                   "Set client default name"
+                   (set! name n)]
   [("-s" "--server") "Run server"
                      (set! run-server? #t)])
   
@@ -22,5 +29,5 @@
   [run-server?
     (start-server port)]
   [else
-    (start-client "127.0.0.1" port "Name" #f)])
+    (start-client "127.0.0.1" port name #:gui? gui?)])
 

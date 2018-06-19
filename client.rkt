@@ -28,10 +28,13 @@
 (provide start-client)
 
 
-(define (start-client ip port name new-eventspace? #:spacebox (sspace #f))
+(define (start-client ip port name
+                      #:gui? (gui? #t)
+                      #:new-eventspace? (new-eventspace? #f)
+                      #:spacebox (sspace #f))
   (server? #f)
   
-  (when new-eventspace?
+  (when (and gui? new-eventspace?)
     (current-eventspace (make-eventspace)))
 
   (define playing? #t)
@@ -111,8 +114,11 @@
     (if (shown-scale . < . scale-play)
         (set! shown-scale (min scale-play (+ shown-scale (max 0.1 (* 0.4 diff)))))
         (set! shown-scale (max scale-play (- shown-scale (max 0.1 (* 0.4 diff)))))))
+
+  (define canvas #f)
   
-  
+ (when gui?
+   
   (define (in-button? buttons x y)
     (for/first ((b (in-list buttons))
                 #:when (if (button-height b)
@@ -873,7 +879,7 @@
   (define glconfig (new gl-config%))
   (send glconfig set-legacy? #f)
   
-  (define canvas
+  (set! canvas
     (new my-canvas%
          (parent frame)
          (paint-callback draw-screen)
@@ -986,6 +992,7 @@
                                    LAYER_NUM))
   
   (send frame show #t)
+ ) ; when gui?
   
   
   (define (tick-space-client! space)
@@ -1041,45 +1048,45 @@
     (define time-housekeeping 0)
     
     (when (not server-in-port)
-      (define newname
-        #;"Testing" (get-text-from-user "Player Name"
-                            "Player Name"
-                            #f
-                            (or name "")))
-      
-      (when (not newname) (exit 0))
-      (when newname (set! name newname))
-      
-      ; ask the user for address
-      (define newip
-        #;"127.0.0.1" (get-text-from-user "IP of server"
-                            "IP address of the Server"
-                            #f
-                            (or ip "")))
-      
-      (when (not newip) (exit 0))
-      (when newip
-        (set! ip newip)
+      (when gui?
+        (define newname
+          (get-text-from-user "Player Name"
+                              "Player Name"
+                              #f
+                              (or name "")))
         
-        ; connect to server
-        (define-values (in out)
-          (with-handlers ((exn:fail:network?
-                           (lambda (exn)
-                             ((error-display-handler) (exn-message exn) exn)
-                             (sleep 1)
-                             (values #f #f))))
-            (printf "trying to connect to ~a:~a\n" ip port)
-            (tcp-connect ip port)))
+        (when (not newname) (exit 0))
+        (when newname (set! name newname))
         
-        (set! server-in-port in)
-        (set! server-out-port out)
+        ; ask the user for address
+        (define newip
+          (get-text-from-user "IP of server"
+                              "IP address of the Server"
+                              #f
+                              (or ip "")))
         
-        (when server-out-port
-          (set! server-in-t (make-in-thread #f in))
-          (set-tcp-nodelay! out #t)
-          (set! server-out-t (make-out-thread #f out))
-          ; send our name to the server
-          (send-commands (player #f name #f #f '() #f #f)))))
+        (when (not newip) (exit 0))
+        (when newip (set! ip newip)))
+        
+      ; connect to server
+      (define-values (in out)
+        (with-handlers ((exn:fail:network?
+                         (lambda (exn)
+                           ((error-display-handler) (exn-message exn) exn)
+                           (sleep 1)
+                           (values #f #f))))
+          (printf "trying to connect to ~a:~a\n" ip port)
+          (tcp-connect ip port)))
+      
+      (set! server-in-port in)
+      (set! server-out-port out)
+      
+      (when server-out-port
+        (set! server-in-t (make-in-thread #f in))
+        (set-tcp-nodelay! out #t)
+        (set! server-out-t (make-out-thread #f out))
+        ; send our name to the server
+        (send-commands (player #f name #f #f '() #f #f))))
 
     (define num-updates 0)
     (define num-ticks 0)
@@ -1254,7 +1261,8 @@
     (set! pressed (filter (lambda (p) ((- now (press-time p)) . < . BUTTON_PRESS_TIME))
                           pressed))
     (set! frames (add-frame-time now frames))
-    (send canvas refresh-now)
+    (when gui?
+      (send canvas refresh-now))
     )
 
     ; for debugging low-fps situations
@@ -1310,7 +1318,7 @@
   ;(require profile)
   ;(profile #:threads #t #:delay 0.0
     ;(begin
-    (start-client "127.0.0.1" PORT "Dave" #f)
+    (start-client "127.0.0.1" PORT "Dave")
     (yield 'wait)
     ;))
   ;(exit 0)
