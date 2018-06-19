@@ -6,6 +6,7 @@
 
 (define show-help #f)
 (define port PORT)
+(define address "127.0.0.1")
 (define run-server? #f)
 (define gui? #t)
 (define name "Name")
@@ -14,6 +15,9 @@
   #:program "warp"
   #:usage-help "Runs the warp game client (or server with -s)"
   #:once-each
+  [("-a" "--address") a
+                   "Specify ip address to use for tcp"
+                   (set! address a)]
   [("-p" "--port") p
                    "Specify port to use for tcp"
                    (set! port p)]
@@ -29,5 +33,5 @@
   [run-server?
     (start-server port)]
   [else
-    (start-client "127.0.0.1" port name #:gui? gui?)])
+    (start-client address port name #:gui? gui?)])
 
