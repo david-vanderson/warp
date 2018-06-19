@@ -5,6 +5,8 @@
          racket/list
          racket/struct
          ffi/unsafe
+         file/gzip
+         file/gunzip
          racket/draw)
 
 (require "defs.rkt"
@@ -45,13 +47,15 @@
 
 (define (make-in-thread id in-port)
   (define orig-thread (current-thread))
+  (define-values (pin pout) (make-pipe))
   (thread
    (lambda ()
      (let loop ()
        ; read from in-port
        (define v
          (with-handlers ((exn:fail:network? (lambda (exn) #f)))
-           (read in-port)))
+           (inflate in-port pout)
+           (read pin)))
        (cond
          ((and v (not (eof-object? v)))
           ; send to client/server thread
@@ -72,7 +76,10 @@
        ; send it out
        (define ret
          (with-handlers ((exn:fail:network? (lambda (exn) #f)))
-           (write v out-port)
+           (define-values (pin pout) (make-pipe))
+           (write v pout)
+           (close-output-port pout)
+           (deflate pin out-port)
            (flush-output out-port)))
        (cond
          ((void? ret)
