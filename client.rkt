@@ -1268,7 +1268,7 @@
 
     (when (and (not gui?)
                my-stack
-               (time-for (current-milliseconds) 1000))
+               ((random) . < . 0.01))
       (define player (car my-stack))
       (define cmd (command meid (player-cmdlevel player) 'pbolt (list pi/2 pi/2 1.0)))
       (send-commands cmd))
