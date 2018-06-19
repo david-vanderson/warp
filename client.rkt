@@ -224,6 +224,7 @@
         (for/list ((s (in-list (space-objects ownspace)))
                    #:when (and fac
                                (or (spaceship? s)
+                                   (spacesuit? s)
                                    (probe? s))
                                ((faction-check fac (ship-faction s)) . > . 0)))
           (list (obj-x s) (obj-y s) (ship-radar s))))

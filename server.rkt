@@ -655,14 +655,14 @@
       ;(printf " ~a" (posvel-t pv))
       (cond ((= 0 (posvel-t pv))
              (set-posvel-t! pv (space-time ownspace))
-             (set! pvupdates (cons (pvupdate (ob-id o) pv) pvupdates)))
-            ((or (not oldest)
+             (prepend! pvupdates (pvupdate (ob-id o) pv)))
+            #;((or (not oldest)
                  (< (- (space-time ownspace) (posvel-t (obj-posvel oldest)))
                     (- (space-time ownspace) (posvel-t pv))))
              (set! oldest o))))
     ;(printf "\n")
 
-    (when oldest
+    #;(when oldest
       (define old-t (- (space-time ownspace) (posvel-t (obj-posvel oldest))))
       (when (and (old-t . > . 5000)
                  (time-for (space-time ownspace) 1000))

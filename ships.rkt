@@ -86,9 +86,10 @@
 
 
 (define (make-spacesuit name ship)
-  (define a (if ((random) . > . 0.5) pi/2 (- pi/2)))
+  (define ang (random-between -1.0 1.0))
+  (define a (+ ang (if ((random) . > . 0.5) pi/2 (- pi/2))))
   (define theta (angle-add (obj-r ship) a))
-  (define r 40.0)
+  (define r (random-between 30.0 50.0))
   (make-ship "spacesuit"
              name
              (ship-faction ship)
@@ -150,7 +151,7 @@
      (define s (apply spacesuit args))
      (set-ship-hp-bar?! s #f)
      ;type name faction con maxcon mass radar drag start?
-     (set-ship-stats! s (stats (next-id) type name faction 1.0 1.0 1.0 200.0 0.5 start-ship?))
+     (set-ship-stats! s (stats (next-id) type name faction 1.0 1.0 1.0 150.0 0.5 start-ship?))
      s)
     (("missile")
      (define s (apply missile args))

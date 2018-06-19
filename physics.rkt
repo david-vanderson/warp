@@ -63,7 +63,8 @@
 
 
 (define (drag dv dt coef)
-  (* dv (expt (1.0 . - . coef) dt)))
+  (define newv (* dv (expt (1 . - . coef) dt)))
+  (if ((abs newv) . < . .00001) 0 newv))
 
 
 (define (physics! pv dt (drag_xy #f) (acc? #f))
