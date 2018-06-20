@@ -39,6 +39,8 @@
     (define size #f)
     (define filename name)
     (cond
+      ((equal? name "blue-fighter")
+       (set! size 20.0))
       ((equal? name "missile")
        (set! size 10.0))
       ((equal? name "cannonball")
