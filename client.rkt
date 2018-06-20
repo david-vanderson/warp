@@ -437,7 +437,8 @@
 
       (when showtab
         ; list all players
-        (prepend! sprites (text-sprite textr textsr "Players:"
+        (define str (format "Players (~a):" (length (space-players ownspace))))
+        (prepend! sprites (text-sprite textr textsr str
                                       200 (+ (top) 80) LAYER_UI_TEXT))
         (for ((p (in-list (space-players ownspace)))
               (i (in-naturals)))

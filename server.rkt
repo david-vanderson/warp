@@ -514,11 +514,11 @@
   
   ; process new clients
   (timeit time-new-clients
-  (when (tcp-accept-ready? server-listener)
-    (printf "server accept-ready\n")
+  (when (tcp-accept-ready? server-listener)    
     (define-values (in out) (tcp-accept server-listener))
     (set-tcp-nodelay! out #t)
     (define cid (next-id))
+    (printf "server (~a) accepting new client ~a\n" (length clients) cid)
     (define c (client CLIENT_STATUS_NEW
                       (player cid #f #f 0 '() #f #f)))
     (place-channel-put fan (list 'new cid in out))
