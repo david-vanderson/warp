@@ -2,6 +2,7 @@
 
 (require racket/math
          racket/port
+         racket/place
          racket/list
          racket/struct
          ffi/unsafe
@@ -45,22 +46,25 @@
     (setsockopt_tcp_nodelay socket enabled?)))
 
 
-(define (copy/serialize v)
+(define (serialize v)
+  (define ob (open-output-bytes))
+  (write v ob)
+  (define obo (get-output-bytes ob))
   (cond
     (COMPRESS
-     (define ob (open-output-bytes))
-     (write v ob)
-     (define ib (open-input-bytes (get-output-bytes ob)))
+     (define ib (open-input-bytes obo))
      (define ob2 (open-output-bytes))
      (deflate ib ob2)
      (get-output-bytes ob2))
     (else
-     (copy v))))
+     obo)))
 
 
-(define (make-in-thread id in-port)
-  (define orig-thread (current-thread))
+(define (make-in-thread id in-port dest)
   (define-values (pin pout) (make-pipe))
+  (define send (if (place-channel? dest)
+                   place-channel-put
+                   thread-send))
   (thread
    (lambda ()
      (let loop ()
@@ -76,15 +80,19 @@
        (cond
          ((and v (not (eof-object? v)))
           ; send to client/server thread
-          (thread-send orig-thread (cons id v))
+          (define b (open-output-bytes))
+          (write v b)
+          (send dest (cons id (get-output-bytes b)))
           (loop))
          (else
-          (thread-send orig-thread (cons id #f))
-          (printf "in-thread ~a stopping ~v\n" id v)
+          (send dest (cons id #f))
+          (printf "in-thread ~a stopping\n" id)
           (sync never-evt)))))))
 
-(define (make-out-thread id out-port)
-  (define orig-thread (current-thread))
+(define (make-out-thread id out-port dest)
+  (define send (if (place-channel? dest)
+                   place-channel-put
+                   thread-send))
   (thread
    (lambda ()
      (let loop ()
@@ -94,7 +102,7 @@
        (define ret
          (with-handlers ((exn:fail? (lambda (exn) #f)))
            (cond
-             (COMPRESS
+             ((bytes? v)
               (write-bytes v out-port))
              (else
               (write v out-port)))
@@ -103,7 +111,7 @@
          ((void? ret)
           (loop))
          (else
-          (thread-send orig-thread (cons id #f))
+          (send dest (cons id #f))
           (printf "out-thread ~a stopping\n" id)
           (sync never-evt)))))))
 

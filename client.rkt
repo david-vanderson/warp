@@ -1044,7 +1044,7 @@
     (when (and server-out-t ((length cmds) . > . 0))
       ;(printf "send-commands ~v\n" cmds)
       (thread-send server-out-t
-                   (copy/serialize
+                   (serialize
                     (update (if ownspace (space-id ownspace) #f)
                             last-update-time cmds #f)))))
   
@@ -1103,9 +1103,9 @@
       (set! server-out-port out)
       
       (when server-out-port
-        (set! server-in-t (make-in-thread #f in))
+        (set! server-in-t (make-in-thread #f in (current-thread)))
         (set-tcp-nodelay! out #t)
-        (set! server-out-t (make-out-thread #f out))
+        (set! server-out-t (make-out-thread #f out (current-thread)))
         ; send our name to the server
         (send-commands (player #f name #f #f '() #f #f))))
 
@@ -1118,7 +1118,8 @@
       (define v (thread-try-receive))
       (when v
         (define id (car v))
-        (define input (cdr v))
+        (define vv (cdr v))
+        (define input (if vv (read (open-input-bytes (cdr v))) #f))
         ;(printf "~a client input: ~v\n" name input)
         (cond
           ((not input)

@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require racket/tcp
+         racket/place
          racket/async-channel)
 
 (require "defs.rkt"
@@ -30,11 +31,12 @@
 ; normal operation, send updates
 (define CLIENT_STATUS_OK 2)
 
-(struct client (status player in-port out-port in-t out-t) #:mutable #:prefab)
+(struct client (status player) #:mutable #:prefab)
 (define (client-id c) (ob-id (client-player c)))
 
 (define server-listener #f)
 (define clients '())
+(define fan #f)
 (define ownspace #f)
 (define (scenario-on-tick change-scenario!) '())
 (define (scenario-on-message cmd change-scenario!) '())
@@ -459,12 +461,7 @@
               (apply-all-changes! ownspace
                                   (list (chrm (client-id c)) m)
                                   "server"))
-
-     (close-input-port (client-in-port c))
-     (with-handlers ((exn:fail:network? (lambda (exn) #f)))
-       (close-output-port (client-out-port c)))
-     (kill-thread (client-in-t c))
-     (kill-thread (client-out-t c))
+     (place-channel-put fan (list 'kill cid))
      (set! clients (remove c clients)))))
 
 ; for debugging to artificially introduce lag from server->client
@@ -488,9 +485,12 @@
 ;       (printf "delay set to ~a\n" delay))
 ;     (loop))))
 
-(define (send-to-client c v)
-  (thread-send (client-out-t c) v)
-  ;(async-channel-put delay-ch (list (current-milliseconds) (client-out-t c) v))
+(define (send-to-clients cids v)
+  (when (not (null? cids))
+    (place-channel-put fan (list 'msg cids v))
+    ;(thread-send (client-out-t c) v)
+    ;(async-channel-put delay-ch (list (current-milliseconds) (client-out-t c) v))
+    )
   )
 
 
@@ -520,12 +520,10 @@
     (set-tcp-nodelay! out #t)
     (define cid (next-id))
     (define c (client CLIENT_STATUS_NEW
-                      (player cid #f #f 0 '() #f #f)
-                      in out
-                      (make-in-thread cid in)
-                      (make-out-thread cid out)))
-    (send-to-client c (copy/serialize (client-player c)))  ; assign an id
-    (append! clients (list c)))
+                      (player cid #f #f 0 '() #f #f)))
+    (place-channel-put fan (list 'new cid in out))
+    (send-to-clients (list cid) (serialize (client-player c)))  ; assign an id
+    (prepend! clients c))
   )
   
   ; simulation tick
@@ -552,7 +550,8 @@
       (define v (thread-try-receive))
       (when v
         (define cid (car v))
-        (define u (cdr v))
+        (define vv (cdr v))
+        (define u (if vv (read (open-input-bytes (cdr v))) #f))
         (cond
           ((not u)
            (remove-client cid))
@@ -679,24 +678,28 @@
     ;(printf "~a server queuing time ~v\n" (current-milliseconds) (update-time u))
     ; to-bytes also serves to copy the info in u so it doesn't change
     ; because send-to-client is asynchronous
-    (define msg (copy/serialize u))
-    (for ((c clients)
-          #:when (= (client-status c) CLIENT_STATUS_OK))
-      (send-to-client c msg))
+    (define msg (serialize u))
+    (define cids
+      (for/list ((c clients)
+                 #:when (= (client-status c) CLIENT_STATUS_OK))
+        (client-id c)))
+    (send-to-clients cids msg)
     )
     )
 
   ; send to any clients that need a whole ownspace
   ; - either new clients or the scenario changed
   (define msg #f)
-  (for ((c clients)
-        #:when (= (client-status c) CLIENT_STATUS_WAITING_FOR_SPACE))
-    (when (not msg)
-      (set! msg (copy/serialize ownspace)))
-    ;(printf "server sending ownspace to client ~a ~a\n"
-    ;        (client-id c) (player-name (client-player c)))
-    (send-to-client c msg)
-    (set-client-status! c CLIENT_STATUS_OK))
+  (define cids
+    (for/list ((c clients)
+               #:when (= (client-status c) CLIENT_STATUS_WAITING_FOR_SPACE))
+      (when (not msg)
+        (set! msg (serialize ownspace)))
+      ;(printf "server sending ownspace to client ~a ~a\n"
+      ;        (client-id c) (player-name (client-player c)))
+      (set-client-status! c CLIENT_STATUS_OK)
+      (client-id c)))
+  (send-to-clients cids msg)
 
   ; housekeeping
   (timeit time-housekeeping
@@ -750,6 +753,14 @@
 (define (start-server (port PORT) #:scenario (scenario sc-pick) #:spacebox (spbox #f))
   (change-scenario! scenario)
   (set! spacebox spbox)
+  
+  (set! fan (dynamic-place "fan.rkt" 'start #:named "fan"))
+  (define server-t (current-thread))
+  (thread (lambda ()
+            (let loop ()
+              (thread-send server-t (place-channel-get fan))
+              (loop))))
+  
   (set! server-listener (tcp-listen port 4 #t))
   (printf "waiting for clients...\n")
   (server-loop))
