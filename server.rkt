@@ -450,19 +450,16 @@
      
 (define (remove-client cid)
   (define c (findf (lambda (o) (= cid (client-id o))) clients))
-  (cond
-    ((not c)
-     (printf "already removed client ~a\n" cid))
-    (else
-     (printf "removing client ~v\n" (client-player c))
-     (define m (message (next-id) (space-time ownspace) #t #f
-                        (format "Player Left: ~a" (player-name (client-player c)))))
-     (append! updates
-              (apply-all-changes! ownspace
-                                  (list (chrm (client-id c)) m)
-                                  "server"))
-     (place-channel-put fan (list 'kill cid))
-     (set! clients (remove c clients)))))
+  (when c
+    (printf "server (~a) removing client ~a\n" (length clients) (client-id c))
+    (define m (message (next-id) (space-time ownspace) #t #f
+                       (format "Player Left: ~a" (player-name (client-player c)))))
+    (append! updates
+             (apply-all-changes! ownspace
+                                 (list (chrm (client-id c)) m)
+                                 "server"))
+    (place-channel-put fan (list 'kill cid))
+    (set! clients (remove c clients))))
 
 ; for debugging to artificially introduce lag from server->client
 ;(define delay-ch (make-async-channel))
