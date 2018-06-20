@@ -29,14 +29,25 @@
 
 
 (define (start-client ip port name
-                      #:gui? (gui? #t)
                       #:new-eventspace? (new-eventspace? #f)
+                      #:gui? (gui? #t)
                       #:spacebox (sspace #f))
+  (cond
+    (new-eventspace?
+      (thread
+        (lambda ()
+          (current-eventspace (make-eventspace))
+          (start-client* ip port name gui? sspace)
+          (yield 'wait))))
+    (else
+      (start-client* ip port name gui? sspace)
+      (yield 'wait))))
+
+
+
+(define (start-client* ip port name gui? sspace)
   (server? #f)
   
-  (when (and gui? new-eventspace?)
-    (current-eventspace (make-eventspace)))
-
   (define playing? #t)
   (define server-in-port #f)
   (define server-out-port #f)
@@ -1101,7 +1112,7 @@
       (when v
         (define id (car v))
         (define input (cdr v))
-        ;(printf "client input: ~v\n" input)
+        ;(printf "~a client input: ~v\n" name input)
         (cond
           ((not input)
            (drop-connection ""))
@@ -1116,7 +1127,7 @@
            (set! target-time (space-time ownspace))
            (set! last-update-time (space-time ownspace))
            (set! last-pbolt-time (space-time ownspace))
-           ;(printf "client new ownspace ~a\n" (space-time ownspace))
+           ;(printf "~a client new ownspace ~a\n" name (space-time ownspace))
 
            ; new ownspace, reset view stuff
            (set! showsector? #f)
@@ -1329,7 +1340,6 @@
   ;(profile #:threads #t #:delay 0.0
     ;(begin
     (start-client "127.0.0.1" PORT "Dave")
-    (yield 'wait)
     ;))
   ;(exit 0)
   )

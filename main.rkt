@@ -1,4 +1,5 @@
 #lang racket/base
+
 (require racket/cmdline
          "defs.rkt"
          "server.rkt"
@@ -33,5 +34,10 @@
   [run-server?
     (start-server port)]
   [else
-    (start-client address port name #:gui? gui?)])
+    (when (not gui?)
+      (start-client address port (string-append name "-1")
+            #:gui? gui?
+            #:new-eventspace? #t))
+    (start-client address port name #:gui? gui?)
+    ])
 
