@@ -1,7 +1,6 @@
 #lang racket/base
 
 (require racket/tcp
-         racket/place
          racket/async-channel)
 
 (require "defs.rkt"
@@ -458,7 +457,8 @@
              (apply-all-changes! ownspace
                                  (list (chrm (client-id c)) m)
                                  "server"))
-    (place-channel-put fan (list 'kill cid))
+    (write (list 'kill cid) fan)
+    (flush-output fan)
     (set! clients (remove c clients))))
 
 ; for debugging to artificially introduce lag from server->client
@@ -484,7 +484,8 @@
 
 (define (send-to-clients cids v)
   (when (not (null? cids))
-    (place-channel-put fan (list 'msg cids v))
+    (write (list 'msg cids v) fan)
+    (flush-output fan)
     ;(thread-send (client-out-t c) v)
     ;(async-channel-put delay-ch (list (current-milliseconds) (client-out-t c) v))
     )
@@ -509,22 +510,20 @@
   (when (not previous-physics-time)
     (set! previous-physics-time current-time))
   
-  ; process new clients
+  ; process new fans
   (timeit time-new-clients
   (when (tcp-accept-ready? server-listener)    
-    (define-values (in out)
-      (with-handlers ((exn:fail? (lambda (exn) (values #f #f))))
-        (tcp-accept server-listener)))
+    (define-values (in out) (tcp-accept server-listener))
     (when (and in out)
       (set-tcp-nodelay! out #t)
-      (define cid (next-id))
-      (define c (client CLIENT_STATUS_NEW
-                        (player cid #f #f 0 '() #f #f)))
-      (define msg (list 'new cid in out))
-      (printf "server (~a) accepting new client ~a\n" (length clients) cid)
-      (place-channel-put fan msg)
-      (send-to-clients (list cid) (serialize (client-player c)))  ; assign an id
-      (prepend! clients c)))
+      (define st (current-thread))
+      (thread
+       (lambda ()
+         (let loop ()
+           (define v (read in))
+           (thread-send st v)
+           (loop))))
+      (set! fan out)))
   )
   
   ; simulation tick
@@ -551,9 +550,19 @@
       (define v (thread-try-receive))
       (when v
         (define cid (car v))
-        (define vv (cdr v))
-        (define u (if vv (read (open-input-bytes (cdr v))) #f))
+        (define u (cdr v))
         (cond
+          ((cid . < . 0)
+           ; message from fan, new client
+           (define newid (next-id))
+           (define c (client CLIENT_STATUS_NEW
+                             (player newid #f #f 0 '() #f #f)))
+           (define msg (list 'new cid newid))
+           (printf "server (~a) accepting new client ~a\n" (length clients) newid)
+           (write msg fan)
+           (flush-output fan)
+           (send-to-clients (list newid) (serialize (client-player c)))  ; assign an id
+           (prepend! clients c))
           ((not u)
            (remove-client cid))
           ((and (update? u)
@@ -755,15 +764,15 @@
   (change-scenario! scenario)
   (set! spacebox spbox)
   
-  (set! fan (dynamic-place "fan.rkt" 'start #:named "fan"))
-  (define server-t (current-thread))
-  (thread (lambda ()
-            (let loop ()
-              (thread-send server-t (place-channel-get fan))
-              (loop))))
+;  (set! fan (dynamic-place "fan.rkt" 'start #:named "fan"))
+;  (define server-t (current-thread))
+;  (thread (lambda ()
+;            (let loop ()
+;              (thread-send server-t (place-channel-get fan))
+;              (loop))))
   
-  (set! server-listener (tcp-listen port 4 #t))
-  (printf "waiting for clients...\n")
+  (set! server-listener (tcp-listen (- PORT 1) 4 #t))
+  (printf "waiting for fan...\n")
   (server-loop))
 
 

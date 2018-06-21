@@ -1119,8 +1119,7 @@
       (define v (thread-try-receive))
       (when v
         (define id (car v))
-        (define vv (cdr v))
-        (define input (if vv (read (open-input-bytes (cdr v))) #f))
+        (define input (cdr v))
         ;(printf "~a client input: ~v\n" name input)
         (cond
           ((not input)

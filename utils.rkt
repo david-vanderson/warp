@@ -80,9 +80,7 @@
        (cond
          ((and v (not (eof-object? v)))
           ; send to client/server thread
-          (define b (open-output-bytes))
-          (write v b)
-          (send dest (cons id (get-output-bytes b)))
+          (send dest (cons id v))
           (loop))
          (else
           (send dest (cons id #f))
