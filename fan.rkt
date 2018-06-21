@@ -10,6 +10,12 @@
 (define clients (make-hash))
 
 (define (start pch)
+  (define st
+    (thread (lambda ()
+              (let loop ()
+                (define v (thread-receive))
+                (place-channel-put pch v)
+                (loop)))))
   (let loop ()
     (define v (place-channel-get pch))
     (define type (car v))
@@ -20,8 +26,8 @@
        (define in (caddr v))
        (define out (cadddr v))
        (define c (client in out
-                         (make-in-thread cid in pch)
-                         (make-out-thread cid out pch)))
+                         (make-in-thread cid in st)
+                         (make-out-thread cid out st)))
        (hash-set! clients cid c))
       
       ((equal? type 'kill)

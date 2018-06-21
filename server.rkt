@@ -512,15 +512,19 @@
   ; process new clients
   (timeit time-new-clients
   (when (tcp-accept-ready? server-listener)    
-    (define-values (in out) (tcp-accept server-listener))
-    (set-tcp-nodelay! out #t)
-    (define cid (next-id))
-    (printf "server (~a) accepting new client ~a\n" (length clients) cid)
-    (define c (client CLIENT_STATUS_NEW
-                      (player cid #f #f 0 '() #f #f)))
-    (place-channel-put fan (list 'new cid in out))
-    (send-to-clients (list cid) (serialize (client-player c)))  ; assign an id
-    (prepend! clients c))
+    (define-values (in out)
+      (with-handlers ((exn:fail? (lambda (exn) (values #f #f))))
+        (tcp-accept server-listener)))
+    (when (and in out)
+      (set-tcp-nodelay! out #t)
+      (define cid (next-id))
+      (define c (client CLIENT_STATUS_NEW
+                        (player cid #f #f 0 '() #f #f)))
+      (define msg (list 'new cid in out))
+      (printf "server (~a) accepting new client ~a\n" (length clients) cid)
+      (place-channel-put fan msg)
+      (send-to-clients (list cid) (serialize (client-player c)))  ; assign an id
+      (prepend! clients c)))
   )
   
   ; simulation tick
