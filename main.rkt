@@ -9,7 +9,7 @@
 (define port PORT)
 (define address "127.0.0.1")
 (define run-server? #f)
-(define gui? #t)
+(define g #f)
 (define name "Name")
 
 (command-line
@@ -22,8 +22,9 @@
   [("-p" "--port") p
                    "Specify port to use for tcp"
                    (set! port p)]
-  [("-g" "--nogui") "Run headless client for testing"
-                    (set! gui? #f)]
+  [("-g" "--nogui") ng
+                    "Run # of headless clients for testing"
+                    (set! g (string->number ng))]
   [("-n" "--name") n
                    "Set client default name"
                    (set! name n)]
@@ -32,12 +33,13 @@
   
 (cond
   [run-server?
-    (start-server port)]
+   (start-server port)]
+  [g
+   (for ((i g))
+     (start-client address port (string-append name "-" (number->string i))
+                   #:gui? #f
+                   #:new-eventspace? #t))
+   (sync never-evt)]
   [else
-    (when (not gui?)
-      (start-client address port (string-append name "-1")
-            #:gui? gui?
-            #:new-eventspace? #t))
-    (start-client address port name #:gui? gui?)
-    ])
+   (start-client address port name)])
 
