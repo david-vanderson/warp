@@ -173,13 +173,13 @@
     (append! changes (chadd (standard-quit-scenario-button) #f))
     changes)
 
-  (define (on-player-restart space p)
+  (define (on-player-restart space pid)
     (define changes '())
     ; this happens during the processing of the client's dying message
     ; so the player is still in their spacesuit because it hasn't taken effect
     (define frig (find-id ownspace ownspace (ob-id goodship)))
     (when frig
-      (append! changes (chmov (ob-id p) (ob-id frig) #f)))
+      (append! changes (chmov pid (ob-id frig) #f)))
     changes)
   
   ; return a list of changes

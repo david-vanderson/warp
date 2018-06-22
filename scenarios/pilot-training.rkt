@@ -63,11 +63,12 @@
     (set-ship-tools! s (append (list (tool-regen 1.0)) (ship-tools s)))
     s)
 
-  (define (on-player-restart space p)
+  (define (on-player-restart space pid)
     (define changes '())
+    (define p (findfid pid (space-players space)))
     ; this happens during the processing of the client's dying message
     ; so the player is still in their spacesuit because it hasn't taken effect
-    (define s (find-id space space (lambda (o) (and (spaceship? o) (equal? (ship-faction o) (player-faction p))))))
+    (define s (find-id space space (lambda (o) (and (ship? o) (equal? (ship-faction o) (player-faction p))))))
     (cond
       (s
        ; player has a ship but is not on any ship

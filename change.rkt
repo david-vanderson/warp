@@ -268,9 +268,9 @@
               (when (and (server?) (player? (car s)) (spacesuit? (cadr s)))
                 ; leaving a space suit, remove the suit
                 (append! changes (chrm (ob-id (cadr s))))
-                ; notify scenario
+                ; notify caller, they will accumulate pids and call scenario-on-player-restart
                 (when on-player-restart
-                  (append! changes (on-player-restart space (car s))))
+                  (on-player-restart (ob-id (car s))))
                 )))
 
            ; add (car s) to where it should go

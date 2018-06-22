@@ -105,13 +105,13 @@
   
   (define playing? #t)
 
-  (define (on-player-restart space p)
+  (define (on-player-restart space pid)
     (define changes '())
     ; this happens during the processing of the client's dying message
     ; so the player is still in their spacesuit because it hasn't taken effect
     (define c (find-id ownspace ownspace (ob-id cruiser)))
     (when c
-      (append! changes (chmov (ob-id p) (ob-id c) #f)))
+      (append! changes (chmov pid (ob-id c) #f)))
     changes)
   
   ; return a list of changes

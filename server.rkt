@@ -590,11 +590,17 @@
                   ((anncmd? ch)
                    (scenario-on-message ownspace ch change-scenario!))
                   (else
+                   (define pids '())
                    (define command-changes
                      (apply-all-changes! ownspace (list ch) "server"
                                          #:on-player-restart
-                                         scenario-on-player-restart))
-                   (append! updates command-changes)))))))
+                                         (lambda (pid) (append! pids pid))))
+                   (append! updates command-changes)
+                   (when scenario-on-player-restart
+                     (for ((pid (in-list pids)))
+                       (define changes (scenario-on-player-restart ownspace pid))
+                       (append! updates (apply-all-changes! ownspace changes "server"))))
+                   ))))))
           (else
            (printf "server got unexpected data ~v\n" u)))
         (loop)))
