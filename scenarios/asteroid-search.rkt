@@ -13,10 +13,10 @@
 
 (provide (all-defined-out))
 
-(define (asteroid-search-scenario oldspace oldtick oldmessage)
+(define (asteroid-search-scenario oldspace oldtick oldmessage old-on-player-restart)
   
   (define players (if oldspace (space-players oldspace) '()))
-  (for ((p players)) (set-player-faction! p "Empire"))
+  (for ((p players)) (set-player-faction! p #f))
 
   (define hidden-base-id #f)
 
@@ -172,6 +172,15 @@
     ; add end scenario button
     (append! changes (chadd (standard-quit-scenario-button) #f))
     changes)
+
+  (define (on-player-restart space p)
+    (define changes '())
+    ; this happens during the processing of the client's dying message
+    ; so the player is still in their spacesuit because it hasn't taken effect
+    (define frig (find-id ownspace ownspace (ob-id goodship)))
+    (when frig
+      (append! changes (chmov (ob-id p) (ob-id frig) #f)))
+    changes)
   
   ; return a list of changes
   (define (on-tick ownspace qt change-scenario!)
@@ -183,9 +192,9 @@
     (for ((p (space-players ownspace)))
       (when (not (player-faction p))
         ; new player
-        (append! changes (chfaction (ob-id p) "Empire")))
-      (when (and frig (not (find-id ownspace ownspace (ob-id p))))
-        (append! changes (chmov (ob-id p) (ob-id frig) #f))))
+        (append! changes (chfaction (ob-id p) "Empire"))
+        (when frig
+          (append! changes (chmov (ob-id p) (ob-id frig) #f)))))
 
     (for ((fo (space-orders real-orders)))
       (check ownspace (car fo) (cadr fo)))
@@ -281,6 +290,6 @@
         (("quit-scenario") (change-scenario!))))
     '())
   
-  (values ownspace on-tick on-message))
+  (values ownspace on-tick on-message on-player-restart))
 
 

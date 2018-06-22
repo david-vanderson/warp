@@ -10,7 +10,7 @@
 
 (provide (all-defined-out))
 
-(define (pilot-training-scenario oldspace old-on-tick old-on-message)
+(define (pilot-training-scenario oldspace old-on-tick old-on-message old-on-player-restart)
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players))
     (set-player-faction! p #f))
@@ -56,34 +56,41 @@
   
   (define (new-trainer faction)
     (define s (make-ship "red-fighter" faction faction
-                         #:x (random-between -100 100) #:y (random-between -100 100)))
+                         #:x (random-between -200 200) #:y (random-between -200 200)))
     (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
                               ;con maxcon mass drag radar start?
                               100.0 100.0 20.0 300.0 0.4 #t))
     (set-ship-tools! s (append (list (tool-regen 1.0)) (ship-tools s)))
     s)
+
+  (define (on-player-restart space p)
+    (define changes '())
+    ; this happens during the processing of the client's dying message
+    ; so the player is still in their spacesuit because it hasn't taken effect
+    (define s (find-id space space (lambda (o) (and (spaceship? o) (equal? (ship-faction o) (player-faction p))))))
+    (cond
+      (s
+       ; player has a ship but is not on any ship
+       (append! changes (chmov (ob-id p) (ob-id s) #f)))
+      (else
+       ; player has no ship left
+       (define o (new-orders))
+       (set-space-orders-for! real-orders (player-faction p) o)
+       (define nt (new-trainer (player-faction p)))
+       (append! changes (chadd nt #f) (chmov (ob-id p) (ob-id nt) #f))))
+    changes)
   
   (define (on-tick space qt change-scenario!)
     (define changes '())
-    (for ((p (space-players space)))
-      (define s (find-id space space (lambda (o) (and (ship? o) (equal? (ship-faction o) (player-faction p))))))
-      (cond
-        ((not (player-faction p))
-         ; new player
-         (define f (next-faction))
-         (define o (new-orders))
-         (set-space-orders-for! real-orders f o)
-         (define nt (new-trainer f))
-         (append! changes (chfaction (ob-id p) f) (chadd nt #f) (chmov (ob-id p) (ob-id nt) #f)))
-        ((not s)
-         ; player has no ship left
-         (define o (new-orders))
-         (set-space-orders-for! real-orders (player-faction p) o)
-         (define nt (new-trainer (player-faction p)))
-         (append! changes (chadd nt #f) (chmov (ob-id p) (ob-id nt) #f)))
-        ((and s (not (find-id space space (ob-id p))))
-         ; player has a ship but is not on any ship
-         (append! changes (chmov (ob-id p) (ob-id s) #f)))))
+
+    (for ((p (in-list (space-players space)))
+          #:when (not (player-faction p)))
+      ; new player
+      (define f (next-faction))
+      (define o (new-orders))
+      (set-space-orders-for! real-orders f o)
+      (define nt (new-trainer f))
+      (append! changes (chfaction (ob-id p) f) (chadd nt #f) (chmov (ob-id p) (ob-id nt) #f)))
 
     (for ((fo (space-orders real-orders)))
       (check space (car fo) (cadr fo)))
@@ -105,7 +112,7 @@
       ; add end scenario button
       (append! changes (chadd (standard-quit-scenario-button) #f))
       )
-    
+
     (append! changes (order-changes space real-orders))
     
     changes)
@@ -116,4 +123,4 @@
       (case (ann-button-msg o)
         (("quit-scenario") (change-scenario!))))
     '())
-  (values newspace on-tick on-message))
+  (values newspace on-tick on-message on-player-restart))

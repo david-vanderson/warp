@@ -99,7 +99,9 @@
 ; who is a string? for message reporting
 ; addf is #f or a function to call when we add something to space-objects
 ;
-(define (apply-change! space c who (addf #f))
+(define (apply-change! space c who
+                       #:addf (addf #f)
+                       #:on-player-restart (on-player-restart #f))
   ;(printf "~a (~a) applying change ~v\n" who (space-time space) c)
   (cond
     ((command? c)
@@ -265,7 +267,11 @@
               (rem! (car s) (cadr s) who)
               (when (and (server?) (player? (car s)) (spacesuit? (cadr s)))
                 ; leaving a space suit, remove the suit
-                (append! changes (chrm (ob-id (cadr s)))))))
+                (append! changes (chrm (ob-id (cadr s))))
+                ; notify scenario
+                (when on-player-restart
+                  (append! changes (on-player-restart space (car s))))
+                )))
 
            ; add (car s) to where it should go
            (cond
@@ -385,11 +391,18 @@
      (error "apply-change! hit ELSE clause" c))))
 
 
-(define (apply-all-changes! space changes who (addf #f))
+(define (apply-all-changes! space changes who
+                            #:addf (addf #f)
+                            #:on-player-restart (on-player-restart #f))
   (if (null? changes)
       '()
       (apply append
              (for/list ((c (in-list changes)))
-               (define-values (forward? new-changes) (apply-change! space c who addf))
+               (define-values (forward? new-changes)
+                 (apply-change! space c who
+                                #:addf addf
+                                #:on-player-restart on-player-restart))
                (append (if forward? (list (copy c)) '())
-                       (apply-all-changes! space new-changes who addf))))))
+                       (apply-all-changes! space new-changes who
+                                           #:addf addf
+                                           #:on-player-restart on-player-restart))))))

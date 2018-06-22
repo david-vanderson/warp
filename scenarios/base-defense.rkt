@@ -10,10 +10,10 @@
 
 (provide (all-defined-out))
 
-(define (base-defense-scenario oldspace oldtick oldmessage)
+(define (base-defense-scenario oldspace oldtick oldmessage old-on-player-restart)
   (define ai? #t)
   (define players (if oldspace (space-players oldspace) '()))
-  (for ((p players)) (set-player-faction! p "Rebel"))
+  (for ((p players)) (set-player-faction! p #f))
 
   (define ownspace (space (next-id) 0 5000 2000 players '()
                           `(
@@ -104,6 +104,15 @@
 
   
   (define playing? #t)
+
+  (define (on-player-restart space p)
+    (define changes '())
+    ; this happens during the processing of the client's dying message
+    ; so the player is still in their spacesuit because it hasn't taken effect
+    (define c (find-id ownspace ownspace (ob-id cruiser)))
+    (when c
+      (append! changes (chmov (ob-id p) (ob-id c) #f)))
+    changes)
   
   ; return a list of changes
   (define (on-tick ownspace qt change-scenario!)
@@ -118,9 +127,7 @@
         ; new player
         (append! changes (chfaction (ob-id p) "Rebel"))
         (when c
-          (append! changes (chmov (ob-id p) (ob-id c) #f))))
-      (when (and c (not (find-id ownspace ownspace (ob-id p))))
-        (append! changes (chmov (ob-id p) (ob-id c) #f))))
+          (append! changes (chmov (ob-id p) (ob-id c) #f)))))
 
     (for ((fo (space-orders real-orders)))
       (check ownspace (car fo) (cadr fo)))
@@ -175,6 +182,6 @@
         (("quit-scenario") (change-scenario!))))
     '())
   
-  (values ownspace on-tick on-message))
+  (values ownspace on-tick on-message on-player-restart))
 
 

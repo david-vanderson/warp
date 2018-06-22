@@ -12,7 +12,7 @@
 
 (provide (all-defined-out))
 
-(define (testing-scenario oldspace oldtick oldmessage)
+(define (testing-scenario oldspace oldtick oldmessage old-on-player-restart)
   (define ai? #t)
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "Rebel"))
@@ -105,7 +105,7 @@
         (("quit-scenario") (change-scenario!))))
     '())
   
-  (values ownspace on-tick on-message))
+  (values ownspace on-tick on-message #f))
 
 
 (module+ main

@@ -39,6 +39,7 @@
 (define ownspace #f)
 (define (scenario-on-tick change-scenario!) '())
 (define (scenario-on-message cmd change-scenario!) '())
+(define scenario-on-player-restart #f)
 
 ; debugging
 (define spacebox #f)
@@ -438,7 +439,7 @@
     ; then add those to the quadtree so later ais see it
     (define (addf o)
       (add-all! qt (list o)))
-    (append! updates (apply-all-changes! ownspace changes "server" addf)))
+    (append! updates (apply-all-changes! ownspace changes "server" #:addf addf)))
 
   ;(printf "ran ~a ai\n" (/ delay TICK))
   
@@ -497,21 +498,19 @@
     
 (define (server-loop)
 
-  (define time-new-clients 0)
-  (define time-commands 0)
   (define time-tick 0)
+  (define time-commands 0)
   (define time-effects 0)
   (define time-collide 0)
+  (define time-hook 0)
   (define time-ai 0)
   (define time-output 0)
-  (define time-housekeeping 0)
   
   (define current-time (current-milliseconds))
   (when (not previous-physics-time)
     (set! previous-physics-time current-time))
   
-  ; process new fans
-  (timeit time-new-clients
+  ; process new clients
   (when (tcp-accept-ready? server-listener)    
     (define-values (in out) (tcp-accept server-listener))
     (when (and in out)
@@ -524,7 +523,6 @@
            (thread-send st v)
            (loop))))
       (set! fan out)))
-  )
   
   ; simulation tick
   (define tick? #t)
@@ -593,7 +591,9 @@
                    (scenario-on-message ownspace ch change-scenario!))
                   (else
                    (define command-changes
-                     (apply-all-changes! ownspace (list ch) "server"))
+                     (apply-all-changes! ownspace (list ch) "server"
+                                         #:on-player-restart
+                                         scenario-on-player-restart))
                    (append! updates command-changes)))))))
           (else
            (printf "server got unexpected data ~v\n" u)))
@@ -623,7 +623,7 @@
                           (collide! ownspace a b dt)
                           (collide! ownspace b a dt)))
         (when (not (void? precs))
-          (define cs (apply-all-changes! ownspace precs "server" addf))
+          (define cs (apply-all-changes! ownspace precs "server" #:addf addf))
           (append! updates cs))))
     
     (qt-collide! qt coll!)
@@ -634,11 +634,13 @@
     )
 
     ; scenario hook
+    (timeit time-hook
     (append! updates (apply-all-changes! ownspace
                                          (scenario-on-tick ownspace qt change-scenario!)
-                                         "server" addf))
+                                         "server" #:addf addf))
     (add-all! qt objs-added)
     (set! objs-added '())
+    )
 
     ; ai
     (timeit time-ai
@@ -712,10 +714,8 @@
   (send-to-clients cids msg)
 
   ; housekeeping
-  (timeit time-housekeeping
   (flush-output)
   (collect-garbage 'incremental)
-  )
   
   ; sleep so we don't hog the whole racket vm
   (define sleep-time (- (+ previous-physics-time TICK 1)
@@ -728,14 +728,13 @@
              (space-time ownspace) sleep-time (length (space-objects ownspace)))
      (outputtime "server"
                  (space-time ownspace)
-                 time-new-clients
                  time-commands
                  time-tick
                  time-effects
                  time-collide
+                 time-hook
                  time-ai
-                 time-output
-                 time-housekeeping)
+                 time-output)
      ))
   
   (server-loop))
@@ -743,11 +742,13 @@
 
 
 (define (change-scenario! (scenario sc-pick))
-  (define-values (newspace on-tick on-message) (scenario ownspace scenario-on-tick scenario-on-message))
+  (define-values (newspace on-tick on-message on-player-restart)
+    (scenario ownspace scenario-on-tick scenario-on-message scenario-on-player-restart))
   ;(printf "start ownspace ~v\n" new-space)
   (set! ownspace newspace)
   (set! scenario-on-tick on-tick)
   (set! scenario-on-message on-message)
+  (set! scenario-on-player-restart on-player-restart)
 
   ; junk any updates we've already processed on the old space
   (set! updates '())

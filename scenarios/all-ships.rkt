@@ -12,7 +12,7 @@
 
 (provide (all-defined-out))
 
-(define (all-ships-scenario oldspace oldtick oldmessage)
+(define (all-ships-scenario oldspace oldtick oldmessage old-on-player-restart)
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "Test Faction"))
 
@@ -43,5 +43,5 @@
         (("quit-scenario") (change-scenario!))))
     '())
   
-  (values ownspace on-tick on-message))
+  (values ownspace on-tick on-message #f))
   

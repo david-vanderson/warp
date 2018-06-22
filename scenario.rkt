@@ -21,7 +21,7 @@
 
 ;; Scenario Picking
 
-(define (sc-pick oldspace old-on-tick old-on-message)
+(define (sc-pick oldspace old-on-tick old-on-message old-on-player-restart)
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "players"))
   (define newspace
@@ -53,6 +53,6 @@
         (("asteroid-search") (change-scenario! asteroid-search-scenario))
         ))
     '())
-  (values newspace on-tick on-message))
+  (values newspace on-tick on-message #f))
 
   

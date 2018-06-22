@@ -82,6 +82,9 @@
          (write v sout)
          (flush-output sout))
          ))
+
+    (when (not v)
+      (sleep 0.01))
     
     (loop)))
 

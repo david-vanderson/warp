@@ -1067,7 +1067,6 @@
     (define time-copy 0)
     (define time-setup 0)
     (define time-render 0)
-    (define time-housekeeping 0)
     
     (when (not server-in-port)
       (when gui?
@@ -1300,10 +1299,8 @@
     ;  (set! sum (+ i sum)))
 
     ; housekeeping
-    (timeit time-housekeeping
     (flush-output)
     (collect-garbage 'incremental)
-    )
     
 ;    (when (time-for (current-milliseconds) 1000)
 ;      (displayln (~a "mem: " (~r (/ (current-memory-use) (* 1024.0 1024.0)) #:precision 2))))
@@ -1326,8 +1323,7 @@
                  time-predict
                  time-copy
                  time-setup
-                 time-render
-                 time-housekeeping))
+                 time-render))
 
     ; set the start of the loop time to be exactly when we want to wake up
     ; we might actually sleep a bit longer, that will count as part of loop-time
