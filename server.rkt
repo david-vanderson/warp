@@ -30,12 +30,11 @@
 ; normal operation, send updates
 (define CLIENT_STATUS_OK 2)
 
-(struct client (status player) #:mutable #:prefab)
+(struct client (status player in-port out-port in-t out-t) #:mutable #:prefab)
 (define (client-id c) (ob-id (client-player c)))
 
 (define server-listener #f)
 (define clients '())
-(define fan #f)
 (define ownspace #f)
 (define (scenario-on-tick change-scenario!) '())
 (define (scenario-on-message cmd change-scenario!) '())
@@ -458,9 +457,13 @@
              (apply-all-changes! ownspace
                                  (list (chrm (client-id c)) m)
                                  "server"))
-    (write (list 'kill cid) fan)
-    (flush-output fan)
-    (set! clients (remove c clients))))
+
+     (close-input-port (client-in-port c))
+     (with-handlers ((exn:fail:network? (lambda (exn) #f)))
+       (close-output-port (client-out-port c)))
+     (kill-thread (client-in-t c))
+     (kill-thread (client-out-t c))
+     (set! clients (remove c clients))))
 
 ; for debugging to artificially introduce lag from server->client
 ;(define delay-ch (make-async-channel))
@@ -483,13 +486,9 @@
 ;       (printf "delay set to ~a\n" delay))
 ;     (loop))))
 
-(define (send-to-clients cids v)
-  (when (not (null? cids))
-    (write (list 'msg cids v) fan)
-    (flush-output fan)
-    ;(thread-send (client-out-t c) v)
+(define (send-to-client c v)
+  (thread-send (client-out-t c) v)
     ;(async-channel-put delay-ch (list (current-milliseconds) (client-out-t c) v))
-    )
   )
 
 
@@ -515,14 +514,16 @@
     (define-values (in out) (tcp-accept server-listener))
     (when (and in out)
       (set-tcp-nodelay! out #t)
-      (define st (current-thread))
-      (thread
-       (lambda ()
-         (let loop ()
-           (define v (read in))
-           (thread-send st v)
-           (loop))))
-      (set! fan out)))
+    (define cid (next-id))
+    (define c (client CLIENT_STATUS_NEW
+                      (player cid #f #f 0 '() #f #f)
+                      in out
+                      (make-in-thread cid in (current-thread))
+                      (make-out-thread cid out (current-thread))))
+    (printf "server (~a) accepting new client ~a\n" (length clients) cid)
+    (send-to-client c (serialize (client-player c)))  ; assign an id
+    (prepend! clients c))
+  )
   
   ; simulation tick
   (define tick? #t)
@@ -550,17 +551,6 @@
         (define cid (car v))
         (define u (cdr v))
         (cond
-          ((cid . < . 0)
-           ; message from fan, new client
-           (define newid (next-id))
-           (define c (client CLIENT_STATUS_NEW
-                             (player newid #f #f 0 '() #f #f)))
-           (define msg (list 'new cid newid))
-           (printf "server (~a) accepting new client ~a\n" (length clients) newid)
-           (write msg fan)
-           (flush-output fan)
-           (send-to-clients (list newid) (serialize (client-player c)))  ; assign an id
-           (prepend! clients c))
           ((not u)
            (remove-client cid))
           ((and (update? u)
@@ -697,27 +687,23 @@
     ; to-bytes also serves to copy the info in u so it doesn't change
     ; because send-to-client is asynchronous
     (define msg (serialize u))
-    (define cids
-      (for/list ((c clients)
+    (for ((c clients)
                  #:when (= (client-status c) CLIENT_STATUS_OK))
-        (client-id c)))
-    (send-to-clients cids msg)
+      (send-to-client c msg))
     )
     )
 
   ; send to any clients that need a whole ownspace
   ; - either new clients or the scenario changed
   (define msg #f)
-  (define cids
-    (for/list ((c clients)
+  (for ((c clients)
                #:when (= (client-status c) CLIENT_STATUS_WAITING_FOR_SPACE))
       (when (not msg)
-        (set! msg (serialize ownspace)))
+      (set! msg (serialize ownspace)))
       ;(printf "server sending ownspace to client ~a ~a\n"
       ;        (client-id c) (player-name (client-player c)))
-      (set-client-status! c CLIENT_STATUS_OK)
-      (client-id c)))
-  (send-to-clients cids msg)
+    (send-to-client c msg)
+    (set-client-status! c CLIENT_STATUS_OK))
 
   ; housekeeping
   (flush-output)
@@ -770,16 +756,8 @@
 (define (start-server (port PORT) #:scenario (scenario sc-pick) #:spacebox (spbox #f))
   (change-scenario! scenario)
   (set! spacebox spbox)
-  
-;  (set! fan (dynamic-place "fan.rkt" 'start #:named "fan"))
-;  (define server-t (current-thread))
-;  (thread (lambda ()
-;            (let loop ()
-;              (thread-send server-t (place-channel-get fan))
-;              (loop))))
-  
-  (set! server-listener (tcp-listen (- PORT 1) 4 #t))
-  (printf "waiting for fan...\n")
+  (set! server-listener (tcp-listen port 16 #t))
+  (printf "waiting for clients...\n")
   (server-loop))
 
 

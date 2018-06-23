@@ -2,7 +2,6 @@
 
 (require racket/math
          racket/port
-         racket/place
          racket/list
          racket/struct
          ffi/unsafe
@@ -60,11 +59,8 @@
      obo)))
 
 
-(define (make-in-thread id in-port dest)
+(define (make-in-thread id in-port th)
   (define-values (pin pout) (make-pipe))
-  (define send (if (place-channel? dest)
-                   place-channel-put
-                   thread-send))
   (thread
    (lambda ()
      (let loop ()
@@ -80,17 +76,14 @@
        (cond
          ((and v (not (eof-object? v)))
           ; send to client/server thread
-          (send dest (cons id v))
+          (thread-send th (cons id v))
           (loop))
          (else
-          (send dest (cons id #f))
-          (printf "in-thread ~a stopping\n" id)
+          (thread-send th (cons id #f))
+          ;(printf "in-thread ~a stopping\n" id)
           (sync never-evt)))))))
 
-(define (make-out-thread id out-port dest)
-  (define send (if (place-channel? dest)
-                   place-channel-put
-                   thread-send))
+(define (make-out-thread id out-port th)
   (thread
    (lambda ()
      (let loop ()
@@ -109,8 +102,8 @@
          ((void? ret)
           (loop))
          (else
-          (send dest (cons id #f))
-          (printf "out-thread ~a stopping\n" id)
+          (thread-send th (cons id #f))
+          ;(printf "out-thread ~a stopping\n" id)
           (sync never-evt)))))))
 
 (define-syntax-rule (timeit var e ...)
