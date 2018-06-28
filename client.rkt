@@ -244,7 +244,7 @@
         (define rad (caddr f))
         (define-values (x y) (xy->screen (car f) (cadr f) center (get-scale)))
         (prepend! sprites (sprite x y (sprite-idx csd 'circle) #:layer LAYER_FOW_BLACK
-                                  #:m (* rad (get-scale) 50.0))))
+                                  #:m (* rad (get-scale) (/ 50.0)))))
       )
 
       (timeit t3
