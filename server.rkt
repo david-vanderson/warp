@@ -568,9 +568,9 @@
           
           ((update? u)
            (cond
-             ((not (= (space-id ownspace) (update-id u)))
-              (printf "server dropping update for old space (needed ~a) ~v\n"
-                      (space-id ownspace) u))
+             ((not (equal? (space-id ownspace) (update-id u)))
+              (printf "server dropping update id ~a from ~a for old space (needed ~a)\n"
+                      (update-id u) cid (space-id ownspace)))
              (else
               (when (and (update-time u) ((- (space-time ownspace) (update-time u)) . > . 70))
                 (printf "~a : client ~a is behind ~a\n" (space-time ownspace) cid
@@ -756,7 +756,7 @@
 (define (start-server (port PORT) #:scenario (scenario sc-pick) #:spacebox (spbox #f))
   (change-scenario! scenario)
   (set! spacebox spbox)
-  (set! server-listener (tcp-listen port 16 #t))
+  (set! server-listener (tcp-listen port 100 #t))
   (printf "waiting for clients...\n")
   (server-loop))
 
