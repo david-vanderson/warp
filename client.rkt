@@ -328,8 +328,8 @@
                                                    (sprite-idx csd 'square)))
                                      #:a 0.9))
            ; draw all the ships in the hangar
-           (define shipmax (* 2.0 (apply max (map (lambda (s) (ship-w s 1.0))
-                                                  (ship-hangar ship)))))
+           (define shipmax (* 2.0 (apply max 1.0 (map (lambda (s) (ship-w s 1.0))
+                                                      (ship-hangar ship)))))
            (for ((s (in-list (ship-hangar ship)))
                  (i (in-naturals)))
              (define x (+ (* -0.5 size) 10 (* (quotient i 4) 180) (/ shipmax 2)))
