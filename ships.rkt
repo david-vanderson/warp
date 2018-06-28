@@ -106,7 +106,7 @@
                    #:dx (dx 0.0) #:dy (dy 0.0) #:dr (dr 0.0)
                    #:size (size (ship-info-size (hash-ref ship-list type)))
                    #:hit-radius (hit-radius #f)
-                   #:drag (drag #f)
+                   #:drag (drag 0.0)
                    #:start-ship? (start-ship? #f)
                    #:ai? (ai? #f)
                    #:con (con 1.0)

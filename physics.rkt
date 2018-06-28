@@ -63,17 +63,16 @@
 
 
 (define (drag dv dt coef)
-  (define newv (* dv (expt (1 . - . coef) dt)))
-  (if ((abs newv) . < . .00001) 0 newv))
+  (define newv (* dv (expt (1.0 . - . coef) dt)))
+  (if ((abs newv) . < . .01) 0 newv))
 
 
-(define (physics! pv dt (drag_xy #f) (acc? #f))
+(define (physics! pv dt (drag_xy 0.0) (acc? #f))
   (set-posvel-x! pv (+ (posvel-x pv) (* dt (posvel-dx pv))))
   (set-posvel-y! pv (+ (posvel-y pv) (* dt (posvel-dy pv))))
   (set-posvel-r! pv (angle-add (posvel-r pv) (* dt (posvel-dr pv))))
-  (when drag_xy
-    (set-posvel-dx! pv (drag (posvel-dx pv) dt drag_xy))
-    (set-posvel-dy! pv (drag (posvel-dy pv) dt drag_xy))))
+  (set-posvel-dx! pv (drag (posvel-dx pv) dt drag_xy))
+  (set-posvel-dy! pv (drag (posvel-dy pv) dt drag_xy)))
 
 
 (define EDGE_THRUST 10.0)
