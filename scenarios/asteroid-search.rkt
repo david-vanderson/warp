@@ -82,7 +82,7 @@
     (set-obj-posvel! s #f)
     s)
 
-  (define goodship (make-ship "red-frigate" "a" "a" #:x -1500.0 #:y -1500.0 #:r 0.0))
+  (define goodship (make-ship "red-frigate" "a" "a" #:x -1500.0 #:y -1500.0 #:r pi))
   (set-ship-stats! goodship (stats (next-id) "red-frigate" "Empire Frigate" "Empire"
                                    ;con maxcon mass radar drag start
                                    500.0 500.0 100.0 300.0 0.4 #t))
