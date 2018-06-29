@@ -31,13 +31,8 @@
 (define LAYER_FOW_BLACK 1)  ; paint black everywhere you can see
 (define LAYER_MAP 2)  ; map lines, annotations, stars, backeffects
 (define LAYER_SHIPS 3)  ; ships, plasmas, normal objects
-(define LAYER_EFFECTS 4)  ; explosions
-(define LAYER_OVERLAY 5)  ; overlays
-; when your ship is on another ship, or when inside a hangar:
-; - normal effects are pushed down to LAYER_SHIPS
-; - hangar or circular background on LAYER_EFFECTS
-; - ships or hangar contents on LAYER_OVERLAY
-; - overlays on LAYER_UI
+(define LAYER_EFFECTS 4)  ; explosions, overlays, hp bars
+(define LAYER_HANGAR 5)  ; hangar background
 (define LAYER_UI 6)
 (define LAYER_UI_TEXT 7)
 (define LAYER_NUM 8)

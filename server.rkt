@@ -572,7 +572,7 @@
               (printf "server dropping update id ~a from ~a for old space (needed ~a)\n"
                       (update-id u) cid (space-id ownspace)))
              (else
-              (when (and (update-time u) ((- (space-time ownspace) (update-time u)) . > . 70))
+              (when (and (update-time u) ((- (space-time ownspace) (update-time u)) . > . 100))
                 (printf "~a : client ~a is behind ~a\n" (space-time ownspace) cid
                         (- (space-time ownspace) (update-time u))))
               (for ((ch (in-list (update-changes u))))

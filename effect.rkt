@@ -63,14 +63,14 @@
   ((obj-age space e) . > . (effect-duration e)))
 
 
-(define (draw-effect csd center scale space e fowa layer_effects)
+(define (draw-effect csd center scale space e fowa)
   (cond ((backeffect? e)
          (draw-backeffect csd center scale space e fowa))
         (else
          (define agep (linear-fade (obj-age space e) 0 (effect-duration e)))
          (define col (linear-color "yellow" "yellow" 0 agep))
          (define rad (* (+ 1.0 (- 1.0 agep)) (effect-size e)))
-         (obj-sprite e csd center scale layer_effects 'circle
+         (obj-sprite e csd center scale LAYER_EFFECTS 'circle
                      (/ (* 2.0 rad) 100) (* fowa agep) 0 col))))
 
 

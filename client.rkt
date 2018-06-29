@@ -296,7 +296,7 @@
         (define fowa (if (obj-posvel o) (get-alpha (obj-x o) (obj-y o) fowlist) 1.0))
         (when (fowa . > . 0)
           (define spr (draw-object csd textr textsr center (get-scale) o ownspace myshipid
-                                 showtab fowa LAYER_EFFECTS fac))
+                                 showtab fowa fac))
           (prepend! sprites spr)))
       )
 
@@ -315,18 +315,29 @@
           ((unbox in-hangar?)
            ; hangar background
            (define size (* 0.8 (min canon-width canon-height)))
-           (prepend! sprites (sprite 0.0 0.0 (sprite-idx csd 'square-outline)
-                                     #:layer LAYER_SHIPS
-                                     #:m (/ (+ size 2.0)
-                                            (sprite-width csd
-                                              (sprite-idx csd
-                                                'square-outline)))
-                                     #:r 255 #:g 255 #:b 255))
            (prepend! sprites (sprite 0.0 0.0 (sprite-idx csd 'square)
-                                     #:layer LAYER_EFFECTS
+                                     #:layer LAYER_HANGAR
                                      #:m (/ size (sprite-width csd
                                                    (sprite-idx csd 'square)))
-                                     #:a 0.9))
+                                     #:a 0.75))
+           (set! size (+ size 5.0))  ; help cover the corners
+           (prepend! sprites (sprite (- (/ size 2.0)) 0.0 (sprite-idx csd '100x1)
+                                      #:layer LAYER_HANGAR
+                                      #:m (/ size 100.0) #:theta pi/2
+                                      #:r 255 #:g 255 #:b 255))
+           (prepend! sprites (sprite (/ size 2.0) 0.0 (sprite-idx csd '100x1)
+                                      #:layer LAYER_HANGAR
+                                      #:m (/ size 100.0) #:theta pi/2
+                                      #:r 255 #:g 255 #:b 255))
+           (prepend! sprites (sprite 0.0 (- (/ size 2.0)) (sprite-idx csd '100x1)
+                                      #:layer LAYER_HANGAR
+                                      #:m (/ size 100.0)
+                                      #:r 255 #:g 255 #:b 255))
+           (prepend! sprites (sprite 0.0 (/ size 2.0) (sprite-idx csd '100x1)
+                                      #:layer LAYER_HANGAR
+                                      #:m (/ size 100.0)
+                                      #:r 255 #:g 255 #:b 255))
+           
            ; draw all the ships in the hangar
            (define shipmax (* 2.0 (apply max 1.0 (map (lambda (s) (ship-w s 1.0))
                                                       (ship-hangar ship)))))
@@ -336,13 +347,13 @@
              (define y (+ (* -0.5 size) 10 (* (remainder i 4) 150) (/ shipmax 2)))
              (define sym (string->symbol (ship-type s)))
              (prepend! sprites (sprite x y (sprite-idx csd sym)
-                                       #:layer LAYER_OVERLAY #:theta (- pi/2)
+                                       #:layer LAYER_UI #:theta (- pi/2)
                                        #:m (/ (exact->inexact (ship-sprite-size s))
                                               (sprite-size csd sym))
                                        #:r (get-red ownspace s)))
 
              (define w (ship-w s 1.0))
-             (prepend! sprites (draw-hp-bar s x y w csd))
+             (prepend! sprites (draw-hp-bar s x y w csd LAYER_UI))
              
              (define b (button 'normal (ob-id s) #f
                                (+ x (/ shipmax 2) 80)
@@ -351,14 +362,14 @@
                                  (send-commands (chmov meid (ob-id s) #f)))))
              (prepend! buttons b)
              (define players (find-all ownspace s player?))
-             ;(append! players (player -1 "player1" "fac1" '() #f #f)
-             ;                  (player -1 "player2" "fac2" '() #f #f))
+             (for ((i (modulo (debug-num) 10)))
+               (append! players (player -1 (~a "player" i) "fac1" -1 '() #f #f)))
              (for ((p (in-list players))
                    (i (in-naturals)))
                (prepend! sprites (text-sprite textr textsr (player-name p)
                                               (+ x (/ shipmax 2) 10)
                                               (+ y (- (/ shipmax 2)) 40 (* i 20))
-                                              LAYER_UI_TEXT)))))
+                                              LAYER_UI)))))
           ((not (ship-flying? ship))
            ; our ship is inside another
            ; draw black circle on top of topship
@@ -370,13 +381,13 @@
            (define-values (x y) (obj->screen topship center (get-scale)))
            (define sym (string->symbol (ship-type ship)))
            (prepend! sprites (sprite x y (sprite-idx csd sym)
-                                     #:layer LAYER_OVERLAY #:theta (- pi/2)
+                                     #:layer LAYER_HANGAR #:theta (- pi/2)
                                      #:m (* (get-scale)
                                             (/ (ship-sprite-size ship)
                                                (sprite-size csd sym)))
                                      #:r (get-red ownspace ship)))
            (define w (ship-w ship (get-scale)))
-           (prepend! sprites (draw-hp-bar ship x y w csd))))
+           (prepend! sprites (draw-hp-bar ship x y w csd LAYER_UI))))
 
         ; draw ship UI
         (prepend! sprites (draw-ship-hp csd textr center (get-scale) my-stack))

@@ -107,7 +107,7 @@
         )))
   spr)
 
-(define (draw-object csd textr textsr center scale o space myshipid showplayers? fowa layer-effects faction)
+(define (draw-object csd textr textsr center scale o space myshipid showplayers? fowa faction)
   (cond
     #;((ptsize . < . 0.25)  ; "sector" view - ships are triangles
      (cond ((ship? o)
@@ -151,7 +151,7 @@
            ((shield? o)
             (draw-shield csd center scale space o fowa))
            ((effect? o)
-            (draw-effect csd center scale space o fowa layer-effects))
+            (draw-effect csd center scale space o fowa))
            ((upgrade? o)
             (define spr '())
             (prepend! spr (draw-upgrade csd center scale space o fowa))
@@ -195,7 +195,7 @@
             (when showplayers?
               (define overlay (assoc faction (ship-overlays o)))
               (when overlay
-                (prepend! spr (obj-sprite o csd center scale LAYER_OVERLAY
+                (prepend! spr (obj-sprite o csd center scale LAYER_EFFECTS
                                           (cdr overlay) (/ 1.0 scale)
                                           fowa 0.0 (make-color 0 255 0 1.0))))
 
@@ -216,7 +216,7 @@
 
             
             (define-values (x y) (obj->screen o center scale))
-            (prepend! spr (draw-hp-bar o x y w csd))
+            (prepend! spr (draw-hp-bar o x y w csd LAYER_EFFECTS))
             
             ;(prepend! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
             ;(when showplayers?
@@ -299,21 +299,21 @@
   (define spr '())
   (define-values (x y) (obj->screen o center scale))
   (prepend! spr (sprite (- x w) (- y w) (sprite-idx csd 'corner)
-                        #:layer LAYER_OVERLAY #:m 3.0
+                        #:layer LAYER_EFFECTS #:m 3.0
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
   (prepend! spr (sprite (+ x w) (- y w) (sprite-idx csd 'corner)
-                        #:layer LAYER_OVERLAY #:m 3.0 #:theta pi/2
+                        #:layer LAYER_EFFECTS #:m 3.0 #:theta pi/2
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
   (prepend! spr (sprite (+ x w) (+ y w) (sprite-idx csd 'corner)
-                        #:layer LAYER_OVERLAY #:m 3.0 #:theta pi
+                        #:layer LAYER_EFFECTS #:m 3.0 #:theta pi
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
   (prepend! spr (sprite (- x w) (+ y w) (sprite-idx csd 'corner)
-                        #:layer LAYER_OVERLAY #:m 3.0 #:theta (+ pi pi/2)
+                        #:layer LAYER_EFFECTS #:m 3.0 #:theta (+ pi pi/2)
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
   spr)
 
 
-(define (draw-hp-bar o x y w csd)
+(define (draw-hp-bar o x y w csd layer)
   (define hpmax (ship-maxcon o))
   (define hp (ship-con o))
   (cond
@@ -321,7 +321,7 @@
           (hp . < . hpmax))
      (define frac (clamp 0.0 1.0 (/ hp hpmax)))
      (define color (stoplight-color hp hpmax))
-     (sprite x (- y w 4.5) (sprite-idx csd '5x1) #:layer LAYER_OVERLAY
+     (sprite x (- y w 4.5) (sprite-idx csd '5x1) #:layer layer
              #:mx (max 1.0 (* frac 2.0 (min w 48.0) 0.2))
              #:my 3.0
              #:r (send color red) #:g (send color green) #:b (send color blue)))
@@ -399,7 +399,7 @@
                (will-dock? ship s))
       (define-values (x y) (obj->screen s center scale))
       (prepend! spr (sprite x y (sprite-idx csd 'circle-outline)
-                           #:layer LAYER_OVERLAY #:m (/ scale 20.0)
+                           #:layer LAYER_EFFECTS #:m (/ scale 20.0)
                            #:r (send col red) #:g (send col green) #:b (send col blue)))))
   spr)
 
