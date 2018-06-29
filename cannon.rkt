@@ -114,8 +114,10 @@
                         ((distance ownship o) . <= . (ship-radar ownship))
                         ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)))
         (define t (target-angle ownship ownship o o CANNON_SPEED 30.0))
-        (when (and t ((abs (angle-frto (obj-r ownship) t)) . < . 0.1))
-          (append! changes (list (command (ob-id ownship) #f 'cannon t)))
+        (define spread (atan (/ (ship-radius o)
+                                (distance ownship o))))
+        (when (and t ((abs (angle-frto (obj-r ownship) t)) . < . spread))
+          (append! changes (list (command (ob-id ownship) #f 'cannon (obj-r ownship))))
           (done)))))
   changes)
 
