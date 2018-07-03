@@ -27,12 +27,12 @@
 (define fgcolor "white")
 (define nocolor "hotpink")  ; used with a transparent pen/brush
 
-(define LAYER_FOW_GRAY 0)  ; paint everything gray
-(define LAYER_FOW_BLACK 1)  ; paint black everywhere you can see
-(define LAYER_MAP 2)  ; map lines, annotations, stars, backeffects
-(define LAYER_SHIPS 3)  ; ships, plasmas, normal objects
-(define LAYER_EFFECTS 4)  ; explosions, overlays, hp bars
-(define LAYER_HANGAR 5)  ; hangar background
+(define LAYER_FOW_BLACK 0)  ; paint black everywhere you can see
+(define LAYER_MAP 1)  ; map lines, annotations, stars, backeffects
+(define LAYER_SHIPS 2)  ; ships, plasmas, normal objects
+(define LAYER_EFFECTS 3)  ; explosions, overlays, hp bars
+(define LAYER_HANGAR_BACKGROUND 4)  ; hangar background
+(define LAYER_HANGAR 5)  ; hangar ships
 (define LAYER_UI 6)
 (define LAYER_UI_TEXT 7)
 (define LAYER_NUM 8)

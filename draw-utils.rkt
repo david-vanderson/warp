@@ -13,7 +13,6 @@
 
 (provide (all-defined-out))
 
-(define fowcol (make-color 100 100 100 1.0))  ; background gray
 (define mapcol (make-color 0 0 200 1.0))  ; sector lines, zoom scale
 
 (define canon-width 800.0)

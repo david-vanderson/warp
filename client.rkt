@@ -223,12 +223,7 @@
         (define topship (or rcship (get-topship my-stack)))
         (set! myshipid (ob-id topship)))
       
-      ; make background be fog of war gray
-      (prepend! sprites (sprite 0.0 0.0 (sprite-idx csd '100x100) #:layer LAYER_FOW_GRAY
-                                #:m (* 2.0 (/ (max canon-width canon-height) 100.0))
-                                #:r (send fowcol red)
-                                #:g (send fowcol green)
-                                #:b (send fowcol blue)))
+      ; background starts as fog of war gray
 
       ; put a black circle wherever we can see
       (define fowlist
@@ -316,25 +311,25 @@
            ; hangar background
            (define size (* 0.8 (min canon-width canon-height)))
            (prepend! sprites (sprite 0.0 0.0 (sprite-idx csd 'square)
-                                     #:layer LAYER_HANGAR
+                                     #:layer LAYER_HANGAR_BACKGROUND
                                      #:m (/ size (sprite-width csd
                                                    (sprite-idx csd 'square)))
                                      #:a 0.75))
            (set! size (+ size 5.0))  ; help cover the corners
            (prepend! sprites (sprite (- (/ size 2.0)) 0.0 (sprite-idx csd '100x1)
-                                      #:layer LAYER_HANGAR
+                                      #:layer LAYER_HANGAR_BACKGROUND
                                       #:m (/ size 100.0) #:theta pi/2
                                       #:r 255 #:g 255 #:b 255))
            (prepend! sprites (sprite (/ size 2.0) 0.0 (sprite-idx csd '100x1)
-                                      #:layer LAYER_HANGAR
+                                      #:layer LAYER_HANGAR_BACKGROUND
                                       #:m (/ size 100.0) #:theta pi/2
                                       #:r 255 #:g 255 #:b 255))
            (prepend! sprites (sprite 0.0 (- (/ size 2.0)) (sprite-idx csd '100x1)
-                                      #:layer LAYER_HANGAR
+                                      #:layer LAYER_HANGAR_BACKGROUND
                                       #:m (/ size 100.0)
                                       #:r 255 #:g 255 #:b 255))
            (prepend! sprites (sprite 0.0 (/ size 2.0) (sprite-idx csd '100x1)
-                                      #:layer LAYER_HANGAR
+                                      #:layer LAYER_HANGAR_BACKGROUND
                                       #:m (/ size 100.0)
                                       #:r 255 #:g 255 #:b 255))
            
@@ -347,13 +342,13 @@
              (define y (+ (* -0.5 size) 10 (* (remainder i 4) 150) (/ shipmax 2)))
              (define sym (string->symbol (ship-type s)))
              (prepend! sprites (sprite x y (sprite-idx csd sym)
-                                       #:layer LAYER_UI #:theta (- pi/2)
+                                       #:layer LAYER_HANGAR #:theta (- pi/2)
                                        #:m (/ (exact->inexact (ship-sprite-size s))
                                               (sprite-size csd sym))
                                        #:r (get-red ownspace s)))
 
              (define w (ship-w s 1.0))
-             (prepend! sprites (draw-hp-bar s x y w csd LAYER_UI))
+             (prepend! sprites (draw-hp-bar s x y w csd LAYER_HANGAR))
              
              (define b (button 'normal (ob-id s) #f
                                (+ x (/ shipmax 2) 80)
@@ -374,7 +369,7 @@
            ; our ship is inside another
            ; draw black circle on top of topship
            (prepend! sprites (obj-sprite topship csd center (get-scale)
-                                         LAYER_EFFECTS 'circle
+                                         LAYER_HANGAR_BACKGROUND 'circle
                                          (/ (* 2.2 (ship-radius topship)) 100)
                                          0.75 0.0 (make-color 0 0 0 1.0)))
            ; draw our ship inside black circle
@@ -387,7 +382,7 @@
                                                (sprite-size csd sym)))
                                      #:r (get-red ownspace ship)))
            (define w (ship-w ship (get-scale)))
-           (prepend! sprites (draw-hp-bar ship x y w csd LAYER_UI))))
+           (prepend! sprites (draw-hp-bar ship x y w csd LAYER_HANGAR))))
 
         ; draw ship UI
         (prepend! sprites (draw-ship-hp csd textr center (get-scale) my-stack))
@@ -730,7 +725,7 @@
     (define layers (for/vector ((i LAYER_NUM)) (layer width height)))
     )
     (timeit t8
-    (define r (render layers '() sprites))
+    (define r (render layers '() sprites #:r 80 #:g 80 #:b 80))
     )
     (timeit t9
     (r (fl->fx canon-width) (fl->fx canon-height) dc)
@@ -948,8 +943,6 @@
                        (colorize (filled-rectangle 20 2) "black"))
     (add-sprite!/value sd '2x150
                        (colorize (filled-rectangle 2 150) "black"))
-    (add-sprite!/value sd '100x100
-                       (colorize (filled-rectangle 100 100) "black"))
     (add-sprite!/value sd 'circle
                        (colorize (filled-ellipse 100 100) "black"))
     (add-sprite!/value sd 'shield

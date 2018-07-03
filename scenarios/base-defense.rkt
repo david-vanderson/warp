@@ -10,8 +10,7 @@
 
 (provide (all-defined-out))
 
-(define (base-defense-scenario oldspace oldtick oldmessage old-on-player-restart)
-  (define ai? #t)
+(define (base-defense-scenario oldspace oldtick oldmessage old-on-player-restart)  
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p #f))
 
@@ -49,7 +48,7 @@
     s)
   
   
-  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50 #:ai? #t
+  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50 #:ai? #f
                              #:hangar (list (new-blue-fighter))))
   (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
                                   ;con maxcon mass radar drag start?

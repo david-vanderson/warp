@@ -13,21 +13,20 @@
 (provide (all-defined-out))
 
 (define (testing-scenario oldspace oldtick oldmessage old-on-player-restart)
-  (define ai? #t)
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "Rebel"))
 
   (define ownspace (space (next-id) 0 10000 10000 players '()
                           `(,(standard-quit-scenario-button #t))))
   
-  (set-space-objects! ownspace
+  #;(set-space-objects! ownspace
                       (append (space-objects ownspace)
                               (for/list (((name si) (in-hash ship-list))
                                          (x (in-range -1000 1000 100)))
                                 (make-ship name name "Rebel" #:x x #:start-ship? #t))))
 
   (define (new-blue-fighter (x 0) (y 0) (r pi/2))
-    (define s (make-ship "blue-fighter" "a" "a" #:ai? #t #:x x #:y y #:r r))
+    (define s (make-ship "blue-fighter" "a" "a" #:ai? #f #:x x #:y y #:r r))
     (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
                               ;con maxcon mass radar drag start-ship?
                               1000.0 1000.0 20.0 300.0 0.4 #t))
@@ -51,6 +50,7 @@
 
   (define bf (for/list ((i 10)) (new-blue-fighter (* 50 i) 50)))
   (define rf (for/list ((i 50)) (new-red-fighter  (* 50 i) 150)))
+  (define a (make-ship "asteroid_87" "a" "Empire" #:x 95 #:y 95 #:dx -0.001))
 
   (define b1 (make-ship "blue-station" "b1" "Rebel" #:x 0 #:y 0 #:ai? #f #:hangar '()))
   (define b2 (make-ship "blue-station" "b2" "a" #:x 125 #:y 100 #:ai? #f #:hangar '()))
@@ -59,12 +59,11 @@
     (set-ship-ai-strategy! f
       (list (strategy (space-time ownspace) "return" (ob-id b1)))))
   
-  ;(set-space-objects! ownspace
-  ;                    (append ;bf ;rf
-  ;                            ;(list b1)
-  ;                     (list (new-blue-fighter 100 0)
-  ;                           (new-red-fighter 0 0))
-  ;                            (space-objects ownspace)))
+  (set-space-objects! ownspace
+                      (append 
+                       (list (new-blue-fighter 100 100)
+                             a)
+                       (space-objects ownspace)))
   
   (define real-orders (space 0 0 0 0 '() '() '()))  ; only care about orders
   
@@ -107,45 +106,3 @@
   
   (values ownspace on-tick on-message #f))
 
-
-(module+ main
-  (define ps (for/list ((i 1000))
-               (plasma (next-id) 0 #t
-                       (posvel 0
-                               (* (random) 5000)
-                               (* (random) 5000)
-                               0
-                               0
-                               0
-                               0)
-                       1)))
-  (define ownspace (space (next-id) 0 10000 10000 '() '() '()))
-
-  (for ((i 200))
-    (when (time-for (space-time ownspace) 500)
-      (for ((i 100))
-        (define p (plasma (next-id) (space-time ownspace) #t
-                          (posvel (space-time ownspace)
-                                  (* (random) 5000)
-                                  (* (random) 5000)
-                                  0
-                                  0
-                                  0
-                                  0)
-                          1))
-        (set-space-objects! ownspace (cons p (space-objects ownspace)))))
-    (define-values (ret cpu real gc)
-      (time-apply
-       (lambda ()
-         (set-space-time! ownspace (+ (space-time ownspace) TICK))
-         (for ((o (in-list (space-objects ownspace)))
-               #:when (obj-alive? o))
-           (update-physics! ownspace o (/ TICK 1000.0)))
-         (set-space-objects! ownspace (filter obj-alive? (space-objects ownspace))))
-       '()))
-    (when #t;(cpu . > . 1)
-      (printf "ownspace ~a ~a time ~a real ~a gc ~a\n"
-              (space-time ownspace) (length (space-objects ownspace))
-              cpu real gc)))
-  )
-  
