@@ -31,8 +31,10 @@
                  (define dx (random-between -100.0 100.0))
                  (define dy (random-between -100.0 100.0))
                  (define dr (random-between -1.0 1.0))
-                 (make-ship "asteroid_43" "Asteroid" "_neutral" #:x x #:y y #:r 0
-                            #:dx dx #:dy dy #:dr dr #:start-ship? #t))
+                 (make-ship "asteroid_43" "Asteroid" "_neutral"
+                            #:x x #:y y #:r 0
+                            #:hp-bar? #f #:con 10000.0
+                            #:dx dx #:dy dy #:dr dr))
              )))
 
   (define time-limit (* 1000 60 5))  ; 90 seconds for the whole scenario

@@ -880,7 +880,7 @@
                 (zoom-mouse (/ 1.0 1.05))))
              #;((#\u)
               (when ownspace
-                (send-commands (chadd (random-upgrade ownspace
+                (send-commands (chadd (random-upgrade (space-time ownspace)
                                                       (posvel -1 0 0 0
                                                               (random 100)
                                                               (random 100) 0)) #f))))

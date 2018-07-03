@@ -41,10 +41,17 @@
     (define dx (random-between (- dd) dd))
     (define dy (random-between (- dd) dd))
     (define dr (random-between -0.5 0.5))
+    (define up? ((random) . < . 0.1))
     (define a (make-ship "asteroid_87" "Asteroid" "_neutral" #:drag 0.1
                          #:size (inexact->exact diam)
-                         #:x (+ x xd) #:y (+ y yd) #:dr dr #:dx dx #:dy dy))
-    (set-ship-overlays! a (list (cons "Empire" 'overlay-qm)))
+                         #:x (+ x xd) #:y (+ y yd) #:dr dr #:dx dx #:dy dy
+                         #:con (if up? 50.0 5000.0)
+                         #:hp-bar? up?
+                         #:cargo (if up?
+                                     (list (random-upgrade 0 #f)
+                                           (random-upgrade 0 #f))
+                                     '())))
+    (set-ship-overlays! a (list (cons "Empire" (overlay 'overlay-qm #t))))
     (prepend! asteroids a))
 
   ; pick which asteroid will have the hidden base
@@ -52,6 +59,10 @@
   (define a (list-ref asteroids idx))
   (set! hidden-base-id (ob-id a))
   (set-ship-hangar! a '())
+  (set-ship-cargo! a '())
+  (set-stats-con! (ship-stats a) 250.0)
+  (set-stats-maxcon! (ship-stats a) 250.0)
+  (set-ship-hp-bar?! a #t)
   (set-ship-tools! a (list (tool-regen 1.0)
                            (tool-pbolt 5.0)))
 
@@ -231,34 +242,31 @@
 
       (define hb (find-id ownspace ownspace hidden-base-id))
 
-      (when (not found-base?)
-        (for ((s (space-objects ownspace))
-              #:when (and (obj-alive? s)
-                          (or (spaceship? s) (probe? s))
-                          (equal? "Empire" (ship-faction s)))
-              (a (qt-retrieve qt (obj-x s) (obj-y s) (/ (ship-radar s) 2.0)))
-              #:when (and (obj-alive? a)
-                          (spaceship? a)
-                          (assoc "Empire" (ship-overlays a))
-                          ((distance s a) . < . (/ (ship-radar s) 2.0))))
-          ; remove the overlay
-          (append! changes (chstat (ob-id a) 'overlay (cons "Empire" #f)))
-          ; check if this was the hidden base
-          (when (and (not found-base?) (equal? (ob-id hb) (ob-id a)))
-            (set! found-base? #t)
-            (define newstats (struct-copy stats (ship-stats hb)))
-            (set-stats-faction! newstats "Empire")
-            (append! changes
-                     (chstats (ob-id hb) newstats)
-                     (chstat (ob-id hb) 'ai #t)
-                     (chadd parts (ob-id hb))
-                     (message (next-id) (space-time ownspace) #t #f "Discovered Hidden Base!"))))
-
-        (when found-base?
-          ; just found the base, remove all overlays
-          (for ((o (space-objects ownspace))
-                #:when (and (ship? o) (assoc "Empire" (ship-overlays o))))
-            (prepend! changes (chstat (ob-id o) 'overlay (cons "Empire" #f))))))
+      (for ((s (space-objects ownspace))
+            #:when (and (obj-alive? s)
+                        (or (spaceship? s) (probe? s))
+                        (equal? "Empire" (ship-faction s)))
+            (a (qt-retrieve qt (obj-x s) (obj-y s) (/ (ship-radar s) 3.0)))
+            #:when (and (obj-alive? a)
+                        (spaceship? a)
+                        (assoc "Empire" (ship-overlays a))
+                        ((distance s a) . < . (/ (ship-radar s) 3.0))))
+        ; remove the overlay
+        (append! changes (chstat (ob-id a) 'overlay (cons "Empire" #f)))
+        (when (not (null? (ship-cargo a)))
+          ; add the cargo overlay
+          (append! changes (chstat (ob-id a) 'overlay
+                                   (cons "Empire" (overlay 'overlay-cargo #t)))))
+        ; check if this was the hidden base
+        (when (and (not found-base?) (equal? (ob-id hb) (ob-id a)))
+          (set! found-base? #t)
+          (define newstats (struct-copy stats (ship-stats hb)))
+          (set-stats-faction! newstats "Empire")
+          (append! changes
+                   (chstats (ob-id hb) newstats)
+                   (chstat (ob-id hb) 'ai #t)
+                   (chadd parts (ob-id hb))
+                   (message (next-id) (space-time ownspace) #t #f "Discovered Hidden Base!"))))
 
       ; check if the good guys docked
       (when (and found-base? (not dock-base?))

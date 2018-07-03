@@ -161,6 +161,8 @@
 ; drag is the coeffecient for how fast this ship slows down
 ; start is if you can start on this ship
 
+(struct overlay (sym fow?) #:mutable #:prefab)
+
 (struct ship obj (hp-bar? sprite-size radius stats tools playerids hangar overlays cargo dmgfx ai? ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
 ; hp-bar? is #t if we should show the health bar
 ; - #f for asteroids, missiles, cannonballs, etc.
@@ -169,7 +171,7 @@
 ; tools is a list of the systems available on this ship
 ; players is a list of the player ids on this ship
 ; hangar is list of ships in the hangar or #f if this ship has no hangar
-; overlays is an assoc list of (faction . symbol)
+; overlays is an assoc list of (faction . overlay struct)
 ; cargo is stuff you're carrying
 ; dmgfx is size of dmgfx affecting this ship
 ; ai? is #t if the ship is ai when no players are aboard

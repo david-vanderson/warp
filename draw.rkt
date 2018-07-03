@@ -191,24 +191,27 @@
                                       fowa (obj-r o) (make-color (get-red space o) 0 0 1.0)))
 
             (define w (ship-w o scale))
-
-            (when showplayers?
-              (define overlay (assoc faction (ship-overlays o)))
-              (when overlay
-                (prepend! spr (obj-sprite o csd center scale LAYER_EFFECTS
-                                          (cdr overlay) (/ 1.0 scale)
-                                          fowa 0.0 (make-color 0 255 0 1.0))))
-
-              (when (and (not (equal? (ob-id o) myshipid))
-                         (not (cannonball? o))
-                         (not (missile? o)))
-                (define fc (faction-check faction (ship-faction o)))
-                (define col
-                  (cond ((fc . > . 0) (make-color 0 0 200 fowa))
-                        ((fc . < . 0) (make-color 200 0 0 fowa))
-                        (else #f)))
-                (when col
-                  (prepend! spr (draw-corners o w csd center scale col)))))
+            
+            (define ovpair (assoc faction (ship-overlays o)))
+            (when ovpair
+              (define ov (cdr ovpair))
+              (case (overlay-sym ov)
+                ((overlay-qm overlay-cargo)
+                 (prepend! spr (obj-sprite o csd center scale LAYER_EFFECTS
+                                           (overlay-sym ov) (/ 1.0 scale)
+                                           (if (overlay-fow? ov) fowa 1.0) 0.0
+                                           (make-color 0 255 0 1.0))))))
+            
+            (when (and (not (equal? (ob-id o) myshipid))
+                       (not (cannonball? o))
+                       (not (missile? o)))
+              (define fc (faction-check faction (ship-faction o)))
+              (define col
+                (cond ((fc . > . 0) (make-color 0 0 200 fowa))
+                      ((fc . < . 0) (make-color 200 0 0 fowa))
+                      (else #f)))
+              (when col
+                (prepend! spr (draw-corners o w csd center scale col))))
 
             (when (equal? myshipid (ob-id o))
               ; green corners for our ship

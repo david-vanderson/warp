@@ -143,7 +143,7 @@
     (set-obj-alive?! ship #f)
     
     (define pv (obj-posvel ship))
-    (define energy (ship-mass ship))
+    (define energy (ship-maxcon ship))
     
     (when (client?)
       (define e (effect (next-id) (space-time space) #t (struct-copy posvel pv) (sqrt energy) 1000))

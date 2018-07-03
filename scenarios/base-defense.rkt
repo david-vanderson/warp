@@ -165,8 +165,8 @@
         (define fighters (for/list ((i (random 3)))
                            (make-ship "red-fighter" "Empire Fighter" "Empire")))
         (define f (make-ship "red-frigate" "Empire Frigate" "Empire" #:x x #:y y #:r pi #:ai? #t
-                             #:hangar fighters #:cargo (list (random-upgrade ownspace #f)
-                                                                (random-upgrade ownspace #f))))
+                             #:hangar fighters #:cargo (list (random-upgrade 0 #f)
+                                                                (random-upgrade 0 #f))))
         (set-ship-ai-strategy! f (list (strategy (space-time ownspace) "attack*" (ob-id base))))
         (append! changes (chadd f #f) m)))
 
