@@ -315,31 +315,37 @@
                                      #:m (/ size (sprite-width csd
                                                    (sprite-idx csd 'square)))
                                      #:a 0.75))
-           (set! size (+ size 5.0))  ; help cover the corners
-           (prepend! sprites (sprite (- (/ size 2.0)) 0.0 (sprite-idx csd '100x1)
+           (define size2 (+ size 5.0))  ; help cover the corners
+           (prepend! sprites (sprite (- (/ size2 2.0)) 0.0 (sprite-idx csd '100x1)
                                       #:layer LAYER_HANGAR_BACKGROUND
-                                      #:m (/ size 100.0) #:theta pi/2
+                                      #:m (/ size2 100.0) #:theta pi/2
                                       #:r 255 #:g 255 #:b 255))
-           (prepend! sprites (sprite (/ size 2.0) 0.0 (sprite-idx csd '100x1)
+           (prepend! sprites (sprite (/ size2 2.0) 0.0 (sprite-idx csd '100x1)
                                       #:layer LAYER_HANGAR_BACKGROUND
-                                      #:m (/ size 100.0) #:theta pi/2
+                                      #:m (/ size2 100.0) #:theta pi/2
                                       #:r 255 #:g 255 #:b 255))
-           (prepend! sprites (sprite 0.0 (- (/ size 2.0)) (sprite-idx csd '100x1)
+           (prepend! sprites (sprite 0.0 (- (/ size2 2.0)) (sprite-idx csd '100x1)
                                       #:layer LAYER_HANGAR_BACKGROUND
-                                      #:m (/ size 100.0)
+                                      #:m (/ size2 100.0)
                                       #:r 255 #:g 255 #:b 255))
-           (prepend! sprites (sprite 0.0 (/ size 2.0) (sprite-idx csd '100x1)
+           (prepend! sprites (sprite 0.0 (/ size2 2.0) (sprite-idx csd '100x1)
                                       #:layer LAYER_HANGAR_BACKGROUND
-                                      #:m (/ size 100.0)
+                                      #:m (/ size2 100.0)
                                       #:r 255 #:g 255 #:b 255))
            
            ; draw all the ships in the hangar
-           (define shipmax (* 2.0 (apply max 1.0 (map (lambda (s) (ship-w s 1.0))
-                                                      (ship-hangar ship)))))
+           (define shipmax (+ 20 (* 2.0 (apply max 1.0 (map (lambda (s) (ship-w s 1.0))
+                                                            (ship-hangar ship))))))
+           (define buf 8)
+           (define numfit (inexact->exact (floor (/ size (+ shipmax buf)))))
            (for ((s (in-list (ship-hangar ship)))
                  (i (in-naturals)))
-             (define x (+ (* -0.5 size) 10 (* (quotient i 4) 180) (/ shipmax 2)))
-             (define y (+ (* -0.5 size) 10 (* (remainder i 4) 150) (/ shipmax 2)))
+             (define x (+ (* -0.5 size)
+                          (* (quotient i numfit) (+ shipmax buf))
+                          (/ shipmax 2)))
+             (define y (+ (* -0.5 size)
+                          (* (remainder i numfit) (+ shipmax buf))
+                          (/ shipmax 2)))
              (define sym (string->symbol (ship-type s)))
              (prepend! sprites (sprite x y (sprite-idx csd sym)
                                        #:layer LAYER_HANGAR #:theta (- pi/2)
@@ -350,9 +356,8 @@
              (define w (ship-w s 1.0))
              (prepend! sprites (draw-hp-bar s x y w csd LAYER_HANGAR))
              
-             (define b (button 'normal (ob-id s) #f
-                               (+ x (/ shipmax 2) 80)
-                               (+ y (- (/ shipmax 2)) 15) 150 30 (ship-name s)
+             (define b (button 'outline (ob-id s) #f
+                               x y shipmax shipmax ""
                                (lambda (x y)
                                  (send-commands (chmov meid (ob-id s) #f)))))
              (prepend! buttons b)
@@ -362,8 +367,8 @@
              (for ((p (in-list players))
                    (i (in-naturals)))
                (prepend! sprites (text-sprite textr textsr (player-name p)
-                                              (+ x (/ shipmax 2) 10)
-                                              (+ y (- (/ shipmax 2)) 40 (* i 20))
+                                              (+ x (/ shipmax 2) buf)
+                                              (+ y (- (/ shipmax 2)) (* i 20))
                                               LAYER_UI)))))
           ((not (ship-flying? ship))
            ; our ship is inside another
