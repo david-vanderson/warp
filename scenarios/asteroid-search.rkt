@@ -93,8 +93,8 @@
     (set-obj-posvel! s #f)
     s)
 
-  (define goodship (make-ship "red-frigate" "a" "a" #:x -1500.0 #:y -1500.0 #:r pi))
-  (set-ship-stats! goodship (stats (next-id) "red-frigate" "Empire Frigate" "Empire"
+  (define goodship (make-ship "red-cruiser" "a" "a" #:x -1500.0 #:y -1500.0 #:r pi))
+  (set-ship-stats! goodship (stats (next-id) "red-cruiser" "Empire Frigate" "Empire"
                                    ;con maxcon mass radar drag start
                                    500.0 500.0 100.0 300.0 0.4 #t))
 
@@ -126,10 +126,10 @@
     s)
 
   (define (scout-strat ownspace)
+    (define hb (find-top-id ownspace hidden-base-id))
     (cond
-      (found-base?
-       (define hb (find-id ownspace ownspace hidden-base-id))
-       (list (strategy (space-time ownspace) "scout" hb)
+      ((and found-base? hb)
+       (list (strategy (space-time ownspace) "attack*" (ob-id hb))
              (strategy (space-time ownspace) "return" (ob-id enemy-base))))
       (else
        (list (strategy (space-time ownspace) "scout" (obj -1 -1 #t
@@ -240,17 +240,17 @@
           ; fighter has been docked without a strat, send them to scout again
           (append! changes (new-strat (ob-id f) (scout-strat ownspace)))))
 
-      (define hb (find-id ownspace ownspace hidden-base-id))
+      (define hb (find-top-id ownspace hidden-base-id))
 
       (for ((s (space-objects ownspace))
             #:when (and (obj-alive? s)
                         (or (spaceship? s) (probe? s))
                         (equal? "Empire" (ship-faction s)))
-            (a (qt-retrieve qt (obj-x s) (obj-y s) (/ (ship-radar s) 3.0)))
+            (a (qt-retrieve qt (obj-x s) (obj-y s) (+ (/ (ship-radar s) 3.0) 50.0)))
             #:when (and (obj-alive? a)
                         (spaceship? a)
                         (assoc "Empire" (ship-overlays a))
-                        ((distance s a) . < . (/ (ship-radar s) 3.0))))
+                        ((distance s a) . < . (+ (ship-radius a) (/ (ship-radar s) 3.0)))))
         ; remove the overlay
         (append! changes (chstat (ob-id a) 'overlay (cons "Empire" #f)))
         (when (not (null? (ship-cargo a)))
