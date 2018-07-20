@@ -16,7 +16,7 @@
 
   (define ownspace (space (next-id) 0 5000 2000 players '()
                           `(
-                            ,(standard-quit-scenario-button #t)
+                            ,(standard-quit-scenario-button)
                             ,(ann-text (next-id) 0 #t (posvel 0 -200 -100 0 0 0 0) #f
                                        (string-append
                                         "Defend your base from the incoming destroyer.\n"

@@ -578,7 +578,9 @@
               (for ((ch (in-list (update-changes u))))
                 (cond
                   ((anncmd? ch)
-                   (scenario-on-message ownspace ch change-scenario!))
+                   (define changes
+                     (scenario-on-message ownspace ch change-scenario!))
+                   (append! updates (apply-all-changes! ownspace changes "server")))
                   (else
                    (define pids '())
                    (define command-changes

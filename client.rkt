@@ -424,14 +424,15 @@
       ; draw annotations that exist in canon space
       (timeit t6
       (for ((a (in-list (space-objects ownspace)))
-            #:when (ann? a))
-        (when (and (ann-button? a) (or (not (ann-showtab? a)) showtab))
+            #:when (and (ann? a) (or (not (ann-faction a))
+                                     (equal? (ann-faction a) fac))))
+        (when (ann-button? a)
           (define ab (button 'normal (ob-id a) #f
                              (+ (left) (obj-x a)) (+ (top) (obj-y a))
                              (obj-dx a) (obj-dy a) (ann-txt a)
-                             (lambda (k y) (send-commands (anncmd (ob-id a))))))
+                             (lambda (k y) (send-commands (anncmd meid (ob-id a))))))
           (prepend! buttons ab))
-        (when (and (ann-text? a) (or (not (ann-showtab? a)) showtab))
+        (when (ann-text? a)
           (define z
             (cond
               ((ann-text-life a)

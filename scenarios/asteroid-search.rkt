@@ -69,7 +69,7 @@
   (define ownspace
     (space (next-id) 0 4000 4000 players '()
            `(
-             ,(standard-quit-scenario-button #t)
+             ,(standard-quit-scenario-button)
              ,(ann-text (next-id) 0 #t (posvel 0 -200 -100 0 0 0 0) #f
                         (string-append
                          "On mission to destroy a rebel outpost your engines have failed.\n"

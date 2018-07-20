@@ -17,7 +17,7 @@
   (for ((p players)) (set-player-faction! p "Test Faction"))
 
   (define ownspace (space (next-id) 0 10000 10000 players '()
-                          `(,(standard-quit-scenario-button #t))))
+                          `(,(standard-quit-scenario-button))))
   
   (set-space-objects! ownspace
                       (append (space-objects ownspace)

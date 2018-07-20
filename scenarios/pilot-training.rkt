@@ -20,7 +20,7 @@
            players
            '()
            `(
-             ,(standard-quit-scenario-button #t)
+             ,(standard-quit-scenario-button)
              ,(ann-text (next-id) 0 #t (posvel 0 -200 -100 0 0 0 0) #f
                         "Scout your waypoints before time is up!" 5000)
              ,@(for/list ((i 30))

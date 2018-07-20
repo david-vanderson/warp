@@ -246,10 +246,9 @@
 ; energy is amount of energy contributed so far
 ; fixing is bool
 
-(struct ann obj (showtab? txt) #:mutable #:prefab)
+(struct ann obj (faction txt) #:mutable #:prefab)
 ; map annotation
-; if showtab? annotation is only shown when client showtab?
-;  - this doesn't affect annotations inside orders
+; if faction is #f, everyone sees it, otherwise only if they have the same faction
 
 (struct ann-button ann (msg) #:mutable #:prefab)
 ; clickable button
@@ -257,7 +256,7 @@
 ; obj-dx/dy is size of button (in canon coords)
 ; text is what the button says
 ; msg is what is sent to server when a player clicks it
-;  - gets delivered to the scenario's on-message as a (anncmd ann-button-id #f) struct
+;  - gets delivered to the scenario's on-message as a (anncmd client-id ann-button-id) struct
 
 (struct ann-text ann (life) #:mutable #:prefab)
 ; text annotation
@@ -306,8 +305,9 @@
 ; cmd is anything, usually a symbol
 ; arg is #t if turning something on, #f if turning it off
 
-(struct anncmd (id) #:mutable #:prefab)
+(struct anncmd (pid id) #:mutable #:prefab)
 ; for things that the server will pick out before sending to apply-change!
+; pid is the player id who sent this command
 ; id points to a annbutton
 
 (struct chfaction (playerid newf) #:mutable #:prefab)

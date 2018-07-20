@@ -5,6 +5,7 @@
          "change.rkt"
          "scenarios/testing.rkt"
          "scenarios/all-ships.rkt"
+         "scenarios/racketcon.rkt"
          "scenarios/pilot-training.rkt"
          "scenarios/base-defense.rkt"
          "scenarios/asteroid-search.rkt"
@@ -31,6 +32,7 @@
            `(
              ,(ann-button (next-id) 0 #t (posvel 0 500 100 0 200 50 0) #f "Testing" "testing")
              ,(ann-button (next-id) 0 #t (posvel 0 500 200 0 200 50 0) #f "All Ships" "all-ships")
+             ,(ann-button (next-id) 0 #t (posvel 0 500 300 0 200 50 0) #f "RacketCon" "racketcon")
              ,(ann-button (next-id) 0 #t (posvel 0 200 100 0 200 50 0) #f "Pilot Training" "pilot-training")
              ,(ann-button (next-id) 0 #t (posvel 0 200 200 0 200 50 0) #f "Base Defense" "base-defense")
              ,(ann-button (next-id) 0 #t (posvel 0 200 300 0 200 50 0) #f "Asteroid Search" "asteroid-search")
@@ -48,6 +50,7 @@
       (case (ann-button-msg o)
         (("testing") (change-scenario! testing-scenario))
         (("all-ships") (change-scenario! all-ships-scenario))
+        (("racketcon") (change-scenario! racketcon-scenario))
         (("pilot-training") (change-scenario! pilot-training-scenario))
         (("base-defense") (change-scenario! base-defense-scenario))
         (("asteroid-search") (change-scenario! asteroid-search-scenario))
