@@ -78,11 +78,12 @@
      (values #f changes))))
 
 
+(define (missile-enemy? o)
+  (or (spaceship? o) (probe? o)))
+
 ; return a list of changes
 (define (missile-ai! space qt stack)
   (define changes '())
-  (define (filterf? o)
-    (or (spaceship? o) (probe? o)))
   (define ownship (get-ship stack))
   (define t (ship-tool ownship 'missile))
   (define last-time (tool-rc t))
@@ -90,7 +91,7 @@
                  ((- (space-time space) last-time) . > . 5000.0))
              (ship-flying? ownship)
              (tool-online? t))
-    (define ne (nearest-enemy qt ownship filterf?))
+    (define ne (nearest-enemy qt ownship missile-enemy?))
     (when ne
       ;(printf "firing\n")
       (set-tool-rc! t (space-time space))
@@ -106,7 +107,7 @@
   (define live? #t)
 
   (for ((o (in-list (qt-retrieve qt (obj-x m) (obj-y m) (ship-radar m))))
-        #:when (spaceship? o))
+        #:when (missile-enemy? o))
     (define d (distance o m))
     (when (d . <= . (ship-radar m))
       (define foe? ((faction-check (ship-faction m) (ship-faction o)) . < . 0))

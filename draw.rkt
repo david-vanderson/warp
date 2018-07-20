@@ -207,8 +207,8 @@
                        (not (missile? o)))
               (define fc (faction-check faction (ship-faction o)))
               (define col
-                (cond ((fc . > . 0) (make-color 0 0 200 fowa))
-                      ((fc . < . 0) (make-color 200 0 0 fowa))
+                (cond ((fc . > . 0) (make-color 0 0 200 (min 0.8 fowa)))
+                      ((fc . < . 0) (make-color 200 0 0 (min 0.8 fowa)))
                       (else #f)))
               (when col
                 (prepend! spr (draw-corners o w csd center scale col))))
@@ -219,7 +219,7 @@
 
             
             (define-values (x y) (obj->screen o center scale))
-            (prepend! spr (draw-hp-bar o x y w csd LAYER_EFFECTS))
+            (prepend! spr (draw-hp-bar o x y w csd LAYER_EFFECTS fowa))
             
             ;(prepend! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
             ;(when showplayers?
@@ -303,20 +303,24 @@
   (define-values (x y) (obj->screen o center scale))
   (prepend! spr (sprite (- x w) (- y w) (sprite-idx csd 'corner)
                         #:layer LAYER_EFFECTS #:m 3.0
+                        #:a (send color alpha)
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
   (prepend! spr (sprite (+ x w) (- y w) (sprite-idx csd 'corner)
                         #:layer LAYER_EFFECTS #:m 3.0 #:theta pi/2
+                        #:a (send color alpha)
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
   (prepend! spr (sprite (+ x w) (+ y w) (sprite-idx csd 'corner)
                         #:layer LAYER_EFFECTS #:m 3.0 #:theta pi
+                        #:a (send color alpha)
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
   (prepend! spr (sprite (- x w) (+ y w) (sprite-idx csd 'corner)
                         #:layer LAYER_EFFECTS #:m 3.0 #:theta (+ pi pi/2)
+                        #:a (send color alpha)
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
   spr)
 
 
-(define (draw-hp-bar o x y w csd layer)
+(define (draw-hp-bar o x y w csd layer fowa)
   (define hpmax (ship-maxcon o))
   (define hp (ship-con o))
   (cond
@@ -327,6 +331,7 @@
      (sprite x (- y w 4.5) (sprite-idx csd '5x1) #:layer layer
              #:mx (max 1.0 (* frac 2.0 (min w 48.0) 0.2))
              #:my 3.0
+             #:a fowa
              #:r (send color red) #:g (send color green) #:b (send color blue)))
     (else
      '())))
