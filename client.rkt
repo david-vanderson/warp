@@ -354,7 +354,7 @@
                                        #:r (get-red ownspace s)))
 
              (define w (ship-w s 1.0))
-             (prepend! sprites (draw-hp-bar s x y w csd LAYER_HANGAR))
+             (prepend! sprites (draw-hp-bar s x y w csd LAYER_HANGAR 1.0))
              
              (define b (button 'outline (ob-id s) #f
                                x y shipmax shipmax ""
@@ -387,7 +387,7 @@
                                                (sprite-size csd sym)))
                                      #:r (get-red ownspace ship)))
            (define w (ship-w ship (get-scale)))
-           (prepend! sprites (draw-hp-bar ship x y w csd LAYER_HANGAR))))
+           (prepend! sprites (draw-hp-bar ship x y w csd LAYER_HANGAR 1.0))))
 
         ; draw ship UI
         (prepend! sprites (draw-ship-hp csd textr center (get-scale) my-stack))
