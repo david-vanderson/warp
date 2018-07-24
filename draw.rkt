@@ -324,8 +324,10 @@
   (define hpmax (ship-maxcon o))
   (define hp (ship-con o))
   (cond
-    ((and (ship-hp-bar? o)
-          (hp . < . hpmax))
+    ((and (hp . < . hpmax)
+          (not (missile? o))
+          (not (cannonball? o))
+          (not (spacesuit? o)))
      (define frac (clamp 0.0 1.0 (/ hp hpmax)))
      (define color (stoplight-color hp hpmax))
      (sprite x (- y w 4.5) (sprite-idx csd '5x1) #:layer layer

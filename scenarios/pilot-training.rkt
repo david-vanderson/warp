@@ -33,7 +33,7 @@
                  (define dr (random-between -1.0 1.0))
                  (make-ship "asteroid_43" "Asteroid" "_neutral"
                             #:x x #:y y #:r 0
-                            #:hp-bar? #f #:con 10000.0
+                            #:invincible? #t #:con 10000.0
                             #:dx dx #:dy dy #:dr dr))
              )))
 

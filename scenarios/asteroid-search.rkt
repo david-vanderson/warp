@@ -46,7 +46,7 @@
                          #:size (inexact->exact diam)
                          #:x (+ x xd) #:y (+ y yd) #:dr dr #:dx dx #:dy dy
                          #:con (if up? 50.0 5000.0)
-                         #:hp-bar? up?
+                         #:invincible? (not up?)
                          #:cargo (if up?
                                      (list (random-upgrade 0 #f)
                                            (random-upgrade 0 #f))
@@ -62,7 +62,7 @@
   (set-ship-cargo! a '())
   (set-stats-con! (ship-stats a) 250.0)
   (set-stats-maxcon! (ship-stats a) 250.0)
-  (set-ship-hp-bar?! a #t)
+  (set-ship-invincible?! a #f)
   (set-ship-tools! a (list (tool-regen 1.0)
                            (tool-pbolt 5.0)))
 

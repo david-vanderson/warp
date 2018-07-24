@@ -163,8 +163,8 @@
 
 (struct overlay (sym fow?) #:mutable #:prefab)
 
-(struct ship obj (hp-bar? sprite-size radius stats tools playerids hangar overlays cargo dmgfx ai? ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
-; hp-bar? is #t if we should show the health bar
+(struct ship obj (invincible? sprite-size radius stats tools playerids hangar overlays cargo dmgfx ai? ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
+; invincible? is #t if this ship can't take damage (asteroids, spawning ships)
 ; - #f for asteroids, missiles, cannonballs, etc.
 ; sprite-size is how many meters wide the sprite should show as
 ; radius is how big your hit area is

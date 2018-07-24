@@ -137,7 +137,9 @@
 ; return list of additional changes
 (define (reduce-ship! space ship damage)
   (define changes '())
-  (set-stats-con! (ship-stats ship) (- (ship-con ship) damage))
+
+  (when (not (ship-invincible? ship))
+    (set-stats-con! (ship-stats ship) (- (ship-con ship) damage)))
   
   (when ((ship-con ship) . <= . 0)
     (set-obj-alive?! ship #f)

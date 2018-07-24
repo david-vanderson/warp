@@ -108,7 +108,7 @@
                    #:size (size (ship-info-size (hash-ref ship-list type)))
                    #:hit-radius (hit-radius #f)
                    #:drag (drag 0.0)
-                   #:hp-bar? (hp-bar? #t)
+                   #:invincible? (invincible? #f)
                    #:start-ship? (start-ship? #f)
                    #:ai? (ai? #f)
                    #:con (con 1.0)
@@ -128,7 +128,7 @@
                             (exact->inexact dy)
                             (exact->inexact dr))
                     #f)
-                hp-bar?
+                invincible?
                 size
                 (if hit-radius
                     hit-radius
@@ -153,13 +153,11 @@
   (case type
     (("spacesuit")
      (define s (apply spacesuit args))
-     (set-ship-hp-bar?! s #f)
      ;type name faction con maxcon mass radar drag start?
      (set-ship-stats! s (stats (next-id) type name faction 1.0 1.0 1.0 150.0 0.5 start-ship?))
      s)
     (("missile")
      (define s (apply missile args))
-     (set-ship-hp-bar?! s #f)
      (set-ship-ai-freq! s 500)
      ;type name faction con maxcon mass radar drag start?
      (set-ship-stats! s (stats (next-id) type name faction con con 1.0 radar 0.5 #f))
@@ -169,7 +167,6 @@
      s)
     (("cannonball")
      (define s (apply cannonball args))
-     (set-ship-hp-bar?! s #f)
      ;type name faction con maxcon mass radar drag start?
      (set-ship-stats! s (stats (next-id) type name faction con con 1.0 radar 0.0 #f))
      (set-ship-tools!
