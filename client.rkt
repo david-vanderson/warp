@@ -47,6 +47,11 @@
 
 (define (start-client* ip port name gui? sspace)
   (server? #f)
+
+  (define key-for #f)
+  ; #f for not entering anything
+  ; 'name for entering name
+  ; 'ip for entering ip address
   
   (define playing? #t)
   (define server-in-port #f)
@@ -203,11 +208,43 @@
     
     (when (not ownspace)
       ; This screen is where you type in your name and the server IP
-      (define txt "O")
-      (define-values (w h) (textsr txt))
-      (for* ((i (in-range (left) (right) w))
-             (j (in-range (top) (bottom) h)))
-        (prepend! sprites (text-sprite textr textsr txt i j LAYER_UI))))
+      ;(define txt "O")
+      ;(define-values (w h) (textsr txt))
+      ;(for* ((i (in-range (left) (right) w))
+      ;       (j (in-range (top) (bottom) h)))
+      ;  (prepend! sprites (text-sprite textr textsr txt i j LAYER_UI)))
+
+      (prepend! sprites (sprite 0.0 0.0 (sprite-idx csd 'intro) #:layer LAYER_FOW_BLACK))
+      
+      (prepend! sprites (text-sprite textr textsr "Name" -100.0 0.0 LAYER_UI))
+      (define name? (equal? key-for 'name))
+      (define nb (button (if name? 'disabled 'normal)
+                         'name #f
+                         0.0 35.0 200.0 26.0
+                         (string-append name (if name? "_" ""))
+                         (if name?
+                             (lambda (x y) (void))
+                             (lambda (x y) (set! key-for 'name)))))
+      (prepend! buttons nb)
+
+      (prepend! sprites (text-sprite textr textsr "Server IP" -100.0 55.0 LAYER_UI))
+      (define ip? (equal? key-for 'ip))
+      (define ipb (button (if ip? 'disabled 'normal)
+                          'ip #f
+                          0.0 90.0 200.0 26.0
+                          (string-append ip (if ip? "_" ""))
+                          (if ip?
+                              (lambda (x y) (void))
+                              (lambda (x y) (set! key-for 'ip)))))
+      (prepend! buttons ipb)
+
+      (define startb (button (if server-in-port 'disabled 'normal) 'start #f
+                             0.0 140.0 200.0 50.0
+                             (if server-in-port "Connecting..." "Connect")
+                             (lambda (x y)
+                               (connect!))))
+      (prepend! buttons startb)
+      )
     )
     
     (when ownspace
@@ -540,7 +577,7 @@
         (prepend! sprites (sprite zcx (+ zcy (/ zh 2) (- (* zfrac zh)))
                                   (sprite-idx csd '20x2)
                                   #:layer LAYER_UI #:b (send mapcol blue)))
-        (define zbutton (button 'hidden -1 #f zcx zcy zw zh "Zoom"
+        (define zbutton (button 'hidden 'zoom #f zcx zcy zw zh "Zoom"
                                 (lambda (x y)
                                   (define zfracy (/ (+ (/ zh 2) (- y)) zh))
                                   (define z (exp (+ (log (min-scale))
@@ -560,27 +597,6 @@
         (define b (button 'normal #\z #f 0.0 (+ (top) 50) 120 50 "Auto Center"
                           (lambda (x y) (set! center-follow? #t))))
         (prepend! buttons b))
-        
-      ; normally quit with ctrl-q
-      (define quit-button
-        (button 'hidden #\q #t
-                0 0 0 0 "Quit"
-                (lambda (x y)
-                  (define ans (message-box/custom "Quit?" "Done Playing?"
-                                                  "Quit" "Keep Playing" #f
-                                                  frame '(default=2)))
-                  (when (equal? 1 ans)
-                    (drop-connection "clicked exit")
-                    (set! playing? #f)
-                    (send frame show #f)))))
-      (when (not my-stack)
-        ; if we are not in the game, show the button
-        (set-button-draw! quit-button 'normal)
-        (set-button-x! quit-button (- (right) 50))
-        (set-button-y! quit-button (- (bottom) 25))
-        (set-button-width! quit-button 100)
-        (set-button-height! quit-button 50))
-      (prepend! buttons quit-button)
 
       (define leave-button (button 'normal 'escape #f
                                    (+ (left) 50) (+ (top) 25) 100 50
@@ -696,6 +712,28 @@
       )
       ) ; when ownspace
 
+    ; normally quit with ctrl-q
+    (define quit-button
+      (button 'hidden #\q #t
+              0 0 0 0 "Quit"
+              (lambda (x y)
+                (define ans (message-box/custom "Quit?" "Done Playing?"
+                                                "Quit" "Keep Playing" #f
+                                                frame '(default=2)))
+                (when (equal? 1 ans)
+                  (drop-connection "clicked exit")
+                  (set! playing? #f)
+                  (send frame show #f)))))
+    (when (or (not ownspace)
+              (not my-stack))
+      ; if we are not in the game, show the button
+      (set-button-draw! quit-button 'normal)
+      (set-button-x! quit-button (- (right) 50))
+      (set-button-y! quit-button (- (bottom) 25))
+      (set-button-width! quit-button 100)
+      (set-button-height! quit-button 50))
+    (prepend! buttons quit-button)
+
     (timeit t7
     (send canvas set-cursor (make-object cursor% (if cursordrawn 'blank 'arrow)))
 
@@ -731,7 +769,8 @@
     (define layers (for/vector ((i LAYER_NUM)) (layer width height)))
     )
     (timeit t8
-    (define r (render layers '() sprites #:r 80 #:g 80 #:b 80))
+    (define rgb (if ownspace 80 0))
+    (define r (render layers '() sprites #:r rgb #:g rgb #:b rgb))
     )
     (timeit t9
     (r (fl->fx canon-width) (fl->fx canon-height) dc)
@@ -749,9 +788,7 @@
   ;(printf "insets ~a ~a size ~a ~a\n" left-inset top-inset screen-w screen-h)
   
   (define frame (new frame%
-                     (label "Warp")
-                     (width (fl->fx canon-width))
-                     (height (fl->fx canon-height))))
+                     (label "Warp")))
 
 
   (define (zoom-mouse z)
@@ -774,7 +811,7 @@
     (class canvas%
       (super-new)
       (define/override (on-size w h)
-        ;(printf "canvas on-size ~a ~a\n" w h)
+        (printf "canvas on-size ~a ~a\n" w h)
         (when (odd? w) (set! w (- w 1)))
         (when (odd? h) (set! h (- h 1)))
         (set-canon-width! (fx->fl w))
@@ -846,6 +883,24 @@
                 (printf "holding ~a\n" (length holding))))
              (else
               (press! kc))))
+          (key-for
+           (define val (if (equal? key-for 'name) name ip))
+           (define escape? #f)
+           (case kc
+             ((escape)
+              (set! escape? #t))
+             ((#\backspace #\rubout)
+              (when ((string-length val) . > . 0)
+                (set! val (substring val 0 (- (string-length val) 1)))))
+             (else
+              (when (and (char? kc)
+                         (member kc *ALL-ASCII*))
+                (set! val (string-append val (string kc))))))
+           (if (equal? key-for 'name)
+               (set! name val)
+               (set! ip val))
+           (when escape?
+             (set! key-for #f)))
           (else
            (case kc
              ((#\f)
@@ -914,6 +969,10 @@
   (set! canvas
     (new my-canvas%
          (parent frame)
+         ; start with a min-width and min-height so the frame shows it all
+         ; this is reset after the frame is shown
+         (min-width (fl->fx canon-width))
+         (min-height (fl->fx canon-height))
          (paint-callback draw-screen)
          (gl-config glconfig)
          (style '(no-autoclear gl))))
@@ -1001,6 +1060,8 @@
                               (send dc draw-line 0 0 0 1)
                               (send dc set-brush b))
                             2 2) "black"))
+
+    (add-sprite!/value sd 'intro (read-bitmap "images/intro.png" 'png/alpha))
     )
   (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))
   (load-ships sd)
@@ -1022,6 +1083,13 @@
                                    LAYER_NUM))
   
   (send frame show #t)
+
+  ; now that the frame is sized big enough to show the whole intro screen
+  ; reset the min size so the user can resize the window
+  (define-values (w h) (send canvas get-graphical-min-size))
+  (send canvas min-width w)
+  (send canvas min-height h)
+   
  ) ; when gui?
   
   
@@ -1032,6 +1100,27 @@
       (update-physics! space o (/ TICK 1000.0))
       (update-stats! space o (/ TICK 1000.0))
       (add-backeffects! space o)))
+
+
+  ; try to connect to server
+  (define (connect!)
+    (printf "trying to connect to ~a:~a\n" ip port)
+    (define-values (in out)
+      (with-handlers ((exn:fail:network?
+                       (lambda (exn)
+                         ((error-display-handler) (exn-message exn) exn)
+                         (values #f #f))))
+        (tcp-connect ip port)))
+    
+    (set! server-in-port in)
+    (set! server-out-port out)
+    
+    (when server-out-port
+      (set! server-in-t (make-in-thread #f in (current-thread)))
+      (set-tcp-nodelay! out #t)
+      (set! server-out-t (make-out-thread #f out (current-thread)))
+      ; send our name to the server
+      (send-commands (player #f name #f #f '() #f #f))))
   
   
   (define (drop-connection msg)
@@ -1077,47 +1166,14 @@
     (define time-copy 0)
     (define time-setup 0)
     (define time-render 0)
-    
-    (when (not server-in-port)
-      (when gui?
-        (define newname
-          (get-text-from-user "Player Name"
-                              "Player Name"
-                              #f
-                              (or name "")))
-        
-        (when (not newname) (exit 0))
-        (when newname (set! name newname))
-        
-        ; ask the user for address
-        (define newip
-          (get-text-from-user "IP of server"
-                              "IP address of the Server"
-                              #f
-                              (or ip "")))
-        
-        (when (not newip) (exit 0))
-        (when newip (set! ip newip)))
-        
-      ; connect to server
-      (define-values (in out)
-        (with-handlers ((exn:fail:network?
-                         (lambda (exn)
-                           ((error-display-handler) (exn-message exn) exn)
-                           (sleep 1)
-                           (values #f #f))))
-          (printf "trying to connect to ~a:~a\n" ip port)
-          (tcp-connect ip port)))
-      
-      (set! server-in-port in)
-      (set! server-out-port out)
-      
-      (when server-out-port
-        (set! server-in-t (make-in-thread #f in (current-thread)))
-        (set-tcp-nodelay! out #t)
-        (set! server-out-t (make-out-thread #f out (current-thread)))
-        ; send our name to the server
-        (send-commands (player #f name #f #f '() #f #f))))
+
+    (when (and (not gui?)
+               (not server-in-port))
+      ; headless client just tries to connect
+      (connect!)
+      (when (not server-in-port)
+        ; if the server is not there, try again in a second
+        (sleep 1)))
 
     (define num-updates 0)
     (define num-ticks 0)
