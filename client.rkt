@@ -896,6 +896,7 @@
               (when (and (char? kc)
                          (member kc *ALL-ASCII*))
                 (set! val (string-append val (string kc))))))
+           (set! val (substring val 0 (min (string-length val) 30)))
            (if (equal? key-for 'name)
                (set! name val)
                (set! ip val))
@@ -1209,6 +1210,7 @@
            (set-posvel-x! (obj-posvel centerxy) 0)
            (set-posvel-y! (obj-posvel centerxy) 0)
            (set! dragstate "none")
+           (set! key-for #f)
 
            (when (not (find-id ownspace ownspace meid))
              ; set scale so we see the whole sector
