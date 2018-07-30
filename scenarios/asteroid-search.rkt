@@ -70,7 +70,7 @@
     (space (next-id) 0 4000 4000 players '()
            `(
              ,(standard-quit-scenario-button)
-             ,(ann-text (next-id) 0 #t (posvel 0 -200 -100 0 0 0 0) #f
+             ,(ann-text (next-id) 0 #t (posvel 0 -200 -100 0 0 0 0) #f #f
                         (string-append
                          "On mission to destroy a rebel outpost your engines have failed.\n"
                          "Use probes to search the asteroid field for a hidden base.\n"
@@ -178,10 +178,10 @@
     (define changes '())
     (set! playing? #f)  ; end scenario
     (append! changes (chadd (ann-text (next-id) (space-time ownspace) #t
-                                      (posvel 0 -200 -100 0 0 0 0) #f
+                                      (posvel 0 -200 -100 0 0 0 0) #f #f
                                       txt #f) #f))
     ; add end scenario button
-    (append! changes (chadd (standard-quit-scenario-button) #f))
+    (append! changes (chadd (standard-quit-scenario-button #f) #f))
     changes)
 
   (define (on-player-restart space pid)

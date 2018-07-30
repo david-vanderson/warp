@@ -21,7 +21,7 @@
            '()
            `(
              ,(standard-quit-scenario-button)
-             ,(ann-text (next-id) 0 #t (posvel 0 -200 -100 0 0 0 0) #f
+             ,(ann-text (next-id) 0 #t (posvel 0 -200 -100 0 0 0 0) #f #f
                         "Scout your waypoints before time is up!" 5000)
              ,@(for/list ((i 30))
                  (define t (random-between 0 2pi))
@@ -37,7 +37,7 @@
                             #:dx dx #:dy dy #:dr dr))
              )))
 
-  (define time-limit (* 1000 60 5))  ; 90 seconds for the whole scenario
+  (define time-limit (* 1000 60 5))
   (define inside-time-limit? #t)
 
   (define (new-orders)
@@ -110,10 +110,11 @@
                                     (if (check space (player-faction p) ot)
                                         " succeeded"
                                         " failed"))))
-      (append! changes (chadd (ann-text (next-id) (space-time space) #t (posvel 0 -200 -100 0 0 0 0) #f
+      (append! changes (chadd (ann-text (next-id) (space-time space) #t
+                                        (posvel 0 -200 -100 0 0 0 0) #f #f
                                         (string-join txt "\n") #f) #f))
       ; add end scenario button
-      (append! changes (chadd (standard-quit-scenario-button) #f))
+      (append! changes (chadd (standard-quit-scenario-button #f) #f))
       )
 
     (append! changes (order-changes space real-orders))

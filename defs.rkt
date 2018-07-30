@@ -246,8 +246,9 @@
 ; energy is amount of energy contributed so far
 ; fixing is bool
 
-(struct ann obj (faction txt) #:mutable #:prefab)
+(struct ann obj (tab? faction txt) #:mutable #:prefab)
 ; map annotation
+; if tab? is #t, only see it if you press tab
 ; if faction is #f, everyone sees it, otherwise only if they have the same faction
 
 (struct ann-button ann (msg) #:mutable #:prefab)

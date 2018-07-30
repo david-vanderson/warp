@@ -239,7 +239,7 @@
       (prepend! buttons ipb)
 
       (define startb (button (if server-in-port 'disabled 'normal) 'start #f
-                             0.0 140.0 200.0 50.0
+                             0.0 150.0 200.0 50.0
                              (if server-in-port "Connecting..." "Connect")
                              (lambda (x y)
                                (connect!))))
@@ -346,35 +346,19 @@
         (cond 
           ((unbox in-hangar?)
            ; hangar background
-           (define size (* 0.8 (min canon-width canon-height)))
-           (prepend! sprites (sprite 0.0 0.0 (sprite-idx csd 'square)
-                                     #:layer LAYER_HANGAR_BACKGROUND
-                                     #:m (/ size (sprite-width csd
-                                                   (sprite-idx csd 'square)))
-                                     #:a 0.75))
-           (define size2 (+ size 5.0))  ; help cover the corners
-           (prepend! sprites (sprite (- (/ size2 2.0)) 0.0 (sprite-idx csd '100x1)
-                                      #:layer LAYER_HANGAR_BACKGROUND
-                                      #:m (/ size2 100.0) #:theta pi/2
-                                      #:r 255 #:g 255 #:b 255))
-           (prepend! sprites (sprite (/ size2 2.0) 0.0 (sprite-idx csd '100x1)
-                                      #:layer LAYER_HANGAR_BACKGROUND
-                                      #:m (/ size2 100.0) #:theta pi/2
-                                      #:r 255 #:g 255 #:b 255))
-           (prepend! sprites (sprite 0.0 (- (/ size2 2.0)) (sprite-idx csd '100x1)
-                                      #:layer LAYER_HANGAR_BACKGROUND
-                                      #:m (/ size2 100.0)
-                                      #:r 255 #:g 255 #:b 255))
-           (prepend! sprites (sprite 0.0 (/ size2 2.0) (sprite-idx csd '100x1)
-                                      #:layer LAYER_HANGAR_BACKGROUND
-                                      #:m (/ size2 100.0)
-                                      #:r 255 #:g 255 #:b 255))
+           (define size (* 0.8 (min canon-width canon-height)))           
+           (prepend! sprites (rect-filled csd 0.0 0.0 size size
+                                          #:layer LAYER_HANGAR_BACKGROUND
+                                          #:r 0 #:g 0 #:b 0
+                                          #:a 0.75))
+           (prepend! sprites (rect-outline csd 0.0 0.0 size size 3.5
+                                           #:layer LAYER_HANGAR_BACKGROUND))
            
            ; draw all the ships in the hangar
            (define shipmax (+ 20 (* 2.0 (apply max 1.0 (map (lambda (s) (ship-w s 1.0))
                                                             (ship-hangar ship))))))
            (define buf 8)
-           (define numfit (inexact->exact (floor (/ size (+ shipmax buf)))))
+           (define numfit (max 1 (inexact->exact (floor (/ size (+ shipmax buf))))))
            (for ((s (in-list (ship-hangar ship)))
                  (i (in-naturals)))
              (define x (+ (* -0.5 size)
@@ -440,7 +424,7 @@
             (prepend! sprites ss)))
 
         (when (and (not rcship) (ship-hangar ship))
-          (define b (button 'normal #\h #f (- (right) 80) (+ (top) 70) 140 40
+          (define b (button 'normal #\h #f (- (right) 206) (- (bottom) 28) 140 40
                             (~a "Hangar [h] " (length (ship-hangar ship)))
                             (lambda (x y)
                               (set-box! in-hangar? #t))))
@@ -461,8 +445,10 @@
       ; draw annotations that exist in canon space
       (timeit t6
       (for ((a (in-list (space-objects ownspace)))
-            #:when (and (ann? a) (or (not (ann-faction a))
-                                     (equal? (ann-faction a) fac))))
+            #:when (and (ann? a)
+                        (or showtab (not (ann-tab? a)))
+                        (or (not (ann-faction a))
+                            (equal? (ann-faction a) fac))))
         (when (ann-button? a)
           (define ab (button 'normal (ob-id a) #f
                              (+ (left) (obj-x a)) (+ (top) (obj-y a))
@@ -501,9 +487,6 @@
       (define line 0)
       (when ordertree
         (define lefte (+ (left) 150))
-        (prepend! sprites (text-sprite textr textsr "Orders:"
-                                       lefte (top) LAYER_UI_TEXT))
-        (set! lefte (+ lefte 80))
         (define tope (top))
         (for-orders ordertree showtab
           (lambda (ot depth highlight?)
@@ -563,8 +546,8 @@
       (when (not showsector?)
         (define zw 20)
         (define zh 150)
-        (define zcx (- (right) 10 (/ zw 2)))
-        (define zcy (+ (top) 100 (/ zh 2)))
+        (define zcx (- (right) 16 (/ zw 2)))
+        (define zcy (+ (top) 60 (/ zh 2)))
         (prepend! sprites (sprite zcx (+ zcy (- (/ zh 2))) (sprite-idx csd '20x2)
                                   #:layer LAYER_UI #:b (send mapcol blue)))
         (prepend! sprites (sprite zcx (+ zcy (/ zh 2)) (sprite-idx csd '20x2)
@@ -593,43 +576,52 @@
         (prepend! buttons zbutton zkeyb xkeyb))
 
       ; auto-center button
-      (when (not center-follow?)
-        (define b (button 'normal #\z #f 0.0 (+ (top) 50) 120 50 "Auto Center"
-                          (lambda (x y) (set! center-follow? #t))))
-        (prepend! buttons b))
+      (define acby (+ (top) 70))
+      (define acbw 180)
+      (define acbh 40)
+      (cond
+        (showsector?
+         (prepend! buttons (button 'normal 'leave-sector-map #f 0.0 acby acbw acbh
+                                   "Leave Sector Map"
+                                   (lambda (x y) (set! showsector? #f)))))
+        ((not center-follow?)
+         (prepend! buttons (button 'normal #\z #f 0.0 acby acbw acbh "Auto Center [z]"
+                                   (lambda (x y) (set! center-follow? #t))))))
 
-      (define leave-button (button 'normal 'escape #f
-                                   (+ (left) 50) (+ (top) 25) 100 50
-                                   "Exit" #f))
       (cond
         ((not my-stack)
          ; nothing to leave
          )
         ((unbox in-hangar?)
-         (set-button-f! leave-button (lambda (x y) (set-box! in-hangar? #f)))
-         (prepend! buttons leave-button))
+         ; the hangar button turns into an exit button
+         )
         ((spacesuit? (get-ship my-stack))
          ; dying
-         (set-button-f! leave-button (lambda (x y)
-                                       (set! center-follow? #t)  ; sector/ship centered
-                                       (send-commands (chmov meid #f #f))))
-         (prepend! buttons leave-button))
+         (define b (button 'normal 'restart #f
+                           0.0 (- (bottom) 28) 80 40 "Restart"
+                           (lambda (x y)
+                             (set! center-follow? #t)  ; sector/ship centered
+                             (send-commands (chmov meid #f #f)))))
+         (prepend! buttons b))
         ((and (player-rcid (car my-stack))
               (find-id ownspace ownspace (player-rcid (car my-stack))))
          ; remote controlling something
          )
         ((ship-flying? (get-ship my-stack))
          ; jumping ship
-         (set-button-label! leave-button "Jump")
-         (set-button-key! leave-button #f)  ; turn off keyboard shortcut
-         (set-button-f! leave-button (lambda (x y) (send-commands (chmov meid #f #f))))
-         (prepend! buttons leave-button))
+         (define b (button 'normal 'jump #f
+                           (+ (left) 58) (+ (top) 28) 100 40 "Jump"
+                           (lambda (x y)
+                             (send-commands (chmov meid #f #f)))))
+         (prepend! buttons b))
         (else
          ; leaving this ship into mothership
          (define ms (cadr (get-ships my-stack)))
-         (set-button-f! leave-button (lambda (x y)
-                                       (send-commands (chmov meid (ob-id ms) #f))))
-         (prepend! buttons leave-button)))
+         (define b (button 'normal 'escape #f
+                           0.0 (- (bottom) 28) 160 40 "Exit to Mothership"
+                           (lambda (x y)
+                             (send-commands (chmov meid (ob-id ms) #f)))))
+         (prepend! buttons b)))
       
       ; draw mouse cursor and green corners
       (when my-stack
@@ -689,7 +681,7 @@
 
       ; messages
       (when ownspace
-        (define max 6)
+        (define max 10)
         (define num 0)
         (let loop ((l (space-objects ownspace)))
           (when (and (not (null? l)) (num . < . max))
@@ -698,7 +690,7 @@
               (set! num (+ num 1))
               (define z (linear-fade (obj-age ownspace m) (/ MSG_FADE_TIME 2) MSG_FADE_TIME))
               (prepend! sprites (text-sprite textr textsr (message-msg m)
-                                             (+ (left) 5.0) (+ (top) 200.0 (* num 20))
+                                             (+ (left) 5.0) (+ (top) 100.0 (* num 20))
                                              LAYER_UI_TEXT z)))
             (loop (cdr l)))))
 
@@ -725,13 +717,14 @@
                   (set! playing? #f)
                   (send frame show #f)))))
     (when (or (not ownspace)
-              (not my-stack))
+              (not my-stack)
+              (spacesuit? (get-ship my-stack)))
       ; if we are not in the game, show the button
       (set-button-draw! quit-button 'normal)
-      (set-button-x! quit-button (- (right) 50))
-      (set-button-y! quit-button (- (bottom) 25))
-      (set-button-width! quit-button 100)
-      (set-button-height! quit-button 50))
+      (set-button-x! quit-button (- (right) 48))
+      (set-button-y! quit-button (- (bottom) 28))
+      (set-button-width! quit-button 80)
+      (set-button-height! quit-button 40))
     (prepend! buttons quit-button)
 
     (timeit t7
@@ -743,7 +736,7 @@
       (define end (first frames))
       (define span (/ (- end start) 1000))
       (define txt (format "FPS: ~a" (round (/ (- (length frames) 1) span))))
-      (prepend! sprites (text-sprite textr textsr txt (- (right) 80) (top) LAYER_UI)))
+      (prepend! sprites (text-sprite textr textsr txt (- (right) 70) (+ (top) 30) LAYER_UI)))
 
     ; network issues?
     (define ma (apply max 0 aheads))
@@ -904,6 +897,12 @@
              (set! key-for #f)))
           (else
            (case kc
+             ((wheel-up)
+              (when (and ownspace (not showsector?))
+                (zoom-mouse 1.05)))
+             ((wheel-down)
+              (when (and ownspace (not showsector?))
+                (zoom-mouse (/ 1.0 1.05))))
              ((#\f)
               (when (send event get-control-down)
                 (send frame fullscreen (not (send frame is-fullscreened?)))))
@@ -925,41 +924,12 @@
               (when ownspace
                 (send-commands (message (next-id) (space-time ownspace) #t #f
                                         (~a "message " (space-time ownspace))))))
-             #;((#\e)
-              (when ownspace
-                (send-commands (chadd (make-explosion ownspace
-                                                      0.0 0.0 10.0 50.0 100.0 100.0) #f))))
-             ((wheel-up)
-              (when (and ownspace (not showsector?))
-                (zoom-mouse 1.05)))
-             ((wheel-down)
-              (when (and ownspace (not showsector?))
-                (zoom-mouse (/ 1.0 1.05))))
              #;((#\u)
               (when ownspace
                 (send-commands (chadd (random-upgrade (space-time ownspace)
                                                       (posvel -1 0 0 0
                                                               (random 100)
                                                               (random 100) 0)) #f))))
-             #;((#\p)
-              (when ownspace
-                (send-commands (chadd (plasma (next-id)
-                                              (space-time ownspace)
-                                              (posvel -1 0 0
-                                                      (random-between 0 2pi)
-                                                      (random 100)
-                                                      (random 100) 0)
-                                              (random 10)) #f))))
-;             ((#\s)
-;              (when ownspace
-;                (define r (random-between 0 2pi))
-;                (define s (random 100))
-;                (send-commands (chadd (shield (next-id)
-;                                              (space-time ownspace)
-;                                              (posvel -1 0 0 r (* s (cos r)) (* s (sin r)) 0)
-;                                              (random 30)) #f)))) 
-;             ((#\n)
-;              (new-stars))
              ))))
       ))
 
@@ -999,8 +969,25 @@
     (add-sprite!/value sd 'dmgbutton-fill
                        (inset (filled-rectangle 100 50 #:color "black"
                                                 #:border-color "black" #:border-width 0) 2))
-    (add-sprite!/value sd '100x1
-                       (colorize (filled-rectangle 100 1) "black"))
+    ; used to draw lines
+    ; we need multiple because:
+    ; - scaling up causes fading at the edges
+    ; - scaling down too much causes some kind of visual ringing
+    (add-sprite!/value sd '10x10
+                       (colorize (filled-rectangle 10 10) "black"))
+    (add-sprite!/value sd '100x10
+                       (colorize (filled-rectangle 100 10) "black"))
+    (add-sprite!/value sd '1000x10
+                       (colorize (filled-rectangle 1000 10) "black"))
+
+    ; used to fill rectangles
+    (add-sprite!/value sd '100x100
+                       (colorize (filled-rectangle 100 100) "black"))
+    (add-sprite!/value sd '1000x100
+                       (colorize (filled-rectangle 1000 100) "black"))
+    (add-sprite!/value sd '1000x1000
+                       (colorize (filled-rectangle 1000 1000) "black"))
+    
     (add-sprite!/value sd '5x1
                        (colorize (filled-rectangle 5 1) "black"))
     (add-sprite!/value sd '1x1
@@ -1018,11 +1005,6 @@
                        (colorize (inset
                                   (ellipse 100 100 #:border-color "black" #:border-width 2)
                                   2) "black"))
-    (add-sprite!/value sd 'square
-                       (colorize (filled-rectangle 100 100) "black"))
-    (add-sprite!/value sd 'square-outline
-                       (colorize (rectangle 100 100 #:border-color "black" #:border-width 10)
-                                 "black"))
     (add-sprite!/value sd 'star
                        (colorize (cc-superimpose (hline 1 1) (vline 1 1)) "white"))
     (add-sprite!/value sd 'arrowhead

@@ -147,19 +147,48 @@
      (inexact->exact (round (* alpha 255))))
     (else 0)))
 
-(define-syntax-rule (keep-transform dc e ...)
-  (begin
-    (define t (send dc get-transformation))
-    (define a (let () e ...))
-    (send dc set-transformation t)
-    a))
 
+(define (rect-outline csd x y w h thick #:layer [layer LAYER_UI]
+                      #:r [r 255] #:g [g 255] #:b [b 255] #:a [a 1.0])
+  (define-values (idx-w mx-w)
+    (if (w . > . 100.0)
+        (values (sprite-idx csd '1000x10) (/ (+ w thick) 1000.0))
+        (values (sprite-idx csd '100x10) (/ (+ w thick) 100.0))))
+  (define-values (idx-h mx-h)
+    (if (h . > . 100.0)
+        (values (sprite-idx csd '1000x10) (/ (+ h thick) 1000.0))
+        (values (sprite-idx csd '100x10) (/ (+ h thick) 100.0))))
+  (define xoffs (list (/ w 2) (- (/ w 2))))
+  (define yoffs (list (/ h 2) (- (/ h 2))))
+  (append
+   (for/list ((xoff xoffs)) 
+     (sprite (+ x xoff) y idx-h
+             #:layer layer
+             #:mx mx-h #:my (/ thick 10.0) #:theta pi/2
+             #:r r #:g g #:b b #:a a))
+   (for/list ((yoff yoffs))
+     (sprite x (+ y yoff) idx-w
+             #:layer layer
+             #:mx mx-w #:my (/ thick 10.0)
+             #:r r #:g g #:b b #:a a))))
 
-(define (center-on dc o (rotate #t))
-  (send dc translate (obj-x o) (obj-y o))
-  (when rotate
-    ; rotate such that positive x axis points in the obj-r direction
-    (send dc rotate (- (obj-r o)))))
+(define (rect-filled csd x y w h #:layer [layer LAYER_UI]
+                     #:r [r 255] #:g [g 255] #:b [b 255] #:a [a 1.0])
+  (define-values (idx mw mh)
+    (cond
+      ((and (w . > . 100.0)
+            (h . > . 100.0))
+       (values (sprite-idx csd '1000x1000) (/ w 1000.0) (/ h 1000.0)))
+      ((w . > . 100.0)
+       (values (sprite-idx csd '1000x100) (/ w 1000.0) (/ h 100.0)))
+      ((h . > . 100.0)
+       (values (sprite-idx csd '100x1000) (/ w 100.0) (/ h 1000.0)))
+      (else
+       (values (sprite-idx csd '100x100) (/ w 100.0) (/ h 100.0)))))
+  (sprite x y idx
+          #:layer layer
+          #:mx mw #:my mh
+          #:r r #:g g #:b b #:a a))
 
 
 (define (canvas-scale canvas)

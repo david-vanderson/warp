@@ -30,12 +30,12 @@
            players
            '()
            `(
-             ,(ann-button (next-id) 0 #t (posvel 0 500 100 0 200 50 0) #f "Testing" "testing")
-             ,(ann-button (next-id) 0 #t (posvel 0 500 200 0 200 50 0) #f "All Ships" "all-ships")
-             ,(ann-button (next-id) 0 #t (posvel 0 500 300 0 200 50 0) #f "RacketCon" "racketcon")
-             ,(ann-button (next-id) 0 #t (posvel 0 200 100 0 200 50 0) #f "Pilot Training" "pilot-training")
-             ,(ann-button (next-id) 0 #t (posvel 0 200 200 0 200 50 0) #f "Base Defense" "base-defense")
-             ,(ann-button (next-id) 0 #t (posvel 0 200 300 0 200 50 0) #f "Asteroid Search" "asteroid-search")
+             ,(ann-button (next-id) 0 #t (posvel 0 500 100 0 200 50 0) #f #f "Testing" "testing")
+             ,(ann-button (next-id) 0 #t (posvel 0 500 200 0 200 50 0) #f #f "All Ships" "all-ships")
+             ,(ann-button (next-id) 0 #t (posvel 0 500 300 0 200 50 0) #f #f "RacketCon" "racketcon")
+             ,(ann-button (next-id) 0 #t (posvel 0 200 100 0 200 50 0) #f #f "Pilot Training" "pilot-training")
+             ,(ann-button (next-id) 0 #t (posvel 0 200 200 0 200 50 0) #f #f "Base Defense" "base-defense")
+             ,(ann-button (next-id) 0 #t (posvel 0 200 300 0 200 50 0) #f #f "Asteroid Search" "asteroid-search")
              )))
   (define (on-tick space qt change-scenario!)
     (define changes '())

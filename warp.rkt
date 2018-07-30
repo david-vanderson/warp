@@ -56,9 +56,9 @@
   (define vals (tool-val t))
   (define maxw (* 2.0 (cadr vals)))
   (define w (* 2.0 (caddr vals)))
-  (define h 30.0)
-  (define x 0.0)
-  (define y (- (bottom) 135.0))
+  (define h 40.0)
+  (define x (+ (left) 8.0 (/ maxw 2.0)))
+  (define y (- (bottom) 164.0))
   (define z (clamp 0.0 1.0 (/ w maxw)))
 
   (define p (car stack))
@@ -66,9 +66,9 @@
   (define cmdlevel (player-cmdlevel p))
 
   ; fill
-  (append! spr (sprite x y (sprite-idx csd 'square) #:layer LAYER_UI
-                       #:mx (/ (* w z) (sprite-width csd (sprite-idx csd 'square)) 1.0)
-                       #:my (/ h (sprite-height csd (sprite-idx csd 'square)) 1.0)
+  (append! spr (sprite x y (sprite-idx csd '100x100) #:layer LAYER_UI
+                       #:mx (/ (* w z) 100.0)
+                       #:my (/ h 100.0)
                        #:r 255))
 
   ; we always want the button on the screen so that the mouse cursor looks right

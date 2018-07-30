@@ -18,10 +18,10 @@
     (space (next-id) 0 5000 5000 players '()
            `(
              ,(standard-quit-scenario-button)
-             ,(ann-button (next-id) 0 #t
-                          (posvel 0 500 100 0 200 50 0) "undecided" "Team Parens" "parens")
-             ,(ann-button (next-id) 0 #t
-                          (posvel 0 500 200 0 200 50 0) "undecided" "Team Brackets" "brackets")
+             ,(ann-button (next-id) 0 #t (posvel 0 500 100 0 200 50 0)
+                          #f "undecided" "Team Parens" "parens")
+             ,(ann-button (next-id) 0 #t (posvel 0 500 200 0 200 50 0)
+                          #f "undecided" "Team Brackets" "brackets")
              )))
   
   (define base-brackets (make-ship "blue-station" "a" "a" #:x -1000 #:y -1000
