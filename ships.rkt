@@ -42,6 +42,8 @@
     (cond
       ((equal? name "blue-fighter")
        (set! size 20.0))
+      ((equal? name "red-fighter")
+       (set! size 24.0))
       ((equal? name "missile")
        (set! size 10.0))
       ((equal? name "cannonball")
