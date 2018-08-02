@@ -549,17 +549,29 @@
         (define zcx (- (right) 16 (/ zw 2)))
         (define zcy (+ (top) 60 (/ zh 2)))
         (prepend! sprites (sprite zcx (+ zcy (- (/ zh 2))) (sprite-idx csd '20x2)
-                                  #:layer LAYER_UI #:b (send mapcol blue)))
+                                  #:layer LAYER_UI
+                                  #:r (send zoomcol red)
+                                  #:g (send zoomcol green)
+                                  #:b (send zoomcol blue)))
         (prepend! sprites (sprite zcx (+ zcy (/ zh 2)) (sprite-idx csd '20x2)
-                                  #:layer LAYER_UI #:b (send mapcol blue)))
+                                  #:layer LAYER_UI
+                                  #:r (send zoomcol red)
+                                  #:g (send zoomcol green)
+                                  #:b (send zoomcol blue)))
         (prepend! sprites (sprite zcx zcy (sprite-idx csd '2x150)
-                                  #:layer LAYER_UI #:b (send mapcol blue)))
+                                  #:layer LAYER_UI
+                                  #:r (send zoomcol red)
+                                  #:g (send zoomcol green)
+                                  #:b (send zoomcol blue)))
         
         (define zfrac (/ (- (log scale-play) (log (min-scale)))
                          (- (log (max-scale)) (log (min-scale)))))
         (prepend! sprites (sprite zcx (+ zcy (/ zh 2) (- (* zfrac zh)))
                                   (sprite-idx csd '20x2)
-                                  #:layer LAYER_UI #:b (send mapcol blue)))
+                                  #:layer LAYER_UI
+                                  #:r (send zoomcol red)
+                                  #:g (send zoomcol green)
+                                  #:b (send zoomcol blue)))
         (define zbutton (button 'hidden 'zoom #f zcx zcy zw zh "Zoom"
                                 (lambda (x y)
                                   (define zfracy (/ (+ (/ zh 2) (- y)) zh))

@@ -1,4 +1,4 @@
-warp
+Warp
 Copyright (c) David Vanderson
 
 This code is available according to same terms as Racket:
