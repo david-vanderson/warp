@@ -36,10 +36,11 @@
    (start-server port)]
   [g
    (for ((i g))
-     (start-client address port (string-append name "-" (number->string i))
+     (start-client address port
+                   #:name (string-append name "-" (number->string i))
                    #:gui? #f
                    #:new-eventspace? #t))
    (sync never-evt)]
   [else
-   (start-client address port name)])
+   (start-client address port #:name name)])
 

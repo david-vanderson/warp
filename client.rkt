@@ -28,7 +28,8 @@
 (provide start-client)
 
 
-(define (start-client ip port name
+(define (start-client ip port
+                      #:name [name "Racketeer"]
                       #:new-eventspace? (new-eventspace? #f)
                       #:gui? (gui? #t)
                       #:spacebox (sspace #f))
@@ -216,22 +217,22 @@
 
       (prepend! sprites (sprite 0.0 0.0 (sprite-idx csd 'intro) #:layer LAYER_FOW_BLACK))
       
-      (prepend! sprites (text-sprite textr textsr "Name" -100.0 0.0 LAYER_UI))
+      (prepend! sprites (text-sprite textr textsr "Name" -100.0 20.0 LAYER_UI))
       (define name? (equal? key-for 'name))
       (define nb (button (if name? 'disabled 'normal)
                          'name #f
-                         0.0 35.0 200.0 26.0
+                         0.0 55.0 200.0 26.0
                          (string-append name (if name? "_" ""))
                          (if name?
                              (lambda (x y) (void))
                              (lambda (x y) (set! key-for 'name)))))
       (prepend! buttons nb)
 
-      (prepend! sprites (text-sprite textr textsr "Server IP" -100.0 55.0 LAYER_UI))
+      (prepend! sprites (text-sprite textr textsr "Server IP" -100.0 75.0 LAYER_UI))
       (define ip? (equal? key-for 'ip))
       (define ipb (button (if ip? 'disabled 'normal)
                           'ip #f
-                          0.0 90.0 200.0 26.0
+                          0.0 110.0 200.0 26.0
                           (string-append ip (if ip? "_" ""))
                           (if ip?
                               (lambda (x y) (void))
@@ -239,7 +240,7 @@
       (prepend! buttons ipb)
 
       (define startb (button (if server-in-port 'disabled 'normal) 'start #f
-                             0.0 150.0 200.0 50.0
+                             0.0 170.0 200.0 50.0
                              (if server-in-port "Connecting..." "Connect")
                              (lambda (x y)
                                (connect!))))
@@ -610,7 +611,7 @@
         ((spacesuit? (get-ship my-stack))
          ; dying
          (define b (button 'normal 'restart #f
-                           0.0 (- (bottom) 28) 80 40 "Restart"
+                           0.0 (- (bottom) 124) 100 40 "Restart"
                            (lambda (x y)
                              (set! center-follow? #t)  ; sector/ship centered
                              (send-commands (chmov meid #f #f)))))
@@ -630,7 +631,7 @@
          ; leaving this ship into mothership
          (define ms (cadr (get-ships my-stack)))
          (define b (button 'normal 'escape #f
-                           0.0 (- (bottom) 28) 160 40 "Exit to Mothership"
+                           0.0 (- (bottom) 76) 160 40 "Exit to Mothership"
                            (lambda (x y)
                              (send-commands (chmov meid (ob-id ms) #f)))))
          (prepend! buttons b)))
@@ -1405,7 +1406,7 @@
   ;(require profile)
   ;(profile #:threads #t #:delay 0.0
     ;(begin
-    (start-client "127.0.0.1" PORT "Dave")
+    (start-client "127.0.0.1" PORT)
     ;))
   ;(exit 0)
   )

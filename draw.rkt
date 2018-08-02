@@ -538,7 +538,7 @@
            (prepend! buttons (list ob))))     
       ((dock)
        (when (can-launch? stack)
-         (define lb (button 'normal #\w #f 0 (- (bottom) 101) 120 40 "Launch [w]"
+         (define lb (button 'normal #\w #f 0 (- (bottom) 124) 120 40 "Launch [w]"
                             (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'launch)))))
          (prepend! buttons (list lb))
          (define lob (add-offline-button! t lb send-commands "nolaunch"))
