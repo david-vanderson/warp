@@ -588,7 +588,7 @@
         (prepend! buttons zbutton zkeyb xkeyb))
 
       ; auto-center button
-      (define acby (+ (top) 70))
+      (define acby (+ (top) 60))
       (define acbw 180)
       (define acbh 40)
       (cond

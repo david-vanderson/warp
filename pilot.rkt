@@ -256,12 +256,13 @@
                                ((distance ownship o) . <= . 500.0)))
                         (qt-retrieve qt (obj-x ownship) (obj-y ownship) 500.0)))
 
-  (define predict-secs
+  (define-values (predict-secs fit-per-sec)
     (if (missile? ownship)
-        (inexact->exact (round (max 0 (- (tool-rc (ship-tool ownship 'endrc))
-                                         (/ (obj-age space ownship) 1000.0)))))
-        ;(inexact->exact (round (/ 250.0 (tool-val ft))))
-        8
+        (values
+         (inexact->exact (round (max 0 (- (tool-rc (ship-tool ownship 'endrc))
+                                          (/ (obj-age space ownship) 1000.0)))))
+         2)
+        (values 8 1)
         ))
 
   (define origpv (struct-copy posvel (obj-posvel ownship)))
@@ -287,8 +288,8 @@
     (for/list ((i 16))
       (state origf origf basec basec (struct-copy posvel origpv) 0.0 1 #t)))
 
-  (for ((i (in-range predict-secs)))
-    (for ((s (in-list ships))) (physics! (obj-posvel s) 1.0))
+  (for ((i (in-range (* predict-secs fit-per-sec))))
+    (for ((s (in-list ships))) (physics! (obj-posvel s) (/ 1.0 fit-per-sec)))
 
     ;(printf "states is now ~v\n" states)
     (for ((s (in-list states))
@@ -304,7 +305,7 @@
       (when st (set-tool-rc! st (state-c s)))
       ; time update ownship      
       (for ((z (in-range 5)))
-        (update-physics! space ownship 0.2))
+        (update-physics! space ownship (/ 0.2 fit-per-sec)))
       ; calculate fitness
       (define-values (f live?)
         ((if (missile? ownship) missile-fitness pilot-fitness) space qt ownship))

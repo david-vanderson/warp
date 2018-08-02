@@ -141,7 +141,8 @@
              (strategy (space-time ownspace) "return" (ob-id enemy-base))))))
 
   
-  (define enemy-base (make-ship "blue-station" "a" "a" #:x 1500.0 #:y 1500.0 #:ai? #t #:hangar '()))
+  (define enemy-base (make-ship "blue-station" "a" "a" #:x 1500.0 #:y 1500.0 #:ai? #t
+                                #:dr 0.1 #:hangar '()))
   (set-ship-stats! enemy-base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
                                ;con maxcon mass radar drag start-ship?
                                750.0 750.0 1000.0 600.0 0.4 #t))

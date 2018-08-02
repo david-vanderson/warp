@@ -153,12 +153,7 @@
            ((effect? o)
             (draw-effect csd center scale space o fowa))
            ((upgrade? o)
-            (define spr '())
-            (prepend! spr (draw-upgrade csd center scale space o fowa))
-            (when showplayers?
-              (prepend! spr (draw-cargolist csd textr textsr center scale o "gray" fowa
-                                            (list (upgrade-type o)) '())))
-            spr)
+            (draw-upgrade csd center scale space o fowa))
            ((ship? o)
             (define spr '())
             (define si (hash-ref ship-list (ship-type o)))
@@ -236,15 +231,6 @@
   (define spr '())
   (define col (send the-color-database find-color colstr))
   (define-values (sx sy) (obj->screen obj center scale))
-  (prepend! spr (sprite (+ sx 25.0) (+ sy 25.0) (sprite-idx csd 'square) #:layer LAYER_MAP
-                        #:mx (/ 71.0 (sprite-width csd (sprite-idx csd 'square)))
-                        #:my (/ 2.0 (sprite-height csd (sprite-idx csd 'square)))
-                        #:r (send col red) #:g (send col green) #:b (send col blue)
-                        #:theta (/ pi 4) #:a fowa))
-  (prepend! spr (sprite (+ sx 85.0) (+ sy 50.0) (sprite-idx csd 'square) #:layer LAYER_MAP
-                        #:mx (/ 70.0 (sprite-width csd (sprite-idx csd 'square)))
-                        #:my (/ 2.0 (sprite-height csd (sprite-idx csd 'square)))
-                        #:r (send col red) #:g (send col green) #:b (send col blue) #:a fowa))
   (for ((t text-above) (i (in-naturals)))
     (prepend! spr (text-sprite textr textsr t
                                (+ sx 55.0) (+ sy 50.0 (- (* (+ i 1) 14)))
