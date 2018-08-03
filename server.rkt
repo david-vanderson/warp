@@ -421,7 +421,8 @@
         (when (not (missile? ship))
           (append! changes (pilot-ai-strategy! space qt s)))
         (when (and (ship-flying? ship)
-                   (ship-strategy ship))
+                   (or (missile? ship)
+                       (ship-strategy ship)))
           (append! changes (pilot-ai-fly! space qt s))))
 
       (when (ship-tool ship 'pbolt)
