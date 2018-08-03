@@ -120,7 +120,7 @@
 
   ; the bad guys
   (define (new-blue-fighter ownspace)
-    (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:ai? #t #:con 50.0))
+    (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:ai 'always #:con 50.0))
     (set-obj-posvel! s #f)
     (set-ship-ai-strategy! s (scout-strat ownspace))
     s)
@@ -141,7 +141,7 @@
              (strategy (space-time ownspace) "return" (ob-id enemy-base))))))
 
   
-  (define enemy-base (make-ship "blue-station" "a" "a" #:x 1500.0 #:y 1500.0 #:ai? #t
+  (define enemy-base (make-ship "blue-station" "a" "a" #:x 1500.0 #:y 1500.0 #:ai 'always
                                 #:dr 0.1 #:hangar '()))
   (set-ship-stats! enemy-base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
                                ;con maxcon mass radar drag start-ship?
@@ -270,7 +270,7 @@
           (set-stats-faction! newstats "Empire")
           (append! changes
                    (chstats (ob-id hb) newstats)
-                   (chstat (ob-id hb) 'ai #t)
+                   (chstat (ob-id hb) 'ai 'always)
                    (chadd parts (ob-id hb))
                    (message (next-id) (space-time ownspace) #t #f "Discovered Hidden Base!"))))
 

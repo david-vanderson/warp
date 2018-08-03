@@ -60,7 +60,7 @@
      (when (server?)
        (define a (command-arg cmd))
        (define b (make-ship "cannonball" "Cannonball" (ship-faction ship)
-                            #:ai? (not (player? (car stack)))
+                            #:ai (if (not (player? (car stack))) 'always #f)
                             #:r a
                             #:radar (ship-radar ship)
                             #:start-time (space-time space)

@@ -25,7 +25,7 @@
              )))
   
   (define base-brackets (make-ship "blue-station" "a" "a" #:x -1000 #:y -1000
-                                   #:ai? #t #:hangar '() #:dr 0.1))
+                                   #:ai 'always #:hangar '() #:dr 0.1))
   (set-ship-stats! base-brackets (stats (next-id) "blue-station" "Base Brackets" "brackets"
                                         ;con maxcon mass radar drag start-ship?
                                         1000.0 1000.0 1000.0 1000.0 0.4 #t))
@@ -35,7 +35,7 @@
                        (tool-missile 5.0 10.0)))
   
   
-  (define base-parens (make-ship "red-station" "b" "b" #:x 1000 #:y 1000 #:r pi #:ai? #t
+  (define base-parens (make-ship "red-station" "b" "b" #:x 1000 #:y 1000 #:r pi #:ai 'always
                                  #:hangar '()))
   (set-ship-stats! base-parens (stats (next-id)
                                       ;type name faction

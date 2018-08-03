@@ -26,7 +26,7 @@
                             )))
   
   (define (new-blue-fighter)
-    (define s (make-ship "blue-fighter" "a" "a" #:ai? #t))
+    (define s (make-ship "blue-fighter" "a" "a" #:ai 'empty))
     (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
                               ;con maxcon mass radar drag start-ship?
                               50.0 50.0 20.0 300.0 0.4 #f))
@@ -37,7 +37,7 @@
     s)
   
   (define (new-red-fighter)
-    (define s (make-ship "red-fighter" "a" "a" #:ai? #t))
+    (define s (make-ship "red-fighter" "a" "a" #:ai 'always))
     (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
                               ;con maxcon mass radar drag start
                               20.0 20.0 20.0 300.0 0.4 #f))
@@ -48,7 +48,7 @@
     s)
   
   
-  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50 #:ai? #f
+  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50 #:ai 'empty
                              #:hangar (list (new-blue-fighter))))
   (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
                                   ;con maxcon mass radar drag start?
@@ -63,7 +63,7 @@
                          (tool-regen 1.0))))
   
   
-  (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:ai? #t #:hangar '()
+  (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:ai 'always #:hangar '()
                           #:dr 0.1))
   (set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
                                ;con maxcon mass radar drag start-ship?
@@ -74,7 +74,7 @@
               (tool-missile 5.0 10.0)))
   
   
-  (define destroyer (make-ship "red-destroyer" "b" "b" #:x 2400 #:y 100 #:r pi #:ai? #t
+  (define destroyer (make-ship "red-destroyer" "b" "b" #:x 2400 #:y 100 #:r pi #:ai 'always
                                #:hangar '()))
   (set-ship-stats! destroyer (stats (next-id)
                                     ;type name faction
@@ -164,7 +164,7 @@
         (define y (random-between (- (/ (space-height ownspace) 2)) (/ (space-height ownspace) 2)))
         (define fighters (for/list ((i (random 3)))
                            (make-ship "red-fighter" "Empire Fighter" "Empire")))
-        (define f (make-ship "red-frigate" "Empire Frigate" "Empire" #:x x #:y y #:r pi #:ai? #t
+        (define f (make-ship "red-frigate" "Empire Frigate" "Empire" #:x x #:y y #:r pi #:ai 'always
                              #:hangar fighters #:cargo (list (random-upgrade 0 #f)
                                                                 (random-upgrade 0 #f))))
         (set-ship-ai-strategy! f (list (strategy (space-time ownspace) "attack*" (ob-id base))))

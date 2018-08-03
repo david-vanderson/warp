@@ -165,7 +165,9 @@
 
 (struct overlay (sym fow?) #:mutable #:prefab)
 
-(struct ship obj (invincible? sprite-size radius stats tools playerids hangar overlays cargo dmgfx ai? ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
+(struct ship obj (invincible? sprite-size radius stats tools
+                  playerids hangar overlays cargo dmgfx
+                  ai ai-time ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
 ; invincible? is #t if this ship can't take damage (asteroids, spawning ships)
 ; - #f for asteroids, missiles, cannonballs, etc.
 ; sprite-size is how many meters wide the sprite should show as
@@ -176,7 +178,11 @@
 ; overlays is an assoc list of (faction . overlay struct)
 ; cargo is stuff you're carrying
 ; dmgfx is size of dmgfx affecting this ship
-; ai? is #t if the ship is ai when no players are aboard
+; ai says what kind of ai the ship has:
+; - #f means none
+; - 'empty means ai when no players are aboard
+; - 'always means ai always
+; ai-time is last space-time the ai ran
 ; ai-freq is ms between when we should run the ai
 ; ai-strategy is a list of strategies, do them in order
 ; ai-strat-time is the time that we last got new strategies

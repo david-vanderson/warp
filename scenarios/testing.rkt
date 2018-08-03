@@ -26,7 +26,7 @@
                                 (make-ship name name "Rebel" #:x x #:start-ship? #t))))
 
   (define (new-blue-fighter (x 0) (y 0) (r pi/2))
-    (define s (make-ship "blue-fighter" "a" "a" #:ai? #f #:x x #:y y #:r r))
+    (define s (make-ship "blue-fighter" "a" "a" #:ai #f #:x x #:y y #:r r))
     (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
                               ;con maxcon mass radar drag start-ship?
                               1000.0 1000.0 20.0 300.0 0.4 #t))
@@ -38,7 +38,7 @@
     s)
   
   (define (new-red-fighter (x 0) (y 0))
-    (define s (make-ship "red-fighter" "a" "a" #:ai? #t #:x x #:y y))
+    (define s (make-ship "red-fighter" "a" "a" #:ai 'always #:x x #:y y))
     (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
                               ;con maxcon mass radar drag start
                               500.0 500.0 20.0 300.0 0.4 #f))
@@ -52,8 +52,8 @@
   (define rf (for/list ((i 50)) (new-red-fighter  (* 50 i) 150)))
   (define a (make-ship "asteroid_87" "a" "Empire" #:x 95 #:y 95 #:dx -0.001))
 
-  (define b1 (make-ship "blue-station" "b1" "Rebel" #:x 0 #:y 0 #:ai? #f #:hangar '()))
-  (define b2 (make-ship "blue-station" "b2" "a" #:x 125 #:y 100 #:ai? #f #:hangar '()))
+  (define b1 (make-ship "blue-station" "b1" "Rebel" #:x 0 #:y 0 #:ai #f #:hangar '()))
+  (define b2 (make-ship "blue-station" "b2" "a" #:x 125 #:y 100 #:ai #f #:hangar '()))
 
   (for ((f bf))
     (set-ship-ai-strategy! f

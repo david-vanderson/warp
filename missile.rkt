@@ -55,7 +55,7 @@
      (when (server?)
        (define a (angle-add (obj-r ship) (if (equal? 'left (command-arg cmd)) pi/2 (- pi/2))))
        (define m (make-ship "missile" "Missile" (ship-faction ship)
-                            #:ai? (not (player? (car stack)))
+                            #:ai (if (not (player? (car stack))) 'always #f)
                             #:r a
                             #:radar (ship-radar ship)
                             #:start-time (space-time space)

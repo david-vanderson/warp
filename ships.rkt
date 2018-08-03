@@ -112,7 +112,7 @@
                    #:drag (drag 0.0)
                    #:invincible? (invincible? #f)
                    #:start-ship? (start-ship? #f)
-                   #:ai? (ai? #f)
+                   #:ai (ai #f)
                    #:con (con 1.0)
                    #:start-time (start-time 0)
                    #:life (life 1.0)
@@ -142,7 +142,8 @@
                 '()  ; overlays
                 cargo
                 0.0  ; no dmgfx
-                ai?
+                ai
+                0    ; ai-time
                 1000 ; ai-freq
                 '()  ; empty ai-strategy
                 0    ; placeholder ai-strat-time

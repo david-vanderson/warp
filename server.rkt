@@ -405,12 +405,10 @@
   (for ((s (in-list stacks)))
     (define changes '())
     (define ship (car s))
-    (when (equal? #t (ship-ai? ship))
-      (set-ship-ai?! ship 0))
     
     (when (and (obj-alive? ship)
-               ((- (space-time space) (ship-ai? ship)) . > . (ship-ai-freq ship)))
-      (set-ship-ai?! ship (+ (space-time space) delay))  ; set runtime
+               ((- (space-time space) (ship-ai-time ship)) . > . (ship-ai-freq ship)))
+      (set-ship-ai-time! ship (+ (space-time space) delay))  ; set runtime
       (set! delay (+ TICK delay))  ; push ais away from running in the same tick
 
       ;(printf "running ai for ship ~a\n" (ship-name ship))

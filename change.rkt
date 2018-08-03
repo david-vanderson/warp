@@ -360,7 +360,7 @@
        (o
         (case (chstat-what c)
           ((ai)
-           (set-ship-ai?! o (chstat-val c))
+           (set-ship-ai! o (chstat-val c))
            (values #t '()))
           ((toolval)
            (define t (ship-tool o (car (chstat-val c))))

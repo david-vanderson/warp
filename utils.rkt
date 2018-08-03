@@ -320,7 +320,10 @@
   (car (reverse stack)))
 
 (define (ai-ship? o)
-  (and (ship? o) (ship-ai? o) (null? (ship-playerids o))))
+  (and (ship? o)
+       (or (equal? (ship-ai o) 'always)
+           (and (equal? (ship-ai o) 'empty)
+                (null? (ship-playerids o))))))
 
 (define (can-launch? stack)
   (define ships (get-ships stack))
