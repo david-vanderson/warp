@@ -211,19 +211,24 @@
     (for ((fo (space-orders real-orders)))
       (check ownspace (car fo) (cadr fo)))
 
-    (when (and playing? (not frig))
-      (append! changes (end! #f "Cruiser Destroyed, You Lose")))
-
-    (when (and playing? (not eb))
-      (append! changes (end! #t "Enemy Outpost Destroyed, You Win!")))
-
-    (when (and found-base?
-               (not parts-returned?)
-               (not (find-id ownspace ownspace (ob-id parts))))
-      (append! changes (end! #f "Parts Lost, You Lose")))
-      
-
     (when playing?
+
+      (when (not frig)
+        (append! changes (end! #f "Cruiser Destroyed, You Lose")))
+
+      (when (not eb)
+        (append! changes (end! #t "Enemy Outpost Destroyed, You Win!")))
+
+      ; once we've found the base, the parts can't be destroyed,
+      ; but might be picked up by the enemy
+      ; you lose if they make it back to base
+      (when (and found-base?
+                 (not parts-returned?))
+        (define s (find-stack ownspace ownspace (ob-id parts)))
+        (define ship (get-topship s))
+        (when (and ship (equal? (ob-id ship) (ob-id enemy-base)))
+          (append! changes (end! #f "Parts Lost, You Lose"))))
+    
       (when (time-for (space-time ownspace) 55000 0000)
         (define m (message (next-id) (space-time ownspace) #t #f "New Enemy Scout Detected"))
         (define f (new-blue-fighter ownspace))
@@ -259,7 +264,7 @@
           (append! changes (chstat (ob-id a) 'overlay
                                    (cons "Empire" (overlay 'overlay-cargo #t)))))
         ; check if this was the hidden base
-        (when (and (not found-base?) (equal? (ob-id hb) (ob-id a)))
+        (when (and (not found-base?) (equal? hidden-base-id (ob-id a)))
           (set! found-base? #t)
           (define newstats (struct-copy stats (ship-stats hb)))
           (set-stats-faction! newstats "Empire")
@@ -270,7 +275,7 @@
                    (message (next-id) (space-time ownspace) #t #f "Discovered Hidden Base!"))))
 
       ; check if the good guys docked
-      (when (and found-base? (not dock-base?))
+      (when (and found-base? (not dock-base?) hb)
         (for/first ((s (in-list (ship-hangar hb))))
           (set! dock-base? #t)
           (append! changes (chmov (ob-id parts) (ob-id s) #f)
