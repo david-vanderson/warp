@@ -132,6 +132,7 @@
         (set! shown-scale (min scale-play (+ shown-scale (max 0.1 (* 0.4 diff)))))
         (set! shown-scale (max scale-play (- shown-scale (max 0.1 (* 0.4 diff)))))))
 
+  (define frame #f)
   (define canvas #f)
   
  (when gui?
@@ -796,16 +797,16 @@
 
   ;(printf "insets ~a ~a size ~a ~a\n" left-inset top-inset screen-w screen-h)
   
-  (define frame
-    (new (class frame%
-           (super-new)
-           (define (can-close?)
-             (quit?)
-             ; return #f
-             ; - if the player clicked "Quit" we'll do our own teardown
-             #f)
-           (augment can-close?))
-         (label "Warp")))
+  (set! frame
+        (new (class frame%
+               (super-new)
+               (define (can-close?)
+                 (quit?)
+                 ; return #f
+                 ; - if the player clicked "Quit" we'll do our own teardown
+                 #f)
+               (augment can-close?))
+             (label "Warp")))
 
 
   (define (zoom-mouse z)
@@ -1127,7 +1128,8 @@
       (set-tcp-nodelay! out #t)
       (set! server-out-t (make-out-thread #f out (current-thread)))
       ; send our name to the server
-      (send-commands (player #f name #f #f '() #f #f))))
+      ; send version in id space
+      (send-commands (player VERSION name #f #f '() #f #f))))
   
   
   (define (drop-connection msg)
@@ -1198,6 +1200,15 @@
            (drop-connection ""))
           ((player? input)
            ; should only happen once when we connect to the server
+           (when (not (equal? VERSION (player-name input)))
+             (define msg
+               (format (string-append "client version ~a not equal to server version ~a\n"
+                                      "  try \"raco pkg update warp\"\n")
+                       VERSION (player-name input)))
+             (printf msg)
+             (when gui?
+               (message-box "Version Mismatch" msg frame))
+             (exit 1))
            (printf "got player id from server ~a\n" (ob-id input))
            (set! meid (ob-id input))
            (idimag meid))

@@ -4,6 +4,8 @@
 
 (provide (all-defined-out))
 
+(define VERSION 1)  ; client will bomb if version doesn't match server
+
 (define DEBUG #f)
 (define COMPRESS #t)
 (define PORT 22381)

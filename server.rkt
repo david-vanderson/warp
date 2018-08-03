@@ -519,7 +519,8 @@
       (set-tcp-nodelay! out #t)
     (define cid (next-id))
     (define c (client CLIENT_STATUS_NEW
-                      (player cid #f #f 0 '() #f #f)
+                      ; send version in the player name field
+                      (player cid VERSION #f 0 '() #f #f)
                       in out
                       (make-in-thread cid in (current-thread))
                       (make-out-thread cid out (current-thread))))
@@ -559,15 +560,22 @@
           ((and (update? u)
                 (not (null? (update-changes u)))
                 (player? (car (update-changes u))))
+           (define p (car (update-changes u)))
+           (define name (player-name p))
            (define c (findf (lambda (o) (= cid (client-id o))) clients))
-           (define name (player-name (car (update-changes u))))
-           (set-player-name! (client-player c) name)
-           (set-client-status! c CLIENT_STATUS_WAITING_FOR_SPACE)
-           (append! updates
-                    (apply-all-changes! ownspace (list (chadd (client-player c) #f)) "server"))
-           (define m (message (next-id) (space-time ownspace) #t #f
-                              (format "New Player: ~a" name)))
-           (append! updates (apply-all-changes! ownspace (list m) "server")))
+           (cond
+             ((not (equal? VERSION (ob-id p)))
+              (printf "server version ~a dropping client id ~a version ~a : ~a\n"
+                      VERSION cid (ob-id p) name)
+              (remove-client cid))
+             (else
+              (set-player-name! (client-player c) name)
+              (set-client-status! c CLIENT_STATUS_WAITING_FOR_SPACE)
+              (append! updates
+                       (apply-all-changes! ownspace (list (chadd (client-player c) #f)) "server"))
+              (define m (message (next-id) (space-time ownspace) #t #f
+                                 (format "New Player: ~a" name)))
+              (append! updates (apply-all-changes! ownspace (list m) "server")))))
           
           ((update? u)
            (cond
