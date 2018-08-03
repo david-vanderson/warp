@@ -517,7 +517,7 @@
                        (tool-rc t)))
        (define w (ship-w ship scale))
        (define-values (x y) (obj->screen ship center scale))
-       (prepend! spr (sprite x (+ y w 4.5) (sprite-idx csd '5x1) #:layer LAYER_UI
+       (prepend! spr (sprite x (+ y w 4.5) (sprite-idx csd '5x1) #:layer LAYER_EFFECTS
                              #:mx (* life 2.0 (min w 48.0) 0.2)
                              #:my 4.0
                              #:r 255))
