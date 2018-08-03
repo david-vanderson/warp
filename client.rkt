@@ -755,7 +755,7 @@
     (define ma (apply max 0 aheads))
     (when (ma . > . AHEAD_THRESHOLD)
       (define txt (format "Ahead: ~a" ma))
-      (prepend! sprites (text-sprite textr textsr txt (- (right) 200) (top) LAYER_UI)))
+      (prepend! sprites (text-sprite textr textsr txt (- (right) 200) (+ (top) 30) LAYER_UI)))
     
     (prepend! sprites (button-sprites csd textr buttons
                                       (if ownspace (space-time ownspace) 0)
