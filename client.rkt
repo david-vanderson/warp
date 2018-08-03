@@ -171,6 +171,16 @@
          ))
       (clickcmds
        (send-commands (clickcmds)))))
+
+
+   (define (quit?)
+     (define ans (message-box/custom "Quit?" "Ready to Stop?"
+                                     "Quit" "Keep Playing" #f
+                                     frame '(default=2)))
+     (when (equal? 1 ans)
+       (drop-connection "clicked exit")
+       (set! playing? #f)
+       (send frame show #f)))
   
   
   (define (draw-screen canvas dc)
@@ -721,14 +731,7 @@
     (define quit-button
       (button 'hidden #\q #t
               0 0 0 0 "Quit"
-              (lambda (x y)
-                (define ans (message-box/custom "Quit?" "Done Playing?"
-                                                "Quit" "Keep Playing" #f
-                                                frame '(default=2)))
-                (when (equal? 1 ans)
-                  (drop-connection "clicked exit")
-                  (set! playing? #f)
-                  (send frame show #f)))))
+              (lambda (x y) (quit?))))
     (when (or (not ownspace)
               (not my-stack)
               (spacesuit? (get-ship my-stack)))
@@ -793,8 +796,16 @@
 
   ;(printf "insets ~a ~a size ~a ~a\n" left-inset top-inset screen-w screen-h)
   
-  (define frame (new frame%
-                     (label "Warp")))
+  (define frame
+    (new (class frame%
+           (super-new)
+           (define (can-close?)
+             (quit?)
+             ; return #f
+             ; - if the player clicked "Quit" we'll do our own teardown
+             #f)
+           (augment can-close?))
+         (label "Warp")))
 
 
   (define (zoom-mouse z)
