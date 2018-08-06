@@ -462,8 +462,12 @@
                         (or (not (ann-faction a))
                             (equal? (ann-faction a) fac))))
         (when (ann-button? a)
+          (define-values (bx by)
+            (if (equal? 'center (posvel-t (obj-posvel a)))
+                (values 0.0 0.0)
+                (values (left) (top))))
           (define ab (button 'normal (ob-id a) #f
-                             (+ (left) (obj-x a)) (+ (top) (obj-y a))
+                             (+ bx (obj-x a)) (+ by (obj-y a))
                              (obj-dx a) (obj-dy a) (ann-txt a)
                              (lambda (k y) (send-commands (anncmd meid (ob-id a))))))
           (prepend! buttons ab))

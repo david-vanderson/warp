@@ -2,6 +2,7 @@
 
 (require racket/class
          racket/list
+         racket/string
          racket/math
          mode-lambda
          racket/draw)
@@ -379,8 +380,13 @@
                          #:mx (/ w (sprite-width csd (sprite-idx csd sprname)) 1.0)
                          #:my (/ (if h h w) (sprite-height csd (sprite-idx csd sprname)) 1.0)
                          #:r br))
-    (prepend! spr (textr (button-label b) x y #:layer LAYER_UI_TEXT
-                        #:r txtcol #:g txtcol #:b txtcol)))
+
+    (define strs (string-split (button-label b) "\n"))
+    (for ((str strs)
+          (i (in-naturals)))
+      (prepend! spr (textr str x (+ y (- (* 8.0 (- (length strs) 1))) (* 16.0 i))
+                           #:layer LAYER_UI_TEXT
+                           #:r txtcol #:g txtcol #:b txtcol))))
   spr)
 
 

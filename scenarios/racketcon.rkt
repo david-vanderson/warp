@@ -18,9 +18,14 @@
   (define team1 "Brackets")
   (define base1id #f)
   (define base1x -500)
+  (define team1-button-id #f)
+  (define team1-num 0)
+  
   (define team2 "Parens")
   (define base2id #f)
   (define base2x 500)
+  (define team2-button-id #f)
+  (define team2-num 0)
 
   (define (start-xy ownspace team)
     (define dx (random-between -100 100))
@@ -85,6 +90,27 @@
     (list (chadd f #f)
           (chmov (ob-id p) (ob-id f) #f)))
 
+  (define (redo-team-buttons)
+    (define changes '())
+    (when team1-button-id
+      (append! changes (chrm team1-button-id)))
+    (when team2-button-id
+      (append! changes (chrm team2-button-id)))
+    (define b1 (ann-button (next-id) 0 #t (posvel 'center -200 0 0 200 100 0)
+                          #f "undecided"
+                          (string-append "Team " team1 "\n\n" (number->string team1-num))
+                          team1))
+    (set! team1-button-id (ob-id b1))
+    (define b2 (ann-button (next-id) 0 #t (posvel 'center 200 0 0 200 100 0)
+                          #f "undecided"
+                          (string-append "Team " team2 "\n\n" (number->string team2-num))
+                          team2))
+    (set! team2-button-id (ob-id b2))
+    (append! changes
+             (chadd b1 #f)
+             (chadd b2 #f))
+    changes)
+
   (define (restart-scenario! ownspace)
     ; remove everything from space
     (define changes
@@ -92,16 +118,8 @@
         (chrm (ob-id o))))
 
     ; add standard stuff
-    (append! changes
-             (chadd (standard-quit-scenario-button) #f)
-             (chadd (ann-button (next-id) 0 #t (posvel 0 500 100 0 200 50 0)
-                          #f "undecided"
-                          (string-append "Team " team1)
-                          team1) #f)
-             (chadd (ann-button (next-id) 0 #t (posvel 0 500 200 0 200 50 0)
-                          #f "undecided"
-                          (string-append "Team " team2)
-                          team2) #f))
+    (append! changes (chadd (standard-quit-scenario-button) #f))
+    (append! changes (redo-team-buttons))
 
     ; add team1 base
     (define b1 (make-base team1 base1x (random-between -500 500)))
@@ -137,10 +155,24 @@
   (define (on-tick ownspace qt change-scenario!)
     (define changes '())
 
+    (define t1num 0)
+    (define t2num 0)
+
     (for ((p (space-players ownspace)))
-      (when (not (player-faction p))
-        ; new player
-        (append! changes (chfaction (ob-id p) "undecided"))))
+      (cond
+        ((not (player-faction p))
+         ; new player
+         (append! changes (chfaction (ob-id p) "undecided")))
+        ((equal? team1 (player-faction p))
+         (set! t1num (add1 t1num)))
+        ((equal? team2 (player-faction p))
+         (set! t2num (add1 t2num)))))
+
+    (when (or (not (equal? team1-num t1num))
+              (not (equal? team2-num t2num)))
+      (set! team1-num t1num)
+      (set! team2-num t2num)
+      (append! changes (redo-team-buttons)))
     
     changes)
   
