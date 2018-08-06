@@ -6,6 +6,7 @@
          "../utils.rkt"
          "../ships.rkt"
          "../order.rkt"
+         "../change.rkt"
          "../upgrade.rkt")
 
 (provide (all-defined-out))
@@ -14,62 +15,122 @@
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "undecided"))
 
-  (define ownspace
-    (space (next-id) 0 5000 5000 players '()
-           `(
-             ,(standard-quit-scenario-button)
-             ,(ann-button (next-id) 0 #t (posvel 0 500 100 0 200 50 0)
-                          #f "undecided" "Team Parens" "parens")
-             ,(ann-button (next-id) 0 #t (posvel 0 500 200 0 200 50 0)
-                          #f "undecided" "Team Brackets" "brackets")
-             )))
-  
-  (define base-brackets (make-ship "blue-station" "a" "a" #:x -1000 #:y -1000
-                                   #:ai 'always #:hangar '() #:dr 0.1))
-  (set-ship-stats! base-brackets (stats (next-id) "blue-station" "Base Brackets" "brackets"
-                                        ;con maxcon mass radar drag start-ship?
-                                        1000.0 1000.0 1000.0 1000.0 0.4 #t))
-  (set-ship-tools!
-   base-brackets (list (tool-pbolt 10.0)
-                       (tool-probe 30.0)
-                       (tool-missile 5.0 10.0)))
-  
-  
-  (define base-parens (make-ship "red-station" "b" "b" #:x 1000 #:y 1000 #:r pi #:ai 'always
-                                 #:hangar '()))
-  (set-ship-stats! base-parens (stats (next-id)
-                                      ;type name faction
-                                      "red-station" "Base Parens" "parens"
-                                      ;con maxcon mass radar drag start?
-                                      1000.0 1000.0 500.0 1000.0 0.4 #t))
-  (set-ship-tools!
-   base-parens (append (tools-pilot 6.0 #f 0.1 #:dock? #f)
-                       (list (tool-pbolt 10.0)
-                             (tool-missile 5.0 10.0)
-                             (tool-cannon 21.0))))
-  
-  (set-ship-ai-strategy! base-parens
-                         (list (strategy (space-time ownspace)
-                                         "attack-only" (ob-id base-brackets))))
-  
-  (set-space-objects! ownspace
-                      (append (space-objects ownspace)
-                              (list base-brackets base-parens)))
+  (define team1 "Brackets")
+  (define base1id #f)
+  (define base1x -500)
+  (define team2 "Parens")
+  (define base2id #f)
+  (define base2x 500)
 
-  (define (get-base space faction)
-    (find-top-id space (case faction
-                         (("parens") (ob-id base-parens))
-                         (("brackets") (ob-id base-brackets))
-                         (else #f))))
+  (define (start-xy ownspace team)
+    (define dx (random-between -100 100))
+    (define dy (random-between -200 200))
+    (define-values (x y)
+      (cond
+        ((equal? team team1)
+         (define b (find-top-id ownspace base1id))
+         (if b
+             (values (+ (obj-x b) -300) (obj-y b))
+             (values (+ base1x -300) 0)))
+        ((equal? team team2)
+         (define b (find-top-id ownspace base2id))
+         (if b
+             (values (+ (obj-x b) 300) (obj-y b))
+             (values (+ base2x 300) 0)))
+        (else
+         (error 'start-xy "team not recognized: ~a" team))))
+    (values (+ x dx) (+ y dy)))
+
+  (define teams (list team1 team2))
+
+  (define (get-team-color team)
+    (cond
+      ((equal? team team1) "blue")
+      ((equal? team team2) "red")
+      (else
+       (error 'get-team-color "team not recognized: ~a" team))))
+
+  (define ownspace (space (next-id) 0 6000 6000 players '() '()))
+
+  (define (make-base team x y)
+    (define type (string-append (get-team-color team) "-station"))
+    (define b (make-ship type (string-append "Base " team) team
+                         #:x x #:y y
+                         #:ai 'always #:hangar '() #:dr 0.1))    
+    (set-ship-stats! b (stats (next-id) (ship-type b) (ship-name b) (ship-faction b)
+                              ;con maxcon mass radar drag start-ship?
+                              100.0 100.0 1000.0 500.0 0.4 #t))
+    (set-ship-tools! b
+                     (list (tool-pbolt 10.0)
+                           (tool-probe 30.0)
+                           (tool-missile 5.0 10.0)))
+    b)
+
+  (define (new-fighter p x y)
+    (define faction (player-faction p))
+    (define type (string-append (get-team-color faction) "-fighter"))
+    (define s (make-ship type (player-name p) faction
+                         #:x x #:y y))
+    (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
+                              ;con maxcon mass drag radar start?
+                              100.0 100.0 20.0 300.0 0.4 #f))
+    (set-ship-tools! s
+                     (append (tools-pilot 50.0 #f 1.5)
+                             (list (tool-pbolt 80.0)
+                                   (tool-regen 1.0))))
+    s)
+
+  (define (place-player p x y)
+    (define f (new-fighter p x y))
+    (list (chadd f #f)
+          (chmov (ob-id p) (ob-id f) #f)))
+
+  (define (restart-scenario! ownspace)
+    ; remove everything from space
+    (define changes
+      (for/list ((o (space-objects ownspace)))
+        (chrm (ob-id o))))
+
+    ; add standard stuff
+    (append! changes
+             (chadd (standard-quit-scenario-button) #f)
+             (chadd (ann-button (next-id) 0 #t (posvel 0 500 100 0 200 50 0)
+                          #f "undecided"
+                          (string-append "Team " team1)
+                          team1) #f)
+             (chadd (ann-button (next-id) 0 #t (posvel 0 500 200 0 200 50 0)
+                          #f "undecided"
+                          (string-append "Team " team2)
+                          team2) #f))
+
+    ; add team1 base
+    (define b1 (make-base team1 base1x (random-between -500 500)))
+    (set! base1id (ob-id b1))
+    (append! changes (chadd b1 #f))
+
+    ; add team2 base
+    (define b2 (make-base team2 base2x (random-between -500 500)))
+    (set! base2id (ob-id b2))
+    (append! changes (chadd b2 #f))
+
+    ; add players
+    (for ((p (in-list (space-players ownspace)))
+          #:when (member (player-faction p) teams))
+      (define-values (x y) (start-xy ownspace (player-faction p)))
+      (append! changes (place-player p x y)))
+    
+    changes)
+
+  ; prime the initial space
+  (apply-all-changes! ownspace (restart-scenario! ownspace) "scenario")
   
-  (define playing? #t)
 
   (define (on-player-restart space pid)
     (define changes '())
     ; this happens after the player's spacesuit has been removed
-    (define c (get-base space (player-faction (findfid pid (space-players space)))))
-    (when c
-      (append! changes (chmov pid (ob-id c) #f)))
+    (define p (findfid pid (space-players space)))
+    (define-values (x y) (start-xy ownspace (player-faction p)))
+    (append! changes (place-player p x y))
     changes)
   
   ; return a list of changes
@@ -87,14 +148,16 @@
     (define changes '())
     (define o (find-id space space (anncmd-id cmd)))
     (when (and o (ann-button? o))
-      (case (ann-button-msg o)
-        (("quit-scenario") (change-scenario!))
-        (("parens" "brackets")
+      (cond
+        ((equal? "quit-scenario" (ann-button-msg o))
+         (change-scenario!))
+        ((member (ann-button-msg o) teams)
          (append! changes (chfaction (anncmd-pid cmd) (ann-button-msg o)))
-         (define c (get-base space (ann-button-msg o)))
-         (when c
-           (append! changes (chmov (anncmd-pid cmd) (ob-id c) #f)))
-         )))
+         
+         (define p (struct-copy player (findfid (anncmd-pid cmd) (space-players space))))
+         (set-player-faction! p (ann-button-msg o))
+         (define-values (x y) (start-xy ownspace (player-faction p)))
+         (append! changes (place-player p x y)))))
     changes)
   
   (values ownspace on-tick on-message on-player-restart))
