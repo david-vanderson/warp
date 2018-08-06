@@ -502,15 +502,15 @@
         
         (define str (format "~a Players" (length players)))
         (prepend! sprites (text-sprite textr textsr str
-                                      -200 (+ (top) 45) LAYER_UI_TEXT))
+                                      -200 (+ (top) 100) LAYER_UI_TEXT))
         (for (((fact names) (in-hash h))
               (i (in-naturals)))
           (prepend! sprites (text-sprite textr textsr fact
-                                         (+ -200 (* 150 i)) (+ (top) 70) LAYER_UI_TEXT))
+                                         (+ -200 (* 150 i)) (+ (top) 100 30) LAYER_UI_TEXT))
           (for ((name names)
                 (k (in-naturals 1)))
             (prepend! sprites (text-sprite textr textsr name
-                                           (+ -200 (* 150 i)) (+ (top) 80 (* k 20))
+                                           (+ -200 (* 150 i)) (+ (top) 100 40 (* k 20))
                                            LAYER_UI_TEXT)))))
       
       ; draw orders
