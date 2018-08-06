@@ -487,17 +487,31 @@
                                           LAYER_UI_TEXT z)))))
 
       (when showtab
-        ; list all players
-        (define str (format "Players (~a):" (length (space-players ownspace))))
+        ; list all players by faction
+        (define players (space-players ownspace))
+        (for ((i (modulo (debug-num) 10)))
+          (append! players (player -1 (~a "player" i) "team" -1 '() #f #f)))
+        (define factions '())
+        (define h (make-hash))
+        (for ((p (in-list players)))
+          (when (not (member (player-faction p) factions))
+            (set! factions (cons (player-faction p) factions)))
+          (hash-set! h (player-faction p)
+                     (cons (player-name p) (hash-ref h (player-faction p) '()))))
+        (set! factions (sort factions string<?))
+        
+        (define str (format "~a Players" (length players)))
         (prepend! sprites (text-sprite textr textsr str
-                                      200 (+ (top) 80) LAYER_UI_TEXT))
-        (for ((p (in-list (space-players ownspace)))
+                                      -200 (+ (top) 45) LAYER_UI_TEXT))
+        (for (((fact names) (in-hash h))
               (i (in-naturals)))
-          (define str (if (player-faction p)
-                          (~a (player-name p) " " (player-faction p))
-                          (player-name p)))
-          (prepend! sprites (text-sprite textr textsr str
-                                        200 (+ (top) 100 (* i 20)) LAYER_UI_TEXT))))
+          (prepend! sprites (text-sprite textr textsr fact
+                                         (+ -200 (* 150 i)) (+ (top) 70) LAYER_UI_TEXT))
+          (for ((name names)
+                (k (in-naturals 1)))
+            (prepend! sprites (text-sprite textr textsr name
+                                           (+ -200 (* 150 i)) (+ (top) 80 (* k 20))
+                                           LAYER_UI_TEXT)))))
       
       ; draw orders
       (define line 0)

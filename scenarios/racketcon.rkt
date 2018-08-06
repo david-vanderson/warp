@@ -98,12 +98,12 @@
       (append! changes (chrm team2-button-id)))
     (define b1 (ann-button (next-id) 0 #t (posvel 'center -200 0 0 200 100 0)
                           #f "undecided"
-                          (string-append "Team " team1 "\n\n" (number->string team1-num))
+                          (string-append "Team " team1 "\n" (number->string team1-num))
                           team1))
     (set! team1-button-id (ob-id b1))
     (define b2 (ann-button (next-id) 0 #t (posvel 'center 200 0 0 200 100 0)
                           #f "undecided"
-                          (string-append "Team " team2 "\n\n" (number->string team2-num))
+                          (string-append "Team " team2 "\n" (number->string team2-num))
                           team2))
     (set! team2-button-id (ob-id b2))
     (append! changes

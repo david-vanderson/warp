@@ -384,7 +384,7 @@
     (define strs (string-split (button-label b) "\n"))
     (for ((str strs)
           (i (in-naturals)))
-      (prepend! spr (textr str x (+ y (- (* 8.0 (- (length strs) 1))) (* 16.0 i))
+      (prepend! spr (textr str x (+ y (- (* 10.0 (- (length strs) 1))) (* 20.0 i))
                            #:layer LAYER_UI_TEXT
                            #:r txtcol #:g txtcol #:b txtcol))))
   spr)
