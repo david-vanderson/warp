@@ -44,7 +44,8 @@
       (f ot depth (and highlight (not (ord-done? ot)))))
     (cond
       ((ordertime? ot)
-       (loop (ordertime-ot ot) (+ depth 1) highlight)
+       (when (ordertime-ot ot)
+         (loop (ordertime-ot ot) (+ depth 1) highlight))
        (ord-done? ot))
       ((order? ot)
        (ord-done? ot))
