@@ -176,10 +176,13 @@
     changes)
 
 
-  (define (start-countdown! ownspace)
+  (define (start-countdown! ownspace team)
     (define changes '())
     (when (not countdown?)
       (set! countdown? (space-time ownspace))
+      (define a (ann-text (next-id) 0 #t (posvel 'center -100 -100 0 0 0 0) #f #f
+                          (string-append "Team " team " Wins!") #f))
+      (append! changes (chadd a #f))
       (for ((fac teams))
         (append! changes
                  (chorders fac
@@ -216,7 +219,7 @@
         (set! base1-destroyed? #t)
         (set! team2-score (add1 team2-score))
         (append! changes (redo-team-scores))
-        (append! changes (start-countdown! ownspace))))
+        (append! changes (start-countdown! ownspace team2))))
 
     (when (not base2-destroyed?)
       (define t2b (find-top-id ownspace base2id))
@@ -224,7 +227,7 @@
         (set! base2-destroyed? #t)
         (set! team1-score (add1 team1-score))
         (append! changes (redo-team-scores))
-        (append! changes (start-countdown! ownspace))))
+        (append! changes (start-countdown! ownspace team1))))
 
     (when countdown?
       (define time-since ((space-time ownspace) . - . countdown?))

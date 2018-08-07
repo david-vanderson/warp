@@ -218,13 +218,16 @@
             (prepend! spr (draw-hp-bar o x y w csd LAYER_EFFECTS fowa))
             
             ;(prepend! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
-            ;(when showplayers?
-            ;  
-            ;  (define players (find-all space o player?))
-            ;  ;(append! players (player -1 "player1" "fac1") (player -1 "player2" "fac2"))
-            ;  (prepend! spr (draw-cargolist csd textr textsr center scale o colstr fowa
-            ;                                (cons (ship-name o) (map upgrade-type (ship-cargo o)))
-            ;                                (map player-name players))))
+            (when showplayers?  
+              (define players (find-all space o player?))
+              (for ((i (modulo (debug-num) 10)))
+                (append! players (player -1 (string-append "player" (number->string i))
+                                         "team" -1 '() #f #f)))
+              (for ((p players)
+                    (i (in-naturals)))
+                (prepend! spr (text-sprite textr textsr (player-name p)
+                                           (+ x (/ w 2.0)) (+ y w 5.0 (* i 20.0))
+                                           LAYER_MAP fowa))))
             spr)))))
 
 

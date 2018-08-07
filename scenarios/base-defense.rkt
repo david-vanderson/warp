@@ -17,7 +17,7 @@
   (define ownspace (space (next-id) 0 5000 2000 players '()
                           `(
                             ,(standard-quit-scenario-button)
-                            ,(ann-text (next-id) 0 #t (posvel 0 -200 -100 0 0 0 0) #f #f
+                            ,(ann-text (next-id) 0 #t (posvel 'center -200 -100 0 0 0 0) #f #f
                                        (string-append
                                         "Defend your base from the incoming destroyer.\n"
                                         "Use your cruiser to attack, dock on the station to repair.\n"
