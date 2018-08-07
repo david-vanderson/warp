@@ -642,9 +642,8 @@
 
     ; scenario hook
     (timeit time-hook
-    (append! updates (apply-all-changes! ownspace
-                                         (scenario-on-tick ownspace qt change-scenario!)
-                                         "server" #:addf addf))
+    (define ups (scenario-on-tick ownspace qt change-scenario!))
+    (append! updates (apply-all-changes! ownspace ups "server" #:addf addf))
     (add-all! qt objs-added)
     (set! objs-added '())
     )

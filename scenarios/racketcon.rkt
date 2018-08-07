@@ -11,21 +11,31 @@
 
 (provide (all-defined-out))
 
-(define (racketcon-scenario oldspace oldtick oldmessage old-on-player-restart)  
+(define (racketcon-scenario oldspace oldtick oldmessage old-on-player-restart)
+
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "undecided"))
+  
+  (define (make-newspace oldspace)
+    (space (next-id) 0 6000 6000 (space-players oldspace) '() '()))
+
+  (define ownspace (make-newspace oldspace))
 
   (define team1 "Brackets")
   (define base1id #f)
   (define base1x -500)
-  (define team1-button-id #f)
   (define team1-num 0)
+  (define team1-score 0)
   
   (define team2 "Parens")
   (define base2id #f)
-  (define base2x 500)
-  (define team2-button-id #f)
+  (define base2x 500)  
   (define team2-num 0)
+  (define team2-score 0)
+
+  (define countdown? #f)
+  (define base1-destroyed? #f)
+  (define base2-destroyed? #f)
 
   (define (start-xy ownspace team)
     (define dx (random-between -100 100))
@@ -54,8 +64,6 @@
       ((equal? team team2) "red")
       (else
        (error 'get-team-color "team not recognized: ~a" team))))
-
-  (define ownspace (space (next-id) 0 6000 6000 players '() '()))
 
   (define (make-base team x y)
     (define type (string-append (get-team-color team) "-station"))
@@ -90,6 +98,8 @@
     (list (chadd f #f)
           (chmov (ob-id p) (ob-id f) #f)))
 
+  (define team1-button-id #f)
+  (define team2-button-id #f)
   (define (redo-team-buttons)
     (define changes '())
     (when team1-button-id
@@ -109,6 +119,19 @@
     (append! changes
              (chadd b1 #f)
              (chadd b2 #f))
+    changes)
+
+  (define score-txtid #f)
+  (define (redo-team-scores)
+    (define changes '())
+    (when score-txtid
+      (append! changes (chrm score-txtid)))
+    (define s (ann-text (next-id) 0 #t (posvel 0 10 56 0 0 0 0) #f #f
+                        (string-append "Team " team1 ": " (number->string team1-score) "\n"
+                                       "Team " team2 ": " (number->string team2-score))
+                        #f))
+    (set! score-txtid (ob-id s))
+    (append! changes (chadd s #f))
     changes)
 
   (define (restart-scenario! ownspace)
@@ -136,6 +159,12 @@
           #:when (member (player-faction p) teams))
       (define-values (x y) (start-xy ownspace (player-faction p)))
       (append! changes (place-player p x y)))
+
+    (append! changes (redo-team-scores))
+
+    (set! countdown? #f)
+    (set! base1-destroyed? #f)
+    (set! base2-destroyed? #f)
     
     changes)
 
@@ -143,12 +172,20 @@
   (apply-all-changes! ownspace (restart-scenario! ownspace) "scenario")
   
 
-  (define (on-player-restart space pid)
+  (define (on-player-restart ownspace pid)
     (define changes '())
     ; this happens after the player's spacesuit has been removed
-    (define p (findfid pid (space-players space)))
+    (define p (findfid pid (space-players ownspace)))
     (define-values (x y) (start-xy ownspace (player-faction p)))
     (append! changes (place-player p x y))
+    changes)
+
+
+  (define (start-countdown! ownspace)
+    (define changes '())
+    (when (not countdown?)
+      (append! changes (message (next-id) (space-time ownspace) #t #f "Countdown"))
+      (set! countdown? (space-time ownspace)))
     changes)
   
   ; return a list of changes
@@ -173,6 +210,32 @@
       (set! team1-num t1num)
       (set! team2-num t2num)
       (append! changes (redo-team-buttons)))
+
+    (when (not base1-destroyed?)
+      (define t1b (find-top-id ownspace base1id))
+      (when (not t1b)
+        (set! base1-destroyed? #t)
+        (set! team2-score (add1 team2-score))
+        (append! changes (redo-team-scores))
+        (append! changes (start-countdown! ownspace))))
+
+    (when (not base2-destroyed?)
+      (define t2b (find-top-id ownspace base2id))
+      (when (not t2b)
+        (set! base2-destroyed? #t)
+        (set! team1-score (add1 team1-score))
+        (append! changes (redo-team-scores))
+        (append! changes (start-countdown! ownspace))))
+
+    (when countdown?
+      (define time-since ((space-time ownspace) . - . countdown?))
+      (when (time-since . > . 10000)
+        (change-scenario! (lambda (x . xs)
+                            (set! changes '())
+                            (set! ownspace (make-newspace ownspace))
+                            (apply-all-changes! ownspace (restart-scenario! ownspace) "scenario")
+                            (values ownspace
+                                    on-tick on-message on-player-restart)))))
     
     changes)
   
@@ -188,7 +251,7 @@
          
          (define p (struct-copy player (findfid (anncmd-pid cmd) (space-players space))))
          (set-player-faction! p (ann-button-msg o))
-         (define-values (x y) (start-xy ownspace (player-faction p)))
+         (define-values (x y) (start-xy space (player-faction p)))
          (append! changes (place-player p x y)))))
     changes)
   

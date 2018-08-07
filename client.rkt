@@ -461,13 +461,13 @@
                         (or showtab (not (ann-tab? a)))
                         (or (not (ann-faction a))
                             (equal? (ann-faction a) fac))))
+        (define-values (x y)
+          (if (equal? 'center (posvel-t (obj-posvel a)))
+              (values 0.0 0.0)
+              (values (left) (top))))
         (when (ann-button? a)
-          (define-values (bx by)
-            (if (equal? 'center (posvel-t (obj-posvel a)))
-                (values 0.0 0.0)
-                (values (left) (top))))
           (define ab (button 'normal (ob-id a) #f
-                             (+ bx (obj-x a)) (+ by (obj-y a))
+                             (+ x (obj-x a)) (+ y (obj-y a))
                              (obj-dx a) (obj-dy a) (ann-txt a)
                              (lambda (k y) (send-commands (anncmd meid (ob-id a))))))
           (prepend! buttons ab))
@@ -483,7 +483,7 @@
           (for ((t (in-list txts))
                 (i (in-naturals)))
             (prepend! sprites (text-sprite textr textsr t
-                                          (obj-x a) (+ (obj-y a) (* i 20))
+                                          (+ x (obj-x a)) (+ y (obj-y a) (* i 20))
                                           LAYER_UI_TEXT z)))))
 
       (when showtab
@@ -565,7 +565,7 @@
                             (format "~a" (ship-name s))
                             (lambda (x y)
                               ; leaving sector overview, so center on ship and reset scale
-                              (set! scale-play 1.0)
+                              (set-scale 1.0)
                               (set! center-follow? #t)
                               (send-commands (chmov meid (ob-id s) #f)))))
           (prepend! buttons b)))
@@ -732,7 +732,7 @@
               (set! num (+ num 1))
               (define z (linear-fade (obj-age ownspace m) (/ MSG_FADE_TIME 2) MSG_FADE_TIME))
               (prepend! sprites (text-sprite textr textsr (message-msg m)
-                                             (+ (left) 5.0) (+ (top) 100.0 (* num 20))
+                                             (+ (left) 10.0) (+ (top) 100.0 (* num 20))
                                              LAYER_UI_TEXT z)))
             (loop (cdr l)))))
 
@@ -1247,10 +1247,10 @@
            (set! dragstate "none")
            (set! key-for #f)
 
-           (when (not (find-id ownspace ownspace meid))
-             ; set scale so we see the whole sector
-             (set! scale-play (min-scale))
-             (set! first-scale #t)))
+           ; set scale so we see the whole sector
+           (set-scale (min-scale) #:immediate? #t)
+           (set! first-scale #t))
+          
           ((update? input)
            (set! num-updates (+ 1 num-updates))
            (cond
@@ -1363,7 +1363,7 @@
       (when my-stack
         (when first-scale
           (set! first-scale #f)
-          (set! scale-play 1.0))
+          (set-scale 1.0))
         (when (get-ship my-stack)
           (define tools (map tool-name (ship-tools (get-ship my-stack))))
           (cond
