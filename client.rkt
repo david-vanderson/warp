@@ -171,7 +171,7 @@
             (press! (button-key b))))
          ))
       (clickcmds
-       (send-commands (clickcmds)))))
+       (send-commands (clickcmds #f)))))
 
 
    (define (quit?)
@@ -705,12 +705,16 @@
                   (ship-flying? ship)
                   (not (warping? ship)))
              (set! cursordrawn #t)
-             (define cmds (command meid (player-cmdlevel player) 'pbolt
-                                   (list a a
-                                         (pbolt-frac last-pbolt-time (space-time ownspace)))))
-             (set! clickcmds (lambda ()
-                               (set! last-pbolt-time (space-time ownspace))
-                               cmds))
+             (define t (space-time ownspace))
+             (define cmd (command meid (player-cmdlevel player) 'pbolt
+                                  (list a a
+                                        (pbolt-frac last-pbolt-time t))))
+             (define spacecmd (command meid (player-cmdlevel player) 'pbolt
+                                       (list (obj-r ship) (obj-r ship)
+                                             (pbolt-frac last-pbolt-time t))))
+             (set! clickcmds (lambda (spacebar?)
+                               (set! last-pbolt-time t)
+                               (if spacebar? spacecmd cmd)))
              (prepend! sprites (sprite (exact->inexact x) (exact->inexact y)
                                        (sprite-idx csd 'target) #:layer LAYER_UI_TEXT
                                        #:r 100 #:g 100 #:b 255 #:m 0.7))))))
@@ -949,6 +953,9 @@
              ((#\f)
               (when (send event get-control-down)
                 (send frame fullscreen (not (send frame is-fullscreened?)))))
+             ((#\space)
+              (when clickcmds
+                (send-commands (clickcmds #t))))
              ((#\0)
               (debug-num (+ 1 (debug-num))))
              #;((#\d)
