@@ -10,6 +10,7 @@
 (define address "127.0.0.1")
 (define run-server? #f)
 (define g #f)
+(define combined? #f)
 (define name "Name")
 
 (command-line
@@ -25,6 +26,9 @@
   [("-g" "--nogui") ng
                     "Run # of headless clients for testing"
                     (set! g (string->number ng))]
+  [("-c" "--combined")
+                    "Run combined server and client for testing"
+                    (set! combined? #t)]
   [("-n" "--name") n
                    "Set client default name"
                    (set! name n)]
@@ -32,6 +36,9 @@
                      (set! run-server? #t)])
   
 (cond
+  [combined?
+   (thread (lambda () (start-server)))
+   (start-client address port)]
   [run-server?
    (start-server port)]
   [g
