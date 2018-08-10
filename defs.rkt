@@ -1,10 +1,13 @@
 #lang racket/base
 
-(require racket/math)
+(require racket/math
+         racket/runtime-path)
 
 (provide (all-defined-out))
 
 (define VERSION 1)  ; client will bomb if version doesn't match server
+
+(define-runtime-path IMAGEDIR "images")
 
 (define DEBUG #f)
 (define COMPRESS #t)

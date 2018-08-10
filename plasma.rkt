@@ -14,7 +14,7 @@
 (define PLASMA_FADE 2.0)  ; energy loss per second after PLASMA_LIFE
 
 (define (plasma-setup-pre! sd)
-  (add-sprite!/file sd 'plasma (string-append "images/plasma.png")))
+  (add-sprite!/file sd 'plasma (build-path IMAGEDIR "plasma.png")))
 
 (define PLASMA_SPRITE_IDX #f)
 (define PLASMA_SPRITE_SIZE #f)

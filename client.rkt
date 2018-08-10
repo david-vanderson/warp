@@ -1094,14 +1094,14 @@
                               (send dc set-brush b))
                             2 2) "black"))
 
-    (add-sprite!/value sd 'intro (read-bitmap "images/intro.png" 'png/alpha))
+    (add-sprite!/value sd 'intro (read-bitmap (build-path IMAGEDIR "intro.png") 'png/alpha))
     )
   (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))
-  (load-ships sd)
+  (load-ships! sd)
   (plasma-setup-pre! sd)
   (explosion-setup-pre! sd)
-  (add-sprite!/file sd 'missile (string-append "images/missile.png"))
-  (add-sprite!/file sd 'cannonball (string-append "images/asteroid_43.png"))
+  (add-sprite!/file sd 'missile (build-path IMAGEDIR "missile.png"))
+  (add-sprite!/file sd 'cannonball (build-path IMAGEDIR "asteroid_43.png"))
   
   (define csd (compile-sprite-db sd #:padding 2))
   ;(save-csd! csd "csd" #:debug? #t)
