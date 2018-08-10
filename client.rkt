@@ -53,7 +53,13 @@
   ; #f for not entering anything
   ; 'name for entering name
   ; 'ip for entering ip address
-  
+
+  ; set to #t while trying to connect to server
+  ; - reset to #f when we fail to connect or disconnect
+  (define connecting? #f)
+  ; shown on the intro screen, used for server connection problems
+  (define intromsg "")
+
   (define playing? #t)
   (define server-in-port #f)
   (define server-out-port #f)
@@ -179,7 +185,7 @@
                                      "Quit" "Keep Playing" #f
                                      frame '(default=2)))
      (when (equal? 1 ans)
-       (drop-connection "clicked exit")
+       (drop-connection!)
        (set! playing? #f)
        (send frame show #f)))
   
@@ -228,34 +234,40 @@
 
       (prepend! sprites (sprite 0.0 0.0 (sprite-idx csd 'intro) #:layer LAYER_FOW_BLACK))
       
-      (prepend! sprites (text-sprite textr textsr "Name" -100.0 20.0 LAYER_UI))
+      (prepend! sprites (text-sprite textr textsr "Name" -100.0 0.0 LAYER_UI))
       (define name? (equal? key-for 'name))
       (define nb (button (if name? 'disabled 'normal)
                          'name #f
-                         0.0 55.0 200.0 26.0
+                         0.0 35.0 200.0 26.0
                          (string-append name (if name? "_" ""))
                          (if name?
                              (lambda (x y) (void))
                              (lambda (x y) (set! key-for 'name)))))
       (prepend! buttons nb)
 
-      (prepend! sprites (text-sprite textr textsr "Server IP" -100.0 75.0 LAYER_UI))
+      (prepend! sprites (text-sprite textr textsr "Server IP" -100.0 55.0 LAYER_UI))
       (define ip? (equal? key-for 'ip))
       (define ipb (button (if ip? 'disabled 'normal)
                           'ip #f
-                          0.0 110.0 200.0 26.0
+                          0.0 90.0 200.0 26.0
                           (string-append ip (if ip? "_" ""))
                           (if ip?
                               (lambda (x y) (void))
                               (lambda (x y) (set! key-for 'ip)))))
       (prepend! buttons ipb)
 
-      (define startb (button (if server-in-port 'disabled 'normal) 'start #f
-                             0.0 170.0 200.0 50.0
-                             (if server-in-port "Connecting..." "Connect")
+      (define startb (button (if connecting? 'disabled 'normal) 'start #f
+                             0.0 150.0 200.0 50.0
+                             (if connecting? "Connecting..." "Connect")
                              (lambda (x y)
-                               (connect!))))
+                               (connect/async!))))
       (prepend! buttons startb)
+
+      (define txts (string-split intromsg "\n"))
+      (for ((t (in-list txts))
+            (i (in-naturals)))
+        (prepend! sprites (text-sprite textr textsr t
+                                       -100.0 (+ 190.0 (* i 20)) LAYER_UI)))
       )
     )
     
@@ -1135,30 +1147,44 @@
       (add-backeffects! space o)))
 
 
+  (struct server-ports (in out))
+  
   ; try to connect to server
-  (define (connect!)
-    (printf "trying to connect to ~a:~a\n" ip port)
-    (define-values (in out)
-      (with-handlers ((exn:fail:network?
-                       (lambda (exn)
-                         ((error-display-handler) (exn-message exn) exn)
-                         (values #f #f))))
-        (tcp-connect ip port)))
+  (define (connect/async!)
+    (set! connecting? #t)
+    (set! intromsg "")
+    (define th (current-thread))
+    (define cust (make-custodian))
+    (define s (make-semaphore 1))
+    (parameterize ([current-custodian cust])
+      (thread (lambda ()
+                (define-values (in out)
+                  (with-handlers ((exn:fail:network?
+                                   (lambda (exn)
+                                     (eprintf "~a\n" (exn-message exn))
+                                     (set! intromsg (exn-message exn))
+                                     (values #f #f))))
+                    (tcp-connect ip port)))
+                (when (semaphore-try-wait? s)
+                  (cond
+                    (in
+                     ; success, send ports to main thread
+                     (thread-send th (cons #f (server-ports in out))))
+                    (else
+                     ; fast network failure
+                     (set! connecting? #f)))))))
     
-    (set! server-in-port in)
-    (set! server-out-port out)
-    
-    (when server-out-port
-      (set! server-in-t (make-in-thread #f in (current-thread)))
-      (set-tcp-nodelay! out #t)
-      (set! server-out-t (make-out-thread #f out (current-thread)))
-      ; send our name to the server
-      ; send version in id space
-      (send-commands (player VERSION name #f #f '() #f #f))))
+    (thread (lambda ()
+              (sleep 5)
+              (when (semaphore-try-wait? s)
+                (custodian-shutdown-all cust)
+                (eprintf "Connection Timed Out\n")
+                (set! intromsg "Connection Timed Out")
+                (set! connecting? #f)))))
   
   
-  (define (drop-connection msg)
-    (printf "drop server ~a\n" msg)
+  (define (drop-connection!)
+    (set! intromsg "Server Lost")
     (when server-in-port
       (close-input-port server-in-port)
       (close-output-port server-out-port)
@@ -1169,7 +1195,8 @@
     (set! server-in-t #f)
     (set! server-out-t #f)
     (set! meid #f)
-    (set! ownspace #f))
+    (set! ownspace #f)
+    (set! connecting? #f))
 
   
   (define (send-commands cmds)
@@ -1204,10 +1231,9 @@
     (when (and (not gui?)
                (not server-in-port))
       ; headless client just tries to connect
-      (connect!)
-      (when (not server-in-port)
-        ; if the server is not there, try again in a second
-        (sleep 1)))
+      (when (not connecting?)
+        (sleep 1)  ; don't try as fast as possible
+        (connect/async!)))
 
     (define num-updates 0)
     (define num-ticks 0)
@@ -1222,7 +1248,16 @@
         ;(printf "~a client input: ~v\n" name input)
         (cond
           ((not input)
-           (drop-connection ""))
+           (drop-connection!))
+          ((server-ports? input)
+           (set! server-in-port (server-ports-in input))
+           (set! server-out-port (server-ports-out input))
+           (set! server-in-t (make-in-thread #f server-in-port (current-thread)))
+           (set-tcp-nodelay! server-out-port #t)
+           (set! server-out-t (make-out-thread #f server-out-port (current-thread)))
+           ; send our name to the server
+           ; send version in id space
+           (send-commands (player VERSION name #f #f '() #f #f)))
           ((player? input)
            ; should only happen once when we connect to the server
            (when (not (equal? VERSION (player-name input)))
