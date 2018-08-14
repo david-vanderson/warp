@@ -14,7 +14,7 @@
 (provide (all-defined-out))
 
 (define mapcol (make-color 0 0 200 1.0))  ; sector lines
-(define zoomcol (make-color 130 50 10 1.0))  ; zoom meter
+(define zoomcol (make-color 180 180 180 1.0))  ; zoom meter
 
 (define canon-width 800.0)
 (define canon-height 600.0)
