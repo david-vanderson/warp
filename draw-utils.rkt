@@ -149,7 +149,7 @@
     (else 0)))
 
 
-(define (rect-outline csd x y w h thick #:layer [layer LAYER_UI]
+(define (rect-outline csd x y w h thick layer
                       #:r [r 255] #:g [g 255] #:b [b 255] #:a [a 1.0])
   (define-values (idx-w mx-w)
     (if (w . > . 100.0)
@@ -173,7 +173,7 @@
              #:mx mx-w #:my (/ thick 10.0)
              #:r r #:g g #:b b #:a a))))
 
-(define (rect-filled csd x y w h #:layer [layer LAYER_UI]
+(define (rect-filled csd x y w h layer
                      #:r [r 255] #:g [g 255] #:b [b 255] #:a [a 1.0])
   (define-values (idx mw mh)
     (cond

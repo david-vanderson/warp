@@ -58,8 +58,9 @@
   ; - reset to #f when we fail to connect or disconnect
   (define connecting? #f)
   ; shown on the intro screen, used for server connection problems
-  (define intromsg "")
+  (define intromsg "Press ? for quick help")
 
+  (define help-screen? #f)
   (define playing? #t)
   (define server-in-port #f)
   (define server-out-port #f)
@@ -201,12 +202,12 @@
     (define t7 0)
     (define t8 0)
     (define t9 0)
-
-    (timeit t1
+    
     (set! buttons '())
     (set! sprites '())
     (define cursordrawn #f)
     (set! clickcmds #f)
+    (define background-gray 0)
     
     (update-scale)
     
@@ -223,8 +224,49 @@
       ; record the center so we start from there if center-follow? becomes #f
       (set-posvel-x! (obj-posvel centerxy) (obj-x center))
       (set-posvel-y! (obj-posvel centerxy) (obj-y center)))
-    
-    (when (not ownspace)
+
+    (cond
+     (help-screen?
+      ; This screen shows quick help for the game
+      (define size (* 0.8 (min canon-width canon-height)))
+      (prepend! sprites (rect-outline csd 0.0 0.0 size size 3.5
+                                      LAYER_HANGAR_BACKGROUND))
+      (prepend! buttons (button 'normal 'back-to-game #f
+                                0.0 (- (/ size 2.0) 33.0) 200.0 50.0
+                                "Back to Game"
+                                (lambda (x y)
+                                  (set! help-screen? #f))))
+
+      (define col (send the-color-database find-color "white"))
+
+      (prepend! sprites
+                (textr "Quick Help"
+                       0.0 (+ (- (/ size 2.0)) 15.0) #:layer LAYER_UI
+                       #:r (send col red)
+                       #:g (send col green)
+                       #:b (send col blue)))
+
+      (define help-lines
+        (list "ctrl-f toggles fullscreen"
+              "ctrl-q to quit"
+              "tab shows players"
+              "backtick toggles full map"
+              "r/t or mouse wheel zooms"
+              "right-click drag to pan view"
+              ""
+              "a/w/d to fly"
+              "space or mouse to fire"))
+      
+      (for ((t (in-list help-lines))
+            (i (in-naturals 2)))
+        (prepend! sprites
+                  (text-sprite textr textsr t
+                               (+ (- (/ size 2.0)) 8.0)
+                               (+ (- (/ size 2.0)) 8.0 (* i 20))
+                               LAYER_UI)))
+      )
+     ((not ownspace)
+      (timeit t1
       ; This screen is where you type in your name and the server IP
       ;(define txt "O")
       ;(define-values (w h) (textsr txt))
@@ -268,10 +310,9 @@
             (i (in-naturals)))
         (prepend! sprites (text-sprite textr textsr t
                                        -100.0 (+ 190.0 (* i 20)) LAYER_UI)))
-      )
-    )
-    
-    (when ownspace
+      ))
+     (else
+      ; we have ownspace      
       (timeit t2
       (define p (findfid meid (space-players ownspace)))
       (define fac (if p (player-faction p) #f))
@@ -285,6 +326,7 @@
         (set! myshipid (ob-id topship)))
       
       ; background starts as fog of war gray
+      (set! background-gray 80)
 
       ; put a black circle wherever we can see
       (define fowlist
@@ -367,16 +409,16 @@
         (when (and (unbox in-hangar?) (not (ship-hangar ship)))
           ; just to make sure, maybe our ship had a hangar and it went away?
           (set-box! in-hangar? #f))
-        (cond 
+        (cond
           ((unbox in-hangar?)
            ; hangar background
            (define size (* 0.8 (min canon-width canon-height)))           
            (prepend! sprites (rect-filled csd 0.0 0.0 size size
-                                          #:layer LAYER_HANGAR_BACKGROUND
+                                          LAYER_HANGAR_BACKGROUND
                                           #:r 0 #:g 0 #:b 0
                                           #:a 0.75))
            (prepend! sprites (rect-outline csd 0.0 0.0 size size 3.5
-                                           #:layer LAYER_HANGAR_BACKGROUND))
+                                           LAYER_HANGAR_BACKGROUND))
            
            ; draw all the ships in the hangar
            (define shipmax (+ 20 (* 2.0 (apply max 1.0 (map (lambda (s) (ship-w s 1.0))
@@ -760,8 +802,7 @@
                     (obj-sprite o csd center (get-scale) LAYER_UI_TEXT 'circle
                                 (/ 7.0 100 (get-scale)) 1.0 0.0 "pink"))))
       )
-      ) ; when ownspace
-
+      ))
     ; normally quit with ctrl-q
     (define quit-button
       (button 'hidden #\q #t
@@ -777,7 +818,7 @@
       (set-button-width! quit-button 80)
       (set-button-height! quit-button 40))
     (prepend! buttons quit-button)
-
+    
     (timeit t7
     (send canvas set-cursor (make-object cursor% (if cursordrawn 'blank 'arrow)))
 
@@ -813,16 +854,19 @@
     (define layers (for/vector ((i LAYER_NUM)) (layer width height)))
     )
     (timeit t8
-    (define rgb (if ownspace 80 0))
-    (define r (render layers '() sprites #:r rgb #:g rgb #:b rgb))
+    (define r (render layers '() sprites
+                      #:r background-gray
+                      #:g background-gray
+                      #:b background-gray))
     )
     (timeit t9
     (r (fl->fx canon-width) (fl->fx canon-height) dc)
     )
 
-    ;(outputtime "client render"
-    ;            (if ownspace (space-time ownspace) #f)
-    ;            t1 t2 t3 t4 t5 t6 t7 t8 #;t9)
+    (when CLIENT_OUTPUT_TIME
+      (outputtime "client render"
+                  (if ownspace (space-time ownspace) #f)
+                  t1 t2 t3 t4 t5 t6 t7 t8 t9))
     )
     
   
@@ -970,6 +1014,8 @@
                 (send-commands (clickcmds #t))))
              ((#\0)
               (debug-num (+ 1 (debug-num))))
+             ((#\?)
+              (set! help-screen? (not help-screen?)))
              #;((#\d)
               (when ownspace
                 (define cmds '())

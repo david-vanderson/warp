@@ -428,11 +428,11 @@
   (define x (- (right) 8.0 (/ (ship-maxcon s) 2)))
   (define y (+ (top) 8.0 (/ h 2)))
   
-  (prepend! spr (rect-outline csd x y w h 2.0))
+  (prepend! spr (rect-outline csd x y w h 2.0 LAYER_UI))
   
   (define col (stoplight-color (ship-con s) (ship-maxcon s)))
   (prepend! spr (rect-filled csd (+ x (/ (- (ship-maxcon s) (ship-con s)) 2))
-                             y (ship-con s) h
+                             y (ship-con s) h LAYER_UI
                              #:r (send col red) #:g (send col green) #:b (send col blue)))
   spr)
 

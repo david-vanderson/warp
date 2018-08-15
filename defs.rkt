@@ -9,7 +9,7 @@
 
 (define-runtime-path IMAGEDIR "images")
 
-(define DEBUG #f)
+(define CLIENT_OUTPUT_TIME #f)
 (define COMPRESS #t)
 (define PORT 22381)
 (define TICK 33)  ; ms time slice for physics, also determines max client frame rate
@@ -38,8 +38,8 @@
 (define LAYER_EFFECTS 3)  ; explosions, overlays, hp bars
 (define LAYER_HANGAR_BACKGROUND 4)  ; hangar background
 (define LAYER_HANGAR 5)  ; hangar ships
-(define LAYER_UI 6)
-(define LAYER_UI_TEXT 7)
+(define LAYER_UI 6)  ; buttons
+(define LAYER_UI_TEXT 7)  ; button text/fill
 (define LAYER_NUM 8)
 
 (define PLASMA_SPEED 60.0)
