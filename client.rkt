@@ -516,9 +516,13 @@
                         (or (not (ann-faction a))
                             (equal? (ann-faction a) fac))))
         (define-values (x y)
-          (if (equal? 'center (posvel-t (obj-posvel a)))
-              (values 0.0 0.0)
-              (values (left) (top))))
+          (case (posvel-t (obj-posvel a))
+            ((topleft)
+             (values (left) (top)))
+            ((center)
+             (values 0.0 0.0))
+            (else
+             (error "ann had unrecognized posvel-t"))))
         (when (ann-button? a)
           (define ab (button 'normal (ob-id a) #f
                              (+ x (obj-x a)) (+ y (obj-y a))

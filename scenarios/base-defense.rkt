@@ -142,7 +142,7 @@
                "Enemy Defeated, You Win")))
       
       (append! changes (chadd (ann-text (next-id) (space-time ownspace) #t
-                                        (posvel 0 -200 -100 0 0 0 0) #f #f
+                                        (posvel 'center -200 -100 0 0 0 0) #f #f
                                         txt #f) #f))
       ; add end scenario button
       (append! changes (chadd (standard-quit-scenario-button #f) #f))
