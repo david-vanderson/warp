@@ -15,6 +15,14 @@
 
 (define mapcol (make-color 0 0 200 1.0))  ; sector lines
 (define zoomcol (make-color 180 180 180 1.0))  ; zoom meter
+(define button-txt (send the-color-database find-color "white"))
+(define button-disable-txt (send the-color-database find-color "gray"))
+(define button-dmg-txt (send the-color-database find-color "dimgray"))
+(define button-normal (send the-color-database find-color "white"))
+(define button-normal-fill (send the-color-database find-color "gray"))
+(define button-outline (send the-color-database find-color "gray"))
+(define button-disable (send the-color-database find-color "gray"))
+(define button-disable-fill (send the-color-database find-color "black"))
 
 (define canon-width 800.0)
 (define canon-height 600.0)
@@ -151,26 +159,19 @@
 
 (define (rect-outline csd x y w h thick layer
                       #:r [r 255] #:g [g 255] #:b [b 255] #:a [a 1.0])
-  (define-values (idx-w mx-w)
-    (if (w . > . 100.0)
-        (values (sprite-idx csd '1000x10) (/ (+ w thick) 1000.0))
-        (values (sprite-idx csd '100x10) (/ (+ w thick) 100.0))))
-  (define-values (idx-h mx-h)
-    (if (h . > . 100.0)
-        (values (sprite-idx csd '1000x10) (/ (+ h thick) 1000.0))
-        (values (sprite-idx csd '100x10) (/ (+ h thick) 100.0))))
+  (define idx (sprite-idx csd '1x1))
   (define xoffs (list (/ w 2) (- (/ w 2))))
   (define yoffs (list (/ h 2) (- (/ h 2))))
   (append
    (for/list ((xoff xoffs)) 
-     (sprite (+ x xoff) y idx-h
+     (sprite (+ x xoff) y idx
              #:layer layer
-             #:mx mx-h #:my (/ thick 10.0) #:theta pi/2
+             #:mx thick #:my (+ h thick)
              #:r r #:g g #:b b #:a a))
    (for/list ((yoff yoffs))
-     (sprite x (+ y yoff) idx-w
+     (sprite x (+ y yoff) idx
              #:layer layer
-             #:mx mx-w #:my (/ thick 10.0)
+             #:mx (+ w thick) #:my thick
              #:r r #:g g #:b b #:a a))))
 
 (define (rect-filled csd x y w h layer
@@ -215,17 +216,7 @@
               alpha))
 
 
-(define (add-offline-button! tool b send-commands (dmgstr "offline"))
+(define (button-set-dmg! tool b (dmgstr "offline"))
   (define offline (findf (lambda (d) (equal? dmgstr (dmg-type d))) (tool-dmgs tool)))
-  (cond
-    (offline
-     (set-button-draw! b 'dmg)
-     (dmgbutton 'normal #f #f
-                (button-x b) (- (button-y b) (button-height b))
-                (button-width b) (button-height b)
-     "Offline"
-     (lambda (x y) (void))
-     (/ (dmg-energy offline) (dmg-size offline)) (dmg-fixing? offline)))
-    (else
-     #f)))
+  (when offline (set-button-draw! b 'dmg)))
 

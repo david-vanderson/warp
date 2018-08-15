@@ -411,7 +411,3 @@
 ; held is the keyboard shortcut (or 'mouse)
 ; key is the keyboard shortcut (for id purposes)
 ; frelease is the holdbutton-frelease function
-
-(struct dmgbutton button (frac fixing?) #:mutable #:prefab)
-; frac is percentage fixed
-; fixing? is #t if this is being fixed

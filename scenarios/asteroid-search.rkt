@@ -240,11 +240,12 @@
         (define f (new-red-fighter))
         (append! changes (chadd f (ob-id frig))))
 
-      (for ((f (ship-hangar eb)))
-        (when (and (not (ship-strategy f))
-                   ((current-strat-age ownspace f) . > . 10000))
-          ; fighter has been docked without a strat, send them to scout again
-          (append! changes (new-strat (ob-id f) (scout-strat ownspace)))))
+      (when eb
+        (for ((f (ship-hangar eb)))
+          (when (and (not (ship-strategy f))
+                     ((current-strat-age ownspace f) . > . 10000))
+            ; fighter has been docked without a strat, send them to scout again
+            (append! changes (new-strat (ob-id f) (scout-strat ownspace))))))
 
       (define hb (find-top-id ownspace hidden-base-id))
 

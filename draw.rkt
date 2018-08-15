@@ -342,16 +342,27 @@
     (define-values (x y w h) (values (exact->inexact (button-x b))
                                      (exact->inexact (button-y b))
                                      (exact->inexact (button-width b))
-                                     (button-height b)))
+                                     (exact->inexact (button-height b))))
 
-    (when h (set! h (exact->inexact h)))
+    (define strs (string-split (button-label b) "\n"))
 
-    (define sprname (if (dmgbutton? b) 'dmgbutton-normal 'button-normal))
-    (define txtcol 255)
+    (define col button-normal)
+    (define fill button-normal-fill)
+    (define txtcol button-txt)
     (cond
       ((member (button-draw b) '(outline))
-       (set! sprname 'button-outline))
-      ((or (member (button-draw b) '(disabled dmg))
+       (set! col button-outline)
+       (set! fill #f))
+      ((member (button-draw b) '(dmg))
+       (set! fill button-disable-fill)
+       (set! txtcol button-dmg-txt)
+       (define br (if (time-toggle time 1000) 255 100))
+       (set! col (make-color br 0 0 1.0))
+       (set! strs (cons "" strs))
+       (prepend! spr (textr "Offline" x (+ y (- (* 10.0 (- (length strs) 1))) 2.0)
+                           #:layer LAYER_UI_TEXT
+                           #:r br)))
+      ((or (member (button-draw b) '(disabled))
            (if (holdbutton? b)
                ; if we are holding the button, draw it as pressed
                (ormap (lambda (h)
@@ -361,35 +372,27 @@
                (ormap (lambda (p)
                         (equal? (press-key p) (button-key b)))
                       pressed)))
-       (set! sprname 'button-disabled)
-       (set! txtcol 150)))
+       (set! col button-disable)
+       (set! fill button-disable-fill)
+       (set! txtcol button-disable-txt)))
 
-    (when (not h)
-      (set! sprname (string->symbol (string-append (symbol->string sprname) "-circle"))))
-
-    (define br 0)
-    (when (dmgbutton? b)
-      (set! br
-            (if (dmgbutton-fixing? b) 255
-                (if (time-toggle time 1000) 255 100)))
-      (prepend! spr (sprite x y (sprite-idx csd 'dmgbutton-fill) #:layer LAYER_UI
-                         #:mx (/ w (sprite-width csd (sprite-idx csd 'dmgbutton-fill)) 1.0)
-                         #:my (/ (exact->inexact (* h (dmgbutton-frac b)))
-                                 (sprite-height csd (sprite-idx csd 'dmgbutton-fill)) 1.0)
-                         #:r br))
-      )
-
-    (prepend! spr (sprite x y (sprite-idx csd sprname) #:layer LAYER_UI
-                         #:mx (/ w (sprite-width csd (sprite-idx csd sprname)) 1.0)
-                         #:my (/ (if h h w) (sprite-height csd (sprite-idx csd sprname)) 1.0)
-                         #:r br))
-
-    (define strs (string-split (button-label b) "\n"))
+    (prepend! spr (rect-outline csd x y w h 2.0 LAYER_UI
+                                #:r (send col red)
+                                #:g (send col green)
+                                #:b (send col blue)))
+    (when fill
+      (prepend! spr (rect-filled csd x y w h LAYER_UI
+                                 #:r (send fill red)
+                                 #:g (send fill green)
+                                 #:b (send fill blue))))
+    
     (for ((str strs)
           (i (in-naturals)))
       (prepend! spr (textr str x (+ y (- (* 10.0 (- (length strs) 1))) (* 20.0 i))
                            #:layer LAYER_UI_TEXT
-                           #:r txtcol #:g txtcol #:b txtcol))))
+                           #:r (send txtcol red)
+                           #:g (send txtcol green)
+                           #:b (send txtcol blue)))))
   spr)
 
 
@@ -458,8 +461,7 @@
                  (and (warping? ship) (not (tool-while-warping? t))))
          (set-button-draw! b 'disabled))
        (prepend! buttons (list b))
-       (define ob (add-offline-button! t b send-commands))
-       (when ob (prepend! buttons (list ob))))
+       (button-set-dmg! t b))
       ((pbolt)
        (define b (button 'disabled -1 #f (- (right) 58) (- (bottom) 28) 100 40 "Plasma" #f))
        (when (and (not (equal? 'pbolt (unbox active-mouse-tool)))
@@ -474,8 +476,7 @@
                              #:mx (* f 10.0)
                              #:my 4.0
                              #:r 255))
-       (define ob (add-offline-button! t b send-commands))
-       (when ob (prepend! buttons (list ob))))
+       (button-set-dmg! t b))
       ((warp)
        (define-values (bs ss) (draw-warp-ui! csd center scale space ship t stack send-commands))
        (prepend! buttons bs)
@@ -489,8 +490,7 @@
                    (and (warping? ship) (not (tool-while-warping? t))))
            (set-button-draw! b 'disabled))
          (prepend! buttons b)
-         (define ob (add-offline-button! t b send-commands))
-         (when ob (prepend! buttons ob)))
+         (button-set-dmg! t b))
 
        (let ()
          (define b (button 'normal #\e #f (- (right) 58) (- (bottom) 124) 100 40 "Missile [e]"
@@ -500,8 +500,7 @@
                    (and (warping? ship) (not (tool-while-warping? t))))
            (set-button-draw! b 'disabled))
          (prepend! buttons b)
-         (define ob (add-offline-button! t b send-commands))
-         (when ob (prepend! buttons ob))))
+         (button-set-dmg! t b)))
       ((probe)
        (define b (button 'normal #\x #f (- (right) 58) (- (bottom) 76) 100 40 "Probe [x]"
                          (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))))
@@ -509,8 +508,7 @@
                  (and (warping? ship) (not (tool-while-warping? t))))
          (set-button-draw! b 'disabled))
        (prepend! buttons b)
-       (define ob (add-offline-button! t b send-commands))
-       (when ob (prepend! buttons ob)))
+       (button-set-dmg! t b))
       ((cannon)
        (define b (holdbutton 'normal #\c #f (- (right) 58) (- (bottom) 172) 100 40 "Cannon [c]"
                              (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) (obj-r (get-ship stack)))))
@@ -519,8 +517,7 @@
                  (and (warping? ship) (not (tool-while-warping? t))))
          (set-button-draw! b 'disabled))
        (prepend! buttons b)
-       (define ob (add-offline-button! t b send-commands))
-       (when ob (prepend! buttons ob)))
+       (button-set-dmg! t b))
       ((endrc)
        (define life (/ (max 0 ((tool-rc t) . - . (/ (obj-age space ship) 1000.0)))
                        (tool-rc t)))
@@ -534,37 +531,12 @@
        (define b (button 'normal #\s #f 0 (- (bottom) 101) 100 40 "Stop [s]"
                          (lambda (x y)
                            (send-commands (endrc pid #t)))))
-       (prepend! buttons b))
-      #;((steer? t)
-         (define offline (findf (lambda (d) (equal? "offline" (dmg-type d))) (tool-dmgs t)))
-         (when offline
-           (define ob (dmgbutton 'normal #f #f
-                                 0.0 (- (bottom) 105) 200 30
-                                 "Steer Offline"
-                                 (lambda (x y) (send-commands (command (ob-id offline)
-                                                                       (not (dmg-fixing? offline)))))
-                                 (/ (dmg-energy offline) (dmg-size offline)) (dmg-fixing? offline)))
-           (prepend! buttons (list ob))))     
+       (prepend! buttons b))  
       ((dock)
        (when (can-launch? stack)
          (define lb (button 'normal #\w #f 0 (- (bottom) 124) 120 40 "Launch [w]"
                             (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) 'launch)))))
          (prepend! buttons (list lb))
-         (define lob (add-offline-button! t lb send-commands "nolaunch"))
-         (when lob (prepend! buttons (list lob)))))
-    
-      #;((shbolt? t)
-         (define ship (get-ship stack))
-         (define pod (get-pod stack))
-         (define b (button 'normal #\space #f (+ (left) 65) (- (bottom) 35) 50.0 50.0 "Shield [_]" #f))
-         (cond
-           ((and (ship-flying? ship) ((pod-energy pod) . > . (shbolt-shield-size t)))
-            (define a (+ (obj-r ship) (pod-facing (get-pod stack))))
-            (set-button-f! b (lambda (x y) (send-commands (command (ob-id t) a)))))
-           (else
-            (set-button-draw! b 'disabled)))
-         (prepend! buttons (list b))
-         (define ob (add-offline-button! t b send-commands))
-         (when ob (prepend! buttons (list ob))))))
+         (button-set-dmg! t lb "nolaunch")))))
   (values buttons spr))
 

@@ -1058,25 +1058,6 @@
   
   (define sd (make-sprite-db))
   (let ()
-    (add-sprite!/value sd 'button-normal
-                       (inset (filled-rectangle 100 50 #:color "gray"
-                                                #:border-color "white" #:border-width 2) 1))
-    (add-sprite!/value sd 'button-outline
-                       (inset (rectangle 100 50 #:border-color "gray" #:border-width 2) 1))
-    (add-sprite!/value sd 'button-disabled
-                       (inset (filled-rectangle 100 50 #:color "black"
-                                                #:border-color "gray" #:border-width 2) 1))
-    (add-sprite!/value sd 'button-normal-circle
-                       (inset (filled-ellipse 100 100 #:color "gray"
-                                              #:border-color "white" #:border-width 2) 1))
-    (add-sprite!/value sd 'button-disabled-circle
-                       (inset (filled-ellipse 100 100 #:color "black"
-                                              #:border-color "gray" #:border-width 2) 1))
-    (add-sprite!/value sd 'dmgbutton-normal
-                       (inset (rectangle 100 50 #:border-color "black" #:border-width 2) 1))
-    (add-sprite!/value sd 'dmgbutton-fill
-                       (inset (filled-rectangle 100 50 #:color "black"
-                                                #:border-color "black" #:border-width 0) 2))
     ; used to draw lines
     ; we need multiple because:
     ; - scaling up causes fading at the edges
@@ -1154,15 +1135,15 @@
 
     (add-sprite!/value sd 'intro (read-bitmap (build-path IMAGEDIR "intro.png") 'png/alpha))
     )
+   
   (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))
   (load-ships! sd)
   (plasma-setup-pre! sd)
   (explosion-setup-pre! sd)
-  (add-sprite!/file sd 'missile (build-path IMAGEDIR "missile.png"))
-  (add-sprite!/file sd 'cannonball (build-path IMAGEDIR "asteroid_43.png"))
   
   (define csd (compile-sprite-db sd #:padding 2))
   ;(save-csd! csd "csd" #:debug? #t)
+   
   (plasma-setup-post! csd)
   (explosion-setup-post! csd)
   (define textr (make-text-aligned-renderer textfont csd))

@@ -58,7 +58,7 @@
   (define w (* 2.0 (caddr vals)))
   (define h 40.0)
   (define x (+ (left) 8.0 (/ maxw 2.0)))
-  (define y (- (bottom) 164.0))
+  (define y (- (bottom) 124.0))
   (define z (clamp 0.0 1.0 (/ w maxw)))
 
   (define p (car stack))
@@ -97,6 +97,5 @@
             (and (warping? ship) (not (tool-while-warping? t))))
     (set-button-draw! b 'disabled))
   (append! buttons b)
-  (define ob (add-offline-button! t b send-commands))
-  (when ob (append! buttons ob))
+  (button-set-dmg! t b)
   (values buttons spr))
