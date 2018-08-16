@@ -111,9 +111,14 @@
                           (string-append "Team " team2 "\n" (number->string team2-num))
                           team2))
     (set! team2-button-id (ob-id b2))
+    (define b3 (ann-button (next-id) 0 #t (posvel 'center 0 200 0 200 100 0)
+                           #f "undecided"
+                           "Observer"
+                           "observer"))
     (append! changes
              (chadd b1 #f)
-             (chadd b2 #f))
+             (chadd b2 #f)
+             (chadd b3 #f))
     changes)
 
   (define score-txtid #f)
@@ -260,7 +265,9 @@
          (define p (struct-copy player (findfid (anncmd-pid cmd) (space-players space))))
          (set-player-faction! p (ann-button-msg o))
          (define-values (x y) (start-xy space (player-faction p)))
-         (append! changes (place-player p x y)))))
+         (append! changes (place-player p x y)))
+        ((equal? "observer" (ann-button-msg o))
+         (append! changes (chfaction (anncmd-pid cmd) (ann-button-msg o))))))
     changes)
   
   (values (start-space oldspace) on-tick on-message on-player-restart))

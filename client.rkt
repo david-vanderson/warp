@@ -344,6 +344,10 @@
                                ((faction-check fac (ship-faction s)) . > . 0)))
           (list (obj-x s) (obj-y s) (ship-radar s))))
 
+      (when (equal? fac "observer")
+        (set! fowlist (list (list 0.0 0.0 (* 2.0 (max (space-width ownspace)
+                                                      (space-height ownspace)))))))
+
       (for ((f fowlist))
         (define rad (caddr f))
         (define-values (x y) (xy->screen (car f) (cadr f) center (get-scale)))
