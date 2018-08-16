@@ -275,6 +275,12 @@
       ;  (prepend! sprites (text-sprite textr textsr txt i j LAYER_UI)))
 
       (prepend! sprites (sprite 0.0 0.0 (sprite-idx csd 'intro) #:layer LAYER_FOW_BLACK))
+
+      (define vtext (string-append "Version " (number->string VERSION)))
+      (define-values (w h) (textsr vtext))
+      (prepend! sprites
+                (text-sprite textr textsr vtext
+                             (- (right) w 8) (+ (top) 4) LAYER_UI))
       
       (prepend! sprites (text-sprite textr textsr "Name" -100.0 0.0 LAYER_UI))
       (define name? (equal? key-for 'name))
