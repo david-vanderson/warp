@@ -260,14 +260,16 @@
 (struct ann obj (tab? faction txt) #:mutable #:prefab)
 ; map annotation
 ; if tab? is #t, only see it if you press tab
-; if faction is #f, everyone sees it, otherwise only if they have the same faction
+; if faction is #t, everyone sees it
+; - if #f, only hacked clients see it (prevent accidental restarting scenarios in large groups)
+; - otherwise only if they have the same faction
 
 (struct ann-button ann (msg) #:mutable #:prefab)
 ; clickable button
 ; obj-x/y is center of button offset from top-left window corner (in canon coords)
 ; obj-dx/dy is size of button (in canon coords)
 ; text is what the button says
-; msg is what is sent to server when a player clicks it
+; msg is used to easily know which button was clicked
 ;  - gets delivered to the scenario's on-message as a (anncmd client-id ann-button-id) struct
 
 (struct ann-text ann (life) #:mutable #:prefab)

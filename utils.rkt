@@ -117,8 +117,8 @@
     (when (v . > . 1)
       (printf "~a : ~a ~a ~a\n" time who 'v v)) ...))
 
-(define (standard-quit-scenario-button [tab? #t])
-  (ann-button (next-id) 0 #t (posvel 'topleft 68 76 0 120 40 0) tab? #f
+(define (standard-quit-scenario-button [tab? #t] [faction #t])
+  (ann-button (next-id) 0 #t (posvel 'topleft 68 76 0 120 40 0) tab? faction
               "Quit Scenario" "quit-scenario"))
 
 (define-syntax-rule (append! lst e ...)

@@ -11,7 +11,7 @@
 
 (provide (all-defined-out))
 
-(define (racketcon-scenario oldspace oldtick oldmessage old-on-player-restart)
+(define (racketcon2018-scenario oldspace oldtick oldmessage old-on-player-restart)
 
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p "undecided"))
@@ -121,7 +121,7 @@
     (define changes '())
     (when (and old? score-txtid)
       (append! changes (chrm score-txtid)))
-    (define s (ann-text (next-id) 0 #t (posvel 'topleft 10 56 0 0 0 0) #f #f
+    (define s (ann-text (next-id) 0 #t (posvel 'topleft 10 56 0 0 0 0) #f #t
                         (string-append "Team " team1 ": " (number->string team1-score) "\n"
                                        "Team " team2 ": " (number->string team2-score))
                         #f))
@@ -137,7 +137,7 @@
     (define changes '())
     
     ; add standard stuff
-    (append! changes (chadd (standard-quit-scenario-button) #f))
+    (append! changes (chadd (standard-quit-scenario-button #t #f) #f))
     (append! changes (redo-team-buttons #f))
 
     ; add team1 base
@@ -180,7 +180,7 @@
     (define changes '())
     (when (not countdown?)
       (set! countdown? (space-time ownspace))
-      (define a (ann-text (next-id) 0 #t (posvel 'center -100 -100 0 0 0 0) #f #f
+      (define a (ann-text (next-id) 0 #t (posvel 'center -100 -100 0 0 0 0) #f #t
                           (string-append "Team " team " Wins!") #f))
       (append! changes (chadd a #f))
       (for ((fac teams))

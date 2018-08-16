@@ -5,7 +5,7 @@
          "change.rkt"
          "scenarios/testing.rkt"
          "scenarios/all-ships.rkt"
-         "scenarios/racketcon.rkt"
+         "scenarios/racketcon2018.rkt"
          "scenarios/pilot-training.rkt"
          "scenarios/base-defense.rkt"
          "scenarios/asteroid-search.rkt"
@@ -31,17 +31,17 @@
            '()
            `(
              ,(ann-button (next-id) 0 #t (posvel 'center 150 -75 0 200 50 0)
-                          #f #f "Testing" "testing")
+                          #f #t "Testing" "testing")
              ,(ann-button (next-id) 0 #t (posvel 'center 150 0 0 200 50 0)
-                          #f #f "All Ships" "all-ships")
+                          #f #t "All Ships" "all-ships")
              ,(ann-button (next-id) 0 #t (posvel 'center 150 75 0 200 50 0)
-                          #f #f "RacketCon" "racketcon")
+                          #f #t "RacketCon 2018" "racketcon2018")
              ,(ann-button (next-id) 0 #t (posvel 'center -150 -75 0 200 50 0)
-                          #f #f "Pilot Training" "pilot-training")
+                          #f #t "Pilot Training" "pilot-training")
              ,(ann-button (next-id) 0 #t (posvel 'center -150 0 0 200 50 0)
-                          #f #f "Base Defense" "base-defense")
+                          #f #t "Base Defense" "base-defense")
              ,(ann-button (next-id) 0 #t (posvel 'center -150 75 0 200 50 0)
-                          #f #f "Asteroid Search" "asteroid-search")
+                          #f #t "Asteroid Search" "asteroid-search")
              )))
   (define (on-tick space qt change-scenario!)
     (define changes '())
@@ -56,7 +56,7 @@
       (case (ann-button-msg o)
         (("testing") (change-scenario! testing-scenario))
         (("all-ships") (change-scenario! all-ships-scenario))
-        (("racketcon") (change-scenario! racketcon-scenario))
+        (("racketcon2018") (change-scenario! racketcon2018-scenario))
         (("pilot-training") (change-scenario! pilot-training-scenario))
         (("base-defense") (change-scenario! base-defense-scenario))
         (("asteroid-search") (change-scenario! asteroid-search-scenario))
