@@ -121,7 +121,7 @@
     (define changes '())
     (when (and old? score-txtid)
       (append! changes (chrm score-txtid)))
-    (define s (ann-text (next-id) 0 #t (posvel 'topleft 10 56 0 0 0 0) #f #t
+    (define s (ann-text (next-id) 0 #t (posvel 'topleft 10 100 0 0 0 0) #f #t
                         (string-append "Team " team1 ": " (number->string team1-score) "\n"
                                        "Team " team2 ": " (number->string team2-score))
                         #f))

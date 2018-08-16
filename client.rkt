@@ -801,7 +801,7 @@
               (set! num (+ num 1))
               (define z (linear-fade (obj-age ownspace m) (/ MSG_FADE_TIME 2) MSG_FADE_TIME))
               (prepend! sprites (text-sprite textr textsr (message-msg m)
-                                             (+ (left) 10.0) (+ (top) 100.0 (* num 20))
+                                             (+ (left) 10.0) (+ (top) 160.0 (* num 20))
                                              LAYER_UI_TEXT z)))
             (loop (cdr l)))))
 
