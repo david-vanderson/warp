@@ -29,7 +29,7 @@
 
 
 (define (start-client ip port
-                      #:name [name "Racketeer"]
+                      #:name [name "Player"]
                       #:new-eventspace? (new-eventspace? #f)
                       #:gui? (gui? #t)
                       #:spacebox (sspace #f))

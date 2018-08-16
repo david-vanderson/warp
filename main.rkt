@@ -11,7 +11,7 @@
 (define run-server? #f)
 (define g #f)
 (define combined? #f)
-(define name "Name")
+(define name "Player")
 
 (command-line
   #:program "warp"
