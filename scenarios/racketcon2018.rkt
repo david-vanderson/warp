@@ -138,6 +138,10 @@
     
     ; add standard stuff
     (append! changes (chadd (standard-quit-scenario-button #t #f) #f))
+    (append! changes (chadd (ann-button (next-id) 0 #t
+                                        (posvel 'topleft 186 76 0 100 40 0)
+                                        #t #f
+                                        "Restart" "restart") #f))
     (append! changes (redo-team-buttons #f))
 
     ; add team1 base
@@ -246,6 +250,10 @@
       (cond
         ((equal? "quit-scenario" (ann-button-msg o))
          (change-scenario!))
+        ((equal? "restart" (ann-button-msg o))
+         (change-scenario! (lambda (oldspace . xs)
+                             (values (start-space oldspace)
+                                     on-tick on-message on-player-restart))))
         ((member (ann-button-msg o) teams)
          (append! changes (chfaction (anncmd-pid cmd) (ann-button-msg o)))
          
