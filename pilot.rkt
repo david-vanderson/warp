@@ -374,46 +374,6 @@
                         0))
      (values #f (list (chmov (ob-id ship) #f pv))))))
 
-#;(define (change-pilot-tool! cmd space stack who)
-  (define tool (car stack))
-  (cond
-    ((dock? tool)
-     (cond
-       ((boolean? cmd)
-        (set-dock-on! tool cmd)
-        (values #t '()))
-       ((equal? cmd "launch")
-        ; launch this ship off of it's parent
-        )))
-    ((steer? tool)
-     (set-steer-course! tool cmd)
-     (values #t '()))
-    ((fthrust? tool)
-     (set-fthrust-on! tool cmd)
-     (values #t '()))
-    ((shbolt? tool)
-     (define a cmd)  ; cmd is angle to fire
-     (define ship (get-ship stack))
-     (define pod (get-pod stack))
-     (cond
-       ((not (ship-flying? ship))
-        (printf "~a discarding message (not flying) ~v\n" who cmd)
-        (values #f '()))
-       ((not ((pod-energy pod) . > . (shbolt-shield-size tool)))
-        (printf "~a discarding message (not enough energy) ~v\n" who cmd)
-        (values #f '()))
-       (else
-        (define po (pod-obj pod ship))
-        
-        (define sh (shield (next-id) (space-time space)
-                           (posvel (space-time space) (obj-x po) (obj-y po) (obj-r po)
-                                   (+ (* SHIELD_SPEED (cos a)) (posvel-dx (obj-posvel po)))
-                                   (+ (* SHIELD_SPEED (sin a)) (posvel-dy (obj-posvel po)))
-                                   0)
-                           (shbolt-shield-size tool)))
-        
-        (values #f (list (chadd sh #f) (cherg (ob-id pod) (- (shbolt-shield-size tool))))))))))
-
 
 ;; client
 

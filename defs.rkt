@@ -5,10 +5,11 @@
 
 (provide (all-defined-out))
 
-(define VERSION 1)  ; client will bomb if version doesn't match server
+(define VERSION 2)  ; client will bomb if version doesn't match server
 
 (define-runtime-path IMAGEDIR "images")
 
+(define CLIENT_SPECIAL? #f)  ; when #t client will show annotations with #f for faction
 (define CLIENT_OUTPUT_TIME #f)
 (define COMPRESS #t)
 (define PORT 22381)
@@ -27,9 +28,7 @@
 
 (define 2pi (* 2 pi))
 (define pi/2 (* 0.5 pi))
-(define AI_GOTO_DIST 50.0)  ; if you are this close you've hit it
-(define bgcolor "black")
-(define fgcolor "white")
+
 (define nocolor "hotpink")  ; used with a transparent pen/brush
 
 (define LAYER_FOW_BLACK 0)  ; paint black everywhere you can see
@@ -356,6 +355,8 @@
 ; id is of the object to move
 ; to is id of where to put the object, #f means top level
 ; pv is the new posvel to use for this object
+; - 'jump means player is jumping out of their ship
+; - 'restart means player is restarting from spacesuit
 
 (struct chdam (id damage fx) #:mutable #:prefab)
 ; id is of the object that is being damaged

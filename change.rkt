@@ -233,7 +233,10 @@
             ((and (space? (cadr s)) (not (player? (car s))))
              (set-obj-alive?! (car s) #f))
             (else
-             (rem! (car s) (cadr s) who))))
+             (rem! (car s) (cadr s) who)
+             (when (and (server?) (player? (car s)) (spacesuit? (cadr s)))
+               ; leaving a space suit, remove the suit
+               (append! changes (chrm (ob-id (cadr s))))))))
         (when p
           (rem! p space who)
           (append! changes (player-cleanup! space p)))
@@ -268,15 +271,18 @@
               (when (and (server?) (player? (car s)) (spacesuit? (cadr s)))
                 ; leaving a space suit, remove the suit
                 (append! changes (chrm (ob-id (cadr s))))
-                ; notify caller, they will accumulate pids and call scenario-on-player-restart
-                (when on-player-restart
-                  (on-player-restart (ob-id (car s))))
+                (when (equal? 'restart (chmov-pv c))
+                  ; notify caller, they will accumulate pids and call scenario-on-player-restart
+                  (when on-player-restart
+                    (on-player-restart (ob-id (car s)))))
                 )))
 
            ; add (car s) to where it should go
            (cond
              ((and (player? (car s)) (space? to))
-              (when (and (server?) (not (spacesuit? (get-ship s))))
+              (when (and (server?)
+                         (get-ship s)
+                         (equal? 'jump (chmov-pv c)))
                 ; jumping into spacesuit
                 (define ship (get-topship s))
                 (define ss (make-spacesuit (player-name p) ship))
@@ -300,7 +306,9 @@
                   (append! changes (command (ob-id ship) #f 'warp 'stop))))))
            (values #t changes))
           (p
-           (add! p to who addf)
+           (when (not (space? to))
+             ; player is already in space-players, so don't add again
+             (add! p to who addf))
            ; player could have had commands from a previous ship/scenario
            (define changes (player-cleanup! space p))
            (values #t changes))

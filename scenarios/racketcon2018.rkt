@@ -77,7 +77,8 @@
   (define (new-fighter p x y)
     (define faction (player-faction p))
     (define type (string-append (get-team-color faction) "-fighter"))
-    (define s (make-ship type (player-name p) faction
+    (define name (string-append (player-name p) " fighter"))
+    (define s (make-ship type name faction
                          #:x x #:y y))
     (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
                               ;con maxcon mass drag radar start?
@@ -111,14 +112,9 @@
                           (string-append "Team " team2 "\n" (number->string team2-num))
                           team2))
     (set! team2-button-id (ob-id b2))
-    (define b3 (ann-button (next-id) 0 #t (posvel 'center 0 200 0 200 100 0)
-                           #f "undecided"
-                           "Observer"
-                           "observer"))
     (append! changes
              (chadd b1 #f)
-             (chadd b2 #f)
-             (chadd b3 #f))
+             (chadd b2 #f))
     changes)
 
   (define score-txtid #f)
@@ -142,11 +138,24 @@
     (define changes '())
     
     ; add standard stuff
-    (append! changes (chadd (standard-quit-scenario-button #t #f) #f))
     (append! changes (chadd (ann-button (next-id) 0 #t
-                                        (posvel 'topleft 186 76 0 100 40 0)
+                                        (posvel 'topleft 196 76 0 80 40 0)
+                                        #t #f
+                                        "Quit" "quit-scenario") #f))
+    (append! changes (chadd (ann-button (next-id) 0 #t
+                                        (posvel 'topleft 294 76 0 100 40 0)
                                         #t #f
                                         "Restart" "restart") #f))
+    (define obs (ann-button (next-id) 0 #t (posvel 'center 0 200 0 200 100 0)
+                            #f "undecided"
+                            "Observer"
+                            "observer"))
+    (append! changes (chadd obs #f))
+    (define unobs (ann-button (next-id) 0 #t (posvel 'topleft 78 76 0 140 40 0)
+                              #t #t
+                              "Switch Team"
+                              "undecided"))
+    (append! changes (chadd unobs #f))
     (append! changes (redo-team-buttons #f))
 
     ; add team1 base
@@ -266,8 +275,11 @@
          (set-player-faction! p (ann-button-msg o))
          (define-values (x y) (start-xy space (player-faction p)))
          (append! changes (place-player p x y)))
-        ((equal? "observer" (ann-button-msg o))
-         (append! changes (chfaction (anncmd-pid cmd) (ann-button-msg o))))))
+        ((member (ann-button-msg o) '("observer" "undecided"))
+         (append! changes (chfaction (anncmd-pid cmd) (ann-button-msg o)))
+         (when (equal? (ann-button-msg o) "undecided")
+           ; player is leaving their team, if they are on a ship, remove them
+           (append! changes (chmov (anncmd-pid cmd) #f #f))))))
     changes)
   
   (values (start-space oldspace) on-tick on-message on-player-restart))

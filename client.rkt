@@ -524,7 +524,7 @@
             #:when (and (ann? a)
                         (or showtab (not (ann-tab? a)))
                         (or (equal? (ann-faction a) #t)
-                            ;(not (ann-faction a))
+                            (and CLIENT_SPECIAL? (not (ann-faction a)))
                             (equal? (ann-faction a) fac))))
         (define-values (x y)
           (case (posvel-t (obj-posvel a))
@@ -574,7 +574,7 @@
                                       -200 (+ (top) 100) LAYER_UI_TEXT))
         (for (((fact names) (in-hash h))
               (i (in-naturals)))
-          (prepend! sprites (text-sprite textr textsr fact
+          (prepend! sprites (text-sprite textr textsr (string-append "Team " fact)
                                          (+ -200 (* 150 i)) (+ (top) 100 30) LAYER_UI_TEXT))
           (for ((name names)
                 (k (in-naturals 1)))
@@ -712,7 +712,7 @@
                            0.0 (- (bottom) 124) 100 40 "Restart"
                            (lambda (x y)
                              (set! center-follow? #t)  ; sector/ship centered
-                             (send-commands (chmov meid #f #f)))))
+                             (send-commands (chmov meid #f 'restart)))))
          (prepend! buttons b))
         ((and (player-rcid (car my-stack))
               (find-id ownspace ownspace (player-rcid (car my-stack))))
@@ -723,7 +723,7 @@
          (define b (button 'normal 'jump #f
                            (+ (left) 58) (+ (top) 28) 100 40 "Jump"
                            (lambda (x y)
-                             (send-commands (chmov meid #f #f)))))
+                             (send-commands (chmov meid #f 'jump)))))
          (prepend! buttons b))
         (else
          ; leaving this ship into mothership
