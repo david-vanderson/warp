@@ -26,9 +26,7 @@
 ; also they could be threads in the same process
 (define (load-ships!)
   (semaphore-wait ship-list-sema)
-  (printf "load-ships!\n")
   (when (not ship-list)
-    (printf "load-ships! actual\n")
     (set! ship-list
           (for/hash ((name '("spacesuit" 
                              "probe"
