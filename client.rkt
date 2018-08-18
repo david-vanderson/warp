@@ -1152,7 +1152,8 @@
     )
    
   (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))
-  (load-ships! sd)
+  (load-ships!)
+  (add-ship-sprites! sd)
   (plasma-setup-pre! sd)
   (explosion-setup-pre! sd)
   

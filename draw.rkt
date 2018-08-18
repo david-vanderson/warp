@@ -158,7 +158,7 @@
            ((ship? o)
             (define spr '())
             (define si (hash-ref ship-list (ship-type o)))
-            (define sym (ship-info-bm si))
+            (define sym (car (ship-info-bm si)))
             (define eng (ship-tool o 'engine))
             (cond
               ((warping? o)
@@ -183,7 +183,7 @@
             (prepend! spr (obj-sprite o csd center scale LAYER_SHIPS
                                       sym
                                       (/ (ship-sprite-size o)
-                                         (sprite-size csd (ship-info-bm si)))
+                                         (sprite-size csd (car (ship-info-bm si))))
                                       fowa (obj-r o) (make-color (get-red space o) 0 0 1.0)))
 
             (define w (ship-w o scale))

@@ -11,46 +11,10 @@
 (provide (all-defined-out))
 
 (struct ship-info (filename size bm engine-bms) #:mutable #:prefab)
+; each bm is actually (cons sym bm)
 
-(define ship-list
-  (for/hash ((name '("spacesuit" 
-                     "probe"
-                     "missile"
-                     "cannonball"
-                     "asteroid_87"
-                     "asteroid_43"
-                     "blue-station"
-                     "red-station"
-                     "blue-frigate"
-                     "red-frigate"
-                     "blue-fighter"
-                     "red-fighter"
-                     "red-destroyer"
-                     "blue-cruiser"
-                     "red-cruiser"
-        
-                     ;"missile1" (ship-info "missile1" 16.0 #f)
-                     ;"missile2" (ship-info "missile2" #f #f)
-                     ;"missile3" (ship-info "missile3" #f #f)
-                     ;"probe1" (ship-info "probe1" #f #f)
-                     ;"probe2a" (ship-info "probe2a" #f #f)
-                     ;"probe2b" (ship-info "probe2b" #f #f)
-                     ;"probe3" (ship-info "probe3" #f #f)
-                     )))
-    (define size #f)
-    (define filename name)
-    (cond
-      ((equal? name "blue-fighter")
-       (set! size 20.0))
-      ((equal? name "red-fighter")
-       (set! size 24.0))
-      ((equal? name "missile")
-       (set! size 10.0))
-      ((equal? name "cannonball")
-       (set! filename "asteroid_43")
-       (set! size 10.0)))
-    (values name (ship-info filename size #f '()))))
-
+(define ship-list #f)
+(define ship-list-sema (make-semaphore 1))
 
 (define (engine-filename base i k (ext ".png"))
   (string-append base "-e" (number->string i) (number->string k) ext))
@@ -58,35 +22,86 @@
 (define (engine-path base i k (ext ".png"))
   (build-path IMAGEDIR (engine-filename base i k ext)))
 
-
-(define (load-ships! sd)
-  (for (((name si) (in-hash ship-list)))
-    (define sym (string->symbol name))
-    (define basename (ship-info-filename si))
-    (define bm (read-bitmap (build-path IMAGEDIR (string-append basename ".png")) 'png/alpha))
-    (add-sprite!/value sd sym bm)
-    (set-ship-info-bm! si sym)
-    (when (not (ship-info-size si))
-      (set-ship-info-size! si (max (send bm get-width) (send bm get-height))))
+; both client and server call this, but we only want it to happen once
+; also they could be threads in the same process
+(define (load-ships!)
+  (semaphore-wait ship-list-sema)
+  (printf "load-ships!\n")
+  (when (not ship-list)
+    (printf "load-ships! actual\n")
+    (set! ship-list
+          (for/hash ((name '("spacesuit" 
+                             "probe"
+                             "missile"
+                             "cannonball"
+                             "asteroid_87"
+                             "asteroid_43"
+                             "blue-station"
+                             "red-station"
+                             "blue-frigate"
+                             "red-frigate"
+                             "blue-fighter"
+                             "red-fighter"
+                             "red-destroyer"
+                             "blue-cruiser"
+                             "red-cruiser"
+                             
+                             ;"missile1" (ship-info "missile1" 16.0 #f)
+                             ;"missile2" (ship-info "missile2" #f #f)
+                             ;"missile3" (ship-info "missile3" #f #f)
+                             ;"probe1" (ship-info "probe1" #f #f)
+                             ;"probe2a" (ship-info "probe2a" #f #f)
+                             ;"probe2b" (ship-info "probe2b" #f #f)
+                             ;"probe3" (ship-info "probe3" #f #f)
+                             )))
+            (define size #f)
+            (define filename name)
+            (cond
+              ((equal? name "blue-fighter")
+               (set! size 20.0))
+              ((equal? name "red-fighter")
+               (set! size 24.0))
+              ((equal? name "missile")
+               (set! size 10.0))
+              ((equal? name "cannonball")
+               (set! filename "asteroid_43")
+               (set! size 10.0)))
+            (values name (ship-info filename size #f '()))))
     
-    (for ((i (in-naturals 1)))
-      #:break (not (file-exists? (engine-path basename i 1)))
-      ; i goes over different sized engine animations
-      (set-ship-info-engine-bms! si (append (ship-info-engine-bms si) (list (list))))
-      (for ((k (in-naturals 1)))
-        ; k goes over the frames of a single animation
-        (define filename (engine-path basename i k))
-        #:break (not (file-exists? filename))
-        (define bm (read-bitmap filename 'png/alpha))
-        (define sym (string->symbol (engine-filename name i k "")))
-        (add-sprite!/value sd sym bm)
-        (set-ship-info-engine-bms! si
-                                   (for/list ((bms (ship-info-engine-bms si))
-                                              (z (in-naturals 1)))
-                                     (if (equal? i z)
-                                         (append bms (list sym))
-                                         bms)))))))
+    (for (((name si) (in-hash ship-list)))
+      (define sym (string->symbol name))
+      (define basename (ship-info-filename si))
+      (define bm (read-bitmap (build-path IMAGEDIR (string-append basename ".png")) 'png/alpha))      
+      (set-ship-info-bm! si (cons sym bm))
+      (when (not (ship-info-size si))
+        (set-ship-info-size! si (max (send bm get-width) (send bm get-height))))
+      
+      (for ((i (in-naturals 1)))
+        #:break (not (file-exists? (engine-path basename i 1)))
+        ; i goes over different sized engine animations
+        (set-ship-info-engine-bms! si (append (ship-info-engine-bms si) (list (list))))
+        (for ((k (in-naturals 1)))
+          ; k goes over the frames of a single animation
+          (define filename (engine-path basename i k))
+          #:break (not (file-exists? filename))
+          (define bm (read-bitmap filename 'png/alpha))
+          (define sym (string->symbol (engine-filename name i k "")))
+          (set-ship-info-engine-bms! si
+                                     (for/list ((bms (ship-info-engine-bms si))
+                                                (z (in-naturals 1)))
+                                       (if (equal? i z)
+                                           (append bms (list (cons sym bm)))
+                                           bms)))))))
+  (semaphore-post ship-list-sema))
 
+(define (add-ship-sprites! sd)
+  (for (((name si) (in-hash ship-list)))
+    (define c (ship-info-bm si))
+    (add-sprite!/value sd (car c) (cdr c))
+    (for* ((i (in-list (ship-info-engine-bms si)))
+           (k (in-list i)))
+      (add-sprite!/value sd (car k) (cdr k)))))
+  
 
 (define (make-spacesuit name ship)
   (define ang (random-between -1.0 1.0))

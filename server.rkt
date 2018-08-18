@@ -8,6 +8,7 @@
          "change.rkt"
          "physics.rkt"
          "quadtree.rkt"
+         "ships.rkt"
          "pilot.rkt"
          "warp.rkt"
          "plasma.rkt"
@@ -17,7 +18,6 @@
          "cannon.rkt"
          "shield.rkt"
          "scenario.rkt"
-         "scenarios/testing.rkt"
          "upgrade.rkt")
 
 (provide start-server)
@@ -764,6 +764,7 @@
 
 
 (define (start-server (port PORT) #:scenario (scenario sc-pick) #:spacebox (spbox #f))
+  (load-ships!)
   (change-scenario! scenario)
   (set! spacebox spbox)
   (set! server-listener (tcp-listen port 100 #t))
