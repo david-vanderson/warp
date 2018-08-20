@@ -11,7 +11,7 @@
 (thread (lambda ()
           (start-server)))
 
-(start-client "127.0.0.1" PORT)
+(start-client PORT)
 
 (yield 'wait)
 

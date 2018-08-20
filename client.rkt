@@ -28,8 +28,9 @@
 (provide start-client)
 
 
-(define (start-client ip port
-                      #:name [name "Player"]
+(define (start-client port
+                      #:ip [ip #f]
+                      #:name [name #f]
                       #:new-eventspace? (new-eventspace? #f)
                       #:gui? (gui? #t)
                       #:spacebox (sspace #f))
@@ -48,6 +49,18 @@
 
 (define (start-client* ip port name gui? sspace)
   (server? #f)
+
+  (when (not ip)
+    (define prefip (get-preference 'warp:ip))
+    (if prefip
+        (set! ip prefip)
+        (set! ip "127.0.0.1")))
+
+  (when (not name)
+    (define prefname (get-preference 'warp:name))
+    (if prefname
+        (set! name prefname)
+        (set! name "Player")))
 
   (define key-for #f)
   ; #f for not entering anything
@@ -308,6 +321,9 @@
                              0.0 150.0 200.0 50.0
                              (if connecting? "Connecting..." "Connect")
                              (lambda (x y)
+                               (put-preferences
+                                (list 'warp:ip 'warp:name)
+                                (list ip name))
                                (connect/async!))))
       (prepend! buttons startb)
 
@@ -1531,7 +1547,7 @@
   ;(require profile)
   ;(profile #:threads #t #:delay 0.0
     ;(begin
-    (start-client "127.0.0.1" PORT)
+    (start-client PORT)
     ;))
   ;(exit 0)
   )

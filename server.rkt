@@ -451,9 +451,10 @@
 (define (remove-client cid)
   (define c (findf (lambda (o) (= cid (client-id o))) clients))
   (when c
-    (printf "server (~a) removing client ~a\n" (length clients) (client-id c))
+    (define name (player-name (client-player c)))
+    (printf "server (~a) removing client ~a ~a\n" (length clients) (client-id c) name)
     (define m (message (next-id) (space-time ownspace) #t #f
-                       (format "Player Left: ~a" (player-name (client-player c)))))
+                       (format "Player Left: ~a" name)))
     (append! updates
              (apply-all-changes! ownspace
                                  (list (chrm (client-id c)) m)
@@ -568,6 +569,7 @@
               (remove-client cid))
              (else
               (set-player-name! (client-player c) name)
+              (printf "server client ~a named ~a\n" cid name)
               (set-client-status! c CLIENT_STATUS_WAITING_FOR_SPACE)
               (append! updates
                        (apply-all-changes! ownspace (list (chadd (client-player c) #f)) "server"))

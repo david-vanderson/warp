@@ -7,16 +7,19 @@
 
 (define show-help #f)
 (define port PORT)
-(define address "127.0.0.1")
+(define address #f)
 (define run-server? #f)
 (define g #f)
 (define combined? #f)
-(define name "Player")
+(define name "player")
 
 (command-line
   #:program "warp"
   #:usage-help "Runs the warp game client (or server with -s)"
   #:once-each
+  [("-c" "--combined")
+                    "Run combined server and client for testing"
+                    (set! combined? #t)]
   [("-a" "--address") a
                    "Specify ip address to use for tcp"
                    (set! address a)]
@@ -26,11 +29,8 @@
   [("-g" "--nogui") ng
                     "Run # of headless clients for testing"
                     (set! g (string->number ng))]
-  [("-c" "--combined")
-                    "Run combined server and client for testing"
-                    (set! combined? #t)]
   [("-n" "--name") n
-                   "Set client default name"
+                   "Set client base name for -g"
                    (set! name n)]
   [("-s" "--server") "Run server"
                      (set! run-server? #t)])
@@ -38,16 +38,17 @@
 (cond
   [combined?
    (thread (lambda () (start-server)))
-   (start-client address port)]
+   (start-client port #:ip address)]
   [run-server?
    (start-server port)]
   [g
    (for ((i g))
-     (start-client address port
+     (start-client port
+                   #:ip address
                    #:name (string-append name "-" (number->string i))
                    #:gui? #f
                    #:new-eventspace? #t))
    (sync never-evt)]
   [else
-   (start-client address port #:name name)])
+   (start-client port #:ip address)])
 
