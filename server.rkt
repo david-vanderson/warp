@@ -394,7 +394,7 @@
   changes)
 
 
-; return a list of commands
+; return a list of already applied updates
 (define (run-ai! space qt)
   (define updates '())
   

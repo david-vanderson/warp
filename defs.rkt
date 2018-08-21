@@ -147,6 +147,9 @@
 (define (tool-regen hp-per-sec)
   (tool (next-id) 'regen hp-per-sec #f #f #t '()))
 
+(define (tool-factory points ships)
+  (tool (next-id) 'factory (list points ships) #f #t #t '()))
+
 
 (define MOUSE_TOOLS '(pbolt))
 
@@ -167,9 +170,11 @@
 
 (struct overlay (sym fow?) #:mutable #:prefab)
 
-(struct ship obj (invincible? sprite-size radius stats tools
+(struct ship obj (price invincible? sprite-size radius stats tools
                   playerids hangar overlays cargo dmgfx
                   ai ai-time ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
+; price is how much material it takes to construct this ship, or how much you get for scrapping
+; - #f means you can't scrap it
 ; invincible? is #t if this ship can't take damage (asteroids, spawning ships)
 ; - #f for asteroids, missiles, cannonballs, etc.
 ; sprite-size is how many meters wide the sprite should show as

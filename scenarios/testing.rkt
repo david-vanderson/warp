@@ -14,7 +14,7 @@
 
 (define (testing-scenario oldspace oldtick oldmessage old-on-player-restart)
   (define players (if oldspace (space-players oldspace) '()))
-  (for ((p players)) (set-player-faction! p "Rebel"))
+  (for ((p players)) (set-player-faction! p #f))
 
   (define ownspace (space (next-id) 0 10000 10000 players '()
                           `(,(standard-quit-scenario-button))))
@@ -25,8 +25,8 @@
                                          (x (in-range -1000 1000 100)))
                                 (make-ship name name "Rebel" #:x x #:start-ship? #t))))
 
-  (define (new-blue-fighter (x 0) (y 0) (r pi/2))
-    (define s (make-ship "blue-fighter" "a" "a" #:ai #f #:x x #:y y #:r r))
+  (define (new-blue-fighter (x 0) (y 0) (r pi/2) #:price [price #f])
+    (define s (make-ship "blue-fighter" "a" "a" #:ai #f #:x x #:y y #:r r #:price price))
     (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
                               ;con maxcon mass radar drag start-ship?
                               1000.0 1000.0 20.0 300.0 0.4 #t))
@@ -53,6 +53,10 @@
   (define a (make-ship "asteroid_87" "a" "Empire" #:x 95 #:y 95 #:dx -0.001))
 
   (define b1 (make-ship "blue-station" "b1" "Rebel" #:x 0 #:y 0 #:ai #f #:hangar '()))
+  (set-ship-tools!
+   b1 (list (tool-factory 100 (list (new-blue-fighter #:price 1)
+                                    (new-blue-fighter #:price 5)
+                                    (new-blue-fighter #:price 75)))))
   (define b2 (make-ship "blue-station" "b2" "a" #:x 125 #:y 100 #:ai #f #:hangar '()))
 
   (for ((f bf))
@@ -61,8 +65,7 @@
   
   (set-space-objects! ownspace
                       (append 
-                       (list (new-blue-fighter 100 100)
-                             a)
+                       (list b1)
                        (space-objects ownspace)))
   
   (define real-orders (space 0 0 0 0 '() '() '()))  ; only care about orders
@@ -74,7 +77,8 @@
     (for ((p (space-players ownspace)))
       (when (not (player-faction p))
         ; new player
-        (append! changes (chfaction (ob-id p) "Rebel"))))
+        (append! changes (chfaction (ob-id p) "Rebel"))
+        (append! changes (chmov (ob-id p) (ob-id b1) #f))))
 
     (for ((fo (space-orders real-orders)))
       (check ownspace (car fo) (cadr fo)))

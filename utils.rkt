@@ -134,10 +134,14 @@
 (define (findfid id list)
   (findf (lambda (o) (equal? id (ob-id o))) list))
 
-(define (copy s)
+(define (copy s [new-ids? #f])
   (cond
     ((struct? s)
-     (apply make-prefab-struct (prefab-struct-key s) (map copy (struct->list s))))
+     (define ns
+       (apply make-prefab-struct (prefab-struct-key s) (map copy (struct->list s))))
+     (when (and new-ids? (ob? ns))
+       (set-ob-id! ns (next-id)))
+     ns)
     ((cons? s)
      (cons (copy (car s)) (copy (cdr s))))
     ((list? s)

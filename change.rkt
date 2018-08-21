@@ -122,6 +122,42 @@
         (values #f '()))
        (else
         (case (tool-name tool)
+          ((factory)
+           (define pts (car (tool-val tool)))
+           (define t (for/first ((s (in-list (cadr (tool-val tool))))
+                                 #:when (equal? (ob-id s) (command-arg c)))
+                       s))
+           (define scrap (for/first ((s (in-list (ship-hangar ship)))
+                                     #:when (equal? (ob-id s) (command-arg c)))
+                           s))
+           (cond
+             ((and (not t) (not scrap))
+              (printf "~a dropping command (couldn't find template or scrap) ~v\n" who c)
+              (values #f '()))
+             (scrap
+              (cond
+                ((null? (ship-playerids scrap))
+                 (set-tool-val! tool (list (+ pts (ship-price scrap)) (cadr (tool-val tool))))
+                 (define changes '())
+                 (when (server?)
+                   (append! changes (chrm (ob-id scrap))))
+                 (values #t changes))
+                (else
+                 (printf "~a dropping command (players on scrap) ~v\n" who c)
+                 (values #f '()))))
+             (t
+              (cond
+                (((ship-price t) . <= . pts)
+                 (set-tool-val! tool (list (- pts (ship-price t)) (cadr (tool-val tool))))
+                 (define changes '())
+                 (when (server?)
+                   (define news (copy t #t))  ; set all new ob-ids
+                   (set-obj-posvel! news #f)  ; make sure new ship has no posvel
+                   (append! changes (chadd news (ob-id ship))))
+                 (values #t changes))
+                (else
+                 (printf "~a dropping command (not enough factory pts) ~v\n" who c)
+                 (values #f '()))))))
           ((pbolt)
            (change-pbolt! c space s (command-arg c) who))
           ((dock)

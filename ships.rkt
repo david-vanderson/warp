@@ -121,6 +121,7 @@
                    #:size (size (ship-info-size (hash-ref ship-list type)))
                    #:hit-radius (hit-radius #f)
                    #:drag (drag 0.0)
+                   #:price (price #f)
                    #:invincible? (invincible? #f)
                    #:start-ship? (start-ship? #f)
                    #:ai (ai #f)
@@ -141,6 +142,7 @@
                             (exact->inexact dy)
                             (exact->inexact dr))
                     #f)
+                price
                 invincible?
                 size
                 (if hit-radius

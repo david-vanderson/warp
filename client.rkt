@@ -85,7 +85,8 @@
   (define buttons #f)
   (define sprites #f)
   (define active-mouse-tool (box #f))
-  (define in-hangar? (box #f))
+  (define in-hangar? #f)
+  (define hangshipid #f)  ; id of a ship in the hangar we are maybe boarding or scrapping
   (define last-pbolt-time 0)  ; space-time of last pbolt fire
 
   (define pressed '())
@@ -432,32 +433,103 @@
         (define rcship (if (player-rcid p) (find-id ownspace ownspace (player-rcid p)) #f))
         (define ship (get-ship my-stack))
         (define topship (get-topship my-stack))
-        (when (and (unbox in-hangar?) (not (ship-hangar ship)))
+        (when (and in-hangar? (not (ship-hangar ship)))
           ; just to make sure, maybe our ship had a hangar and it went away?
-          (set-box! in-hangar? #f))
+          (set! in-hangar? #f)
+          (set! hangshipid #f))
         (cond
-          ((unbox in-hangar?)
+          (in-hangar?
+           (define factory (ship-tool ship 'factory))
+           (define hshipsw (map (lambda (s) (ship-w s 1.0))
+                                (ship-hangar ship)))
+           (define fships (if factory
+                              (cadr (tool-val factory))
+                              (list)))
+           (define fshipsw (map (lambda (s) (ship-w s 1.0))
+                                fships))
+           (define shipmax (+ 28 (* 2.0 (apply max 1.0 (append hshipsw fshipsw)))))
+
+           (define labelspace 20.0)
+           (define hw (max shipmax (* 0.5 canon-width)))
+           (define fh (+ shipmax labelspace))
+           (define hh (max (+ shipmax labelspace) (* 0.5 canon-height)))
+           (define hy (/ fh 2.0))
+           (define fy (- hy (/ hh 2.0) (/ fh 2.0) 10.0))
+           
+           (when factory
+             (define fw (max hw (* shipmax (length fships))))
+             (prepend! sprites (rect-filled csd 0.0 fy fw fh
+                                            LAYER_HANGAR_BACKGROUND
+                                            #:r 0 #:g 0 #:b 0
+                                            #:a 0.75))
+             (prepend! sprites (rect-outline csd 0.0 fy fw fh 3.5
+                                             LAYER_HANGAR_BACKGROUND))
+             (prepend! sprites
+                       (text-sprite textr textsr
+                                    (string-append "Factory Materials "
+                                                   (number->string (car (tool-val factory))))
+                                    (+ (- (/ fw 2.0)) 8.0)
+                                    (+ fy (- (/ fh 2.0)) 2.0)
+                                    LAYER_UI))
+
+             (for ((s (in-list fships))
+                   (i (in-naturals)))
+               (define x (+ (* -0.5 fw) (* i shipmax) (/ shipmax 2)))
+               (define y (+ fy (/ labelspace 2.0)))
+               (define sym (string->symbol (ship-type s)))
+               (prepend! sprites (sprite x y (sprite-idx csd sym)
+                                         #:layer LAYER_HANGAR #:theta (- pi/2)
+                                         #:m (/ (exact->inexact (ship-sprite-size s))
+                                                (sprite-size csd sym))))
+               (define afford? ((ship-price s) . <= . (car (tool-val factory))))
+               (prepend! sprites (textr (number->string (ship-price s))
+                                        x (+ y (/ shipmax 2) -16.0)
+                                        #:layer LAYER_HANGAR
+                                        #:r 255
+                                        #:g (if afford? 255 0)
+                                        #:b (if afford? 255 0)))
+               (define b (button 'outline (ob-id s) #f
+                                 x y (- shipmax 8.0) (- shipmax 8.0) ""
+                                 (lambda (x y)
+                                   (when afford?
+                                     (send-commands (command meid
+                                                             (player-cmdlevel p)
+                                                             'factory
+                                                             (ob-id s)))))))
+               (prepend! buttons b))
+             )
+           
            ; hangar background
-           (define size (* 0.8 (min canon-width canon-height)))           
-           (prepend! sprites (rect-filled csd 0.0 0.0 size size
+           (prepend! sprites (rect-filled csd 0.0 hy hw hh
                                           LAYER_HANGAR_BACKGROUND
                                           #:r 0 #:g 0 #:b 0
                                           #:a 0.75))
-           (prepend! sprites (rect-outline csd 0.0 0.0 size size 3.5
+           (prepend! sprites (rect-outline csd 0.0 hy hw hh 3.5
                                            LAYER_HANGAR_BACKGROUND))
+           (prepend! sprites
+                     (text-sprite textr textsr "Hangar"
+                                  (+ (- (/ hw 2.0)) 8.0)
+                                  (+ hy (- (/ hh 2.0)) 2.0)
+                                  LAYER_UI))
+
+           (define hangship (for/first ((s (in-list (ship-hangar ship)))
+                                        #:when (equal? hangshipid (ob-id s)))
+                              s))
+           (when (not hangship)
+             ; maybe the ship we were looking at left?
+             (set! hangshipid #f))
            
            ; draw all the ships in the hangar
-           (define shipmax (+ 20 (* 2.0 (apply max 1.0 (map (lambda (s) (ship-w s 1.0))
-                                                            (ship-hangar ship))))))
-           (define buf 8)
-           (define numfit (max 1 (inexact->exact (floor (/ size (+ shipmax buf))))))
+           
+           (define num-in-row (max 1 (inexact->exact (floor (/ hw shipmax)))))
            (for ((s (in-list (ship-hangar ship)))
                  (i (in-naturals)))
-             (define x (+ (* -0.5 size)
-                          (* (quotient i numfit) (+ shipmax buf))
+             (define x (+ (* -0.5 hw)
+                          (* (remainder i num-in-row) shipmax)
                           (/ shipmax 2)))
-             (define y (+ (* -0.5 size)
-                          (* (remainder i numfit) (+ shipmax buf))
+             (define y (+ hy labelspace
+                          (* -0.5 hh)
+                          (* (quotient i num-in-row) shipmax)
                           (/ shipmax 2)))
              (define sym (string->symbol (ship-type s)))
              (prepend! sprites (sprite x y (sprite-idx csd sym)
@@ -468,21 +540,77 @@
 
              (define w (ship-w s 1.0))
              (prepend! sprites (draw-hp-bar s x y w csd LAYER_HANGAR 1.0))
+
+             (when (and hangship (equal? hangshipid (ob-id s)))
+               ; focused on this ship
+               (define by (- y (/ (- shipmax 40.0) 2.0) -4.0))
+               (define w 80.0)
+               (define scrapb (button (if (null? (ship-playerids s)) 'normal 'disabled)
+                                      'scrap #f
+                                      (- x (/ shipmax 2.0) (/ w 2.0) -4.0) by
+                                      w 40.0 "Scrap"
+                                      (lambda (x y)
+                                        (send-commands (command meid
+                                                                (player-cmdlevel p)
+                                                                'factory
+                                                                (ob-id s))))))
+               (when (and factory (ship-price s))
+                 (prepend! buttons scrapb))
+               
+               (define boardb (button 'normal 'board #f
+                                      (+ x (/ shipmax 2.0) (/ w 2.0) -4.0) by
+                                      w 40.0 "Board"
+                                      (lambda (x y)
+                                        (send-commands (chmov meid (ob-id s) #f)))))
+               (prepend! buttons boardb)
+               
+               (define players (find-all ownspace s player?))
+               (for ((i (modulo (debug-num) 10)))
+                 (append! players (player -1 (~a "player" i) "fac1" -1 '() #f #f)))
+
+               (define tw 0.0)
+               (for ((p (in-list players))
+                     (i (in-naturals)))
+                 (define-values (pw ph) (textsr (player-name p)))
+                 (set! tw (max tw pw))
+                 (prepend! sprites (text-sprite textr textsr (player-name p)
+                                                (+ x (/ shipmax 2) 4.0)
+                                                (+ by 28.0 (* i 20))
+                                                LAYER_UI_TEXT)))
+
+               (when (tw . > . 0.0)
+                 (set! tw (+ tw 16.0))
+                 (define th (+ (* 20.0 (length players)) 16.0))
+                 (prepend! buttons (button 'disabled 'players #f
+                                           (+ x (/ shipmax 2) (/ tw 2.0) -4.0)
+                                           (+ by 20.0 (/ th 2.0))
+                                           tw th ""
+                                           values)))
+
+               )
+
+             (when (and factory (ship-price s))
+               (prepend! sprites (textr (number->string (ship-price s))
+                                        x (+ y (/ shipmax 2) -16.0)
+                                        #:layer LAYER_HANGAR
+                                        #:r 255 #:g 255 #:b 255)))
              
              (define b (button 'outline (ob-id s) #f
-                               x y shipmax shipmax ""
+                               x y (- shipmax 8.0) (- shipmax 8.0) ""
                                (lambda (x y)
-                                 (send-commands (chmov meid (ob-id s) #f)))))
-             (prepend! buttons b)
-             (define players (find-all ownspace s player?))
-             (for ((i (modulo (debug-num) 10)))
-               (append! players (player -1 (~a "player" i) "fac1" -1 '() #f #f)))
-             (for ((p (in-list players))
-                   (i (in-naturals)))
-               (prepend! sprites (text-sprite textr textsr (player-name p)
-                                              (+ x (/ shipmax 2) buf)
-                                              (+ y (- (/ shipmax 2)) (* i 20))
-                                              LAYER_UI)))))
+                                 (if (equal? hangshipid (ob-id s))
+                                     (set! hangshipid #f)
+                                     (set! hangshipid (ob-id s))))))
+             (append! buttons b)  ; put these behind the scrap and board buttons             
+             )
+
+           ; button to deselect any hangship if you click anywhere in the hangar
+           (define backb (button 'hidden 'hangar #f
+                                 0.0 hy hw hh ""
+                                 (lambda (x y)
+                                   (set! hangshipid #f))))
+           (append! buttons backb)
+           )                     
           ((not (ship-flying? ship))
            ; our ship is inside another
            ; draw black circle on top of topship
@@ -506,7 +634,7 @@
         (prepend! sprites (draw-ship-hp csd textr center (get-scale) my-stack))
         
         ; draw tool UI
-        (when (not (unbox in-hangar?))
+        (when (not in-hangar?)
           (define tools (filter tool-visible? (ship-tools (or rcship ship))))
           (for ((t (in-list tools)))
             (define-values (bs ss)
@@ -519,10 +647,13 @@
           (define b (button 'normal #\h #f (- (right) 206) (- (bottom) 28) 140 40
                             (~a "Hangar [h] " (length (ship-hangar ship)))
                             (lambda (x y)
-                              (set-box! in-hangar? #t))))
-          (when (unbox in-hangar?)
+                              (set! in-hangar? #t)
+                              (set! hangshipid #f))))
+          (when in-hangar?
             (set-button-label! b "Exit Hangar [h]")
-            (set-button-f! b (lambda (x y) (set-box! in-hangar? #f))))
+            (set-button-f! b (lambda (x y)
+                               (set! in-hangar? #f)
+                               (set! hangshipid #f))))
           (prepend! buttons b))
 
         ; tool overlay
@@ -719,7 +850,7 @@
         ((not my-stack)
          ; nothing to leave
          )
-        ((unbox in-hangar?)
+        (in-hangar?
          ; the hangar button turns into an exit button
          )
         ((spacesuit? (get-ship my-stack))
@@ -764,7 +895,7 @@
                                      (+ (send p get-y) top-inset)))
         (define-values (x y) (screen->canon canvas wx wy))
         (when (and (not (in-button? buttons x y))
-                   (not (unbox in-hangar?)))
+                   (not in-hangar?))
           (define mypos (get-center ownspace my-stack))
           (define-values (mx my) (obj->screen mypos center (get-scale)))
           (define a (angle-norm (atan0 (- my y) (- x mx))))
@@ -1105,6 +1236,8 @@
                        (colorize (filled-rectangle 100 100) "black"))
     (add-sprite!/value sd '1000x100
                        (colorize (filled-rectangle 1000 100) "black"))
+    (add-sprite!/value sd '100x1000
+                       (colorize (filled-rectangle 100 1000) "black"))
     (add-sprite!/value sd '1000x1000
                        (colorize (filled-rectangle 1000 1000) "black"))
     
@@ -1347,6 +1480,8 @@
            (set-posvel-y! (obj-posvel centerxy) 0)
            (set! dragstate "none")
            (set! key-for #f)
+           (set! in-hangar? #f)
+           (set! hangshipid #f)
 
            ; set scale so we see the whole sector
            (set-scale (min-scale) #:immediate? #t)
@@ -1402,7 +1537,8 @@
                 ;(when (not (null? useless-changes))
                 ;  (printf "client produced useless changes:\n  ~v\n" useless-changes))
                 (when (and (chmov? c) (equal? meid (chmov-id c)))
-                  (set-box! in-hangar? #f))
+                  (set! in-hangar? #f)
+                  (set! hangshipid #f))
                 )
               (for ((pvu (in-list (update-pvs input))))
                 (define o (find-top-id ownspace (pvupdate-id pvu)))
