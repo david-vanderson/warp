@@ -67,11 +67,67 @@
                          #:ai 'always #:hangar '() #:dr 0.1))    
     (set-ship-stats! b (stats (next-id) (ship-type b) (ship-name b) (ship-faction b)
                               ;con maxcon mass radar drag start-ship?
-                              100.0 100.0 1000.0 500.0 0.4 #t))
+                              500.0 500.0 1000.0 500.0 0.4 #t))
+
+    (define fighter
+      (let ((s (make-ship
+                (string-append (get-team-color team) "-fighter")
+                (string-append team " Fighter") team
+                #:posvel? #f #:price 5)))
+        (set-ship-stats! s
+                         (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
+                                ;con maxcon mass radar drag start?
+                                50.0 50.0 20.0 300.0 0.4 #f))
+        (set-ship-tools! s
+                         (append (tools-pilot 60.0 #f 1.6)
+                                 (list (tool-pbolt 8.0)
+                                       (tool-regen 1.0))))
+        s))
+
+    (define frigate
+      (let ((s (make-ship
+                (string-append (get-team-color team) "-frigate")
+                (string-append team " Frigate") team
+                #:posvel? #f #:hangar '() #:price 10)))
+        (set-ship-stats! s
+                         (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
+                                ;con maxcon mass radar drag start?
+                                200.0 200.0 50.0 400.0 0.4 #f))
+        (set-ship-tools! s
+                         (append (tools-pilot 35.0 #f 1.0)
+                                 (list (tool-pbolt 8.0)
+                                       (tool-probe 10.0)
+                                       (tool-warp 200.0 50.0)
+                                       (tool-missile 5.0 10.0)
+                                       (tool-regen 1.0))))
+        s))
+
+    (define cruiser
+      (let ((s (make-ship
+                (string-append (get-team-color team) "-cruiser")
+                (string-append team " Cruiser") team
+                #:posvel? #f #:hangar '() #:price 25)))
+        (set-ship-stats! s
+                         (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
+                                ;con maxcon mass radar drag start?
+                                300.0 300.0 100.0 500.0 0.4 #f))
+        (set-ship-tools! s
+                         (append (tools-pilot 20.0 #f 0.7)
+                                 (list (tool-pbolt 8.0)
+                                       (tool-probe 10.0)
+                                       (tool-missile 5.0 10.0)
+                                       (tool-cannon 21.0)
+                                       (tool-warp 200.0 80.0)
+                                       (tool-regen 1.0))))
+        s))
+                               
     (set-ship-tools! b
                      (list (tool-pbolt 10.0)
                            (tool-probe 30.0)
-                           (tool-missile 5.0 10.0)))
+                           (tool-missile 5.0 10.0)
+                           (tool-factory 20 (list fighter
+                                                  frigate
+                                                  cruiser))))
     b)
 
   (define (new-fighter p x y)
@@ -79,13 +135,13 @@
     (define type (string-append (get-team-color faction) "-fighter"))
     (define name (string-append (player-name p) " fighter"))
     (define s (make-ship type name faction
-                         #:x x #:y y))
+                         #:x x #:y y #:price 5))
     (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                              ;con maxcon mass drag radar start?
+                              ;con maxcon mass radar drag start?
                               100.0 100.0 20.0 300.0 0.4 #f))
     (set-ship-tools! s
-                     (append (tools-pilot 50.0 #f 1.5)
-                             (list (tool-pbolt 80.0)
+                     (append (tools-pilot 60.0 #f 1.6)
+                             (list (tool-pbolt 8.0)
                                    (tool-regen 1.0))))
     s)
 

@@ -54,12 +54,13 @@
   (define buttons '())
   (define spr '())
   (define vals (tool-val t))
-  (define maxw (* 2.0 (cadr vals)))
-  (define w (* 2.0 (caddr vals)))
+  (define totalwarp (cadr vals))
+  (define warp (caddr vals))
+  (define w 160.0)
   (define h 40.0)
-  (define x (+ (left) 8.0 (/ maxw 2.0)))
+  (define x (+ (left) 8.0 (/ w 2.0)))
   (define y (- (bottom) 124.0))
-  (define z (clamp 0.0 1.0 (/ w maxw)))
+  (define z (clamp 0.0 1.0 (/ warp totalwarp)))
 
   (define p (car stack))
   (define pid (ob-id p))
@@ -77,7 +78,7 @@
   ; - player presses and holds the shortcut key
   ; - player clicks the button with the mouse (overwrites holding?)
   ; this means you can get multiple holdbutton-frelease calls
-  (define b (holdbutton 'outline #\s #f x y maxw h "Charge Warp [s]"
+  (define b (holdbutton 'outline #\s #f x y w h "Charge Warp [s]"
                         (lambda (x y) (void))
                         (lambda ()
                           (send-commands (command pid cmdlevel (tool-name t) #f)))))
