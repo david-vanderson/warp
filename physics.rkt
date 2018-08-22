@@ -32,7 +32,15 @@
      (when (or st tl tr)
        (set-posvel-dr! pv 0.0))  ; ignore whatever we had before
 
+     (define cl (tool-count space tl ownship))
+     (define cr (tool-count space tr ownship))
+     
      (cond
+       ((or (cl . > . 0)
+            (cr . > . 0))
+        (define racc (- (* (geom-sum 1.0 PLAYER_RATIO cl) (if tl (tool-val tl) 0.0))
+                        (* (geom-sum 1.0 PLAYER_RATIO cr) (if tr (tool-val tr) 0.0))))
+        (set-posvel-dr! pv racc))
        ((and st (ai-ship? ownship) (tool-rc st))
         (define course (tool-rc st))
         (define r (posvel-r pv))
@@ -43,13 +51,7 @@
            (set-posvel-r! pv course)
            (set-posvel-dr! pv 0.0))
           (else
-           (set-posvel-dr! pv (if ((angle-frto r course) . > . 0.0) racc (- racc))))))
-       ((or tl tr)
-        (define cl (tool-count space tl ownship))
-        (define cr (tool-count space tr ownship))
-        (define racc (- (* (geom-sum 1.0 PLAYER_RATIO cl) (if tl (tool-val tl) 0.0))
-                        (* (geom-sum 1.0 PLAYER_RATIO cr) (if tr (tool-val tr) 0.0))))
-        (set-posvel-dr! pv racc)))
+           (set-posvel-dr! pv (if ((angle-frto r course) . > . 0.0) racc (- racc)))))))
      
      (define eng (ship-tool ownship 'engine))
      (when eng

@@ -481,6 +481,7 @@
                                          #:layer LAYER_HANGAR #:theta (- pi/2)
                                          #:m (/ (exact->inexact (ship-sprite-size s))
                                                 (sprite-size csd sym))))
+               (prepend! sprites (draw-tool-icons csd textr textsr s x y shipmax LAYER_HANGAR))
                (define afford? ((ship-price s) . <= . (car (tool-val factory))))
                (prepend! sprites (textr (number->string (ship-price s))
                                         x (+ y (/ shipmax 2) -16.0)
@@ -537,6 +538,7 @@
                                        #:m (/ (exact->inexact (ship-sprite-size s))
                                               (sprite-size csd sym))
                                        #:r (get-red ownspace s)))
+             (prepend! sprites (draw-tool-icons csd textr textsr s x y shipmax LAYER_HANGAR))
 
              (define w (ship-w s 1.0))
              (prepend! sprites (draw-hp-bar s x y w csd LAYER_HANGAR 1.0))

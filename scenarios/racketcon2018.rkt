@@ -60,7 +60,7 @@
       (else
        (error 'get-team-color "team not recognized: ~a" team))))
 
-  (define (make-base team x y)
+  (define (make-base ownspace team x y enemyid)
     (define type (string-append (get-team-color team) "-station"))
     (define b (make-ship type (string-append "Base " team) team
                          #:x x #:y y
@@ -68,6 +68,24 @@
     (set-ship-stats! b (stats (next-id) (ship-type b) (ship-name b) (ship-faction b)
                               ;con maxcon mass radar drag start-ship?
                               500.0 500.0 1000.0 500.0 0.4 #t))
+
+    (define aifighter
+      (let ((s (make-ship
+                (string-append (get-team-color team) "-fighter")
+                (string-append team " Fighter") team
+                #:posvel? #f #:price 2 #:ai 'always)))
+        (set-ship-stats! s
+                         (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
+                                ;con maxcon mass radar drag start?
+                                50.0 50.0 20.0 300.0 0.4 #f))
+        (set-ship-tools! s
+                         (append (tools-pilot 50.0 #f 1.4)
+                                 (list (tool-pbolt 8.0)
+                                       (tool-regen 1.0))))
+        (set-ship-ai-strategy! s
+                               (list (strategy (space-time ownspace)
+                                               "attack*" enemyid)))
+        s))
 
     (define fighter
       (let ((s (make-ship
@@ -92,7 +110,7 @@
         (set-ship-stats! s
                          (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
                                 ;con maxcon mass radar drag start?
-                                200.0 200.0 50.0 400.0 0.4 #f))
+                                100.0 100.0 50.0 400.0 0.4 #f))
         (set-ship-tools! s
                          (append (tools-pilot 35.0 #f 1.0)
                                  (list (tool-pbolt 8.0)
@@ -110,7 +128,7 @@
         (set-ship-stats! s
                          (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
                                 ;con maxcon mass radar drag start?
-                                300.0 300.0 100.0 500.0 0.4 #f))
+                                150.0 150.0 100.0 500.0 0.4 #f))
         (set-ship-tools! s
                          (append (tools-pilot 20.0 #f 0.7)
                                  (list (tool-pbolt 8.0)
@@ -125,7 +143,9 @@
                      (list (tool-pbolt 10.0)
                            (tool-probe 30.0)
                            (tool-missile 5.0 10.0)
-                           (tool-factory 20 (list fighter
+                           (tool-regen 1.0)
+                           (tool-factory 20 (list aifighter
+                                                  fighter
                                                   frigate
                                                   cruiser))))
     b)
@@ -214,14 +234,17 @@
     (append! changes (chadd unobs #f))
     (append! changes (redo-team-buttons #f))
 
+    (set! base1id (next-id))
+    (set! base2id (next-id))
+
     ; add team1 base
-    (define b1 (make-base team1 base1x (random-between -500 500)))
-    (set! base1id (ob-id b1))
+    (define b1 (make-base ownspace team1 base1x (random-between -500 500) base2id))
+    (set-ob-id! b1 base1id)
     (append! changes (chadd b1 #f))
 
     ; add team2 base
-    (define b2 (make-base team2 base2x (random-between -500 500)))
-    (set! base2id (ob-id b2))
+    (define b2 (make-base ownspace team2 base2x (random-between -500 500) base1id))
+    (set-ob-id! b2 base2id)
     (append! changes (chadd b2 #f))
 
     ; add players
@@ -263,6 +286,11 @@
                            (ordertime #f "Restart in ~a" '() #f
                                       10000 (space-time ownspace) #f)))))
     changes)
+
+  (define (add-factory-pt base)
+    (define pts (car (tool-val (ship-tool base 'factory))))
+    (chstat (ob-id base) 'toolval
+            (list 'factory (add1 pts))))
   
   ; return a list of changes
   (define (on-tick ownspace qt change-scenario!)
@@ -287,22 +315,33 @@
       (set! team2-num t2num)
       (append! changes (redo-team-buttons)))
 
+    
+    (define addpts? (time-for (space-time ownspace) 10000 0))
+
     (when (not base1-destroyed?)
       (define t1b (find-top-id ownspace base1id))
-      (when (not t1b)
-        (set! base1-destroyed? #t)
-        (set! team2-score (add1 team2-score))
-        (append! changes (redo-team-scores))
-        (append! changes (start-countdown! ownspace team2))))
-
+      (cond
+        (t1b
+         (when addpts?
+           (append! changes (add-factory-pt t1b))))
+        (else
+         (set! base1-destroyed? #t)
+         (set! team2-score (add1 team2-score))
+         (append! changes (redo-team-scores))
+         (append! changes (start-countdown! ownspace team2)))))
+      
     (when (not base2-destroyed?)
       (define t2b (find-top-id ownspace base2id))
-      (when (not t2b)
-        (set! base2-destroyed? #t)
-        (set! team1-score (add1 team1-score))
-        (append! changes (redo-team-scores))
-        (append! changes (start-countdown! ownspace team1))))
-
+      (cond
+        (t2b
+         (when addpts?
+           (append! changes (add-factory-pt t2b))))
+         (else
+          (set! base2-destroyed? #t)
+          (set! team1-score (add1 team1-score))
+          (append! changes (redo-team-scores))
+          (append! changes (start-countdown! ownspace team1)))))
+        
     (when countdown?
       (define time-since ((space-time ownspace) . - . countdown?))
       (when (time-since . > . 10000)

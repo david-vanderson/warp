@@ -350,8 +350,12 @@
     ((empty? (ship-playerids ship))
      (if (tool-rc t) 1 0))
     (else
-     (count (lambda (p) (player-using-tool? p t))
-            (ship-players space ship)))))
+     (define c
+       (count (lambda (p) (player-using-tool? p t))
+              (ship-players space ship)))
+     (if (equal? 'always (ship-ai ship))
+         (+ c (if (tool-rc t) 1 0))
+         c))))
 
 (define (tool-online? t (dmgtype "offline"))
   (not (findf (lambda (d) (equal? dmgtype (dmg-type d))) (tool-dmgs t))))

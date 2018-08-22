@@ -244,6 +244,34 @@
                                (+ sx 55.0) (+ sy 55.0 (* i 14))
                                LAYER_MAP fowa colstr)))
   spr)
+
+
+(define (draw-tool-icons csd textr textsr ship x y w layer)
+  (define spr '())
+  (define size 12.0)
+  (define syms
+    (filter values (map (lambda (t)
+                          (case (tool-name t)
+                            ((missile) 'missile)
+                            ((probe) 'probe)
+                            ((cannon) 'cannonball)
+                            (else #f)))
+                        (ship-tools ship))))
+  (when (not (null? (ship-playerids ship)))
+    (set! syms (append syms (list 'spacesuit))))
+  (for ((sym syms)
+        (i (in-naturals)))
+    (define idx (sprite-idx csd sym))
+    (define m (/ size (max (sprite-width csd idx) (sprite-height csd idx))))
+    (prepend! spr (sprite (+ x (/ w 2.0) (- size))
+                          (+ y (- (/ w 2.0)) (* i (+ size 2.0)) size)
+                          idx #:layer layer #:m m #:theta (- pi/2))))
+  (when (ship-ai ship)
+    (prepend! spr (text-sprite textr textsr "AI"
+                               (- x (/ w 2.0) -8.0)
+                               (- y (/ w 2.0) -4.0)
+                               layer)))
+  spr)
     
    
 

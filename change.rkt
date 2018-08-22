@@ -408,11 +408,16 @@
            (values #t '()))
           ((toolval)
            (define t (ship-tool o (car (chstat-val c))))
-           (cond (t (set-tool-val! t (cadr (chstat-val c)))
-                    (values #t '()))
-                 (else
-                  (printf "~a chstat - couldn't find tool ~v\n" c)
-                  (values #f '()))))
+           (cond
+             (t
+              (if (equal? 'factory (tool-name t))
+                  (set-tool-val! t (list (cadr (chstat-val c))
+                                         (cadr (tool-val t))))
+                  (set-tool-val! t (cadr (chstat-val c))))
+              (values #t '()))
+             (else
+              (printf "~a chstat - couldn't find tool ~v\n" who c)
+              (values #f '()))))
           ((overlay)
            (define others (filter-not (lambda (ov)
                                         (equal? (car ov) (car (chstat-val c))))
