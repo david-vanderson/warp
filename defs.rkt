@@ -5,7 +5,7 @@
 
 (provide (all-defined-out))
 
-(define VERSION 2)  ; client will bomb if version doesn't match server
+(define VERSION 3)  ; client will bomb if version doesn't match server
 
 (define-runtime-path IMAGEDIR "images")
 
