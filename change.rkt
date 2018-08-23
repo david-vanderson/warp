@@ -448,9 +448,14 @@
       (apply append
              (for/list ((c (in-list changes)))
                (define-values (forward? new-changes)
-                 (apply-change! space c who
-                                #:addf addf
-                                #:on-player-restart on-player-restart))
+                 (with-handlers ([exn:fail?
+                                  (lambda (e)
+                                    (printf "~a error ~a\n"
+                                            who (exn-message e))
+                                    (values #f '()))])
+                   (apply-change! space c who
+                                  #:addf addf
+                                  #:on-player-restart on-player-restart)))
                (append (if forward? (list (copy c)) '())
                        (apply-all-changes! space new-changes who
                                            #:addf addf
