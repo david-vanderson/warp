@@ -1330,15 +1330,6 @@
   (send canvas min-height h)
    
  ) ; when gui?
-  
-  
-  (define (tick-space-client! space)
-    (set-space-time! space (+ (space-time space) TICK))
-    (for ((o (in-list (space-objects space)))
-          #:when (obj-alive? o))
-      (update-physics! space o (/ TICK 1000.0))
-      (update-stats! space o (/ TICK 1000.0))
-      (add-backeffects! space o)))
 
 
   (struct server-ports (in out))
@@ -1526,7 +1517,7 @@
               (when ((space-time ownspace) . < . (update-time input))
                 ;(printf "client ticking ownspace forward for input ~a\n" (update-time input))
                 (set! num-ticks (+ 1 num-ticks))
-                (tick-space-client! ownspace))
+                (tick-space! ownspace apply-all-changes!))
 
               (when ((space-time ownspace) . < . (update-time input))
                 (error "client ownspace still behind update time\n"))
@@ -1578,7 +1569,7 @@
           )
           )
 
-        (tick-space-client! ownspace)
+        (tick-space! ownspace apply-all-changes!)
         (set! motion? #t)
         (set! num-ticks (+ num-ticks 1))
 

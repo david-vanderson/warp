@@ -209,10 +209,6 @@
 (define (sigmoid x div)
   (- (/ 2.0 (+ 1.0 (exp (- (/ x div))))) 1.0))
 
-(define (debug fmt . args)
-  (apply printf fmt args)
-  (list-ref args (sub1 (length args))))
-
 (define-syntax-rule (define/time (name arg ...) e ...)
   (define (name arg ...)
     (define start (current-milliseconds))

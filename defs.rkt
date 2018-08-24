@@ -215,6 +215,7 @@
 (struct probe ship () #:mutable #:prefab)
 (struct missile ship () #:mutable #:prefab)
 (struct cannonball ship () #:mutable #:prefab)
+(struct mine ship () #:mutable #:prefab)
 
 (struct plasma obj (e) #:mutable #:prefab)
 ; e energy

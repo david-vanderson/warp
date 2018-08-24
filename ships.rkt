@@ -31,6 +31,7 @@
           (for/hash ((name '("spacesuit" 
                              "probe"
                              "missile"
+                             "mine"
                              "cannonball"
                              "asteroid_87"
                              "asteroid_43"
@@ -61,6 +62,8 @@
                (set! size 24.0))
               ((equal? name "missile")
                (set! size 10.0))
+              ((equal? name "mine")
+               (set! size 16.0))
               ((equal? name "cannonball")
                (set! filename "asteroid_43")
                (set! size 10.0)))
@@ -187,6 +190,12 @@
      (set-ship-stats! s (stats (next-id) type name faction con con 1.0 radar 0.0 #f))
      (set-ship-tools!
       s (list (tool-endrc 0.0)))
+     s)
+    (("mine")
+     (define s (apply mine args))
+     ;type name faction con maxcon mass radar drag start?
+     ;for mines, radar is also the radius for moving towards spaceship?s
+     (set-ship-stats! s (stats (next-id) type name faction con con 1.0 radar 0.1 #f))
      s)
     (("probe")
      (define s (apply probe args))

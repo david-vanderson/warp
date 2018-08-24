@@ -9,6 +9,7 @@
          "pbolt.rkt"
          "warp.rkt"
          "missile.rkt"
+         "mine.rkt"
          "cannon.rkt"
          "plasma.rkt"
          "shield.rkt"
@@ -368,6 +369,7 @@
      (cond (o
             (values #t
                     (cond ((plasma? o) (reduce-plasma! space o d))
+                          ((mine? o) (reduce-mine! space o d))
                           ((missile? o) (reduce-missile! space o d))
                           ((cannonball? o) (reduce-cannonball! space o d))
                           ((shield? o) (reduce-shield! space o d) '())
