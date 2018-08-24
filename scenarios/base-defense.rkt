@@ -59,6 +59,7 @@
                          (tool-probe 10.0)
                          (tool-missile 5.0 10.0)
                          (tool-cannon 21.0)
+                         (tool-mine 25.0)
                          (tool-warp 200.0 80.0)
                          (tool-regen 1.0))))
   

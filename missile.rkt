@@ -79,7 +79,7 @@
 
 
 (define (missile-target? o)
-  (or (spaceship? o) (probe? o)))
+  (or (spaceship? o) (probe? o) (mine? o)))
 
 ; return a list of changes
 (define (missile-ai! space qt stack)

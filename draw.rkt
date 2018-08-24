@@ -200,6 +200,7 @@
             
             (when (and (not (equal? (ob-id o) myshipid))
                        (not (cannonball? o))
+                       (not (mine? o))
                        (not (missile? o)))
               (define fc (faction-check faction (ship-faction o)))
               (define col

@@ -53,7 +53,7 @@
 ; server
 
 (define (filterf? o)
-  (or (spaceship? o) (missile? o) (probe? o) (cannonball? o)))
+  (or (spaceship? o) (missile? o) (probe? o) (cannonball? o) (mine? o)))
 
 ; return a list of changes
 (define (pbolt-ai! qt stack)

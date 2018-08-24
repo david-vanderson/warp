@@ -64,7 +64,7 @@
                                        (new-blue-fighter #:price 75))))))
   (define b2 (make-ship "blue-station" "b2" "a" #:x 125 #:y 100 #:ai #f #:hangar '()))
 
-  (define m (make-ship "mine" "m1" "_neutral" #:x 100 #:con 25.0 #:radar 50.0))
+  (define m (make-ship "mine" "m1" "_mine" #:x 100 #:con 25.0 #:radar 50.0))
 
   (for ((f bf))
     (set-ship-ai-strategy! f
