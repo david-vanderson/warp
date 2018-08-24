@@ -560,10 +560,11 @@
                                   0)
                           e))
         (append! changes (chadd p #f)))
-      
-      (define msg (message (next-id) (space-time space) #t #f
-                           (format "~a Destroyed" (ship-name ship))))
-      (append! changes msg)))
+
+      (when (spaceship? ship)
+        (define msg (message (next-id) (space-time space) #t #f
+                             (format "~a Destroyed" (ship-name ship))))
+        (append! changes msg))))
   changes)
 
 

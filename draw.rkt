@@ -512,9 +512,10 @@
        (prepend! spr ss))
       ((missile)
        (let ()
-         (define b (button 'normal #\q #f (- (right) 166) (- (bottom) 124) 100 40 "Missile [q]"
-                           (lambda (x y)
-                             (send-commands (command pid cmdlevel (tool-name t) 'left)))))
+         (define b (holdbutton 'normal #\q #f (- (right) 166) (- (bottom) 124) 100 40 "Missile [q]"
+                               (lambda (x y)
+                                 (send-commands (command pid cmdlevel (tool-name t) 'left)))
+                               void))
          (when (or (not (ship-flying? ship))
                    (and (warping? ship) (not (tool-while-warping? t))))
            (set-button-draw! b 'disabled))
@@ -522,25 +523,28 @@
          (button-set-dmg! t b))
 
        (let ()
-         (define b (button 'normal #\e #f (- (right) 58) (- (bottom) 124) 100 40 "Missile [e]"
-                           (lambda (x y)
-                             (send-commands (command pid cmdlevel (tool-name t) 'right)))))
+         (define b (holdbutton 'normal #\e #f (- (right) 58) (- (bottom) 124) 100 40 "Missile [e]"
+                               (lambda (x y)
+                                 (send-commands (command pid cmdlevel (tool-name t) 'right)))
+                               void))
          (when (or (not (ship-flying? ship))
                    (and (warping? ship) (not (tool-while-warping? t))))
            (set-button-draw! b 'disabled))
          (prepend! buttons b)
          (button-set-dmg! t b)))
       ((probe)
-       (define b (button 'normal #\x #f (- (right) 58) (- (bottom) 76) 100 40 "Probe [x]"
-                         (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))))
+       (define b (holdbutton 'normal #\x #f (- (right) 58) (- (bottom) 76) 100 40 "Probe [x]"
+                             (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))
+                             void))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
          (set-button-draw! b 'disabled))
        (prepend! buttons b)
        (button-set-dmg! t b))
       ((mine)
-       (define b (button 'normal #\m #f (- (right) 166) (- (bottom) 76) 100 40 "Mine [m]"
-                         (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))))
+       (define b (holdbutton 'normal #\m #f (- (right) 166) (- (bottom) 76) 100 40 "Mine [m]"
+                             (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))
+                             void))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
          (set-button-draw! b 'disabled))

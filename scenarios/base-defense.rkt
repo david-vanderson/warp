@@ -67,7 +67,7 @@
                           #:dr 0.1))
   (set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
                                ;con maxcon mass radar drag start-ship?
-                               1000.0 1000.0 1000.0 1000.0 0.4 #t))
+                               1000.0 1000.0 1000.0 1000.0 0.4 #f))
   (set-ship-tools!
    base (list (tool-pbolt 10.0)
               (tool-probe 30.0)

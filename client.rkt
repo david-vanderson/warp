@@ -646,11 +646,12 @@
             (prepend! sprites ss)))
 
         (when (and (not rcship) (ship-hangar ship))
-          (define b (button 'normal #\h #f (- (right) 206) (- (bottom) 28) 140 40
-                            (~a "Hangar [h] " (length (ship-hangar ship)))
-                            (lambda (x y)
-                              (set! in-hangar? #t)
-                              (set! hangshipid #f))))
+          (define b (holdbutton 'normal #\h #f (- (right) 206) (- (bottom) 28) 140 40
+                                (~a "Hangar [h] " (length (ship-hangar ship)))
+                                (lambda (x y)
+                                  (set! in-hangar? #t)
+                                  (set! hangshipid #f))
+                                void))
           (when in-hangar?
             (set-button-label! b "Exit Hangar [h]")
             (set-button-f! b (lambda (x y)
@@ -938,10 +939,12 @@
                                        #:r 100 #:g 100 #:b 255 #:m 0.7))))))
       
       (prepend! buttons
-               (button 'hidden #\tab #f 0 0 0 0 "Mission Info"
-                       (lambda (k y) (set! showtab (not showtab))))
-               (button 'hidden #\` #f 0 0 0 0 "Show Sector"
-                       (lambda (k y) (set! showsector? (not showsector?)))))
+               (holdbutton 'hidden #\tab #f 0 0 0 0 "Mission Info"
+                           (lambda (k y) (set! showtab (not showtab)))
+                           void)
+               (holdbutton 'hidden #\` #f 0 0 0 0 "Show Sector"
+                           (lambda (k y) (set! showsector? (not showsector?)))
+                           void))
 
       ; messages
       (when ownspace
@@ -1138,9 +1141,7 @@
            ((button-f b) kc #f)
            (cond
              ((holdbutton? b)
-              (prepend! holding (hold kc kc (holdbutton-frelease b)))
-              (when ((length holding) . > . 5)
-                (printf "holding ~a\n" (length holding))))
+              (prepend! holding (hold kc kc (holdbutton-frelease b))))
              (else
               (press! kc))))
           (key-for
@@ -1163,11 +1164,16 @@
            (when escape?
              (set! key-for #f)))
           (else
+           ; most keys you want to have to be released before you can press them again
+           ; set to #f if you want the repeat behavior
+           (define hold? #t)
            (case kc
              ((wheel-up)
+              (set! hold? #f)
               (when (and ownspace (not showsector?))
                 (zoom-mouse 1.05)))
              ((wheel-down)
+              (set! hold? #f)
               (when (and ownspace (not showsector?))
                 (zoom-mouse (/ 1.0 1.05))))
              ((#\f)
@@ -1180,19 +1186,7 @@
               (debug-num (+ 1 (debug-num))))
              ((#\?)
               (set! help-screen? (not help-screen?)))
-             #;((#\d)
-              (when ownspace
-                (define cmds '())
-                (for ((s (in-list (space-objects ownspace)))
-                      #:when (spaceship? s))
-                  (append! cmds (list (chdam (ob-id s) 10 #f))))
-
-                #;(when my-stack
-                  (define s (get-ship my-stack))
-                  (append! cmds (dmg-ship s 20 (- pi/2))))
-                
-                (send-commands cmds)))
-             #;((#\m)
+             ((#\n)
               (when ownspace
                 (send-commands (message (next-id) (space-time ownspace) #t #f
                                         (~a "message " (space-time ownspace))))))
@@ -1202,7 +1196,12 @@
                                                       (posvel -1 0 0 0
                                                               (random 100)
                                                               (random 100) 0)) #f))))
-             ))))
+             )
+           (when hold?
+             ; nothing on release, just so holding down the key
+             ; doesn't repeatedly do something
+             (prepend! holding (hold kc kc void)))
+           )))
       ))
 
 
