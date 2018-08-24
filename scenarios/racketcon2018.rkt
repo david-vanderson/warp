@@ -114,7 +114,7 @@
         (set-ship-tools! s
                          (append (tools-pilot 35.0 #f 1.0)
                                  (list (tool-pbolt 8.0)
-                                       (tool-probe 10.0)
+                                       (tool-mine 25.0)
                                        (tool-warp 200.0 50.0)
                                        (tool-missile 5.0 10.0)
                                        (tool-regen 1.0))))
@@ -273,6 +273,7 @@
     changes)
 
 
+  (define countdown-time 20000)
   (define (start-countdown! ownspace team)
     (define changes '())
     (when (not countdown?)
@@ -284,7 +285,7 @@
         (append! changes
                  (chorders fac
                            (ordertime #f "Restart in ~a" '() #f
-                                      10000 (space-time ownspace) #f)))))
+                                      countdown-time (space-time ownspace) #f)))))
     changes)
 
   (define (add-factory-pt base)
@@ -344,7 +345,7 @@
         
     (when countdown?
       (define time-since ((space-time ownspace) . - . countdown?))
-      (when (time-since . > . 10000)
+      (when (time-since . > . countdown-time)
         (change-scenario! (lambda (oldspace . xs)
                             (set! changes '())
                             (values (start-space oldspace)

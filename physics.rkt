@@ -329,7 +329,7 @@
               (when ((distance a b) . < . (hit-distance a b))
                 (missile-hit-ship! space b a)))))
       ((mine? a)
-       (cond ((spaceship? b)
+       (cond ((or (spaceship? b) (mine? b))
               (define d (distance a b))
               (when (d . < . (hit-distance a b))
                 (mine-hit-ship! space a b)))))

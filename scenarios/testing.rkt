@@ -52,22 +52,19 @@
   (define rf (for/list ((i 50)) (new-red-fighter  (* 50 i) 150)))
   (define a (make-ship "asteroid_87" "a" "Empire" #:x 95 #:y 95 #:dx -0.001))
 
-  (define b1 (make-ship "blue-station" "b1" "Rebel" #:x 0 #:y 0 #:ai #f #:hangar '()))
+  (define b1 (make-ship "blue-station" "b1" "Rebel" #:x 0 #:y 0 #:ai #f #:hangar '() #:radar 2000.0))
   (set-ship-tools!
    b1 (append (tools-pilot 50.0 #f 1.5)
               (list
                (tool-pbolt 10.0)
                (tool-missile 5.0 10.0)
+               (tool-mine 25.0)
                (tool-factory 100 (list (new-blue-fighter #:price 1)
                                        (new-blue-fighter #:price 5)
                                        (new-blue-fighter #:price 75))))))
   (define b2 (make-ship "blue-station" "b2" "a" #:x 125 #:y 100 #:ai #f #:hangar '()))
 
-  (define m (make-ship "mine" "m1" "a" #:x 100))
-  (set-ship-stats! m (stats (next-id) (ship-type m) (ship-name m) (ship-faction m)
-                              ;con maxcon mass radar drag start-ship?
-                              25.0 25.0 10.0 50.0 0.1 #f))
-  (set-ship-tools! m (tools-pilot 5.0 #f 0.0))
+  (define m (make-ship "mine" "m1" "_neutral" #:x 100 #:con 25.0 #:radar 50.0))
 
   (for ((f bf))
     (set-ship-ai-strategy! f

@@ -177,6 +177,8 @@
            (launch-missile! c space s who))
           ((cannon)
            (fire-cannon! c space s who))
+          ((mine)
+           (lay-mine! c space s who))
           (else
            (cond
              ((and (equal? 'warp (command-cmd c))

@@ -195,7 +195,8 @@
      (define s (apply mine args))
      ;type name faction con maxcon mass radar drag start?
      ;for mines, radar is also the radius for moving towards spaceship?s
-     (set-ship-stats! s (stats (next-id) type name faction con con 1.0 radar 0.1 #f))
+     (set-ship-stats! s (stats (next-id) type name faction con con 10.0 radar 0.6 #f))
+     (set-ship-tools! s (tools-pilot 15.0 #f #f))
      s)
     (("probe")
      (define s (apply probe args))
@@ -217,7 +218,7 @@
      (define s (apply spaceship args))
      (define mb 500.0)
      (define mc 500.0)
-     (set-ship-stats! s (stats (next-id) type name faction mc mc 10000.0 200.0 0.5 start-ship?))
+     (set-ship-stats! s (stats (next-id) type name faction mc mc 10000.0 radar 0.5 start-ship?))
      (set-ship-tools!
       s (list ;(tool-pbolt 10.0)
               (tool-probe 30.0)

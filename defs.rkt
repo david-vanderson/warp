@@ -118,10 +118,12 @@
 (define (tools-pilot engine-power engine-on? turn-power
                      #:engine-visible? (v #t)
                      #:dock? (dock? #t))
-  (append (list (tool (next-id) 'engine engine-power engine-on? v #f '())
-                (tool (next-id) 'turnleft turn-power #f #t #f '())
-                (tool (next-id) 'turnright turn-power #f #t #f '())
-                (tool (next-id) 'steer turn-power #f #f #f '()))
+  (append (list (tool (next-id) 'engine engine-power engine-on? v #f '()))
+          (if turn-power
+              (list (tool (next-id) 'turnleft turn-power #f #t #f '())
+                    (tool (next-id) 'turnright turn-power #f #t #f '())
+                    (tool (next-id) 'steer turn-power #f #f #f '()))
+              '())
           (if dock?
               (list (tool (next-id) 'dock #f #t #t #t '()))
               '())))
@@ -140,6 +142,9 @@
 
 (define (tool-cannon power)
   (tool (next-id) 'cannon power #f #t #f '()))
+
+(define (tool-mine power)
+  (tool (next-id) 'mine power #f #t #f '()))
 
 (define (tool-warp speed threshold)
   (tool (next-id) 'warp (list speed threshold 0.0) #f #t #t '()))

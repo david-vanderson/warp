@@ -255,6 +255,7 @@
                             ((missile) 'missile)
                             ((probe) 'probe)
                             ((cannon) 'cannonball)
+                            ((mine) 'mine)
                             (else #f)))
                         (ship-tools ship))))
   (when (not (null? (ship-playerids ship)))
@@ -531,6 +532,14 @@
          (button-set-dmg! t b)))
       ((probe)
        (define b (button 'normal #\x #f (- (right) 58) (- (bottom) 76) 100 40 "Probe [x]"
+                         (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))))
+       (when (or (not (ship-flying? ship))
+                 (and (warping? ship) (not (tool-while-warping? t))))
+         (set-button-draw! b 'disabled))
+       (prepend! buttons b)
+       (button-set-dmg! t b))
+      ((mine)
+       (define b (button 'normal #\m #f (- (right) 166) (- (bottom) 76) 100 40 "Mine [m]"
                          (lambda (x y) (send-commands (command pid cmdlevel (tool-name t) #t)))))
        (when (or (not (ship-flying? ship))
                  (and (warping? ship) (not (tool-while-warping? t))))
