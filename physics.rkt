@@ -17,6 +17,7 @@
 
 (define (obj-radius ownspace o)
   (cond
+    ((nebula? o) (nebula-radius o))
     ((mine? o) (ship-radar o))
     ((ship? o) (ship-radius o))
     ((plasma? o) (plasma-radius ownspace o))
@@ -266,7 +267,8 @@
         ((spaceship? o) 6)
         ((probe? o) 6)
         ((spacesuit? o) 6)
-        (else (printf "priority unknown for ~v\n" o) 7)))
+        ((nebula? o) 7)
+        (else (printf "priority unknown for ~v\n" o) 8)))
 
 
 (define (collide-common! a b dt)
@@ -485,6 +487,8 @@
      (physics! pv dt (ship-drag o))
      (steer! space o dt)
      (push-back! space o dt))
+    ((nebula? o)
+     (physics! pv dt))
     ((plasma? o)
      (physics! pv dt)
      (push-back! space o dt)

@@ -225,6 +225,9 @@
 (struct plasma obj (e) #:mutable #:prefab)
 ; e energy
 
+(struct nebula obj (radius) #:mutable #:prefab)
+; radius tells you how big this nebula is
+
 (struct explosion obj (size maxsize expand dmg-rate) #:mutable #:prefab)
 ; disc where everything touching it takes damage
 ; size is current radius

@@ -1,6 +1,8 @@
 #lang racket/base
 
-(require racket/math)
+(require racket/math
+         racket/class
+         racket/draw)
 
 (require "../defs.rkt"
          "../utils.rkt"
@@ -69,10 +71,34 @@
   (for ((f bf))
     (set-ship-ai-strategy! f
       (list (strategy (space-time ownspace) "return" (ob-id b1)))))
+
+  (define r (new region%))
+  (send r set-polygon
+        '((-500.0 . -500.0)
+          (-500.0 . 500.0)
+          (500.0 . 500.0)
+          (500.0 . -500.0)))
+  (define-values (rx ry rw rh) (send r get-bounding-box))
+
+  (define nebulas '())
+  (define sep 500.0)
+  (define sep/2 (/ sep 2))
+  (for* ((x (in-range (+ rx sep/2) (- rw sep/2) sep))
+         (y (in-range (+ ry sep/2) (- rh sep/2) sep))
+         #:when (send r in-region? x y))
+    (define xd (random-between (* sep -0.25) (* sep 0.25)))
+    (define yd (random-between (* sep -0.25) (* sep 0.25)))
+    (define dr (* (if ((random) . < . 0.5) -1 1) (random-between 0.01 0.04)))
+    (define t (inexact->exact (round (random-between 0 100000))))
+    (define n (nebula (next-id) t #t (posvel 0 (+ x xd) (+ y yd) 0.0 0.0 0.0 dr) sep))
+    (prepend! nebulas n))
+
+  ;(define n (nebula (next-id) 0 #t (posvel 0 100.0 100.0 0.0 0.0 0.0 0.02) 500.0))
   
   (set-space-objects! ownspace
                       (append 
                        (list b1 m)
+                       nebulas
                        (space-objects ownspace)))
   
   (define real-orders (space 0 0 0 0 '() '() '()))  ; only care about orders

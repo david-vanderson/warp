@@ -244,6 +244,7 @@
         ((or (player? o)
              (plasma? o)
              (explosion? o)
+             (nebula? o)
              (missile? o)
              (shield? o)
              (effect? o)

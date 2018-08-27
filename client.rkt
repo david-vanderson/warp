@@ -1299,6 +1299,7 @@
                             2 2) "black"))
 
     (add-sprite!/value sd 'intro (read-bitmap (build-path IMAGEDIR "intro.png") 'png/alpha))
+    (add-sprite!/value sd 'nebula (read-bitmap (build-path IMAGEDIR "nebula.png") 'png/alpha))
     )
    
   (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))

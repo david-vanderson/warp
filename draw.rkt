@@ -108,6 +108,19 @@
         )))
   spr)
 
+
+(define (draw-nebula csd center scale space o fowa)
+  (define red (+ 100 (inexact->exact (round (* 50 (cycletri (obj-age space o) 17000))))))
+  (define blue (+ 100 (inexact->exact (round (* 50 (cycletri (obj-age space o) 19000))))))
+  (define green (+ 100 (inexact->exact (round (* 50 (cycletri (obj-age space o) 23000))))))
+  (obj-sprite o csd center scale LAYER_MAP
+              'nebula
+              (/ (nebula-radius o) 25.0)
+              fowa (obj-r o)
+              (make-color red blue green 1.0))
+  )
+
+
 (define (draw-object csd textr textsr center scale o space myshipid showplayers? fowa faction)
   (cond
     #;((ptsize . < . 0.25)  ; "sector" view - ships are triangles
@@ -155,6 +168,8 @@
             (draw-effect csd center scale space o fowa))
            ((upgrade? o)
             (draw-upgrade csd center scale space o fowa))
+           ((nebula? o)
+            (draw-nebula csd center scale space o fowa))
            ((ship? o)
             (define spr '())
             (define si (hash-ref ship-list (ship-type o)))
