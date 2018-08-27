@@ -13,7 +13,7 @@
 
 (provide (all-defined-out))
 
-(define mapcol (make-color 0 0 200 1.0))  ; sector lines
+(define mapcol (make-color 0 0 200 0.6))  ; sector lines
 (define zoomcol (make-color 180 180 180 1.0))  ; zoom meter
 (define button-txt (send the-color-database find-color "white"))
 (define button-disable-txt (send the-color-database find-color "gray"))

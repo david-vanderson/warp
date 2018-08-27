@@ -313,23 +313,26 @@
   (define my (* max-y scale 2.0 (/ 1.0 1000.0)))
   
   (define sw 1000)
-  (define idx (sprite-idx csd '1000x10))
-  (define w 0.2)
+  (define idx (sprite-idx csd '1000x2))
+  (define w 1.1)
   
   (define-values (x y) (xy->screen 0.0 0.0 center scale))
-  (prepend! spr (sprite x y idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2 #:b (send mapcol blue)))
-  (for ((i (in-range 1 (+ 1 (inexact->exact (floor (/ max-x sw)))))))
-    (define-values (x y) (xy->screen (exact->inexact (* sw i)) 0.0 center scale))
-    (prepend! spr (sprite x y idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2 #:b (send mapcol blue)))
-    (define-values (x2 y2) (xy->screen (exact->inexact (* sw (- i))) 0.0 center scale))
-    (prepend! spr (sprite x2 y2 idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2 #:b (send mapcol blue))))
+  (prepend! spr (sprite x y idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2
+                        #:b (send mapcol blue) #:a (send mapcol alpha)))
+  (for* ((i (in-range 1 (+ 1 (inexact->exact (floor (/ max-x sw))))))
+         (side (in-list '(-1 1))))
+    (define-values (x y) (xy->screen (exact->inexact (* sw side i)) 0.0 center scale))
+    (prepend! spr (sprite x y idx #:layer LAYER_MAP #:mx my #:my w #:theta pi/2
+                          #:b (send mapcol blue) #:a (send mapcol alpha))))
   
-  (prepend! spr (sprite x y idx #:layer LAYER_MAP #:my w #:mx mx #:b (send mapcol blue)))
-  (for ((i (in-range 1 (+ 1 (inexact->exact (floor (/ max-y sw)))))))
-    (define-values (x y) (xy->screen 0.0 (exact->inexact (* sw i)) center scale))
-    (prepend! spr (sprite x y idx #:layer LAYER_MAP #:my w #:mx mx #:b (send mapcol blue)))
-    (define-values (x2 y2) (xy->screen 0.0 (exact->inexact (* sw (- i))) center scale))
-    (prepend! spr (sprite x2 y2 idx #:layer LAYER_MAP #:my w #:mx mx #:b (send mapcol blue))))
+  (prepend! spr (sprite x y idx #:layer LAYER_MAP #:my w #:mx mx
+                        #:b (send mapcol blue) #:a (send mapcol alpha)))
+  (for* ((i (in-range 1 (+ 1 (inexact->exact (floor (/ max-y sw))))))
+         (side (in-list '(-1 1))))
+    (define-values (x y) (xy->screen 0.0 (exact->inexact (* sw side i)) center scale))
+    (prepend! spr (sprite x y idx #:layer LAYER_MAP #:my w #:mx mx
+                          #:b (send mapcol blue) #:a (send mapcol alpha))))
+                          
   spr)
 
 

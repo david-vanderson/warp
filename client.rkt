@@ -1229,8 +1229,8 @@
                        (colorize (filled-rectangle 10 10) "black"))
     (add-sprite!/value sd '100x10
                        (colorize (filled-rectangle 100 10) "black"))
-    (add-sprite!/value sd '1000x10
-                       (colorize (filled-rectangle 1000 10) "black"))
+    (add-sprite!/value sd '1000x2
+                       (colorize (inset (filled-rectangle 1000 2) 1) "black"))
 
     ; used to fill rectangles
     (add-sprite!/value sd '100x100
