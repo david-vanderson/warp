@@ -46,7 +46,6 @@
       (yield 'wait))))
 
 
-
 (define (start-client* ip port name gui? sspace)
   (server? #f)
 
@@ -341,35 +340,58 @@
       (define fac (if p (player-faction p) #f))
       (define ordertree (get-space-orders-for ownspace fac))
 
-      (define myshipid #f)
+      (define myshipid #f)  ; identifies the ship player is controlling
+      (define myviewship #f)
+      (define myneb 1.0)
+      (define myshipalpha 1.0)
+      (define rcship #f)
       (when my-stack
-        (define rcship (if (player-rcid p)
-                           (find-id ownspace ownspace (player-rcid p)) #f))
-        (define topship (or rcship (get-topship my-stack)))
-        (set! myshipid (ob-id topship)))
+        (when (player-rcid p)
+          (set! rcship (find-id ownspace ownspace (player-rcid p))))
+        (set! myviewship (get-topship my-stack))
+        (set! myneb (obj-neb myviewship))
+        (set! myshipid (ob-id (or rcship myviewship))))
       
       ; background starts as fog of war gray
       (set! background-gray 80)
 
       ; put a black circle wherever we can see
       (define fowlist
-        (for/list ((s (in-list (space-objects ownspace)))
-                   #:when (and fac
-                               (or (spaceship? s)
-                                   (spacesuit? s)
-                                   (probe? s))
-                               ((faction-check fac (ship-faction s)) . > . 0)))
-          (list (obj-x s) (obj-y s) (ship-radar s))))
+        (cond
+          ((equal? fac "Observer")
+           ; visually sees everything, later we do something special for nebula
+           (define r (* 2.0 (max (space-width ownspace)
+                                 (space-height ownspace))))
+           (list (fow 0.0 0.0
+                      r 1.0
+                      r 1.0)))
+          (else
+           (for/list ((s (in-list (space-objects ownspace)))
+                      #:when (and fac
+                                  (or (spaceship? s)
+                                      (spacesuit? s)
+                                      (probe? s))
+                                  ((faction-check fac (ship-faction s)) . > . 0)))
+             ; for every friendly ship
+             (define a (* (obj-neb s) myneb))
+             (if (equal? (ob-id myviewship) (ob-id s))
+                 (fow (obj-x s) (obj-y s)
+                      (ship-radar s) myneb
+                      (ship-visible s) 1.0)
+                 (fow (obj-x s) (obj-y s)
+                      (ship-radar s) a
+                      (ship-visible s) a))))))
 
-      (when (equal? fac "observer")
-        (set! fowlist (list (list 0.0 0.0 (* 2.0 (max (space-width ownspace)
-                                                      (space-height ownspace)))))))
-
-      (for ((f fowlist))
-        (define rad (caddr f))
-        (define-values (x y) (xy->screen (car f) (cadr f) center (get-scale)))
-        (prepend! sprites (sprite x y (sprite-idx csd 'circle) #:layer LAYER_FOW_BLACK
-                                  #:m (* rad (get-scale) (/ 50.0)))))
+      (for ((f (in-list fowlist)))
+        (define-values (x y) (xy->screen (fow-x f) (fow-y f) center (get-scale)))
+        (when (not (equal? (fow-rn f) (fow-vn f)))
+          (prepend! sprites
+                    (sprite x y (sprite-idx csd 'circle) #:layer LAYER_FOW_BLACK
+                            #:m (* (fow-visible f) (get-scale) (/ 50.0)) #:a (fow-vn f))))
+        (prepend! sprites
+                  (sprite x y (sprite-idx csd 'circle) #:layer LAYER_FOW_BLACK
+                          #:m (* (fow-radar f) (get-scale) (/ 50.0)) #:a (fow-rn f)))
+        )
       )
 
       (timeit t3
@@ -418,11 +440,15 @@
       (timeit t4
       (for ((o (in-list (space-objects ownspace)))
             #:when (obj-alive? o))
-        (define fowa 1.0)
-        (when (obj-posvel o)
-          (define or (obj-radius ownspace o))
-          (when or
-            (set! fowa (get-alpha o or fowlist))))
+        (define r (obj-radius ownspace o #t))
+        (when (not r)
+          (set! r 0.0))
+        (define fowa (get-alpha o r fowlist))
+        (when (equal? fac "Observer")
+          (set! fowa (max fowa 0.7)))
+        (when (equal? (ob-id o) myshipid)
+          (set! fowa (max fowa 0.5))
+          (set! myshipalpha fowa))
         (when (fowa . > . 0)
           (define spr (draw-object csd textr textsr center (get-scale) o ownspace myshipid
                                  showtab fowa fac))
@@ -434,7 +460,6 @@
       (timeit t5
       (when my-stack
         (define p (car my-stack))
-        (define rcship (if (player-rcid p) (find-id ownspace ownspace (player-rcid p)) #f))
         (define ship (get-ship my-stack))
         (define topship (get-topship my-stack))
         (when (and in-hangar? (not (ship-hangar ship)))
@@ -645,7 +670,7 @@
           (for ((t (in-list tools)))
             (define-values (bs ss)
               (draw-tool-ui csd center (get-scale) ownspace meid (or rcship ship)
-                            t my-stack send-commands active-mouse-tool last-pbolt-time))
+                            t my-stack myshipalpha send-commands active-mouse-tool last-pbolt-time))
             (prepend! buttons bs)
             (prepend! sprites ss)))
 
@@ -728,7 +753,7 @@
                                       -200 (+ (top) 100) LAYER_UI_TEXT))
         (for (((fact names) (in-hash h))
               (i (in-naturals)))
-          (prepend! sprites (text-sprite textr textsr (string-append "Team " fact)
+          (prepend! sprites (text-sprite textr textsr fact
                                          (+ -200 (* 150 i)) (+ (top) 100 30) LAYER_UI_TEXT))
           (for ((name names)
                 (k (in-naturals 1)))
@@ -891,8 +916,6 @@
       ; draw mouse cursor and green corners
       (when my-stack
         (define player (car my-stack))
-        (define rcship (if (player-rcid player)
-                           (find-id ownspace ownspace (player-rcid player)) #f))
       
         (define ship (or rcship (get-ship my-stack)))
         

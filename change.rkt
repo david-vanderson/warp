@@ -410,6 +410,8 @@
           ((ai)
            (set-ship-ai! o (chstat-val c))
            (values #t '()))
+          ((radar)
+           (set-ship-radar! o (chstat-val c)))
           ((toolval)
            (define t (ship-tool o (car (chstat-val c))))
            (cond

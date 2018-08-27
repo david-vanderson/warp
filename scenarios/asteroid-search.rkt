@@ -94,8 +94,8 @@
 
   (define goodship (make-ship "red-cruiser" "a" "a" #:x -1500.0 #:y -1500.0 #:r pi))
   (set-ship-stats! goodship (stats (next-id) "red-cruiser" "Empire Frigate" "Empire"
-                                   ;con maxcon mass radar drag start
-                                   300.0 300.0 100.0 300.0 0.4 #t))
+                                   ;con maxcon mass drag start
+                                   300.0 300.0 100.0 0.4 #t))
 
   ; ship starts with pilot tools damaged beyond repair
   ; we will manually remove the dmgs when the engine parts are recovered
@@ -137,10 +137,10 @@
 
   
   (define enemy-base (make-ship "blue-station" "a" "a" #:x 1500.0 #:y 1500.0 #:ai 'always
-                                #:dr 0.1 #:hangar '()))
+                                #:dr 0.1 #:radar 600.0 #:hangar '()))
   (set-ship-stats! enemy-base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
-                               ;con maxcon mass radar drag start-ship?
-                               750.0 750.0 1000.0 600.0 0.4 #t))
+                               ;con maxcon mass drag start-ship?
+                               750.0 750.0 1000.0 0.4 #t))
   (set-ship-tools!
    enemy-base
    (list

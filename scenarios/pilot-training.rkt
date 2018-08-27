@@ -60,8 +60,8 @@
     (define s (make-ship "red-fighter" faction faction
                          #:x (random-between -200 200) #:y (random-between -200 200)))
     (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                              ;con maxcon mass drag radar start?
-                              100.0 100.0 20.0 300.0 0.4 #t))
+                              ;con maxcon mass drag start?
+                              100.0 100.0 20.0 0.4 #t))
     (set-ship-tools! s (append (list (tool-regen 1.0)) (ship-tools s)))
     s)
 

@@ -30,16 +30,22 @@
   (cons current-time (take frames (min 30 (length frames)))))
 
 
-(define (get-alpha o or fowlist)
+(define (get-alpha o r fowlist)
   (define a 0.0)
   (let/ec done
     (for ((f (in-list fowlist)))
-      (define dx (- (obj-x o) (car f)))
-      (define dy (- (obj-y o) (cadr f)))      
+      (define dx (- (obj-x o) (fow-x f)))
+      (define dy (- (obj-y o) (fow-y f)))
       (define d (+ (* dx dx) (* dy dy)))
-      (define r (+ (caddr f) or))
-      (define fa (linear-fade d (* r r) (* r r 1.1)))
-      (set! a (max a fa))
+      (define vd (+ (fow-visible f) r))
+      (define va (linear-fade d (* vd vd) (* vd vd 1.1)))
+      (define rd (+ (fow-radar f) r))
+      (define ra (linear-fade d (* rd rd) (* rd rd 1.1)))
+      (set! a (max a
+                   ; visually see him clearly, vn says how well this info gets to player
+                   (* va (fow-vn f))
+                   ; radar only picks o up according to how far o is in nebula
+                   (* ra (obj-neb o) (fow-rn f))))
       (when (a . = . 1.0)
         (done))))
   a)
@@ -355,19 +361,20 @@
 (define (draw-corners o w csd center scale color)
   (define spr '())
   (define-values (x y) (obj->screen o center scale))
-  (prepend! spr (sprite (- x w) (- y w) (sprite-idx csd 'corner)
+  (define idx (sprite-idx csd 'corner))
+  (prepend! spr (sprite (- x w) (- y w) idx
                         #:layer LAYER_EFFECTS #:m 3.0
                         #:a (send color alpha)
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
-  (prepend! spr (sprite (+ x w) (- y w) (sprite-idx csd 'corner)
+  (prepend! spr (sprite (+ x w) (- y w) idx
                         #:layer LAYER_EFFECTS #:m 3.0 #:theta pi/2
                         #:a (send color alpha)
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
-  (prepend! spr (sprite (+ x w) (+ y w) (sprite-idx csd 'corner)
+  (prepend! spr (sprite (+ x w) (+ y w) idx
                         #:layer LAYER_EFFECTS #:m 3.0 #:theta pi
                         #:a (send color alpha)
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
-  (prepend! spr (sprite (- x w) (+ y w) (sprite-idx csd 'corner)
+  (prepend! spr (sprite (- x w) (+ y w) idx
                         #:layer LAYER_EFFECTS #:m 3.0 #:theta (+ pi pi/2)
                         #:a (send color alpha)
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
@@ -505,7 +512,7 @@
 
 
 ; drawn in canon transform (buttons, dmgs, warnings)
-(define (draw-tool-ui csd center scale space pid ship t stack
+(define (draw-tool-ui csd center scale space pid ship t stack alpha
                       send-commands active-mouse-tool last-pbolt-time)
   (define buttons '())
   (define spr '())
@@ -602,7 +609,7 @@
        (prepend! spr (sprite x (+ y w 4.5) (sprite-idx csd '5x1) #:layer LAYER_EFFECTS
                              #:mx (* life 2.0 (min w 48.0) 0.2)
                              #:my 4.0
-                             #:r 255))
+                             #:r 255 #:a alpha))
      
        (define b (button 'normal #\s #f 0 (- (bottom) 101) 100 40 "Stop [s]"
                          (lambda (x y)

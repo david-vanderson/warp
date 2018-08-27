@@ -168,22 +168,23 @@
 ; shield-size is how big of a shield we shoot
 ; aim is like for pbolt
 
-(struct stats ob (type name faction con maxcon mass radar drag start) #:mutable #:prefab)
+(struct stats ob (type name faction con maxcon mass drag start) #:mutable #:prefab)
 ; carries all the stats for a ship
 ; name is the name of the ship
 ; faction is the name that this ship belongs to
 ; con (containment) is how much health you have left
 ; maxcon is the max containment you can have
 ; mass controls how you bump into other ships
-; radar is fog of war radius for this ship, also agro distance
 ; drag is the coeffecient for how fast this ship slows down
 ; start is if you can start on this ship
 
 (struct overlay (sym fow?) #:mutable #:prefab)
 
-(struct ship obj (price invincible? sprite-size radius stats tools
+(struct ship obj (radar visible price invincible? sprite-size radius stats tools
                   playerids hangar overlays cargo dmgfx
                   ai ai-time ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
+; radar is radius it can see (not into nebula)
+; visible is radius it can see (into nebula)
 ; price is how much material it takes to construct this ship, or how much you get for scrapping
 ; - #f means you can't scrap it
 ; invincible? is #t if this ship can't take damage (asteroids, spawning ships)
@@ -217,7 +218,6 @@
 (define (ship-maxcon s) (stats-maxcon (ship-stats s)))
 (define (ship-mass s) (stats-mass (ship-stats s)))
 (define (ship-strategy s) (if (null? (ship-ai-strategy s)) #f (car (ship-ai-strategy s))))
-(define (ship-radar s) (stats-radar (ship-stats s)))
 (define (ship-drag s) (stats-drag (ship-stats s)))
 (define (ship-start s) (stats-start (ship-stats s)))
 
@@ -233,6 +233,14 @@
 
 (struct nebula obj (radius) #:mutable #:prefab)
 ; radius tells you how big this nebula is
+
+(struct fow (x y radar rn visible vn) #:transparent)
+; describes a disc visible to the player
+; - x,y is center
+; - radar is radius we can see things normally (they disappear in nebula)
+; - rn is alpha of how well you see things in the radar
+; - visible is the radius we can see things even in nebula
+; - vn is alpha of how well you see things visually
 
 (struct explosion obj (size maxsize expand dmg-rate) #:mutable #:prefab)
 ; disc where everything touching it takes damage

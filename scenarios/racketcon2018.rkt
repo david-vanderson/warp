@@ -1,6 +1,8 @@
 #lang racket/base
 
-(require racket/math)
+(require racket/math
+         racket/class
+         racket/draw)
 
 (require "../defs.rkt"
          "../utils.rkt"
@@ -14,17 +16,17 @@
 (define (racketcon2018-scenario oldspace oldtick oldmessage old-on-player-restart)
 
   (define players (if oldspace (space-players oldspace) '()))
-  (for ((p players)) (set-player-faction! p "undecided"))
+  (for ((p players)) (set-player-faction! p "Undecided"))
 
   (define team1 "Brackets")
   (define base1id #f)
-  (define base1x -500)
+  (define base1x -1000)
   (define team1-num 0)
   (define team1-score 0)
   
   (define team2 "Parens")
   (define base2id #f)
-  (define base2x 500)  
+  (define base2x 1000)  
   (define team2-num 0)
   (define team2-score 0)
 
@@ -63,11 +65,11 @@
   (define (make-base ownspace team x y enemyid)
     (define type (string-append (get-team-color team) "-station"))
     (define b (make-ship type (string-append "Base " team) team
-                         #:x x #:y y
+                         #:x x #:y y #:radar 500.0
                          #:ai 'always #:hangar '() #:dr 0.1))    
     (set-ship-stats! b (stats (next-id) (ship-type b) (ship-name b) (ship-faction b)
-                              ;con maxcon mass radar drag start-ship?
-                              500.0 500.0 1000.0 500.0 0.4 #t))
+                              ;con maxcon mass drag start-ship?
+                              500.0 500.0 1000.0 0.4 #t))
 
     (define aifighter
       (let ((s (make-ship
@@ -76,8 +78,8 @@
                 #:posvel? #f #:price 2 #:ai 'always)))
         (set-ship-stats! s
                          (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                                ;con maxcon mass radar drag start?
-                                50.0 50.0 20.0 300.0 0.4 #f))
+                                ;con maxcon mass drag start?
+                                50.0 50.0 20.0 0.4 #f))
         (set-ship-tools! s
                          (append (tools-pilot 50.0 #f 1.4)
                                  (list (tool-pbolt 8.0)
@@ -94,8 +96,8 @@
                 #:posvel? #f #:price 5)))
         (set-ship-stats! s
                          (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                                ;con maxcon mass radar drag start?
-                                50.0 50.0 20.0 300.0 0.4 #f))
+                                ;con maxcon mass drag start?
+                                50.0 50.0 20.0 0.4 #f))
         (set-ship-tools! s
                          (append (tools-pilot 60.0 #f 1.6)
                                  (list (tool-pbolt 8.0)
@@ -106,11 +108,11 @@
       (let ((s (make-ship
                 (string-append (get-team-color team) "-frigate")
                 (string-append team " Frigate") team
-                #:posvel? #f #:hangar '() #:price 10)))
+                #:posvel? #f #:hangar '() #:price 10 #:radar 400.0)))
         (set-ship-stats! s
                          (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                                ;con maxcon mass radar drag start?
-                                100.0 100.0 50.0 400.0 0.4 #f))
+                                ;con maxcon mass drag start?
+                                100.0 100.0 50.0 0.4 #f))
         (set-ship-tools! s
                          (append (tools-pilot 35.0 #f 1.0)
                                  (list (tool-pbolt 8.0)
@@ -124,11 +126,11 @@
       (let ((s (make-ship
                 (string-append (get-team-color team) "-cruiser")
                 (string-append team " Cruiser") team
-                #:posvel? #f #:hangar '() #:price 25)))
+                #:posvel? #f #:hangar '() #:price 25 #:radar 500.0)))
         (set-ship-stats! s
                          (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                                ;con maxcon mass radar drag start?
-                                150.0 150.0 100.0 500.0 0.4 #f))
+                                ;con maxcon mass drag start?
+                                150.0 150.0 100.0 0.4 #f))
         (set-ship-tools! s
                          (append (tools-pilot 20.0 #f 0.7)
                                  (list (tool-pbolt 8.0)
@@ -157,8 +159,8 @@
     (define s (make-ship type name faction
                          #:x x #:y y #:price 5))
     (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                              ;con maxcon mass radar drag start?
-                              100.0 100.0 20.0 300.0 0.4 #f))
+                              ;con maxcon mass drag start?
+                              100.0 100.0 20.0 0.4 #f))
     (set-ship-tools! s
                      (append (tools-pilot 60.0 #f 1.6)
                              (list (tool-pbolt 8.0)
@@ -181,12 +183,12 @@
     (define b1 (make-ann-button -200 0 200 100
                                 (string-append "Team " team1 "\n" (number->string team1-num))
                                 team1
-                                #:tab? #f #:faction "undecided"))
+                                #:tab? #f #:faction "Undecided"))
     (set! team1-button-id (ob-id b1))
     (define b2 (make-ann-button 200 0 200 100
                                 (string-append "Team " team2 "\n" (number->string team2-num))
                                 team2
-                                #:tab? #f #:faction "undecided"))
+                                #:tab? #f #:faction "Undecided"))
     (set! team2-button-id (ob-id b2))
     (append! changes
              (chadd b1 #f)
@@ -210,6 +212,25 @@
     (define ownspace
       (space (next-id) 0 6000 6000 (space-players oldspace) '() '()))
 
+
+    (define r (new region%))
+    (send r set-ellipse -750.0 -750.0 1500.0 1500.0)
+    (define-values (rx ry rw rh) (send r get-bounding-box))
+    
+    (define nebulas '())
+    (define sep 500.0)
+    (define sep/2 (/ sep 2))
+    (for* ((x (in-range (+ rx sep/2) (- rw sep/2) sep))
+           (y (in-range (+ ry sep/2) (- rh sep/2) sep))
+           #:when (send r in-region? x y))
+      (define xd (random-between (* sep -0.25) (* sep 0.25)))
+      (define yd (random-between (* sep -0.25) (* sep 0.25)))
+      (define dr (* (if ((random) . < . 0.5) -1 1) (random-between 0.01 0.04)))
+      (define t (inexact->exact (round (random-between 0 100000))))
+      (define n (nebula (next-id) t #t 1.0 (posvel 0 (+ x xd) (+ y yd) 0.0 0.0 0.0 dr) sep))
+      (prepend! nebulas n))
+    (set-space-objects! ownspace nebulas)
+
     (define changes '())
     
     ; add standard stuff
@@ -219,9 +240,9 @@
     (append! changes (chadd (make-ann-button 294 76 100 40 "Restart" "restart"
                                              #:pos 'topleft
                                              #:tab? #t #:faction #f) #f))
-    (append! changes (chadd (make-ann-button 0 200 200 100 "Observer" "observer"
-                                             #:faction "undecided") #f))
-    (append! changes (chadd (make-ann-button 78 76 140 40 "Switch Team" "undecided"
+    (append! changes (chadd (make-ann-button 0 200 200 100 "Observer" "Observer"
+                                             #:faction "Undecided") #f))
+    (append! changes (chadd (make-ann-button 78 76 140 40 "Switch Team" "Undecided"
                                              #:pos 'topleft #:tab? #t) #f))
     (append! changes (redo-team-buttons #f))
 
@@ -294,7 +315,7 @@
       (cond
         ((not (player-faction p))
          ; new player
-         (append! changes (chfaction (ob-id p) "undecided")))
+         (append! changes (chfaction (ob-id p) "Undecided")))
         ((equal? team1 (player-faction p))
          (set! t1num (add1 t1num)))
         ((equal? team2 (player-faction p))
@@ -361,9 +382,9 @@
          (set-player-faction! p (ann-button-msg o))
          (define-values (x y) (start-xy space (player-faction p)))
          (append! changes (place-player p x y)))
-        ((member (ann-button-msg o) '("observer" "undecided"))
+        ((member (ann-button-msg o) '("Observer" "Undecided"))
          (append! changes (chfaction (anncmd-pid cmd) (ann-button-msg o)))
-         (when (equal? (ann-button-msg o) "undecided")
+         (when (equal? (ann-button-msg o) "Undecided")
            ; player is leaving their team, if they are on a ship, remove them
            (append! changes (chmov (anncmd-pid cmd) #f #f))))))
     changes)

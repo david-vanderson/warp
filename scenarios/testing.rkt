@@ -30,8 +30,8 @@
   (define (new-blue-fighter (x 0) (y 0) (r pi/2) #:price [price #f])
     (define s (make-ship "blue-fighter" "a" "a" #:ai #f #:x x #:y y #:r r #:price price))
     (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
-                              ;con maxcon mass radar drag start-ship?
-                              1000.0 1000.0 20.0 200.0 0.4 #t))
+                              ;con maxcon mass drag start-ship?
+                              1000.0 1000.0 20.0 0.4 #t))
     (set-ship-tools!
      s (append (tools-pilot 50.0 #f 1.5)
                (list ;(tool-missile 5.0 10.0)
@@ -42,8 +42,8 @@
   (define (new-red-fighter (x 0) (y 0))
     (define s (make-ship "red-fighter" "a" "a" #:ai #f #:x x #:y y))
     (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
-                              ;con maxcon mass radar drag start
-                              500.0 500.0 20.0 300.0 0.4 #f))
+                              ;con maxcon mass drag start
+                              500.0 500.0 20.0 0.4 #f))
     (set-ship-tools!
      s (append (tools-pilot 50.0 #f 1.5)
                (list ;(tool-missile 5.0 10.0)
@@ -66,7 +66,7 @@
                                        (new-blue-fighter #:price 5)
                                        (new-blue-fighter #:price 75))))))
   (define b2 (make-ship "blue-station" "b2" "Rebel" #:x 900 #:y 0 #:ai #f
-                        #:hangar '() #:radar 100.0))
+                        #:hangar '()))
 
   (for ((f bf))
     (set-ship-ai-strategy! f

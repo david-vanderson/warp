@@ -15,10 +15,10 @@
 
 (provide (all-defined-out))
 
-(define (obj-radius ownspace o)
+(define (obj-radius ownspace o [view? #f])
   (cond
     ((nebula? o) (nebula-radius o))
-    ((mine? o) (ship-radar o))
+    ((mine? o) (if view? (ship-radius o) (ship-radar o)))
     ((ship? o) (ship-radius o))
     ((plasma? o) (plasma-radius ownspace o))
     ((explosion? o) (explosion-radius o))
@@ -47,7 +47,10 @@
            (append! changes (chstat (ob-id ship) 'toolval (list tname (* 1.1 (tool-val t)))))))
        "turn speed")
       (("hull") (set-stats-maxcon! newstats (* 1.1 (stats-maxcon newstats))) "hull")
-      (("radar") (set-stats-radar! newstats (* 1.1 (stats-radar newstats))) "radar")
+      (("radar")
+       (set! sendstats #f)
+       (append! changes (chstat (ob-id ship) 'radar (* 1.1 (ship-radar ship))))
+       "radar")
       (else #f)))
   (cond (which
          (define m (make-message space (format "~a upgraded ~a" (ship-name ship) which)))
@@ -282,7 +285,12 @@
               (define ddx (* xy_acc (cos r)))
               (define ddy (* xy_acc (sin r)))
               (set-posvel-dx! (obj-posvel a) (+ (obj-dx a) (* ddx dt)))
-              (set-posvel-dy! (obj-posvel a) (+ (obj-dy a) (* ddy dt)))))))))
+              (set-posvel-dy! (obj-posvel a) (+ (obj-dy a) (* ddy dt)))))))
+    ((and (nebula? b)
+          (not (nebula? a)))
+     (define d (distance a b))
+     (define n (- 1.0 (linear-fade d (* (nebula-radius b) 0.7) (nebula-radius b))))
+     (set-obj-neb! a (min (obj-neb a) n)))))
 
 ; called on every pair of objects that might be colliding
 ; called only once for each pair
@@ -362,6 +370,8 @@
   (define qt (qt-new 0 0 (space-width ownspace) (space-height ownspace)))
   (for ((o (in-list (space-objects ownspace)))
         #:when (obj-alive? o))
+    ; everything starts outside the nebula, collide will update
+    (set-obj-neb! o 1.0)
     (update-physics! ownspace o (/ TICK 1000.0))
     (update-stats! ownspace o (/ TICK 1000.0))
     (add-to-qt! ownspace qt o)
