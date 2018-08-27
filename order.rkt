@@ -103,24 +103,24 @@
 ; make a waypoint scouting order
 (define (scout-waypoint text x y r)
   (define pv (posvel 0 x y 0 0 0 0))
-  (define pvobj (obj #f #f #t pv))
-  (order #f text (list (ann-circle (next-id) 0 #t pv #f #t text r))
+  (define pvo (pvobj x y))
+  (order #f text (list (ann-circle (next-id) 0 #t 1.0 pv #f #t text r))
          (lambda (space faction o)
            (for/first ((s (in-list (space-objects space)))
                        #:when (and (ship? s) ((faction-check faction (ship-faction s)) . > . 0)
-                                   ((distance pvobj s) . < . r)))
+                                   ((distance pvo s) . < . r)))
              (set-order-f! o (lambda (s f o) #t))
              #t))))
 
 ; kill a particular ship
 (define (kill text id)
-  (order #f text (list (ann-ship (next-id) 0 #t #f #f #t text id))
+  (order #f text (list (ann-ship (next-id) 0 #t 1.0 #f #f #t text id))
          (lambda (space faction o)
            (not (find-id space space id)))))
 
 ; keep alive
 (define (alive text id)
-  (order #f text (list (ann-ship (next-id) 0 #t #f #f #t text id))
+  (order #f text (list (ann-ship (next-id) 0 #t 1.0 #f #f #t text id))
          (lambda (space faction o)
            (find-id space space id))))
 

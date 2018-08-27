@@ -48,7 +48,7 @@
   (when (plasma-dead? space p)
     (set-obj-alive?! p #f)
     (when (client?)
-      (define e (effect (next-id) (space-time space) #t
+      (define e (effect (next-id) (space-time space) #t 1.0
                         (posvel (space-time space) (obj-x p) (obj-y p) 0.0 0.0 0.0 0.0)
                         pr 300))
       (append! changes (chadd e #f))))

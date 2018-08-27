@@ -31,7 +31,7 @@
     (define s (make-ship "blue-fighter" "a" "a" #:ai #f #:x x #:y y #:r r #:price price))
     (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
                               ;con maxcon mass radar drag start-ship?
-                              1000.0 1000.0 20.0 300.0 0.4 #t))
+                              1000.0 1000.0 20.0 200.0 0.4 #t))
     (set-ship-tools!
      s (append (tools-pilot 50.0 #f 1.5)
                (list ;(tool-missile 5.0 10.0)
@@ -40,7 +40,7 @@
     s)
   
   (define (new-red-fighter (x 0) (y 0))
-    (define s (make-ship "red-fighter" "a" "a" #:ai 'always #:x x #:y y))
+    (define s (make-ship "red-fighter" "a" "a" #:ai #f #:x x #:y y))
     (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
                               ;con maxcon mass radar drag start
                               500.0 500.0 20.0 300.0 0.4 #f))
@@ -54,7 +54,8 @@
   (define rf (for/list ((i 50)) (new-red-fighter  (* 50 i) 150)))
   (define a (make-ship "asteroid_87" "a" "Empire" #:x 95 #:y 95 #:dx -0.001))
 
-  (define b1 (make-ship "blue-station" "b1" "Rebel" #:x 0 #:y 0 #:ai #f #:hangar '() #:radar 2000.0))
+  (define b1 (make-ship "blue-station" "b1" "Rebel" #:x 0 #:y 0 #:ai #f
+                        #:hangar '() #:radar 500.0))
   (set-ship-tools!
    b1 (append (tools-pilot 50.0 #f 1.5)
               (list
@@ -64,13 +65,14 @@
                (tool-factory 100 (list (new-blue-fighter #:price 1)
                                        (new-blue-fighter #:price 5)
                                        (new-blue-fighter #:price 75))))))
-  (define b2 (make-ship "blue-station" "b2" "a" #:x 125 #:y 100 #:ai #f #:hangar '()))
-
-  (define m (make-ship "mine" "m1" "_mine" #:x 100 #:con 25.0 #:radar 50.0))
+  (define b2 (make-ship "blue-station" "b2" "Rebel" #:x 900 #:y 0 #:ai #f
+                        #:hangar '() #:radar 100.0))
 
   (for ((f bf))
     (set-ship-ai-strategy! f
       (list (strategy (space-time ownspace) "return" (ob-id b1)))))
+
+  (define f (new-blue-fighter 800 0))
 
   (define r (new region%))
   (send r set-polygon
@@ -90,14 +92,16 @@
     (define yd (random-between (* sep -0.25) (* sep 0.25)))
     (define dr (* (if ((random) . < . 0.5) -1 1) (random-between 0.01 0.04)))
     (define t (inexact->exact (round (random-between 0 100000))))
-    (define n (nebula (next-id) t #t (posvel 0 (+ x xd) (+ y yd) 0.0 0.0 0.0 dr) sep))
+    (define n (nebula (next-id) t #t 1.0 (posvel 0 (+ x xd) (+ y yd) 0.0 0.0 0.0 dr) sep))
     (prepend! nebulas n))
 
   ;(define n (nebula (next-id) 0 #t (posvel 0 100.0 100.0 0.0 0.0 0.0 0.02) 500.0))
   
   (set-space-objects! ownspace
                       (append 
-                       (list b1 m)
+                       (list #;b1 b2 f
+                             (new-red-fighter 300 0)
+                             (new-red-fighter 800 200))
                        nebulas
                        (space-objects ownspace)))
   
@@ -111,7 +115,7 @@
       (when (not (player-faction p))
         ; new player
         (append! changes (chfaction (ob-id p) "Rebel"))
-        (append! changes (chmov (ob-id p) (ob-id b1) #f))))
+        (append! changes (chmov (ob-id p) (ob-id f) #f))))
 
     (for ((fo (space-orders real-orders)))
       (check ownspace (car fo) (cadr fo)))

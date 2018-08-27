@@ -135,17 +135,6 @@
   (textr txt (exact->inexact (+ x (* 0.5 width))) (exact->inexact (+ y (* 0.5 height))) #:layer layer
          #:r (send color red) #:g (send color green) #:b (send color blue) #:a a))
 
-(define (get-alpha x y fowlist)
-  (define a 0.0)
-  (for ((f (in-list fowlist)))
-    (define dx (- x (car f)))
-    (define dy (- y (cadr f)))
-    (define r (caddr f))
-    (define d (sqrt (+ (* dx dx) (* dy dy))))
-    (define fa (linear-fade d r (* r 1.1)))
-    (set! a (max a fa)))
-  a)
-
 (define (get-red space ship)
   (define hpfrac (max 0.0 (/ (ship-con ship) (ship-maxcon ship))))
   (cond

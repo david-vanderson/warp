@@ -17,12 +17,11 @@
   (define ownspace (space (next-id) 0 5000 2000 players '()
                           `(
                             ,(standard-quit-scenario-button)
-                            ,(ann-text (next-id) 0 #t (posvel 'center -200 -100 0 0 0 0) #f #t
+                            ,(make-ann-text -200 -100 0 10000
                                        (string-append
                                         "Defend your base from the incoming destroyer.\n"
                                         "Use your cruiser to attack, dock on the station to repair.\n"
-                                        "Enemy cruisers drop upgrades when killed.")
-                                       10000)
+                                        "Enemy cruisers drop upgrades when killed."))
                             )))
   
   (define (new-blue-fighter)
@@ -142,16 +141,14 @@
               (else
                "Enemy Defeated, You Win")))
       
-      (append! changes (chadd (ann-text (next-id) (space-time ownspace) #t
-                                        (posvel 'center -200 -100 0 0 0 0) #f #t
-                                        txt #f) #f))
+      (append! changes (chadd (make-ann-text -200 -100 (space-time ownspace) #f txt) #f))
       ; add end scenario button
       (append! changes (chadd (standard-quit-scenario-button #f) #f))
       )
 
     (when (and playing? hb eb)
       (when (time-for (space-time ownspace) 55000 0000)
-        (define m (message (next-id) (space-time ownspace) #t #f "New Fighter at Outpost"))
+        (define m (make-message ownspace "New Fighter at Outpost"))
         (define f (new-blue-fighter))
         (append! changes (chadd f (ob-id base)) m))
       
@@ -160,7 +157,7 @@
         (append! changes (chadd f (ob-id destroyer))))
       
       (when (time-for (space-time ownspace) 90000 10000)
-        (define m (message (next-id) (space-time ownspace) #t #f "Empire Frigate Incoming"))
+        (define m (make-message ownspace "Empire Frigate Incoming"))
         (define x (+ (/ (space-width ownspace) 2) 100))
         (define y (random-between (- (/ (space-height ownspace) 2)) (/ (space-height ownspace) 2)))
         (define fighters (for/list ((i (random 3)))

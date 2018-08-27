@@ -73,12 +73,14 @@
 (struct posvel (t x y r dx dy dr) #:mutable #:prefab)
 ; t is the last spacetime that this posvel was sent to clients
 
-(struct obj ob (start-time alive? posvel) #:mutable #:prefab)
+(struct obj ob (start-time alive? neb posvel) #:mutable #:prefab)
 ; start-time is seconds since scenario start that this object was created
 ;  - used for animations
 ; alive? is #t normally
 ; - set to #f if this obj needs to be removed
 ; - used to support delayed removal of top-level objs
+; neb is 0-1, 0 is inside nebula, 1 is outside
+; - calculated during collision, so updated each tick
 ; if posvel is #f, then this obj is inside something else
 ; if posvel is not #f, then this is a top-level object that is drawn
 
@@ -88,6 +90,10 @@
 (define (obj-dx obj) (posvel-dx (obj-posvel obj)))
 (define (obj-dy obj) (posvel-dy (obj-posvel obj)))
 (define (obj-dr obj) (posvel-dr (obj-posvel obj)))
+
+; use when you need an obj for convenience but only use it for x,y
+(define (pvobj x y [r #f])
+  (obj 'pvobj #f #f #f (posvel #f x y r #f #f #f)))
 
 (struct player ob (name faction cmdlevel commands rcid cbid) #:mutable #:prefab)
 ; name is what is shown in UIs
@@ -236,7 +242,7 @@
 ; dmg is how much damage per second things take when they touch it
 
 (define (make-explosion space x y size max speed dmg)
-  (explosion (next-id) (space-time space) #t
+  (explosion (next-id) (space-time space) #t 1.0
              (posvel (space-time space) x y 0.0 0.0 0.0 0.0)
              size max speed dmg))
 
@@ -277,14 +283,26 @@
 ; - if #f, only hacked clients see it (prevent accidental restarting scenarios in large groups)
 ; - otherwise only if they have the same faction
 
+(define (make-ann-button x y w h txt msg
+                         #:pos [pos 'center]
+                         #:tab? [tab? #f]
+                         #:faction [faction #t])
+  (ann-button (next-id) 0 #t 1.0 (posvel pos x y 0 w h 0)
+              tab? faction txt msg))
 (struct ann-button ann (msg) #:mutable #:prefab)
 ; clickable button
-; obj-x/y is center of button offset from top-left window corner (in canon coords)
+; obj-x/y is center of button offset from pos (in canon coords)
+; - pos of 'center is offset from center of screen
+; - pos of 'topleft is offset from topleft of screen
 ; obj-dx/dy is size of button (in canon coords)
 ; text is what the button says
 ; msg is used to easily know which button was clicked
 ;  - gets delivered to the scenario's on-message as a (anncmd client-id ann-button-id) struct
 
+(define (make-ann-text x y start life txt
+                       #:pos [pos 'center])
+  (ann-text (next-id) start #t 1.0 (posvel pos x y 0 0 0 0)
+            #f #t txt life))
 (struct ann-text ann (life) #:mutable #:prefab)
 ; text annotation
 ; obj-x/y is top-left corner (in canon coords)
@@ -385,6 +403,8 @@
 ; ship-id is the id of the ship
 ; strat is the list of new strategies
 
+(define (make-message ownspace msg)
+  (message (next-id) (space-time ownspace) #t 1.0 #f msg))
 (struct message obj (msg) #:mutable #:prefab)
 ; msg is the text to display
 

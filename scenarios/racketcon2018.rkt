@@ -178,15 +178,15 @@
       (append! changes (chrm team1-button-id)))
     (when (and old? team2-button-id)
       (append! changes (chrm team2-button-id)))
-    (define b1 (ann-button (next-id) 0 #t (posvel 'center -200 0 0 200 100 0)
-                          #f "undecided"
-                          (string-append "Team " team1 "\n" (number->string team1-num))
-                          team1))
+    (define b1 (make-ann-button -200 0 200 100
+                                (string-append "Team " team1 "\n" (number->string team1-num))
+                                team1
+                                #:tab? #f #:faction "undecided"))
     (set! team1-button-id (ob-id b1))
-    (define b2 (ann-button (next-id) 0 #t (posvel 'center 200 0 0 200 100 0)
-                          #f "undecided"
-                          (string-append "Team " team2 "\n" (number->string team2-num))
-                          team2))
+    (define b2 (make-ann-button 200 0 200 100
+                                (string-append "Team " team2 "\n" (number->string team2-num))
+                                team2
+                                #:tab? #f #:faction "undecided"))
     (set! team2-button-id (ob-id b2))
     (append! changes
              (chadd b1 #f)
@@ -198,10 +198,9 @@
     (define changes '())
     (when (and old? score-txtid)
       (append! changes (chrm score-txtid)))
-    (define s (ann-text (next-id) 0 #t (posvel 'topleft 10 100 0 0 0 0) #f #t
-                        (string-append "Team " team1 ": " (number->string team1-score) "\n"
-                                       "Team " team2 ": " (number->string team2-score))
-                        #f))
+    (define s (make-ann-text 10 100 0 #f #:pos 'topleft
+                             (string-append "Team " team1 ": " (number->string team1-score) "\n"
+                                            "Team " team2 ": " (number->string team2-score))))
     (set! score-txtid (ob-id s))
     (append! changes (chadd s #f))
     changes)
@@ -214,24 +213,16 @@
     (define changes '())
     
     ; add standard stuff
-    (append! changes (chadd (ann-button (next-id) 0 #t
-                                        (posvel 'topleft 196 76 0 80 40 0)
-                                        #t #f
-                                        "Quit" "quit-scenario") #f))
-    (append! changes (chadd (ann-button (next-id) 0 #t
-                                        (posvel 'topleft 294 76 0 100 40 0)
-                                        #t #f
-                                        "Restart" "restart") #f))
-    (define obs (ann-button (next-id) 0 #t (posvel 'center 0 200 0 200 100 0)
-                            #f "undecided"
-                            "Observer"
-                            "observer"))
-    (append! changes (chadd obs #f))
-    (define unobs (ann-button (next-id) 0 #t (posvel 'topleft 78 76 0 140 40 0)
-                              #t #t
-                              "Switch Team"
-                              "undecided"))
-    (append! changes (chadd unobs #f))
+    (append! changes (chadd (make-ann-button 196 76 80 40 "Quit" "quit-scenario"
+                                             #:pos 'topleft
+                                             #:tab? #t #:faction #f) #f))
+    (append! changes (chadd (make-ann-button 294 76 100 40 "Restart" "restart"
+                                             #:pos 'topleft
+                                             #:tab? #t #:faction #f) #f))
+    (append! changes (chadd (make-ann-button 0 200 200 100 "Observer" "observer"
+                                             #:faction "undecided") #f))
+    (append! changes (chadd (make-ann-button 78 76 140 40 "Switch Team" "undecided"
+                                             #:pos 'topleft #:tab? #t) #f))
     (append! changes (redo-team-buttons #f))
 
     (set! base1id (next-id))
@@ -278,8 +269,7 @@
     (define changes '())
     (when (not countdown?)
       (set! countdown? (space-time ownspace))
-      (define a (ann-text (next-id) 0 #t (posvel 'center -100 -100 0 0 0 0) #f #t
-                          (string-append "Team " team " Wins!") #f))
+      (define a (make-ann-text -100 -100 0 #f (string-append "Team " team " Wins!")))
       (append! changes (chadd a #f))
       (for ((fac teams))
         (append! changes

@@ -20,7 +20,7 @@
        (when (time-for (obj-age space o) 100)
          (define l (- (ship-radius o)))
          (define t (posvel-r (obj-posvel o)))
-         (define be (backeffect 0 (space-time space) #t
+         (define be (backeffect 0 (space-time space) #t 1.0
                                 (posvel 0
                                         (+ (posvel-x (obj-posvel o)) (* l (cos t))
                                            (* (random-between (- l) l) (sin t)))
@@ -41,7 +41,7 @@
          
          (define l (- (ship-radius o)))
          (define t (posvel-r (obj-posvel o)))
-         (define be (backeffect 0 (space-time space) #t
+         (define be (backeffect 0 (space-time space) #t 1.0
                                 (posvel 0
                                         (+ (posvel-x (obj-posvel o)) (* l (cos t)))
                                         (+ (posvel-y (obj-posvel o)) (* l (sin t)))

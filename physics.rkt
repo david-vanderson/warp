@@ -50,7 +50,7 @@
       (("radar") (set-stats-radar! newstats (* 1.1 (stats-radar newstats))) "radar")
       (else #f)))
   (cond (which
-         (define m (message (next-id) (space-time space) #t #f (format "~a upgraded ~a" (ship-name ship) which)))
+         (define m (make-message space (format "~a upgraded ~a" (ship-name ship) which)))
          (when sendstats (append! changes (chstats (ob-id ship) newstats)))
          (append! changes (list m (chdam (ob-id u) 1 #f))))
         (else
@@ -533,7 +533,7 @@
     (define energy (ship-maxcon ship))
     
     (when (client?)
-      (define e (effect (next-id) (space-time space) #t (struct-copy posvel pv) (sqrt energy) 1000))
+      (define e (effect (next-id) (space-time space) #t 1.0 (struct-copy posvel pv) (sqrt energy) 1000))
       (append! changes (chadd e #f)))
     
     (when (server?)
@@ -557,7 +557,7 @@
         (set! energy-left (- energy-left e))
         (define t (random-between 0 2pi))
         (define s (random-between 10 50))
-        (define p (plasma (next-id) (space-time space) #t
+        (define p (plasma (next-id) (space-time space) #t 1.0
                           (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
                                   (+ (* s (cos t)) (posvel-dx pv))
                                   (+ (* s (sin t)) (posvel-dy pv))
@@ -566,8 +566,8 @@
         (append! changes (chadd p #f)))
 
       (when (spaceship? ship)
-        (define msg (message (next-id) (space-time space) #t #f
-                             (format "~a Destroyed" (ship-name ship))))
+        (define msg (make-message space
+                                  (format "~a Destroyed" (ship-name ship))))
         (append! changes msg))))
   changes)
 

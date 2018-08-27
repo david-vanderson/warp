@@ -115,14 +115,14 @@
 
   (define showtab #f)  ; tab toggles an overlay showing players and goals
   (define showsector? #f)  ; tilde toggles showing the whole sector or the regular view
-  (define zerocenter (obj #f #f #f (posvel #f 0.0 0.0 #f #f #f #f)))
+  (define zerocenter (pvobj 0.0 0.0))
 
   (define center #f)  ; updated each frame for the click handler and mouse cursor drawing
   (define center-follow? #t)  ; show player position in the center?
 
   ; when (not center-follow?)
   ; center of the screen when panning
-  (define centerxy (obj #f #f #f (posvel #f 0.0 0.0 #f #f #f #f)))
+  (define centerxy (pvobj 0.0 0.0))
   (define dragxypx '(0 . 0))  ; last xy of drag in pixels
   (define dragstate "none")  ; "none", "start", "drag"
   
@@ -418,7 +418,11 @@
       (timeit t4
       (for ((o (in-list (space-objects ownspace)))
             #:when (obj-alive? o))
-        (define fowa (if (obj-posvel o) (get-alpha (obj-x o) (obj-y o) fowlist) 1.0))
+        (define fowa 1.0)
+        (when (obj-posvel o)
+          (define or (obj-radius ownspace o))
+          (when or
+            (set! fowa (get-alpha o or fowlist))))
         (when (fowa . > . 0)
           (define spr (draw-object csd textr textsr center (get-scale) o ownspace myshipid
                                  showtab fowa fac))
@@ -859,7 +863,7 @@
         ((spacesuit? (get-ship my-stack))
          ; dying
          (define b (button 'normal 'restart #f
-                           0.0 (- (bottom) 124) 100 40 "Restart"
+                           0.0 (- (bottom) 124) 100 40 "Respawn"
                            (lambda (x y)
                              (set! center-follow? #t)  ; sector/ship centered
                              (send-commands (chmov meid #f 'restart)))))
@@ -1188,8 +1192,8 @@
               (set! help-screen? (not help-screen?)))
              ((#\n)
               (when ownspace
-                (send-commands (message (next-id) (space-time ownspace) #t #f
-                                        (~a "message " (space-time ownspace))))))
+                (send-commands (make-message ownspace
+                                             (~a "message " (space-time ownspace))))))
              #;((#\u)
               (when ownspace
                 (send-commands (chadd (random-upgrade (space-time ownspace)

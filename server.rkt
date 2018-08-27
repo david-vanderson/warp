@@ -130,8 +130,7 @@
   (when c
     (define name (player-name (client-player c)))
     (printf "server (~a) removing client ~a ~a\n" (length clients) (client-id c) name)
-    (define m (message (next-id) (space-time ownspace) #t #f
-                       (format "Player Left: ~a" name)))
+    (define m (make-message ownspace (format "Player Left: ~a" name)))
     (append! updates
              (apply-all-changes! ownspace
                                  (list (chrm (client-id c)) m)
@@ -239,8 +238,7 @@
               (set-client-status! c CLIENT_STATUS_WAITING_FOR_SPACE)
               (append! updates
                        (apply-all-changes! ownspace (list (chadd (client-player c) #f)) "server"))
-              (define m (message (next-id) (space-time ownspace) #t #f
-                                 (format "New Player: ~a" name)))
+              (define m (make-message ownspace (format "New Player: ~a" name)))
               (append! updates (apply-all-changes! ownspace (list m) "server")))))
           
           ((update? u)

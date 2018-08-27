@@ -37,7 +37,7 @@
      (define e (clamp 1.0 (tool-val tool) (* frac (tool-val tool))))
      (define d (+ (ship-radius ship) (plasma-energy->radius e) 0.1))
      (define plas
-       (plasma (next-id) (space-time space) #t
+       (plasma (next-id) (space-time space) #t 1.0
                (posvel (space-time space)
                        (+ (obj-x ship) (* d (cos ship-a)))
                        (+ (obj-y ship) (* d (sin ship-a)))
@@ -66,10 +66,8 @@
     (define ne (nearest-enemy qt ownship filterf?))
     (when (and ne ((distance ownship ne) . < . 300.0))
       (define r (theta ownship ne))
-      (define xy (obj -1 -1 #t (posvel -1
-                                       (+ (obj-x ownship) (* d (cos r)))
-                                       (+ (obj-y ownship) (* d (sin r)))
-                                       0 0 0 0)))
+      (define xy (pvobj (+ (obj-x ownship) (* d (cos r)))
+                        (+ (obj-y ownship) (* d (sin r)))))
       (define t (target-angle xy ownship ne ne
                               PLASMA_SPEED (+ (/ PLASMA_LIFE 1000.0)
                                               (/ (tool-val pb) PLASMA_FADE))))

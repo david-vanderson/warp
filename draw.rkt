@@ -10,6 +10,7 @@
 (require "defs.rkt"
          "utils.rkt"
          "draw-utils.rkt"
+         "physics.rkt"
          "plasma.rkt"
          "explosion.rkt"
          "missile.rkt"
@@ -27,6 +28,21 @@
 
 (define (add-frame-time current-time frames)
   (cons current-time (take frames (min 30 (length frames)))))
+
+
+(define (get-alpha o or fowlist)
+  (define a 0.0)
+  (let/ec done
+    (for ((f (in-list fowlist)))
+      (define dx (- (obj-x o) (car f)))
+      (define dy (- (obj-y o) (cadr f)))      
+      (define d (+ (* dx dx) (* dy dy)))
+      (define r (+ (caddr f) or))
+      (define fa (linear-fade d (* r r) (* r r 1.1)))
+      (set! a (max a fa))
+      (when (a . = . 1.0)
+        (done))))
+  a)
 
 
 (define (random-stars n)

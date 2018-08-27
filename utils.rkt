@@ -118,8 +118,8 @@
       (printf "~a : ~a ~a ~a\n" time who 'v v)) ...))
 
 (define (standard-quit-scenario-button [tab? #t] [faction #t])
-  (ann-button (next-id) 0 #t (posvel 'topleft 68 76 0 120 40 0) tab? faction
-              "Quit Scenario" "quit-scenario"))
+  (make-ann-button 68 76 120 40 "Quit Scenario" "quit-scenario"
+                   #:pos 'topleft #:tab? tab? #:faction faction))
 
 (define-syntax-rule (append! lst e ...)
   (set! lst (append lst (flatten (list e ...)))))

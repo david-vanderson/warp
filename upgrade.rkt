@@ -35,4 +35,4 @@
 (define types '("engines" "turning" "hull" "radar"))
 
 (define (random-upgrade time pv)
-  (upgrade (next-id) time #t pv (list-ref types (random (length types))) 60000))
+  (upgrade (next-id) time #t 1.0 pv (list-ref types (random (length types))) 60000))

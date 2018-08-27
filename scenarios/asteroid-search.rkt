@@ -70,18 +70,17 @@
     (space (next-id) 0 4000 4000 players '()
            `(
              ,(standard-quit-scenario-button)
-             ,(ann-text (next-id) 0 #t (posvel 'center -200 -100 0 0 0 0) #f #t
-                        (string-append
-                         "On mission to destroy a rebel outpost your engines have failed.\n"
-                         "Use probes to search the asteroid field for a hidden base.\n"
-                         "Bring replacement parts back to the ship with fighters.\n"
-                         "Once mobile again, destroy the outpost on the far side of the field.\n")
-                        10000)
+             ,(make-ann-text -200 -100 0 10000
+                             (string-append
+                              "On mission to destroy a rebel outpost your engines have failed.\n"
+                              "Use probes to search the asteroid field for a hidden base.\n"
+                              "Bring replacement parts back to the ship with fighters.\n"
+                              "Once mobile again, destroy the outpost on the far side of the field.\n"))
              ,@asteroids
              )))
 
   ; put the spare parts upgrade in the hidden base
-  (define parts (upgrade (next-id) (space-time ownspace) #t #f "parts" #f))
+  (define parts (upgrade (next-id) (space-time ownspace) #t 1.0 #f "parts" #f))
 
   ; the good guys in this scenario
   (define (new-red-fighter)
@@ -96,7 +95,7 @@
   (define goodship (make-ship "red-cruiser" "a" "a" #:x -1500.0 #:y -1500.0 #:r pi))
   (set-ship-stats! goodship (stats (next-id) "red-cruiser" "Empire Frigate" "Empire"
                                    ;con maxcon mass radar drag start
-                                   500.0 500.0 100.0 300.0 0.4 #t))
+                                   300.0 300.0 100.0 300.0 0.4 #t))
 
   ; ship starts with pilot tools damaged beyond repair
   ; we will manually remove the dmgs when the engine parts are recovered
@@ -132,12 +131,8 @@
        (list (strategy (space-time ownspace) "attack*" (ob-id hb))
              (strategy (space-time ownspace) "return" (ob-id enemy-base))))
       (else
-       (list (strategy (space-time ownspace) "scout" (obj -1 -1 #t
-                                                          (posvel -1 -1500.0 1500.0 500.0
-                                                                  0 0 0)))
-             (strategy (space-time ownspace) "scout" (obj -1 -1 #t
-                                                          (posvel -1 1500.0 -1500.0 500.0
-                                                                  0 0 0)))
+       (list (strategy (space-time ownspace) "scout" (pvobj -1500.0 1500.0 500.0))
+             (strategy (space-time ownspace) "scout" (pvobj 1500.0 -1500.0 500.0))
              (strategy (space-time ownspace) "return" (ob-id enemy-base))))))
 
   
@@ -178,9 +173,7 @@
   (define (end! win? txt)
     (define changes '())
     (set! playing? #f)  ; end scenario
-    (append! changes (chadd (ann-text (next-id) (space-time ownspace) #t
-                                      (posvel 'center -200 -100 0 0 0 0) #f #t
-                                      txt #f) #f))
+    (append! changes (chadd (make-ann-text -200 -100 (space-time ownspace) #f txt) #f))
     ; add end scenario button
     (append! changes (chadd (standard-quit-scenario-button #f) #f))
     changes)
@@ -230,13 +223,14 @@
           (append! changes (end! #f "Parts Lost, You Lose"))))
     
       (when (time-for (space-time ownspace) 55000 0000)
-        (define m (message (next-id) (space-time ownspace) #t #f "New Enemy Scout Detected"))
+        (define m (make-message ownspace "New Enemy Scout Detected"))
         (define f (new-blue-fighter ownspace))
         (append! changes (chadd f (ob-id enemy-base)) m))
 
-      (when (not (find-id ownspace ownspace
-                          (lambda (o) (and (ship? o)
-                                           (equal? (ship-type o) "red-fighter")))))
+      (when (and frig
+                 (not (find-id ownspace ownspace
+                               (lambda (o) (and (ship? o)
+                                                (equal? (ship-type o) "red-fighter"))))))
         (define f (new-red-fighter))
         (append! changes (chadd f (ob-id frig))))
 
@@ -273,14 +267,14 @@
                    (chstats (ob-id hb) newstats)
                    (chstat (ob-id hb) 'ai 'always)
                    (chadd parts (ob-id hb))
-                   (message (next-id) (space-time ownspace) #t #f "Discovered Hidden Base!"))))
+                   (make-message ownspace "Discovered Hidden Base!"))))
 
       ; check if the good guys docked
       (when (and found-base? (not dock-base?) hb)
         (for/first ((s (in-list (ship-hangar hb))))
           (set! dock-base? #t)
           (append! changes (chmov (ob-id parts) (ob-id s) #f)
-                   (message (next-id) (space-time ownspace) #t #f "Parts Transferred to Fighter"))))
+                   (make-message ownspace "Parts Transferred to Fighter"))))
       
       ; check if the parts got back to goodship
       (when (and found-base? dock-base? (not parts-returned?))
@@ -291,7 +285,7 @@
           ; repair the engine
           (append! changes (chrm (ob-id parts))
                    (chrm enginedmgid) (chrm warpdmgid)
-                   (message (next-id) (space-time ownspace) #t #f "Frigate Engine Repaired!"))))
+                   (make-message ownspace "Frigate Engine Repaired!"))))
       )
 
     (append! changes (order-changes ownspace real-orders))
