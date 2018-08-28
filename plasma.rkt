@@ -55,11 +55,11 @@
   changes)
 
 
-(define (draw-plasma csd center scale p space fowa)
+(define (draw-plasma csd center scale p space fowa layer-ships)
   (define cycle 1000.0)
   (define t (modulo (obj-age space p) cycle))
   (define rot (* 2pi (/ t cycle)))
   (define-values (x y) (obj->screen p center scale))
   (define size (/ (* (* 2.0 (plasma-radius space p)) scale) PLASMA_SPRITE_SIZE))
   (sprite x y PLASMA_SPRITE_IDX
-          #:layer LAYER_SHIPS #:a fowa #:theta (exact->inexact (- rot)) #:m size))
+          #:layer layer-ships #:a fowa #:theta (exact->inexact (- rot)) #:m size))

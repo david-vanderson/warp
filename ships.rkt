@@ -114,7 +114,8 @@
              (ship-faction ship)
              #:x (obj-x ship) #:y (obj-y ship)
              #:dx (+ (obj-dx ship) (* r (cos theta)))
-             #:dy (+ (obj-dy ship) (* r (sin theta)))))
+             #:dy (+ (obj-dy ship) (* r (sin theta)))
+             #:radar 150.0 #:visible 150.0))
 
 
 (define (make-ship type name faction

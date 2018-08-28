@@ -33,6 +33,6 @@
     (set-obj-alive?! s #f)))
 
 
-(define (draw-shield csd center scale space s fowa)
-  (obj-sprite s csd center scale LAYER_SHIPS 'shield (shield-length space s) fowa (obj-r s) "blue"))
+(define (draw-shield csd center scale space s fowa layer-ships)
+  (obj-sprite s csd center scale layer-ships 'shield (shield-length space s) fowa (obj-r s) "blue"))
 

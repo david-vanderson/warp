@@ -292,7 +292,7 @@
       (set! countdown? (space-time ownspace))
       (define a (make-ann-text -100 -100 0 #f (string-append "Team " team " Wins!")))
       (append! changes (chadd a #f))
-      (for ((fac teams))
+      (for ((fac (cons "Observer" teams)))
         (append! changes
                  (chorders fac
                            (ordertime #f "Restart in ~a" '() #f

@@ -310,14 +310,6 @@
   (define h (ship-hangar s))
   (if h h '()))
 
-(define (get-center space stack)
-  (define shipcenter (get-topship stack))
-  (define p (car stack))
-  (define rcobj (if (player-rcid p) (find-id space space (player-rcid p)) #f))
-  (cond
-    (rcobj rcobj)
-    (else shipcenter)))
-
 (define (get-space stack)
   (car (reverse stack)))
 

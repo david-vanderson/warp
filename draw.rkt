@@ -41,11 +41,8 @@
       (define va (linear-fade d (* vd vd) (* vd vd 1.1)))
       (define rd (+ (fow-radar f) r))
       (define ra (linear-fade d (* rd rd) (* rd rd 1.1)))
-      (set! a (max a
-                   ; visually see him clearly, vn says how well this info gets to player
-                   (* va (fow-vn f))
-                   ; radar only picks o up according to how far o is in nebula
-                   (* ra (obj-neb o) (fow-rn f))))
+      ; radar is attenuated by the nebula
+      (set! a (max a va (* ra (obj-neb o))))
       (when (a . = . 1.0)
         (done))))
   a)
@@ -143,7 +140,8 @@
   )
 
 
-(define (draw-object csd textr textsr center scale o space myshipid showplayers? fowa faction)
+(define (draw-object csd textr textsr center scale o space myshipid
+                     showplayers? fowa faction layer-ships layer-effects)
   (cond
     #;((ptsize . < . 0.25)  ; "sector" view - ships are triangles
      (cond ((ship? o)
@@ -181,15 +179,15 @@
             (send dc draw-point (obj-x o) (obj-y o)))))
     (else
      (cond ((plasma? o)
-            (draw-plasma csd center scale o space fowa))
+            (draw-plasma csd center scale o space fowa layer-ships))
            ((explosion? o)
-            (draw-explosion csd center scale o space fowa))
+            (draw-explosion csd center scale o space fowa layer-effects))
            ((shield? o)
-            (draw-shield csd center scale space o fowa))
+            (draw-shield csd center scale space o fowa layer-ships))
            ((effect? o)
-            (draw-effect csd center scale space o fowa))
+            (draw-effect csd center scale space o fowa layer-effects))
            ((upgrade? o)
-            (draw-upgrade csd center scale space o fowa))
+            (draw-upgrade csd center scale space o fowa layer-ships))
            ((nebula? o)
             (draw-nebula csd center scale space o fowa))
            ((ship? o)
@@ -217,7 +215,7 @@
                                                             (number->string (+ k 1)))))))))
 
             
-            (prepend! spr (obj-sprite o csd center scale LAYER_SHIPS
+            (prepend! spr (obj-sprite o csd center scale layer-ships
                                       sym
                                       (/ (ship-sprite-size o)
                                          (sprite-size csd (car (ship-info-bm si))))
@@ -230,7 +228,7 @@
               (define ov (cdr ovpair))
               (case (overlay-sym ov)
                 ((overlay-qm overlay-cargo)
-                 (prepend! spr (obj-sprite o csd center scale LAYER_EFFECTS
+                 (prepend! spr (obj-sprite o csd center scale layer-effects
                                            (overlay-sym ov) (/ 1.0 scale)
                                            (if (overlay-fow? ov) fowa 1.0) 0.0
                                            (make-color 0 255 0 1.0))))))
@@ -245,15 +243,16 @@
                       ((fc . < . 0) (make-color 200 0 0 (min 0.8 fowa)))
                       (else #f)))
               (when col
-                (prepend! spr (draw-corners o w csd center scale col))))
+                (prepend! spr (draw-corners o w csd center scale col layer-effects))))
 
             (when (equal? myshipid (ob-id o))
               ; green corners for our ship
-              (prepend! spr (draw-corners o w csd center scale (make-color 0 200 0 1.0))))
+              (prepend! spr (draw-corners o w csd center scale
+                                          (make-color 0 200 0 1.0) layer-effects)))
 
             
             (define-values (x y) (obj->screen o center scale))
-            (prepend! spr (draw-hp-bar o x y w csd LAYER_EFFECTS fowa))
+            (prepend! spr (draw-hp-bar o x y w csd layer-effects fowa))
             
             ;(prepend! spr (draw-ship-info csd center scale o (obj-x o) (obj-y o) space fowa layer_effects))
             (when showplayers?  
@@ -358,24 +357,24 @@
   spr)
 
 
-(define (draw-corners o w csd center scale color)
+(define (draw-corners o w csd center scale color layer)
   (define spr '())
   (define-values (x y) (obj->screen o center scale))
   (define idx (sprite-idx csd 'corner))
   (prepend! spr (sprite (- x w) (- y w) idx
-                        #:layer LAYER_EFFECTS #:m 3.0
+                        #:layer layer #:m 3.0
                         #:a (send color alpha)
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
   (prepend! spr (sprite (+ x w) (- y w) idx
-                        #:layer LAYER_EFFECTS #:m 3.0 #:theta pi/2
+                        #:layer layer #:m 3.0 #:theta pi/2
                         #:a (send color alpha)
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
   (prepend! spr (sprite (+ x w) (+ y w) idx
-                        #:layer LAYER_EFFECTS #:m 3.0 #:theta pi
+                        #:layer layer #:m 3.0 #:theta pi
                         #:a (send color alpha)
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
   (prepend! spr (sprite (- x w) (+ y w) idx
-                        #:layer LAYER_EFFECTS #:m 3.0 #:theta (+ pi pi/2)
+                        #:layer layer #:m 3.0 #:theta (+ pi pi/2)
                         #:a (send color alpha)
                         #:r (send color red) #:g (send color green) #:b (send color blue)))
   spr)
@@ -512,7 +511,7 @@
 
 
 ; drawn in canon transform (buttons, dmgs, warnings)
-(define (draw-tool-ui csd center scale space pid ship t stack alpha
+(define (draw-tool-ui csd center scale space pid ship t stack
                       send-commands active-mouse-tool last-pbolt-time)
   (define buttons '())
   (define spr '())
@@ -609,7 +608,7 @@
        (prepend! spr (sprite x (+ y w 4.5) (sprite-idx csd '5x1) #:layer LAYER_EFFECTS
                              #:mx (* life 2.0 (min w 48.0) 0.2)
                              #:my 4.0
-                             #:r 255 #:a alpha))
+                             #:r 200))
      
        (define b (button 'normal #\s #f 0 (- (bottom) 101) 100 40 "Stop [s]"
                          (lambda (x y)

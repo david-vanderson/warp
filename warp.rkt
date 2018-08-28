@@ -70,7 +70,7 @@
   (append! spr (sprite x y (sprite-idx csd '100x100) #:layer LAYER_UI
                        #:mx (/ (* w z) 100.0)
                        #:my (/ h 100.0)
-                       #:r 255))
+                       #:r 200))
 
   ; we always want the button on the screen so that the mouse cursor looks right
   ; only have the button-f function do something when allowed

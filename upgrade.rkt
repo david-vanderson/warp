@@ -27,8 +27,8 @@
     (else #f)
     ))
 
-(define (draw-upgrade csd center scale space u fowa)
-  (obj-sprite u csd center scale LAYER_SHIPS 'circle
+(define (draw-upgrade csd center scale space u fowa layer-ships)
+  (obj-sprite u csd center scale layer-ships 'circle
               (/ (* 2.0 (upgrade-radius space u)) 100) fowa 0.0
               (send the-color-database find-color (upgrade-color u))))
 

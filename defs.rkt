@@ -31,12 +31,17 @@
 
 (define nocolor "hotpink")  ; used with a transparent pen/brush
 
-(define LAYER_FOW_BLACK 0)  ; paint black everywhere you can see
-(define LAYER_MAP 1)  ; map lines, annotations, stars, backeffects
-(define LAYER_SHIPS 2)  ; ships, plasmas, normal objects
-(define LAYER_EFFECTS 3)  ; explosions, overlays, hp bars
-(define LAYER_HANGAR_BACKGROUND 4)  ; hangar background
-(define LAYER_HANGAR 5)  ; hangar ships
+; screen starts gray (except for start screen, help screen)
+(define LAYER_FOW_RADAR 0)  ; paint black everywhere you can see with radar
+(define LAYER_FOW_BLOCK 1)  ; paint gray everywhere that blocks radar
+(define LAYER_FOW_VISIBLE 2)  ; paint black everywhere you can see visually
+(define LAYER_MAP 3)  ; map lines, annotations, stars, backeffects
+(define LAYER_SHIPS 4)  ; ships, plasmas, normal objects
+(define LAYER_EFFECTS 5)  ; explosions, overlays, hp bars
+; when in hangar:
+; - ships and effects go down to map
+; - hangar background is on layer_ships
+; - hangar stuff is on layer_effects
 (define LAYER_UI 6)  ; buttons
 (define LAYER_UI_TEXT 7)  ; button text/fill
 (define LAYER_NUM 8)
@@ -234,13 +239,11 @@
 (struct nebula obj (radius) #:mutable #:prefab)
 ; radius tells you how big this nebula is
 
-(struct fow (x y radar rn visible vn) #:transparent)
+(struct fow (x y radar visible) #:transparent)
 ; describes a disc visible to the player
 ; - x,y is center
 ; - radar is radius we can see things normally (they disappear in nebula)
-; - rn is alpha of how well you see things in the radar
 ; - visible is the radius we can see things even in nebula
-; - vn is alpha of how well you see things visually
 
 (struct explosion obj (size maxsize expand dmg-rate) #:mutable #:prefab)
 ; disc where everything touching it takes damage

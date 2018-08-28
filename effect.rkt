@@ -12,7 +12,7 @@
 (provide (all-defined-out))
 
 
-(define (add-backeffects! space o)
+(define (make-backeffect! space o)
   (when (ship? o)
     (define eng (ship-tool o 'engine))
     (cond
@@ -29,8 +29,8 @@
                                         0
                                         (- (* 1.5 (posvel-dx (obj-posvel o))))
                                         (- (* 1.5 (posvel-dy (obj-posvel o))))
-                                        0) #f 1000))
-         (set-space-objects! space (cons be (space-objects space)))))
+                                        0) 1.5 1000))
+         be))
       (eng
        (define c (tool-count space eng o))
        (when (or (and (missile? o) (time-for (obj-age space o) 200))
@@ -53,9 +53,9 @@
                                             (- (* 16.0 (sin (obj-r o))))
                                             (- (posvel-dy (obj-posvel o))))
                                         0)
-                                #f
+                                1.5
                                 (if (missile? o) 200 1000)))
-         (set-space-objects! space (cons be (space-objects space))))))))
+         be)))))
 
 
 
@@ -63,14 +63,14 @@
   ((obj-age space e) . > . (effect-duration e)))
 
 
-(define (draw-effect csd center scale space e fowa)
+(define (draw-effect csd center scale space e fowa layer-effects)
   (cond ((backeffect? e)
          (draw-backeffect csd center scale space e fowa))
         (else
          (define agep (linear-fade (obj-age space e) 0 (effect-duration e)))
          (define col (linear-color "yellow" "yellow" 0 agep))
          (define rad (* (+ 1.0 (- 1.0 agep)) (effect-size e)))
-         (obj-sprite e csd center scale LAYER_EFFECTS 'circle
+         (obj-sprite e csd center scale layer-effects 'circle
                      (/ (* 2.0 rad) 100) (* fowa agep) 0 col))))
 
 
@@ -78,5 +78,5 @@
   (define z (linear-fade (obj-age space e) 0.0 (effect-duration e)))
   (define col (linear-color "white" "red" (- 1.0 z) z))
   (obj-sprite e csd center scale LAYER_MAP 'circle
-              (/ 3.0 100) (* fowa z) 0 col))
+              (/ (* 2.0 (effect-size e)) 100) (* fowa z) 0 col))
 

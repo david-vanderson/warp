@@ -15,6 +15,9 @@
 
 (provide (all-defined-out))
 
+; what is put into the quadtree and used for collisions
+; - collisions determine obj-neb (how far inside nebula)
+; also used for fog of war (view? #t)
 (define (obj-radius ownspace o [view? #f])
   (cond
     ((nebula? o) (nebula-radius o))
@@ -23,6 +26,7 @@
     ((plasma? o) (plasma-radius ownspace o))
     ((explosion? o) (explosion-radius o))
     ((upgrade? o) (upgrade-radius ownspace o))
+    ((effect? o) (effect-size o))
     (else #f)))
 
 
@@ -261,21 +265,27 @@
 
 ; numeric priority that controls the order that objects are seen by collide!
 (define (priority o)
-  (cond ((explosion? o) 0)
-        ((plasma? o) 1)
-        ((cannonball? o) 2)
-        ((missile? o) 3)
-        ((mine? o) 4)
-        ((upgrade? o) 5)
-        ((spaceship? o) 6)
-        ((probe? o) 6)
-        ((spacesuit? o) 6)
-        ((nebula? o) 7)
-        (else (printf "priority unknown for ~v\n" o) 8)))
+  (cond ((nebula? o) 0)
+        ((explosion? o) 1)
+        ((plasma? o) 2)
+        ((cannonball? o) 3)
+        ((missile? o) 4)
+        ((mine? o) 5)
+        ((upgrade? o) 6)
+        ((spaceship? o) 7)
+        ((probe? o) 7)
+        ((spacesuit? o) 7)
+        ((effect? o) 8)
+        (else (printf "priority unknown for ~v\n" o) 9)))
 
 
 (define (collide-common! a b dt)
   (cond
+    ((and (nebula? a)
+          (not (nebula? b)))
+     (define d (distance a b))
+     (define n (- 1.0 (linear-fade d (* (nebula-radius a) 0.7) (nebula-radius a))))
+     (set-obj-neb! b (min (obj-neb b) n)))
     ((and (mine? a) (ship-tool a 'engine))
      (cond ((spaceship? b)
             (define d (distance a b))
@@ -285,12 +295,7 @@
               (define ddx (* xy_acc (cos r)))
               (define ddy (* xy_acc (sin r)))
               (set-posvel-dx! (obj-posvel a) (+ (obj-dx a) (* ddx dt)))
-              (set-posvel-dy! (obj-posvel a) (+ (obj-dy a) (* ddy dt)))))))
-    ((and (nebula? b)
-          (not (nebula? a)))
-     (define d (distance a b))
-     (define n (- 1.0 (linear-fade d (* (nebula-radius b) 0.7) (nebula-radius b))))
-     (set-obj-neb! a (min (obj-neb a) n)))))
+              (set-posvel-dy! (obj-posvel a) (+ (obj-dy a) (* ddy dt)))))))))
 
 ; called on every pair of objects that might be colliding
 ; called only once for each pair
@@ -376,7 +381,10 @@
     (update-stats! ownspace o (/ TICK 1000.0))
     (add-to-qt! ownspace qt o)
     (when (client?)
-      (add-backeffects! ownspace o)))
+      (define be (make-backeffect! ownspace o))
+      (when (backeffect? be)
+        (set-space-objects! ownspace (cons be (space-objects ownspace)))
+        (add-to-qt! ownspace qt be))))
 
   ; need to delay adding new things to quadtree during qt-collide!
   (define objs-added '())
