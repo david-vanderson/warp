@@ -25,10 +25,19 @@
     (cond ((ship? fto)
            (cond ((player? o) (values set-ship-playerids! ship-playerids #f))
                  ((upgrade? o) (values set-ship-cargo! ship-cargo #f))
-                 (else (values set-ship-hangar! ship-hangar #f))))
+                 (else
+                  (when (not rem?)
+                    ; when adding something to a ship-hangar, always remove the posvel
+                    (set-obj-posvel! o #f))
+                  (values set-ship-hangar! ship-hangar #f))))
           ((space? fto)
            (cond ((player? o) (values set-space-players! space-players #f))
-                 (else (values set-space-objects! space-objects #t))))
+                 (else
+                  (when (and (not rem?)
+                             (obj? o)
+                             (not (obj-posvel o)))
+                    (error "trying to add obj without posvel to space-objects" o))
+                  (values set-space-objects! space-objects #t))))
           ((tool? fto) (values set-tool-dmgs! tool-dmgs #f))
           (else
            (error "adj! hit else" o fto))))
@@ -153,7 +162,6 @@
                  (define changes '())
                  (when (server?)
                    (define news (copy t #t))  ; set all new ob-ids
-                   (set-obj-posvel! news #f)  ; make sure new ship has no posvel
                    (append! changes (chadd news (ob-id ship))))
                  (values #t changes))
                 (else
@@ -252,6 +260,12 @@
      (cond
        (to
         (define o (chadd-o c))
+        (when (obj? o)
+          (set-obj-start-time! o (space-time space)))
+        (when (ship? o)
+          (set-ship-ai-strat-time! o (space-time space))
+          (for ((s (in-list (ship-ai-strategy o))))
+            (set-strategy-t! s (space-time space))))
         (add! o to who addf)
         (values #t '()))
        (else
@@ -307,11 +321,15 @@
               (set! s (cons t (cdr s))))
              (else
               (rem! (car s) (cadr s) who)
-              (when (and (server?) (player? (car s)) (spacesuit? (cadr s)))
-                ; leaving a space suit, remove the suit
-                (append! changes (chrm (ob-id (cadr s))))
+              (when (and (player? (car s)) (spacesuit? (cadr s)))
+                ; leaving a space suit
+                (when (server?)
+                  ; remove the suit
+                  (append! changes (chrm (ob-id (cadr s)))))
                 (when (equal? 'restart (chmov-pv c))
-                  ; notify caller, they will accumulate pids and call scenario-on-player-restart
+                  ; notify caller
+                  ; - server accumulates pids and calls scenario-on-player-restart later
+                  ; - client uses this to reset view to whole sector
                   (when on-player-restart
                     (on-player-restart (ob-id (car s)))))
                 )))
@@ -355,9 +373,18 @@
            (printf "~a dropping chmov (can't find chmov-id) ~v\n" who c)
            (values #f '()))))))
     ((chfaction? c)
-     (define pid (chfaction-playerid c))
-     (define p (findfid pid (space-players space)))
-     (when p (set-player-faction! p (chfaction-newf c)))
+     (define p (findfid (chfaction-id c) (space-players space)))
+     (cond
+       (p (set-player-faction! p (chfaction-newf c)))
+       (else
+        (define o (find-id space space (chfaction-id c)))
+        (cond
+          ((and o (ship? o))
+           (set-ship-faction! o (chfaction-newf c)))
+          (o
+           (printf "~a dropping chfaction (don't know how to change) ~v found ~v\n" who c o))
+          (else
+           (printf "~a dropping chfaction (can't find object) ~v\n" who c)))))
      (values #t '()))
     ((chorders? c)
      ;(printf "~a chorders ~v\n" who c)
@@ -393,15 +420,6 @@
            (else
             (printf "~a new-strat - couldn't find obj id ~a\n" who (new-strat-ship-id c))
             (values #t '()))))
-    ((chstats? c)
-     (define o (find-id space space (chstats-id c)))
-     (cond (o
-            (set-ship-stats! o (chstats-newstats c))
-            ;(printf "ship ~a now has stats ~v\n" (ship-name o) (ship-stats o))
-            (values #t '()))
-           (else
-            (printf "~a chstats - couldn't find obj id ~a\n" who (chstats-id c))
-            (values #t '()))))
     ((chstat? c)
      (define o (find-id space space (chstat-id c)))
      (cond
@@ -411,7 +429,14 @@
            (set-ship-ai! o (chstat-val c))
            (values #t '()))
           ((radar)
-           (set-ship-radar! o (chstat-val c)))
+           (set-ship-radar! o (chstat-val c))
+           (values #t '()))
+          ((hull)
+           (set-ship-maxcon! o (chstat-val c))
+           (values #t '()))
+          ((invincible)
+           (set-ship-invincible?! o (chstat-val c))
+           (values #t '()))
           ((toolval)
            (define t (ship-tool o (car (chstat-val c))))
            (cond

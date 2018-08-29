@@ -62,110 +62,74 @@
       (else
        (error 'get-team-color "team not recognized: ~a" team))))
 
-  (define (make-base ownspace team x y enemyid)
-    (define type (string-append (get-team-color team) "-station"))
-    (define b (make-ship type (string-append "Base " team) team
-                         #:x x #:y y #:radar 500.0
-                         #:ai 'always #:hangar '() #:dr 0.1))    
-    (set-ship-stats! b (stats (next-id) (ship-type b) (ship-name b) (ship-faction b)
-                              ;con maxcon mass drag start-ship?
-                              500.0 500.0 1000.0 0.4 #t))
+  (define (make-base team x y enemyid)
+    (define aifighter (make-ship
+                       (string-append (get-team-color team) "-fighter")
+                       (string-append team " Fighter") team
+                       #:price 2 #:ai 'always
+                       #:hull 50 #:mass 20 #:drag 0.4
+                       #:tools (append (tools-pilot 50.0 #f 1.4)
+                                       (list (tool-pbolt 8.0)
+                                             (tool-regen 1.0)))
+                       #:ai-strats (list (strategy 0 "attack*" enemyid))))
 
-    (define aifighter
-      (let ((s (make-ship
-                (string-append (get-team-color team) "-fighter")
-                (string-append team " Fighter") team
-                #:posvel? #f #:price 2 #:ai 'always)))
-        (set-ship-stats! s
-                         (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                                ;con maxcon mass drag start?
-                                50.0 50.0 20.0 0.4 #f))
-        (set-ship-tools! s
-                         (append (tools-pilot 50.0 #f 1.4)
-                                 (list (tool-pbolt 8.0)
-                                       (tool-regen 1.0))))
-        (set-ship-ai-strategy! s
-                               (list (strategy (space-time ownspace)
-                                               "attack*" enemyid)))
-        s))
+    (define fighter (make-ship
+                     (string-append (get-team-color team) "-fighter")
+                     (string-append team " Fighter") team
+                     #:price 5 #:hull 50 #:mass 20 #:drag 0.4
+                     #:tools (append (tools-pilot 60.0 #f 1.6)
+                                     (list (tool-pbolt 8.0)
+                                           (tool-regen 1.0)))))
 
-    (define fighter
-      (let ((s (make-ship
-                (string-append (get-team-color team) "-fighter")
-                (string-append team " Fighter") team
-                #:posvel? #f #:price 5)))
-        (set-ship-stats! s
-                         (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                                ;con maxcon mass drag start?
-                                50.0 50.0 20.0 0.4 #f))
-        (set-ship-tools! s
-                         (append (tools-pilot 60.0 #f 1.6)
-                                 (list (tool-pbolt 8.0)
-                                       (tool-regen 1.0))))
-        s))
+    (define frigate (make-ship
+                     (string-append (get-team-color team) "-frigate")
+                     (string-append team " Frigate") team
+                     #:hangar '() #:price 10 #:radar 400
+                     #:hull 100 #:mass 50 #:drag 0.4
+                     #:tools (append (tools-pilot 35.0 #f 1.0)
+                                     (list (tool-pbolt 8.0)
+                                           (tool-mine 25.0)
+                                           (tool-warp 200.0 50.0)
+                                           (tool-missile 5.0 10.0)
+                                           (tool-regen 1.0)))))
 
-    (define frigate
-      (let ((s (make-ship
-                (string-append (get-team-color team) "-frigate")
-                (string-append team " Frigate") team
-                #:posvel? #f #:hangar '() #:price 10 #:radar 400.0)))
-        (set-ship-stats! s
-                         (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                                ;con maxcon mass drag start?
-                                100.0 100.0 50.0 0.4 #f))
-        (set-ship-tools! s
-                         (append (tools-pilot 35.0 #f 1.0)
-                                 (list (tool-pbolt 8.0)
-                                       (tool-mine 25.0)
-                                       (tool-warp 200.0 50.0)
-                                       (tool-missile 5.0 10.0)
-                                       (tool-regen 1.0))))
-        s))
+    (define cruiser (make-ship
+                     (string-append (get-team-color team) "-cruiser")
+                     (string-append team " Cruiser") team
+                     #:hangar '() #:price 25 #:radar 500
+                     #:hull 150 #:mass 100 #:drag 0.4
+                     #:tools (append (tools-pilot 20.0 #f 0.7)
+                                     (list (tool-pbolt 8.0)
+                                           (tool-probe 10.0)
+                                           (tool-missile 5.0 10.0)
+                                           (tool-cannon 21.0)
+                                           (tool-warp 200.0 80.0)
+                                           (tool-regen 1.0)))))
 
-    (define cruiser
-      (let ((s (make-ship
-                (string-append (get-team-color team) "-cruiser")
-                (string-append team " Cruiser") team
-                #:posvel? #f #:hangar '() #:price 25 #:radar 500.0)))
-        (set-ship-stats! s
-                         (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                                ;con maxcon mass drag start?
-                                150.0 150.0 100.0 0.4 #f))
-        (set-ship-tools! s
-                         (append (tools-pilot 20.0 #f 0.7)
-                                 (list (tool-pbolt 8.0)
-                                       (tool-probe 10.0)
-                                       (tool-missile 5.0 10.0)
-                                       (tool-cannon 21.0)
-                                       (tool-warp 200.0 80.0)
-                                       (tool-regen 1.0))))
-        s))
-                               
-    (set-ship-tools! b
-                     (list (tool-pbolt 10.0)
-                           (tool-probe 30.0)
-                           (tool-missile 5.0 10.0)
-                           (tool-regen 1.0)
-                           (tool-factory 20 (list aifighter
-                                                  fighter
-                                                  frigate
-                                                  cruiser))))
-    b)
+    (make-ship (string-append (get-team-color team) "-station")
+               (string-append "Base " team) team
+               #:x x #:y y #:radar 500
+               #:ai 'always #:hangar '() #:dr 0.1
+               #:hull 500 #:mass 1000 #:drag 0.4 #:start-ship? #t
+               #:tools (list (tool-pbolt 10.0)
+                             (tool-probe 30.0)
+                             (tool-missile 5.0 10.0)
+                             (tool-regen 1.0)
+                             (tool-factory 20 (list aifighter
+                                                    fighter
+                                                    frigate
+                                                    cruiser)))))
 
   (define (new-fighter p x y)
     (define faction (player-faction p))
     (define type (string-append (get-team-color faction) "-fighter"))
     (define name (string-append (player-name p) " fighter"))
-    (define s (make-ship type name faction
-                         #:x x #:y y #:price 5))
-    (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                              ;con maxcon mass drag start?
-                              100.0 100.0 20.0 0.4 #f))
-    (set-ship-tools! s
-                     (append (tools-pilot 60.0 #f 1.6)
-                             (list (tool-pbolt 8.0)
-                                   (tool-regen 1.0))))
-    s)
+    (make-ship type name faction
+               #:x x #:y y #:price 5
+               #:hull 100 #:mass 20 #:drag 0.4
+               #:tools (append (tools-pilot 60.0 #f 1.6)
+                               (list (tool-pbolt 8.0)
+                                     (tool-regen 1.0)))))
 
   (define (place-player p x y)
     (define f (new-fighter p x y))
@@ -250,12 +214,12 @@
     (set! base2id (next-id))
 
     ; add team1 base
-    (define b1 (make-base ownspace team1 base1x (random-between -500 500) base2id))
+    (define b1 (make-base team1 base1x (random-between -500 500) base2id))
     (set-ob-id! b1 base1id)
     (append! changes (chadd b1 #f))
 
     ; add team2 base
-    (define b2 (make-base ownspace team2 base2x (random-between -500 500) base1id))
+    (define b2 (make-base team2 base2x (random-between -500 500) base1id))
     (set-ob-id! b2 base2id)
     (append! changes (chadd b2 #f))
 

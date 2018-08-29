@@ -16,7 +16,7 @@
 (define (reduce-cannonball! space b damage)
   (define changes '())
 
-  (set-stats-con! (ship-stats b) (- (ship-con b) damage))
+  (set-ship-con! b (- (ship-con b) damage))
   
   (when ((ship-con b) . <= . 0)
     (set-obj-alive?! b #f)
@@ -63,8 +63,8 @@
                             #:ai (if (not (player? (car stack))) 'always #f)
                             #:r a
                             #:radar (ship-radar ship)
-                            #:start-time (space-time space)
-                            #:con (tool-val tool)))
+                            #:hull (tool-val tool)
+                            #:tools (list (tool-endrc 0.0))))
        (define d (+ (ship-radius ship) (ship-radius b) 0.1))
        (define speed CANNON_SPEED)
        (set-obj-posvel! b (posvel (space-time space)

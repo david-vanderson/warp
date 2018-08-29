@@ -115,142 +115,75 @@
              #:x (obj-x ship) #:y (obj-y ship)
              #:dx (+ (obj-dx ship) (* r (cos theta)))
              #:dy (+ (obj-dy ship) (* r (sin theta)))
-             #:radar 150.0 #:visible 150.0))
+             #:hull 1 #:drag 0.5 #:mass 1
+             #:radar 150 #:visible 150))
 
 
 (define (make-ship type name faction
-                   #:posvel? (posvel? #t)
                    #:x (x 0.0) #:y (y 0.0) #:r (r pi/2)
                    #:dx (dx 0.0) #:dy (dy 0.0) #:dr (dr 0.0)
                    #:size (size (ship-info-size (hash-ref ship-list type)))
-                   #:hit-radius (hit-radius #f)
+                   #:mass [mass #f]
                    #:drag (drag 0.0)
                    #:price (price #f)
                    #:invincible? (invincible? #f)
                    #:start-ship? (start-ship? #f)
                    #:ai (ai #f)
-                   #:con (con 1.0)
-                   #:start-time (start-time 0)
-                   #:life (life 1.0)
+                   #:hull (hull 1.0)
                    #:radar (radar 300.0)
                    #:visible (visible 200.0)
-                   #:hangar (in-hangar #f)
-                   #:cargo (cargo '()))
+                   #:hangar (hangar #f)
+                   #:cargo (cargo '())
+                   #:overlays [overlays '()]
+                   #:tools [tools '()]
+                   #:ai-strats [ai-strats '()])
   (define args (list
-                (next-id) start-time #t 1.0
-                (if posvel?
-                    (posvel 0
-                            (exact->inexact x)
-                            (exact->inexact y)
-                            (exact->inexact r)
-                            (exact->inexact dx)
-                            (exact->inexact dy)
-                            (exact->inexact dr))
-                    #f)
-                radar
-                visible
-                price
+                (next-id) 0 #t 1.0  ; obj-start-time gets set on chadd
+                (posvel 0
+                        (exact->inexact x)
+                        (exact->inexact y)
+                        (exact->inexact r)
+                        (exact->inexact dx)
+                        (exact->inexact dy)
+                        (exact->inexact dr))
+                type name faction
+                (exact->inexact hull)
+                (exact->inexact hull)
+                (exact->inexact (if mass mass (* size size)))
+                (exact->inexact drag)
+                start-ship?
+                (exact->inexact radar)
+                (exact->inexact visible)
+                (if price (inexact->exact (round price)) #f)
                 invincible?
-                size
-                (if hit-radius
-                    hit-radius
-                    (/ (exact->inexact size) 2.0))
-                #f  ; must fill the stats later
-                '()  ; tools
+                (inexact->exact (round size))
+                (/ (exact->inexact size) 2.0)
+                tools
                 '()  ; players
-                in-hangar  ; hangar
-                '()  ; overlays
+                hangar
+                overlays
                 cargo
                 0.0  ; no dmgfx
                 ai
                 0    ; ai-time
                 1000 ; ai-freq
-                '()  ; empty ai-strategy
-                0    ; placeholder ai-strat-time
+                ai-strats
+                0    ; placeholder ai-strat-time, set to space-time when chadd
                 ))
 
-  (when in-hangar
-    (for ((hangship (in-list in-hangar)))
+  (define constructor
+    (case type
+      (("spacesuit") spacesuit)
+      (("missile") missile)
+      (("cannonball") cannonball)
+      (("mine") mine)
+      (("probe") probe)
+      (else spaceship)))
+  
+  (define s (apply constructor args))
+
+  (when (ship-hangar s)
+    (for ((hangship (in-list (ship-hangar s))))
       (set-obj-posvel! hangship #f)))
 
-  (case type
-    (("spacesuit")
-     (define s (apply spacesuit args))
-     ;type name faction con maxcon mass drag start?
-     (set-ship-stats! s (stats (next-id) type name faction 1.0 1.0 1.0 0.5 start-ship?))
-     s)
-    (("missile")
-     (define s (apply missile args))
-     (set-ship-ai-freq! s 500)
-     ;type name faction con maxcon mass drag start?
-     (set-ship-stats! s (stats (next-id) type name faction con con 1.0 0.5 #f))
-     (set-ship-tools!
-      s (append (tools-pilot 100.0 #t 2.0 #:engine-visible? #f #:dock? #f)
-                (list (tool-endrc life))))
-     s)
-    (("cannonball")
-     (define s (apply cannonball args))
-     ;type name faction con maxcon mass drag start?
-     (set-ship-stats! s (stats (next-id) type name faction con con 1.0 0.0 #f))
-     (set-ship-tools!
-      s (list (tool-endrc 0.0)))
-     s)
-    (("mine")
-     (define s (apply mine args))
-     ;type name faction con maxcon mass drag start?
-     ;for mines, radar is also the radius for moving towards spaceship?s
-     (set-ship-stats! s (stats (next-id) type name faction con con 10.0 0.6 #f))
-     (set-ship-tools! s (tools-pilot 15.0 #f #f))
-     s)
-    (("probe")
-     (define s (apply probe args))
-     ;type name faction con maxcon mass drag start?
-     (set-ship-stats! s (stats (next-id) type name faction 10.0 10.0 1.0 0.4 #f))
-     (set-ship-tools!
-      s (append (tools-pilot 100.0 #t 1.0 #:engine-visible? #f #:dock? #f)
-                (list (tool-endrc life))))
-     s)
-    (("asteroid_87")
-     (define s (apply spaceship args))
-     (set-ship-stats! s (stats (next-id) type name faction con con 10000.0 drag start-ship?))
-     s)
-    (("asteroid_43")
-     (define s (apply spaceship args))
-     (set-ship-stats! s (stats (next-id) type name faction con con 5000.0 drag start-ship?))
-     s)
-    (("blue-station" "red-station")
-     (define s (apply spaceship args))
-     (define mb 500.0)
-     (define mc 500.0)
-     (set-ship-stats! s (stats (next-id) type name faction mc mc 10000.0 0.5 start-ship?))
-     (set-ship-tools!
-      s (list ;(tool-pbolt 10.0)
-              (tool-probe 30.0)
-          ; need missile
-          ; need shield
-          ))
-    s)
-    (("blue-frigate" "red-frigate")
-     (define s (apply spaceship args))
-     (set-ship-stats! s (stats (next-id) type name faction
-                               ;con maxcon mass radar drag start
-                               200.0 200.0 100.0 0.5 start-ship?))
-     (set-ship-tools!
-      s (append (tools-pilot 20.0 #f 0.3)
-                (list (tool-pbolt 10.0))))
-     s)
-    (("blue-fighter" "red-fighter")
-     (define s (apply spaceship args))
-     (define c (if con con 20.0))
-     (set-ship-stats! s (stats (next-id) type name faction c c 20.0 0.5 start-ship?))
-     (set-ship-tools!
-      s (append (tools-pilot 50.0 #f 1.5)
-                (list (tool-pbolt 8.0))))
-     s)
-    (else
-     ;(error (string-append "Tried to create an unknown ship type " type "\n")))
-     (define s (apply spaceship args))
-     (set-ship-stats! s (stats (next-id) type name faction 1.0 1.0 1.0 0.5 start-ship?))
-     (set-ship-tools!
-      s (tools-pilot 100.0 #f 1.0))
-     s)))
+  s)

@@ -12,7 +12,7 @@
 (define (reduce-missile! space m damage)
   (define changes '())
 
-  (set-stats-con! (ship-stats m) (- (ship-con m) damage))
+  (set-ship-con! m (- (ship-con m) damage))
 
   (when ((ship-con m) . <= . 0)
     (set-obj-alive?! m #f)
@@ -54,13 +54,17 @@
      (define changes '())
      (when (server?)
        (define a (angle-add (obj-r ship) (if (equal? 'left (command-arg cmd)) pi/2 (- pi/2))))
+       (define life (car (tool-val tool)))
        (define m (make-ship "missile" "Missile" (ship-faction ship)
                             #:ai (if (not (player? (car stack))) 'always #f)
-                            #:r a
+                            #:r a #:drag 0.5
                             #:radar (ship-radar ship)
-                            #:start-time (space-time space)
-                            #:life (car (tool-val tool))
-                            #:con (cadr (tool-val tool))))
+                            #:hull (cadr (tool-val tool))
+                            #:tools (append (tools-pilot 100.0 #t 2.0
+                                                         #:engine-visible? #f #:dock? #f)
+                                            (list (tool-endrc life)))))
+       (set-ship-ai-freq! m 500)  ; missiles need ai to run every half second
+                                            
        (define d (+ (ship-radius ship) (ship-radius m) 0.1))
        (define speed 10.0)
        (set-obj-posvel! m (posvel (space-time space)

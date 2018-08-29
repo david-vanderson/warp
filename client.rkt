@@ -1440,6 +1440,22 @@
                    (serialize
                     (update (if ownspace (space-id ownspace) #f)
                             last-update-time cmds #f)))))
+
+
+  (define (reset-view!)
+    (set! showsector? #f)
+    (set! center #f)
+    (set! center-follow? #t)
+    (set-posvel-x! (obj-posvel centerxy) 0)
+    (set-posvel-y! (obj-posvel centerxy) 0)
+    (set! dragstate "none")
+    (set! key-for #f)
+    (set! in-hangar? #f)
+    (set! hangshipid #f)
+
+    ; set scale so we see the whole sector
+    (set-scale (min-scale) #:immediate? #t)
+    (set! first-scale #t))
   
 
   (define start-loop-time #f)
@@ -1513,19 +1529,7 @@
            ;(printf "~a client new ownspace ~a\n" name (space-time ownspace))
 
            ; new ownspace, reset view stuff
-           (set! showsector? #f)
-           (set! center #f)
-           (set! center-follow? #t)
-           (set-posvel-x! (obj-posvel centerxy) 0)
-           (set-posvel-y! (obj-posvel centerxy) 0)
-           (set! dragstate "none")
-           (set! key-for #f)
-           (set! in-hangar? #f)
-           (set! hangshipid #f)
-
-           ; set scale so we see the whole sector
-           (set-scale (min-scale) #:immediate? #t)
-           (set! first-scale #t))
+           (reset-view!))
           
           ((update? input)
            (set! num-updates (+ 1 num-updates))
@@ -1571,7 +1575,12 @@
 
               (for ((c (in-list (update-changes input))))
                 ;(printf "client applying change ~v\n" c)
-                (apply-all-changes! ownspace (list c) "client")
+                (apply-all-changes! ownspace (list c) "client"
+                                    #:on-player-restart
+                                    (lambda (pid)
+                                      (when (equal? meid pid)
+                                        ; this player restarted
+                                        (reset-view!))))
                 ;(define-values (forward? useless-changes)
                 ;  (apply-change! ownspace c "client"))
                 ;(when (not (null? useless-changes))
@@ -1666,6 +1675,7 @@
       (send canvas refresh-now))
     )
 
+    ; performance debugging for headless clients so they send some messages
     (when (and (not gui?)
                my-stack
                ((random) . < . 0.01))

@@ -44,9 +44,10 @@
      (when (server?)
        (define a (angle-add (obj-r ship) pi))
        (define p (make-ship "probe" "Probe" (ship-faction ship)
-                            #:start-time (space-time space)
-                            #:life (tool-val tool)
-                            #:radar 1000.0))
+                            #:radar 1000 #:hull 10 #:drag 0.4 #:mass 1
+                            #:tools (append (tools-pilot 100.0 #t 1.0
+                                                         #:engine-visible? #f #:dock? #f)
+                                            (list (tool-endrc (tool-val tool))))))
        (define d (+ (ship-radius ship) (* 2.0 (ship-radius p))
                     (random-between 0 1)))  ; random so things don't end up exactly aligned
        (set-obj-posvel! p (posvel (space-time space)

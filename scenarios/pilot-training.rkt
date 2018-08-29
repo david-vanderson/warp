@@ -33,7 +33,7 @@
                  (define dr (random-between -1.0 1.0))
                  (make-ship "asteroid_43" "Asteroid" "_neutral"
                             #:x x #:y y #:r 0
-                            #:invincible? #t #:con 10000.0
+                            #:invincible? #t #:hull 10000
                             #:dx dx #:dy dy #:dr dr))
              )))
 
@@ -57,13 +57,13 @@
         (format "Trainer ~a" i))))
   
   (define (new-trainer faction)
-    (define s (make-ship "red-fighter" faction faction
-                         #:x (random-between -200 200) #:y (random-between -200 200)))
-    (set-ship-stats! s (stats (next-id) (ship-type s) (ship-name s) (ship-faction s)
-                              ;con maxcon mass drag start?
-                              100.0 100.0 20.0 0.4 #t))
-    (set-ship-tools! s (append (list (tool-regen 1.0)) (ship-tools s)))
-    s)
+    (make-ship "red-fighter" faction faction
+               #:x (random-between -200 200) #:y (random-between -200 200)
+               #:hull 100 #:mass 20 #:drag 0.4 #:start-ship? #t
+               #:radar 10000
+               #:tools (append (tools-pilot 60.0 #f 1.6)
+                               (list (tool-pbolt 8.0)
+                                     (tool-regen 1.0)))))
 
   (define (on-player-restart space pid)
     (define changes '())

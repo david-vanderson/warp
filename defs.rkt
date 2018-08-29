@@ -173,8 +173,12 @@
 ; shield-size is how big of a shield we shoot
 ; aim is like for pbolt
 
-(struct stats ob (type name faction con maxcon mass drag start) #:mutable #:prefab)
-; carries all the stats for a ship
+(struct overlay (sym fow?) #:mutable #:prefab)
+
+(struct ship obj (type name faction con maxcon mass drag start
+                  radar visible price invincible? sprite-size radius tools
+                  playerids hangar overlays cargo dmgfx
+                  ai ai-time ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
 ; name is the name of the ship
 ; faction is the name that this ship belongs to
 ; con (containment) is how much health you have left
@@ -182,12 +186,6 @@
 ; mass controls how you bump into other ships
 ; drag is the coeffecient for how fast this ship slows down
 ; start is if you can start on this ship
-
-(struct overlay (sym fow?) #:mutable #:prefab)
-
-(struct ship obj (radar visible price invincible? sprite-size radius stats tools
-                  playerids hangar overlays cargo dmgfx
-                  ai ai-time ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
 ; radar is radius it can see (not into nebula)
 ; visible is radius it can see (into nebula)
 ; price is how much material it takes to construct this ship, or how much you get for scrapping
@@ -216,15 +214,7 @@
   (for/list ((idx (in-list (ship-playerids s))))
     (findf (lambda (o) (equal? idx (ob-id o))) (space-players space))))
 
-(define (ship-name s) (stats-name (ship-stats s)))
-(define (ship-type s) (stats-type (ship-stats s)))
-(define (ship-faction s) (stats-faction (ship-stats s)))
-(define (ship-con s) (stats-con (ship-stats s)))
-(define (ship-maxcon s) (stats-maxcon (ship-stats s)))
-(define (ship-mass s) (stats-mass (ship-stats s)))
 (define (ship-strategy s) (if (null? (ship-ai-strategy s)) #f (car (ship-ai-strategy s))))
-(define (ship-drag s) (stats-drag (ship-stats s)))
-(define (ship-start s) (stats-start (ship-stats s)))
 
 (struct spacesuit ship () #:mutable #:prefab)
 (struct spaceship ship () #:mutable #:prefab)
@@ -366,7 +356,8 @@
 ; pid is the player id who sent this command
 ; id points to a annbutton
 
-(struct chfaction (playerid newf) #:mutable #:prefab)
+(struct chfaction (id newf) #:mutable #:prefab)
+
 (struct chorders (faction ot) #:mutable #:prefab)
 ; ot is an instance of ord
 
@@ -418,10 +409,6 @@
   (message (next-id) (space-time ownspace) #t 1.0 #f msg))
 (struct message obj (msg) #:mutable #:prefab)
 ; msg is the text to display
-
-(struct chstats (id newstats) #:mutable #:prefab)
-; id is of the ship
-; newstats is stats
 
 (struct chstat (id what val) #:mutable #:prefab)
 ; id is of the ship

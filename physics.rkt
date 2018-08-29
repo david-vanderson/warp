@@ -34,34 +34,27 @@
 (define (upgrade-hit-ship! space ship u)
   (define changes '())
   ;(printf "upgrade hit ship ~a ~a\n" (ship-name ship) (upgrade-type u))
-  (define newstats (struct-copy stats (ship-stats ship)))
-  (define sendstats #t)
-  (define which
-    (case (upgrade-type u)
-      (("engines")
-       (set! sendstats #f)
-       (define t (ship-tool ship 'engine))
-       (when t (append! changes (chstat (ob-id ship) 'toolval (list 'engine (* 1.1 (tool-val t))))))
-       "engines")
-      (("turning")
-       (set! sendstats #f)
-       (for ((tname '(turnleft turnright steer)))
-         (define t (ship-tool ship tname))
-         (when t
-           (append! changes (chstat (ob-id ship) 'toolval (list tname (* 1.1 (tool-val t)))))))
-       "turn speed")
-      (("hull") (set-stats-maxcon! newstats (* 1.1 (stats-maxcon newstats))) "hull")
-      (("radar")
-       (set! sendstats #f)
-       (append! changes (chstat (ob-id ship) 'radar (* 1.1 (ship-radar ship))))
-       "radar")
-      (else #f)))
-  (cond (which
-         (define m (make-message space (format "~a upgraded ~a" (ship-name ship) which)))
-         (when sendstats (append! changes (chstats (ob-id ship) newstats)))
-         (append! changes (list m (chdam (ob-id u) 1 #f))))
-        (else
-         (append! changes (chmov (ob-id u) (ob-id ship) #f))))
+  (case (upgrade-type u)
+    (("engines")
+     (define t (ship-tool ship 'engine))
+     (when t (append! changes (chstat (ob-id ship) 'toolval
+                                      (list 'engine (* 1.1 (tool-val t)))))))
+    (("turning")
+     (for ((tname '(turnleft turnright steer)))
+       (define t (ship-tool ship tname))
+       (when t
+         (append! changes (chstat (ob-id ship) 'toolval (list tname (* 1.1 (tool-val t))))))))
+    (("hull")
+     (append! changes (chstat (ob-id ship) 'hull (* 1.1 (ship-maxcon ship)))))
+    (("radar")
+     (append! changes (chstat (ob-id ship) 'radar (* 1.1 (ship-radar ship))))))
+
+  (cond
+    ((not (null? changes))
+     (define m (make-message space (format "~a upgraded ~a" (ship-name ship) (upgrade-type u))))
+     (append! changes (list m (chdam (ob-id u) 1 #f))))
+    (else
+     (append! changes (chmov (ob-id u) (ob-id ship) #f))))
    
   changes)
 
@@ -178,8 +171,8 @@
       (set-posvel-dx! pv1 (* d (cos t)))
       (set-posvel-dy! pv1 (* d (sin t)))))
      
-  (define m1 (stats-mass (ship-stats s1)))
-  (define m2 (stats-mass (ship-stats s2)))
+  (define m1 (ship-mass s1))
+  (define m2 (ship-mass s2))
   (define phi (theta s1 s2))
   (define perpv1 (perpv s1 m1 s2 m2))
   (define perpv2 (- (perpv s2 m2 s1 m1)))
@@ -542,7 +535,7 @@
   (define changes '())
 
   (when (not (ship-invincible? ship))
-    (set-stats-con! (ship-stats ship) (- (ship-con ship) damage)))
+    (set-ship-con! ship (- (ship-con ship) damage)))
   
   (when ((ship-con ship) . <= . 0)
     (set-obj-alive?! ship #f)
@@ -621,13 +614,11 @@
 
   (define r (ship-tool ship 'regen))
   (when r
-    (define stats (ship-stats ship))
-    (set-stats-con! stats (min (stats-maxcon stats)
-                               (+ (stats-con stats) (* (tool-val r) dt)))))
+    (set-ship-con! ship (min (ship-maxcon ship)
+                             (+ (ship-con ship) (* (tool-val r) dt)))))
   
   (for ((s (in-list (ship-ships ship))))
-    (define stats (ship-stats s))
-    (set-stats-con! stats (min (stats-maxcon stats)
-                               (+ (stats-con stats) (* 10.0 dt))))
+    (set-ship-con! s (min (ship-maxcon s)
+                          (+ (ship-con s) (* 10.0 dt))))
     (update-ship! space s dt)))
 

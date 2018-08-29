@@ -35,7 +35,7 @@
   (for* ((x (in-range (+ rx sep/2) (- rw sep/2) sep))
          (y (in-range (+ ry sep/2) (- rh sep/2) sep))
          #:when (send r in-region? x y))
-    (define diam (round (exp (exp (random-between (log (log 25.0)) (log (log 250.0)))))))
+    (define diam (exp (exp (random-between (log (log 25.0)) (log (log 250.0))))))
     (define xd (random-between (* sep -0.5) (* sep 0.5)))
     (define yd (random-between (* sep -0.5) (* sep 0.5)))
     (define dx (random-between (- dd) dd))
@@ -43,15 +43,15 @@
     (define dr (random-between -0.5 0.5))
     (define up? ((random) . < . 0.1))
     (define a (make-ship "asteroid_87" "Asteroid" "_neutral" #:drag 0.1
-                         #:size (inexact->exact diam)
+                         #:size diam
                          #:x (+ x xd) #:y (+ y yd) #:dr dr #:dx dx #:dy dy
-                         #:con (if up? 50.0 5000.0)
-                         #:invincible? (not up?)
+                         #:hull (if up? 50 5000)
+                         #:invincible? #t
                          #:cargo (if up?
                                      (list (random-upgrade 0 #f)
                                            (random-upgrade 0 #f))
-                                     '())))
-    (set-ship-overlays! a (list (cons "Empire" (overlay 'overlay-qm #t))))
+                                     '())
+                         #:overlays (list (cons "Empire" (overlay 'overlay-qm #t)))))
     (prepend! asteroids a))
 
   ; pick which asteroid will have the hidden base
@@ -60,8 +60,8 @@
   (set! hidden-base-id (ob-id a))
   (set-ship-hangar! a '())
   (set-ship-cargo! a '())
-  (set-stats-con! (ship-stats a) 250.0)
-  (set-stats-maxcon! (ship-stats a) 250.0)
+  (set-ship-con! a 250.0)
+  (set-ship-maxcon! a 250.0)
   (set-ship-invincible?! a #f)
   (set-ship-tools! a (list (tool-regen 1.0)
                            (tool-pbolt 5.0)))
@@ -84,47 +84,43 @@
 
   ; the good guys in this scenario
   (define (new-red-fighter)
-    (define s (make-ship "red-fighter" "Empire Fighter" "Empire"
-                         #:con 100.0))
-    (define e (ship-tool s 'engine))
-    (set-tool-val! e 55.0)
-    (set-ship-tools! s (append (list (tool-regen 1.0)) (ship-tools s)))
-    (set-obj-posvel! s #f)
-    s)
+    (make-ship "red-fighter" "Empire Fighter" "Empire"
+               #:hull 100 #:mass 20 #:drag 0.5
+               #:tools (append (tools-pilot 55.0 #f 1.5)
+                               (list (tool-pbolt 8.0)
+                                     (tool-regen 1.0)))))
 
-  (define goodship (make-ship "red-cruiser" "a" "a" #:x -1500.0 #:y -1500.0 #:r pi))
-  (set-ship-stats! goodship (stats (next-id) "red-cruiser" "Empire Frigate" "Empire"
-                                   ;con maxcon mass drag start
-                                   300.0 300.0 100.0 0.4 #t))
+  (define goodship (make-ship "red-cruiser" "Empire Frigate" "Empire"
+                              #:x -1500 #:y -1500 #:r pi
+                              #:hull 300 #:mass 100 #:drag 0.4 #:start-ship? #t
+                              #:hangar (list (new-red-fighter)
+                                             (new-red-fighter)
+                                             (new-red-fighter))
+                              #:tools (append (tools-pilot 25.0 #f 0.4)
+                                              (list (tool-warp 200.0 80.0)
+                                                    (tool-regen 1.0)
+                                                    (tool-pbolt 10.0)
+                                                    (tool-probe 20.0)
+                                                    (tool-missile 5.0 10.0)
+                                                    (tool-cannon 21.0)))))
 
   ; ship starts with pilot tools damaged beyond repair
   ; we will manually remove the dmgs when the engine parts are recovered
   (define enginedmgid (next-id))
   (define warpdmgid (next-id))
-  (set-ship-hangar! goodship (list (new-red-fighter)
-                                   (new-red-fighter)
-                                   (new-red-fighter)))
-  (set-ship-tools!
-   goodship (append (tools-pilot 25.0 #f 0.4)
-                    (list (tool-warp 200.0 80.0)
-                          (tool-regen 1.0)
-                          (tool-pbolt 10.0)
-                          (tool-probe 20.0)
-                          (tool-missile 5.0 10.0)
-                          (tool-cannon 21.0))))
-
   (set-tool-dmgs! (ship-tool goodship 'engine) (list (dmg enginedmgid "offline" 10000.0 0 #f)))
   (set-tool-dmgs! (ship-tool goodship 'warp) (list (dmg warpdmgid "offline" 10000.0 0 #f)))
   
 
   ; the bad guys
   (define (new-blue-fighter ownspace)
-    (define s (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:ai 'always #:con 50.0))
-    (set-obj-posvel! s #f)
-    (set-ship-ai-strategy! s (scout-strat ownspace))
-    s)
+    (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:ai 'always
+               #:hull 50 #:mass 20 #:drag 0.5
+               #:tools (append (tools-pilot 50.0 #f 1.5)
+                               (list (tool-pbolt 8.0)))
+               #:ai-strats (scout-strats ownspace)))
 
-  (define (scout-strat ownspace)
+  (define (scout-strats ownspace)
     (define hb (find-top-id ownspace hidden-base-id))
     (cond
       ((and found-base? hb)
@@ -136,16 +132,13 @@
              (strategy (space-time ownspace) "return" (ob-id enemy-base))))))
 
   
-  (define enemy-base (make-ship "blue-station" "a" "a" #:x 1500.0 #:y 1500.0 #:ai 'always
-                                #:dr 0.1 #:radar 600.0 #:hangar '()))
-  (set-ship-stats! enemy-base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
-                               ;con maxcon mass drag start-ship?
-                               750.0 750.0 1000.0 0.4 #t))
-  (set-ship-tools!
-   enemy-base
-   (list
-    (tool-pbolt 10.0)
-    (tool-missile 5.0 10.0)))
+  (define enemy-base (make-ship "blue-station" "Rebel Outpost" "Rebel"
+                                #:x 1500 #:y 1500 #:ai 'always
+                                #:dr 0.1 #:radar 600 #:hangar '()
+                                #:hull 750 #:mass 1000 #:drag 0.4
+                                #:tools (list
+                                         (tool-pbolt 10.0)
+                                         (tool-missile 5.0 10.0))))
   
   (set-space-objects! ownspace (append (space-objects ownspace)
                                        (list goodship enemy-base)))
@@ -156,16 +149,14 @@
   (define parts-returned? #f)
   
   (define orders
-    (ordercomb #f "" 'and
-               (list (alive "Keep Frigate Alive" (ob-id goodship))
-                     (ordercomb #f "" 'seq
-                                (list (order #f "Find Asteroid Base with Fighters" '()
-                                             (lambda (s f o) found-base?))
-                                      (order #f "Dock Fighter with Asteroid" '()
-                                             (lambda (s f o) dock-base?))
-                                      (order #f "Return Parts to Frigate" '()
-                                             (lambda (s f o) parts-returned?))
-                                      (kill "Destroy Enemy Outpost" (ob-id enemy-base)))))))
+    (ordercomb #f "" 'seq
+               (list (order #f "Find Asteroid Base with Fighters" '()
+                            (lambda (s f o) found-base?))
+                     (order #f "Dock Fighter with Asteroid" '()
+                            (lambda (s f o) dock-base?))
+                     (order #f "Return Parts to Frigate" '()
+                            (lambda (s f o) parts-returned?))
+                     (kill "Destroy Enemy Outpost" (ob-id enemy-base)))))
   
   (define real-orders (space 0 0 0 0 '() '() '()))  ; only care about orders
   (set-space-orders-for! real-orders "Empire" orders)
@@ -239,7 +230,7 @@
           (when (and (not (ship-strategy f))
                      ((current-strat-age ownspace f) . > . 10000))
             ; fighter has been docked without a strat, send them to scout again
-            (append! changes (new-strat (ob-id f) (scout-strat ownspace))))))
+            (append! changes (new-strat (ob-id f) (scout-strats ownspace))))))
 
       (define hb (find-top-id ownspace hidden-base-id))
 
@@ -255,16 +246,15 @@
         ; remove the overlay
         (append! changes (chstat (ob-id a) 'overlay (cons "Empire" #f)))
         (when (not (null? (ship-cargo a)))
-          ; add the cargo overlay
-          (append! changes (chstat (ob-id a) 'overlay
-                                   (cons "Empire" (overlay 'overlay-cargo #t)))))
+          ; add the cargo overlay and remove invincibility
+          (append! changes (list (chstat (ob-id a) 'invincible #f)
+                                 (chstat (ob-id a) 'overlay
+                                         (cons "Empire" (overlay 'overlay-cargo #t))))))
         ; check if this was the hidden base
         (when (and (not found-base?) (equal? hidden-base-id (ob-id a)))
           (set! found-base? #t)
-          (define newstats (struct-copy stats (ship-stats hb)))
-          (set-stats-faction! newstats "Empire")
           (append! changes
-                   (chstats (ob-id hb) newstats)
+                   (chfaction (ob-id hb) "Empire")
                    (chstat (ob-id hb) 'ai 'always)
                    (chadd parts (ob-id hb))
                    (make-message ownspace "Discovered Hidden Base!"))))

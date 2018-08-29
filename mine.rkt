@@ -14,7 +14,7 @@
 (define (reduce-mine! space m damage)
   (define changes '())
 
-  (set-stats-con! (ship-stats m) (- (ship-con m) damage))
+  (set-ship-con! m (- (ship-con m) damage))
   
   (when ((ship-con m) . <= . 0)
     (set-obj-alive?! m #f)
@@ -44,9 +44,9 @@
      (when (server?)
        (define a (angle-add (obj-r ship) pi))
        (define p (make-ship "mine" "Mine" "_mine"
-                            #:start-time (space-time space)
-                            #:con (tool-val tool)
-                            #:radar 75.0))
+                            #:hull (tool-val tool)
+                            #:radar 75 #:drag 0.6
+                            #:tools (tools-pilot 15.0 #f #f)))
        (define d (+ (ship-radius ship) (* 2.0 (ship-radius p))
                     (random-between 0 1)))  ; random so things don't end up exactly aligned
        (set-obj-posvel! p (posvel (space-time space)

@@ -14,7 +14,7 @@
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p #f))
 
-  (define ownspace (space (next-id) 0 5000 2000 players '()
+  (define ownspace (space (next-id) 0 6000 2000 players '()
                           `(
                             ,(standard-quit-scenario-button)
                             ,(make-ann-text -200 -100 0 10000
@@ -25,73 +25,55 @@
                             )))
   
   (define (new-blue-fighter)
-    (define s (make-ship "blue-fighter" "a" "a" #:ai 'empty))
-    (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
-                              ;con maxcon mass drag start-ship?
-                              50.0 50.0 20.0 0.4 #f))
-    (set-ship-tools!
-     s (append (tools-pilot 50.0 #f 1.5)
-               (list (tool-pbolt 8.0) (tool-regen 1.0))))
-    (set-obj-posvel! s #f)
-    s)
+    (make-ship "blue-fighter" "Rebel Fighter" "Rebel" #:ai 'empty
+               #:hull 50 #:mass 20 #:drag 0.4
+               #:tools (append (tools-pilot 50.0 #f 1.5)
+                               (list (tool-pbolt 8.0)
+                                     (tool-regen 1.0)))))
   
   (define (new-red-fighter)
-    (define s (make-ship "red-fighter" "a" "a" #:ai 'always))
-    (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
-                              ;con maxcon mass drag start
-                              20.0 20.0 20.0 0.4 #f))
-    (set-ship-tools!
-     s (append (tools-pilot 50.0 #f 2.0)
-               (list (tool-pbolt 8.0))))
-    (set-obj-posvel! s #f)
-    s)
+    (make-ship "red-fighter" "Empire Fighter" "Empire" #:ai 'always
+               #:hull 20 #:mass 20 #:drag 0.4
+               #:tools (append (tools-pilot 50.0 #f 1.6)
+                               (list (tool-pbolt 8.0)))))
   
   
-  (define cruiser (make-ship "blue-cruiser" "z" "z" #:x -1800 #:y -50 #:ai 'empty
-                             #:radar 500.0
-                             #:hangar (list (new-blue-fighter))))
-  (set-ship-stats! cruiser (stats (next-id) "blue-cruiser" "Rebel Cruiser" "Rebel"
-                                  ;con maxcon mass drag start?
-                                  200.0 200.0 100.0 0.4 #t))
-  (set-ship-tools!
-   cruiser (append (tools-pilot 25.0 #f 1.0)
-                   (list (tool-pbolt 10.0)
-                         (tool-probe 10.0)
-                         (tool-missile 5.0 10.0)
-                         (tool-cannon 21.0)
-                         (tool-mine 25.0)
-                         (tool-warp 200.0 80.0)
-                         (tool-regen 1.0))))
+  (define cruiser (make-ship "blue-cruiser" "Rebel Cruiser" "Rebel"
+                             #:x -1800 #:y -50 #:ai 'empty
+                             #:hull 200 #:mass 100 #:drag 0.4
+                             #:radar 500 #:start-ship? #t
+                             #:hangar (list (new-blue-fighter))
+                             #:tools (append (tools-pilot 25.0 #f 1.0)
+                                             (list (tool-pbolt 10.0)
+                                                   (tool-probe 10.0)
+                                                   (tool-missile 5.0 10.0)
+                                                   (tool-cannon 21.0)
+                                                   (tool-mine 25.0)
+                                                   (tool-warp 200.0 80.0)
+                                                   (tool-regen 1.0)))))
   
   
-  (define base (make-ship "blue-station" "a" "a" #:x -2000 #:y -100 #:ai 'always #:hangar '()
-                          #:dr 0.1 #:radar 1000.0))
-  (set-ship-stats! base (stats (next-id) "blue-station" "Rebel Outpost" "Rebel"
-                               ;con maxcon mass drag start-ship?
-                               1000.0 1000.0 1000.0 0.4 #f))
-  (set-ship-tools!
-   base (list (tool-pbolt 10.0)
-              (tool-probe 30.0)
-              (tool-missile 5.0 10.0)))
+  (define base (make-ship "blue-station" "Rebel Outpost" "Rebel"
+                          #:x -2000 #:y -100 #:ai 'always #:hangar '()
+                          #:dr 0.1 #:radar 1000
+                          #:hull 1000 #:mass 1000 #:drag 0.4
+                          #:tools (list (tool-pbolt 10.0)
+                                        (tool-probe 30.0)
+                                        (tool-missile 5.0 10.0))))
+    
   
+  (define destroyer (make-ship "red-destroyer" "Empire Destroyer" "Empire"
+                               #:x 2400 #:y 100 #:r pi #:ai 'always
+                               #:hangar '() #:radar 1000
+                               #:hull 1000 #:mass 500 #:drag 0.4
+                               #:tools (append (tools-pilot 6.0 #f 0.1 #:dock? #f)
+                                               (list (tool-pbolt 10.0)
+                                                     (tool-missile 5.0 10.0)
+                                                     (tool-cannon 21.0)))
+                               #:ai-strats (list (strategy 0 "attack-only" (ob-id base)))))
   
-  (define destroyer (make-ship "red-destroyer" "b" "b" #:x 2400 #:y 100 #:r pi #:ai 'always
-                               #:hangar '() #:radar 1000.0))
-  (set-ship-stats! destroyer (stats (next-id)
-                                    ;type name faction
-                                    "red-destroyer" "Empire Destroyer" "Empire"
-                                    ;con maxcon mass drag start?
-                                    1000.0 1000.0 500.0 0.4 #f))
-  (set-ship-tools!
-   destroyer (append (tools-pilot 6.0 #f 0.1 #:dock? #f)
-                     (list (tool-pbolt 10.0)
-                           (tool-missile 5.0 10.0)
-                           (tool-cannon 21.0))))
-  
-  (set-ship-ai-strategy! destroyer
-                         (list (strategy (space-time ownspace) "attack-only" (ob-id base))))
-  
-  (set-space-objects! ownspace (append (space-objects ownspace) (list cruiser base destroyer #;special)))
+  (set-space-objects! ownspace (append (space-objects ownspace)
+                                       (list cruiser base destroyer)))
 
   (define rebel-orders
     (ordercomb #f "Do All:" 'and
@@ -163,8 +145,13 @@
         (define y (random-between (- (/ (space-height ownspace) 2)) (/ (space-height ownspace) 2)))
         (define fighters (for/list ((i (random 3)))
                            (make-ship "red-fighter" "Empire Fighter" "Empire")))
-        (define f (make-ship "red-frigate" "Empire Frigate" "Empire" #:x x #:y y #:r pi #:ai 'always
-                             #:hangar fighters #:cargo (list (random-upgrade 0 #f)
+        (define f (make-ship "red-frigate" "Empire Frigate" "Empire"
+                             #:x x #:y y #:r pi #:ai 'always
+                             #:hull 200 #:mass 100 #:drag 0.5
+                             #:tools (append (tools-pilot 20.0 #f 0.3)
+                                             (list (tool-pbolt 10.0)))
+                             #:hangar fighters
+                             #:cargo (list (random-upgrade 0 #f)
                                                                 (random-upgrade 0 #f))))
         (set-ship-ai-strategy! f (list (strategy (space-time ownspace) "attack*" (ob-id base))))
         (append! changes (chadd f #f) m)))

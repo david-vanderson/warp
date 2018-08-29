@@ -20,51 +20,39 @@
 
   (define ownspace (space (next-id) 0 10000 10000 players '()
                           `(,(standard-quit-scenario-button))))
-  
-  #;(set-space-objects! ownspace
-                      (append (space-objects ownspace)
-                              (for/list (((name si) (in-hash ship-list))
-                                         (x (in-range -1000 1000 100)))
-                                (make-ship name name "Rebel" #:x x #:start-ship? #t))))
 
   (define (new-blue-fighter (x 0) (y 0) (r pi/2) #:price [price #f])
-    (define s (make-ship "blue-fighter" "a" "a" #:ai #f #:x x #:y y #:r r #:price price))
-    (set-ship-stats! s (stats (next-id) "blue-fighter" "Rebel Fighter" "Rebel"
-                              ;con maxcon mass drag start-ship?
-                              1000.0 1000.0 20.0 0.4 #t))
-    (set-ship-tools!
-     s (append (tools-pilot 50.0 #f 1.5)
-               (list ;(tool-missile 5.0 10.0)
-                     ;(tool-warp 200.0 8.0)
-                     (tool-pbolt 5.0))))
-    s)
+    (make-ship "blue-fighter" "Rebel Fighter" "Rebel"
+               #:ai #f #:x x #:y y #:r r #:price price
+               #:hull 1000 #:mass 20 #:drag 0.4 #:start-ship? #t
+               #:tools (append (tools-pilot 50.0 #f 1.5)
+                               (list (tool-missile 5.0 10.0)
+                                     (tool-warp 200.0 8.0)
+                                     (tool-pbolt 5.0)))))
   
   (define (new-red-fighter (x 0) (y 0))
-    (define s (make-ship "red-fighter" "a" "a" #:ai #f #:x x #:y y))
-    (set-ship-stats! s (stats (next-id) "red-fighter" "Empire Fighter" "Empire"
-                              ;con maxcon mass drag start
-                              500.0 500.0 20.0 0.4 #f))
-    (set-ship-tools!
-     s (append (tools-pilot 50.0 #f 1.5)
-               (list ;(tool-missile 5.0 10.0)
-                     (tool-pbolt 5.0))))
-    s)
+    (make-ship "red-fighter" "Empire Fighter" "Empire"
+               #:ai #f #:x x #:y y
+               #:hull 500 #:mass 20 #:drag 0.4
+               #:tools (append (tools-pilot 50.0 #f 1.5)
+                               (list (tool-missile 5.0 10.0)
+                                     (tool-pbolt 5.0)))))
 
   (define bf (for/list ((i 10)) (new-blue-fighter (* 50 i) 50)))
   (define rf (for/list ((i 50)) (new-red-fighter  (* 50 i) 150)))
   (define a (make-ship "asteroid_87" "a" "Empire" #:x 95 #:y 95 #:dx -0.001))
 
   (define b1 (make-ship "blue-station" "b1" "Rebel" #:x 0 #:y 0 #:ai #f
-                        #:hangar '() #:radar 500.0))
-  (set-ship-tools!
-   b1 (append (tools-pilot 50.0 #f 1.5)
-              (list
-               (tool-pbolt 10.0)
-               (tool-missile 5.0 10.0)
-               (tool-mine 25.0)
-               (tool-factory 100 (list (new-blue-fighter #:price 1)
-                                       (new-blue-fighter #:price 5)
-                                       (new-blue-fighter #:price 75))))))
+                        #:hangar '() #:radar 500
+                        #:tools (append (tools-pilot 50.0 #f 1.5)
+                                        (list
+                                         (tool-pbolt 10.0)
+                                         (tool-missile 5.0 10.0)
+                                         (tool-mine 25.0)
+                                         (tool-factory 100
+                                           (list (new-blue-fighter #:price 1)
+                                                 (new-blue-fighter #:price 5)
+                                                 (new-blue-fighter #:price 75)))))))
   (define b2 (make-ship "blue-station" "b2" "Rebel" #:x 900 #:y 0 #:ai #f
                         #:hangar '()))
 
@@ -76,10 +64,10 @@
 
   (define r (new region%))
   (send r set-polygon
-        '((-500.0 . -500.0)
-          (-500.0 . 500.0)
-          (500.0 . 500.0)
-          (500.0 . -500.0)))
+        '((-500 . -500)
+          (-500 . 500)
+          (500 . 500)
+          (500 . -500)))
   (define-values (rx ry rw rh) (send r get-bounding-box))
 
   (define nebulas '())
