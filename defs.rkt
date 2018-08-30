@@ -228,6 +228,8 @@
 (struct plasma obj (e) #:mutable #:prefab)
 ; e energy
 
+(define (make-nebula t x y rad dr)
+  (nebula (next-id) t #t 1.0 (posvel 0 x y 0.0 0.0 0.0 dr) rad))
 (struct nebula obj (radius) #:mutable #:prefab)
 ; radius tells you how big this nebula is
 

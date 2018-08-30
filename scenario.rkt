@@ -32,10 +32,10 @@
            `(
              ,(make-ann-button 150 -75 200 50 "Testing" "testing")
              ,(make-ann-button 150 0 200 50 "All Ships" "all-ships")
-             ,(make-ann-button 150 75 200 50 "RacketCon 2018" "racketcon2018")
              ,(make-ann-button -150 -75 200 50 "Pilot Training" "pilot-training")
              ,(make-ann-button -150 0 200 50 "Base Defense" "base-defense")
              ,(make-ann-button -150 75 200 50 "Asteroid Search" "asteroid-search")
+             ,(make-ann-button -150 150 200 50 "RacketCon 2018" "racketcon2018")
              )))
   (define (on-tick space qt change-scenario!)
     (define changes '())

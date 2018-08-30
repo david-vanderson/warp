@@ -2,6 +2,7 @@
 
 (require racket/math
          racket/port
+         racket/class
          racket/list
          racket/struct
          ffi/unsafe
@@ -13,6 +14,31 @@
          "quadtree.rkt")
 
 (provide (all-defined-out))
+
+(define (nebula-polygon . pts)
+  (define r (new region%))
+  (send r set-polygon pts)
+  (nebula-region r))
+
+(define (nebula-ellipse x y w h)
+  (define r (new region%))
+  (send r set-ellipse x y w h)
+  (nebula-region r))
+
+(define (nebula-region r)
+  (define-values (rx ry rw rh) (send r get-bounding-box))
+
+  (define sep 500.0)
+  (define sep/2 (/ sep 2))
+  (for*/list ((x (in-range (+ rx sep/2) (- rw sep/2) sep))
+              (y (in-range (+ ry sep/2) (- rh sep/2) sep))
+              #:when (send r in-region? x y))
+    (define xd (random-between (* sep -0.25) (* sep 0.25)))
+    (define yd (random-between (* sep -0.25) (* sep 0.25)))
+    (define dr (* (if ((random) . < . 0.5) -1 1) (random-between 0.01 0.04)))
+    (define t (inexact->exact (round (random-between 0 100000))))
+    (make-nebula t (+ x xd) (+ y yd) sep dr)))
+
 
 (define IPPROTO_TCP 6)
 (define TCP_NODELAY 1)

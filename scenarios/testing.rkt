@@ -18,7 +18,7 @@
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p #f))
 
-  (define ownspace (space (next-id) 0 10000 10000 players '()
+  (define ownspace (space (next-id) 0 8000 8000 players '()
                           `(,(standard-quit-scenario-button))))
 
   (define (new-blue-fighter (x 0) (y 0) (r pi/2) #:price [price #f])
@@ -49,6 +49,7 @@
                                          (tool-pbolt 10.0)
                                          (tool-missile 5.0 10.0)
                                          (tool-mine 25.0)
+                                         (tool-probe 10.0)
                                          (tool-factory 100
                                            (list (new-blue-fighter #:price 1)
                                                  (new-blue-fighter #:price 5)
@@ -60,34 +61,18 @@
     (set-ship-ai-strategy! f
       (list (strategy (space-time ownspace) "return" (ob-id b1)))))
 
-  (define f (new-blue-fighter 800 0))
+  (define f (new-blue-fighter 0 0))
 
-  (define r (new region%))
-  (send r set-polygon
-        '((-500 . -500)
-          (-500 . 500)
-          (500 . 500)
-          (500 . -500)))
-  (define-values (rx ry rw rh) (send r get-bounding-box))
-
-  (define nebulas '())
-  (define sep 500.0)
-  (define sep/2 (/ sep 2))
-  (for* ((x (in-range (+ rx sep/2) (- rw sep/2) sep))
-         (y (in-range (+ ry sep/2) (- rh sep/2) sep))
-         #:when (send r in-region? x y))
-    (define xd (random-between (* sep -0.25) (* sep 0.25)))
-    (define yd (random-between (* sep -0.25) (* sep 0.25)))
-    (define dr (* (if ((random) . < . 0.5) -1 1) (random-between 0.01 0.04)))
-    (define t (inexact->exact (round (random-between 0 100000))))
-    (define n (nebula (next-id) t #t 1.0 (posvel 0 (+ x xd) (+ y yd) 0.0 0.0 0.0 dr) sep))
-    (prepend! nebulas n))
+  (define nebulas (nebula-polygon (cons -1000 -1000)
+                                  (cons -1000 1000)
+                                  (cons 1000 1000)
+                                  (cons 1000 -1000)))
 
   ;(define n (nebula (next-id) 0 #t (posvel 0 100.0 100.0 0.0 0.0 0.0 0.02) 500.0))
   
   (set-space-objects! ownspace
                       (append 
-                       (list #;b1 b2 f
+                       (list b1 b2 ;f
                              (new-red-fighter 300 0)
                              (new-red-fighter 800 200))
                        nebulas
@@ -102,8 +87,8 @@
     (for ((p (space-players ownspace)))
       (when (not (player-faction p))
         ; new player
-        (append! changes (chfaction (ob-id p) "Rebel"))
-        (append! changes (chmov (ob-id p) (ob-id f) #f))))
+        (append! changes (chfaction (ob-id p) "Observer"))
+        (append! changes (chmov (ob-id p) (ob-id b1) #f))))
 
     (for ((fo (space-orders real-orders)))
       (check ownspace (car fo) (cadr fo)))

@@ -14,7 +14,7 @@
   (define players (if oldspace (space-players oldspace) '()))
   (for ((p players)) (set-player-faction! p #f))
 
-  (define ownspace (space (next-id) 0 6000 2000 players '()
+  (define ownspace (space (next-id) 0 8000 4000 players '()
                           `(
                             ,(standard-quit-scenario-button)
                             ,(make-ann-text -200 -100 0 10000
@@ -39,7 +39,7 @@
   
   
   (define cruiser (make-ship "blue-cruiser" "Rebel Cruiser" "Rebel"
-                             #:x -1800 #:y -50 #:ai 'empty
+                             #:x -1800 #:y 400 #:ai 'empty
                              #:hull 200 #:mass 100 #:drag 0.4
                              #:radar 500 #:start-ship? #t
                              #:hangar (list (new-blue-fighter))
@@ -54,7 +54,7 @@
   
   
   (define base (make-ship "blue-station" "Rebel Outpost" "Rebel"
-                          #:x -2000 #:y -100 #:ai 'always #:hangar '()
+                          #:x -2200 #:y 500 #:ai 'always #:hangar '()
                           #:dr 0.1 #:radar 1000
                           #:hull 1000 #:mass 1000 #:drag 0.4
                           #:tools (list (tool-pbolt 10.0)

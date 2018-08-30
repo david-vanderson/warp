@@ -343,7 +343,7 @@
   (define max-y (/ (space-height space) 2))
   (define my (* max-y scale 2.0 (/ 1.0 1000.0)))
   
-  (define sw 1000)
+  (define sw 2000)
   (define idx (sprite-idx csd '1000x2))
   (define w 1.1)
   

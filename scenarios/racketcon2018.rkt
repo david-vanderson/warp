@@ -20,13 +20,15 @@
 
   (define team1 "Brackets")
   (define base1id #f)
-  (define base1x -1000)
+  (define base1x #f)
+  (define base1y #f)
   (define team1-num 0)
   (define team1-score 0)
   
   (define team2 "Parens")
   (define base2id #f)
-  (define base2x 1000)  
+  (define base2x #f)
+  (define base2y #f)
   (define team2-num 0)
   (define team2-score 0)
 
@@ -40,15 +42,9 @@
     (define-values (x y)
       (cond
         ((equal? team team1)
-         (define b (find-top-id ownspace base1id))
-         (if b
-             (values (+ (obj-x b) -300) (obj-y b))
-             (values (+ base1x -300) 0)))
+         (values (+ base1x -300) base1y))
         ((equal? team team2)
-         (define b (find-top-id ownspace base2id))
-         (if b
-             (values (+ (obj-x b) 300) (obj-y b))
-             (values (+ base2x 300) 0)))
+         (values (+ base2x 300) base2y))
         (else
          (error 'start-xy "team not recognized: ~a" team))))
     (values (+ x dx) (+ y dy)))
@@ -174,25 +170,9 @@
   (define (start-space oldspace)
 
     (define ownspace
-      (space (next-id) 0 6000 6000 (space-players oldspace) '() '()))
+      (space (next-id) 0 8000 8000 (space-players oldspace) '() '()))
 
-
-    (define r (new region%))
-    (send r set-ellipse -750.0 -750.0 1500.0 1500.0)
-    (define-values (rx ry rw rh) (send r get-bounding-box))
-    
-    (define nebulas '())
-    (define sep 500.0)
-    (define sep/2 (/ sep 2))
-    (for* ((x (in-range (+ rx sep/2) (- rw sep/2) sep))
-           (y (in-range (+ ry sep/2) (- rh sep/2) sep))
-           #:when (send r in-region? x y))
-      (define xd (random-between (* sep -0.25) (* sep 0.25)))
-      (define yd (random-between (* sep -0.25) (* sep 0.25)))
-      (define dr (* (if ((random) . < . 0.5) -1 1) (random-between 0.01 0.04)))
-      (define t (inexact->exact (round (random-between 0 100000))))
-      (define n (nebula (next-id) t #t 1.0 (posvel 0 (+ x xd) (+ y yd) 0.0 0.0 0.0 dr) sep))
-      (prepend! nebulas n))
+    (define nebulas (nebula-ellipse -1000 -1000 2000 2000))
     (set-space-objects! ownspace nebulas)
 
     (define changes '())
@@ -213,13 +193,21 @@
     (set! base1id (next-id))
     (set! base2id (next-id))
 
+    (define dist (- (/ (space-width ownspace) 2.0) 1000))
+
     ; add team1 base
-    (define b1 (make-base team1 base1x (random-between -500 500) base2id))
+    (define t1 (random-between (+ pi (/ pi/2 2)) (- pi (/ pi/2 2))))
+    (set! base1x (* dist (cos t1)))
+    (set! base1y (* dist (sin t1)))
+    (define b1 (make-base team1 base1x base1y base2id))
     (set-ob-id! b1 base1id)
     (append! changes (chadd b1 #f))
 
     ; add team2 base
-    (define b2 (make-base team2 base2x (random-between -500 500) base1id))
+    (define t2 (random-between (- (/ pi/2 2)) (/ pi/2 2)))
+    (set! base2x (* dist (cos t2)))
+    (set! base2y (* dist (sin t2)))
+    (define b2 (make-base team2 base2x base2y base1id))
     (set-ob-id! b2 base2id)
     (append! changes (chadd b2 #f))
 
