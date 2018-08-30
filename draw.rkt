@@ -193,33 +193,43 @@
            ((ship? o)
             (define spr '())
             (define si (hash-ref ship-list (ship-type o)))
-            (define sym (car (ship-info-bm si)))
+            (define sym (bm-sym (ship-info-bm si)))
+
+            (define ship-scale (/ (exact->inexact (ship-sprite-size o))
+                                  (sprite-size csd sym)))
+
+            (prepend! spr (obj-sprite o csd center scale layer-ships
+                                      sym ship-scale
+                                      fowa (obj-r o) (make-color (get-red space o) 0 0 1.0)))
+            
             (define eng (ship-tool o 'engine))
             (cond
               ((warping? o)
                ; something
                (void))
               (eng
-               (define c (tool-count space eng o))
-               (define symlist (ship-info-engine-bms si))
-               (define len (length symlist))
-               (when (len . > . 0)
-                 (define i (min (+ c (remainder (debug-num) (+ 1 len)))
-                                len))
-                 (when (i . > . 0)
-                   (define syms (list-ref symlist (- i 1)))
-                   (define k (remainder (quotient (obj-age space o) 100) (length syms)))
-                   (set! sym (string->symbol (string-append (symbol->string sym)
-                                                            "-e"
-                                                            (number->string i)
-                                                            (number->string (+ k 1)))))))))
-
-            
-            (prepend! spr (obj-sprite o csd center scale layer-ships
-                                      sym
-                                      (/ (ship-sprite-size o)
-                                         (sprite-size csd (car (ship-info-bm si))))
-                                      fowa (obj-r o) (make-color (get-red space o) 0 0 1.0)))
+               (define c (+ (tool-count space eng o) (remainder (debug-num) 5)))
+               (when (c . > . 0)
+                 (define sym (engine-frame-sym (ship-engine-name o) c
+                                               (quotient (obj-age space o) 100)))
+                 (when sym
+                   (define idx (sprite-idx csd sym))
+                   (for ((e (in-list (ship-info-engines si))))
+                     (define w (* (engine-w e) ship-scale
+                                  (/ (exact->inexact (sprite-height csd idx)))))
+                     (define d (* w 0.5 (sprite-width csd idx)))
+                     (define r (angle-add (obj-r o) (engine-r e)))
+                     (define x (+ (obj-x o)
+                                  (* (engine-x e) ship-scale (cos (obj-r o)))
+                                  (- (* (engine-y e) ship-scale (sin (obj-r o))))
+                                  (- (* d (cos r)))))
+                     (define y (+ (obj-y o)
+                                  (* (engine-x e) ship-scale (sin (obj-r o)))
+                                  (* (engine-y e) ship-scale (cos (obj-r o)))
+                                  (- (* d (sin r)))))
+                     (define-values (ex ey) (xy->screen x y center scale))
+                     (prepend! spr (xy-sprite ex ey csd scale layer-effects
+                                              sym w fowa r (make-color 0 0 0 1.0))))))))
 
             (define w (ship-w o scale))
             

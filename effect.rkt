@@ -31,7 +31,7 @@
                                         (- (* 1.5 (posvel-dy (obj-posvel o))))
                                         0) 1.5 1000))
          be))
-      (eng
+      ((and eng (or (missile? o) (probe? o)))
        (define c (tool-count space eng o))
        (when (or (and (missile? o) (time-for (obj-age space o) 200))
                  (and (time-for (obj-age space o) 800)

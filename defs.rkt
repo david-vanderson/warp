@@ -5,7 +5,7 @@
 
 (provide (all-defined-out))
 
-(define VERSION 4)  ; client will bomb if version doesn't match server
+(define VERSION 5)  ; client will bomb if version doesn't match server
 
 (define-runtime-path IMAGEDIR "images")
 
@@ -175,12 +175,14 @@
 
 (struct overlay (sym fow?) #:mutable #:prefab)
 
-(struct ship obj (type name faction con maxcon mass drag start
+(struct ship obj (type name faction engine-name con maxcon mass drag start
                   radar visible price invincible? sprite-size radius tools
                   playerids hangar overlays cargo dmgfx
                   ai ai-time ai-freq ai-strategy ai-strat-time) #:mutable #:prefab)
+; type is the symbol for the sprite
 ; name is the name of the ship
 ; faction is the name that this ship belongs to
+; engine-sym is the symbol for the engine output sprite class
 ; con (containment) is how much health you have left
 ; maxcon is the max containment you can have
 ; mass controls how you bump into other ships

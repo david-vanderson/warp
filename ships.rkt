@@ -2,6 +2,7 @@
 
 (require racket/class
          racket/draw
+         racket/string
          mode-lambda/static
          racket/math)
 
@@ -10,17 +11,28 @@
 
 (provide (all-defined-out))
 
-(struct ship-info (filename size bm engine-bms) #:mutable #:prefab)
-; each bm is actually (cons sym bm)
+(struct bm (sym size bitmap) #:prefab)
+; size is the size we want the bitmap to be
+
+(struct engine (x y w r) #:prefab)
+; describes each engine a ship has (gfx only, no effect on gameplay)
+; x,y is pixel offset of front edge of output from center of ship
+; w is pixel width of output (scaling)
+; r is orientation of output (0 is normal)
+
+(struct ship-info (bm engines) #:prefab)
+; engines is a list of engine structs
+
 
 (define ship-list #f)
+(define engine-list #f)
 (define ship-list-sema (make-semaphore 1))
 
-(define (engine-filename base i k (ext ".png"))
-  (string-append base "-e" (number->string i) (number->string k) ext))
+(define (engine-name base i k)
+  (string-append "engine-" base "-" (number->string i) (number->string k)))
 
 (define (engine-path base i k (ext ".png"))
-  (build-path IMAGEDIR (engine-filename base i k ext)))
+  (build-path IMAGEDIR (string-append (engine-name base i k) ext)))
 
 ; both client and server call this, but we only want it to happen once
 ; also they could be threads in the same process
@@ -28,80 +40,108 @@
   (semaphore-wait ship-list-sema)
   (when (not ship-list)
     (set! ship-list
-          (for/hash ((name '("spacesuit" 
-                             "probe"
-                             "missile"
-                             "mine"
-                             "cannonball"
-                             "asteroid_87"
-                             "asteroid_43"
-                             "blue-station"
-                             "red-station"
-                             "blue-frigate"
-                             "red-frigate"
-                             "blue-fighter"
-                             "red-fighter"
-                             "red-destroyer"
-                             "blue-cruiser"
-                             "red-cruiser"
+          (for/hash ((s (list
+                         (list "spacesuit" #f)
+                         (list "probe" #f)
+                         (list "missile" 10)
+                         (list "mine" 16)
+                         (list "cannonball" 10)
+                         (list "asteroid_87" #f)
+                         (list "asteroid_43" #f)
+                         
+                         (list "blue-station" #f)
+                         ; need blue destroyer
+                         (list "blue-cruiser" #f
+                               (engine -19.5 18.5 16 0)
+                               (engine -19.5 -18.5 16 0))
+                         (list "blue-frigate" #f)  ; need new blue frigate
+                         (list "blue-fighter" 20
+                               (engine -9 0 16 0))
+                         
+                         (list "red-station" #f)
+                         (list "red-destroyer" #f
+                               (engine -33.5 -1 18 0)
+                               (engine -30 24 13 0)
+                               (engine -18.5 -26 10.5 0))
+                         (list "red-cruiser" #f
+                               (engine -22 8.5 6 0)
+                               (engine -22 -8.5 6 0))
+                         (list "red-frigate" #f
+                               (engine -21.5 6 12 0)
+                               (engine -21.5 -6 12 0))
+                         (list "red-fighter" 24
+                               (engine -12 0 8 0))
+                         
+                         (list "green-frigate" #f
+                               (engine -15 0 7.5 0))
+                         (list "green-fighter" 24
+                               (engine -16 9 7 0)
+                               (engine -16 -9 7 0))
+                         
+                         (list "orange-frigate" #f
+                               (engine -15 0 7.5 0))
+                         (list "orange-fighter" 24
+                               (engine -16 9 7 0)
+                               (engine -16 -9 7 0))
                              
-                             ;"missile1" (ship-info "missile1" 16.0 #f)
-                             ;"missile2" (ship-info "missile2" #f #f)
-                             ;"missile3" (ship-info "missile3" #f #f)
-                             ;"probe1" (ship-info "probe1" #f #f)
-                             ;"probe2a" (ship-info "probe2a" #f #f)
-                             ;"probe2b" (ship-info "probe2b" #f #f)
-                             ;"probe3" (ship-info "probe3" #f #f)
-                             )))
-            (define size #f)
+                         ;"missile1" (ship-info "missile1" 16.0 #f)
+                         ;"missile2" (ship-info "missile2" #f #f)
+                         ;"missile3" (ship-info "missile3" #f #f)
+                         ;"probe1" (ship-info "probe1" #f #f)
+                         ;"probe2a" (ship-info "probe2a" #f #f)
+                         ;"probe2b" (ship-info "probe2b" #f #f)
+                         ;"probe3" (ship-info "probe3" #f #f)
+                         )))
+            (define name (car s))
+            (define size (cadr s))
             (define filename name)
-            (cond
-              ((equal? name "blue-fighter")
-               (set! size 20.0))
-              ((equal? name "red-fighter")
-               (set! size 24.0))
-              ((equal? name "missile")
-               (set! size 10.0))
-              ((equal? name "mine")
-               (set! size 16.0))
-              ((equal? name "cannonball")
-               (set! filename "asteroid_43")
-               (set! size 10.0)))
-            (values name (ship-info filename size #f '()))))
-    
-    (for (((name si) (in-hash ship-list)))
-      (define sym (string->symbol name))
-      (define basename (ship-info-filename si))
-      (define bm (read-bitmap (build-path IMAGEDIR (string-append basename ".png")) 'png/alpha))      
-      (set-ship-info-bm! si (cons sym bm))
-      (when (not (ship-info-size si))
-        (set-ship-info-size! si (max (send bm get-width) (send bm get-height))))
-      
-      (for ((i (in-naturals 1)))
-        #:break (not (file-exists? (engine-path basename i 1)))
-        ; i goes over different sized engine animations
-        (set-ship-info-engine-bms! si (append (ship-info-engine-bms si) (list (list))))
-        (for ((k (in-naturals 1)))
-          ; k goes over the frames of a single animation
-          (define filename (engine-path basename i k))
-          #:break (not (file-exists? filename))
-          (define bm (read-bitmap filename 'png/alpha))
-          (define sym (string->symbol (engine-filename name i k "")))
-          (set-ship-info-engine-bms! si
-                                     (for/list ((bms (ship-info-engine-bms si))
-                                                (z (in-naturals 1)))
-                                       (if (equal? i z)
-                                           (append bms (list (cons sym bm)))
-                                           bms)))))))
+            (when (equal? name "cannonball")
+              (set! filename "asteroid_43"))
+
+            (define sym (string->symbol name))
+            (define b (read-bitmap (build-path IMAGEDIR (string-append filename ".png"))
+                                   'png/alpha))
+            (when (not size)
+              (set! size (max (send b get-width) (send b get-height))))
+            (values name (ship-info (bm sym size b) (cddr s)))))
+
+    (set! engine-list
+          (for/hash ((name '("blue-fire" 
+                             "red-fire"
+                             "rings")))
+            (values name
+                    (for/list ((i (in-naturals 1)))
+                      #:break (not (file-exists? (engine-path name i 1)))
+                      ; i goes over different sized engine animations
+                      (for/list ((k (in-naturals 1)))
+                        ; k goes over the frames of a single animation
+                        (define filename (engine-path name i k))
+                        #:break (not (file-exists? filename))
+                        (define b (read-bitmap filename 'png/alpha))
+                        (define sym (string->symbol (engine-name name i k)))
+                        (bm sym #f b))))))
+    )
+     
   (semaphore-post ship-list-sema))
 
 (define (add-ship-sprites! sd)
   (for (((name si) (in-hash ship-list)))
-    (define c (ship-info-bm si))
-    (add-sprite!/value sd (car c) (cdr c))
-    (for* ((i (in-list (ship-info-engine-bms si)))
-           (k (in-list i)))
-      (add-sprite!/value sd (car k) (cdr k)))))
+    (define bm (ship-info-bm si))
+    (add-sprite!/value sd (bm-sym bm) (bm-bitmap bm)))
+  (for (((name lst) (in-hash engine-list)))
+    (for* ((o (in-list lst))
+           (bm (in-list o)))
+      (add-sprite!/value sd (bm-sym bm) (bm-bitmap bm)))))
+
+
+(define (engine-frame-sym engine-name size frame)
+  (define lst (hash-ref engine-list engine-name #f))
+  (cond
+    ((not lst) #f)
+    (else
+     (define frames (list-ref lst (- (min size (length lst)) 1)))
+     (define bm (list-ref frames (remainder frame (length frames))))
+     (bm-sym bm))))
   
 
 (define (make-spacesuit name ship)
@@ -122,7 +162,8 @@
 (define (make-ship type name faction
                    #:x (x 0.0) #:y (y 0.0) #:r (r pi/2)
                    #:dx (dx 0.0) #:dy (dy 0.0) #:dr (dr 0.0)
-                   #:size (size (ship-info-size (hash-ref ship-list type)))
+                   #:size (size (bm-size (ship-info-bm (hash-ref ship-list type))))
+                   #:engine-name [engine-name #f]
                    #:mass [mass #f]
                    #:drag (drag 0.0)
                    #:price (price #f)
@@ -147,6 +188,7 @@
                         (exact->inexact dy)
                         (exact->inexact dr))
                 type name faction
+                engine-name
                 (exact->inexact hull)
                 (exact->inexact hull)
                 (exact->inexact (if mass mass (* size size)))
@@ -181,6 +223,16 @@
       (else spaceship)))
   
   (define s (apply constructor args))
+
+  (when (not engine-name)
+    (define newname
+      (cond
+        ((string-contains? type "blue") "rings")
+        ((string-contains? type "red") "red-fire")
+        ((string-contains? type "green") "blue-fire")
+        ((string-contains? type "orange") "blue-fire")
+        (else #f)))
+    (set-ship-engine-name! s newname))
 
   (when (ship-hangar s)
     (for ((hangship (in-list (ship-hangar s))))
