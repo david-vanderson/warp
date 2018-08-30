@@ -12,10 +12,12 @@ Start each client: raco warp
 Most scenarios are cooperative - it is playable with a single person but very difficult!  All players on a ship have the same controls.  More players make your ship more powerful but you have to coordinate!
 
 The game is primarily mouse driven with keyboard shortcuts.  There are a few extra keyboard shortcuts:
+- ? toggles a help screen
 - ctrl-f toggles fullscreen
 - ctrl-q asks if you want to quit
 - tab toggles showing more information on screen
 - backtick toggles showing the whole map
+- p toggles showing all players
 - r/t zoom in/out along with mouse wheel
 - right-mouse drag moves the view independent of your ship
 

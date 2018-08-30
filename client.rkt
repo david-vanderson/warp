@@ -112,7 +112,8 @@
   (define aheads '())  ; list of last few ahead calculations
   (define last-update-time #f)  ; space-time of last update we got from server
 
-  (define showtab #f)  ; tab toggles an overlay showing players and goals
+  (define showtab #f)  ; tab toggles an overlay showing players on ships and orders
+  (define showplayers #f)  ; 'p' toggles showing all players playing currently
   (define showsector? #f)  ; tilde toggles showing the whole sector or the regular view
   (define zerocenter (pvobj 0.0 0.0))
 
@@ -282,8 +283,11 @@
       (define help-lines
         (list "ctrl-f toggles fullscreen"
               "ctrl-q to quit"
-              "tab shows players"
+              ""
+              "tab shows extra info (players on ships)"
               "backtick toggles full map"
+              "p lists all players"
+              ""
               "r/t or mouse wheel zooms"
               "right-click drag to pan view"
               ""
@@ -751,7 +755,7 @@
                                           (+ x (obj-x a)) (+ y (obj-y a) (* i 20))
                                           LAYER_UI_TEXT z)))))
 
-      (when showtab
+      (when showplayers
         ; list all players by faction
         (define players (space-players ownspace))
         (for ((i (modulo (debug-num) 10)))
@@ -984,6 +988,9 @@
       (prepend! buttons
                (holdbutton 'hidden #\tab #f 0 0 0 0 "Mission Info"
                            (lambda (k y) (set! showtab (not showtab)))
+                           void)
+               (holdbutton 'hidden #\p #f 0 0 0 0 "Players"
+                           (lambda (k y) (set! showplayers (not showplayers)))
                            void)
                (holdbutton 'hidden #\` #f 0 0 0 0 "Show Sector"
                            (lambda (k y) (set! showsector? (not showsector?)))
@@ -1227,11 +1234,11 @@
              ((#\space)
               (when clickcmds
                 (send-commands (clickcmds #t))))
-             ((#\0)
-              (debug-num (+ 1 (debug-num))))
              ((#\?)
               (set! help-screen? (not help-screen?)))
-             ((#\n)
+             #;((#\0)
+              (debug-num (+ 1 (debug-num))))
+             #;((#\n)
               (when ownspace
                 (send-commands (make-message ownspace
                                              (~a "message " (space-time ownspace))))))
