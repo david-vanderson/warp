@@ -2,7 +2,6 @@
 (require
   racket/gui
   racket/fixnum
-  opengl
   mode-lambda
   mode-lambda/static
   mode-lambda/text

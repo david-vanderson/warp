@@ -1,7 +1,5 @@
 #lang racket/base
 
-(require data/heap)
-
 (require "defs.rkt"
          "utils.rkt"
          "quadtree.rkt"
