@@ -3,6 +3,8 @@ warp
 
 Light Multiplyaer Game in Racket for LAN parties.
 
+Install Racket: http://racket-lang.org/
+
 raco pkg install warp
 
 Start a server: raco warp -s
