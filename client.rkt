@@ -471,25 +471,6 @@
           (set! layer-hangar LAYER_EFFECTS))
         
         (cond
-          ((not (ship-flying? ship))
-           ; our ship is inside another
-           ; draw black circle on top of topship
-           (prepend! sprites (obj-sprite topship csd center (get-scale)
-                                         layer-hangar-back 'circle
-                                         (/ (* 2.2 (ship-radius topship)) 100)
-                                         0.75 0.0 (make-color 0 0 0 1.0)))
-           ; draw our ship inside black circle
-           (define-values (x y) (obj->screen topship center (get-scale)))
-           (define sym (string->symbol (ship-type ship)))
-           (prepend! sprites (sprite x y (sprite-idx csd sym)
-                                     #:layer layer-hangar #:theta (- pi/2)
-                                     #:m (* (get-scale)
-                                            (/ (ship-sprite-size ship)
-                                               (sprite-size csd sym)))
-                                     #:r (get-red ownspace ship)))
-           (define w (ship-w ship (get-scale)))
-           (prepend! sprites (draw-hp-bar ship x y w csd layer-hangar 1.0)))
-          
           (in-hangar?
            (define factory (ship-tool ship 'factory))
            (define hshipsw (map (lambda (s) (ship-w s 1.0))
@@ -663,8 +644,26 @@
                                  0.0 hy hw hh ""
                                  (lambda (x y)
                                    (set! hangshipid #f))))
-           (append! buttons backb)
-           ))
+           (append! buttons backb))
+          
+          ((not (ship-flying? ship))
+           ; our ship is inside another
+           ; draw black circle on top of topship
+           (prepend! sprites (obj-sprite topship csd center (get-scale)
+                                         layer-hangar-back 'circle
+                                         (/ (* 2.2 (ship-radius topship)) 100)
+                                         0.75 0.0 (make-color 0 0 0 1.0)))
+           ; draw our ship inside black circle
+           (define-values (x y) (obj->screen topship center (get-scale)))
+           (define sym (string->symbol (ship-type ship)))
+           (prepend! sprites (sprite x y (sprite-idx csd sym)
+                                     #:layer layer-hangar #:theta (- pi/2)
+                                     #:m (* (get-scale)
+                                            (/ (ship-sprite-size ship)
+                                               (sprite-size csd sym)))
+                                     #:r (get-red ownspace ship)))
+           (define w (ship-w ship (get-scale)))
+           (prepend! sprites (draw-hp-bar ship x y w csd layer-hangar 1.0))))
 
         ; draw ship UI
         (prepend! sprites (draw-ship-hp csd textr center (get-scale) my-stack))
