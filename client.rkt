@@ -395,10 +395,10 @@
               (define-values (x y) (xy->screen (fow-x f) (fow-y f) center (get-scale)))
               (prepend! sprites
                         (sprite x y (sprite-idx csd 'fow) #:layer LAYER_FOW_VISIBLE
-                                #:m (* (fow-visible f) (get-scale) (/ 45.0))))
+                                #:m (* (fow-visible f) (get-scale) (/ 50.0))))
               (prepend! sprites
                         (sprite x y (sprite-idx csd 'fow) #:layer LAYER_FOW_RADAR
-                                #:m (* radar (get-scale) (/ 45.0))))
+                                #:m (* radar (get-scale) (/ 50.0))))
               )
              ((nebula? s)
               (define-values (x y) (xy->screen (obj-x s) (obj-y s) center (get-scale)))

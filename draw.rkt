@@ -38,9 +38,9 @@
       (define dy (- (obj-y o) (fow-y f)))
       (define d (+ (* dx dx) (* dy dy)))
       (define vd (+ (fow-visible f) r))
-      (define va (linear-fade d (* vd vd) (* vd vd 1.1)))
+      (define va (linear-fade d (* vd vd 0.9) (* vd vd)))
       (define rd (+ (fow-radar f) r))
-      (define ra (linear-fade d (* rd rd) (* rd rd 1.1)))
+      (define ra (linear-fade d (* rd rd 0.9) (* rd rd)))
       ; radar is attenuated by the nebula
       (set! a (max a va (* ra (obj-neb o))))
       (when (a . = . 1.0)
