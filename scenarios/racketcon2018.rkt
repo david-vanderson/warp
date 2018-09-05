@@ -167,13 +167,67 @@
     (append! changes (chadd s #f))
     changes)
 
+  (define (make-asteroid diam x y dx dy dr)
+    (printf "asteroid at ~a ~a\n" x y)
+    (make-ship "asteroid_87" "Asteroid" "_neutral" #:drag 0.1
+               #:size diam #:x x #:y y #:dr dr #:dx dx #:dy dy
+               #:hull 5000 #:invincible? #t))
+
+  (define (make-mine x y)
+    (make-ship "mine" "Mine" "_mine" #:x x #:y y
+               #:hull 100 #:radar 75 #:drag 0.6
+               #:tools (tools-pilot 15.0 #f #f)))
+
   (define (start-space oldspace)
 
     (define ownspace
       (space (next-id) 0 8000 8000 (space-players oldspace) '() '()))
 
-    (define nebulas (nebula-ellipse -1000 -1000 2000 2000))
-    (set-space-objects! ownspace nebulas)
+    (define nebulas
+      (let ((r (new region%)))
+        (send r set-ellipse -1000 -1000 2000 2000)
+        (nebula-region r)))
+
+    (define upper-asteroids
+      (let ((r (new region%)))
+        (send r set-polygon
+              '((-2000.0 . 2000.0)
+                (-2000.0 . 4000.0)
+                (2000.0 . 4000.0)
+                (2000.0 . 2000.0)))
+        (asteroid-region r make-asteroid)))
+
+    (define lower-asteroids
+      (let ((r (new region%)))
+        (send r set-polygon
+              '((-2000.0 . -2000.0)
+                (-2000.0 . -4000.0)
+                (2000.0 . -4000.0)
+                (2000.0 . -2000.0)))
+        (asteroid-region r make-asteroid)))
+
+    (define lower-mines
+      (let ((r (new region%)))
+        (send r set-polygon
+              '((-500.0 . -800.0)
+                (500.0 . -800.0)
+                (500.0 . -2200.0)
+                (-500.0 . -2200.0)))
+        (mine-region r make-mine)))
+
+    (define upper-mines
+      (let ((r (new region%)))
+        (send r set-polygon
+              '((-500.0 . 800.0)
+                (-500.0 . 2200.0)
+                (500.0 . 2200.0)
+                (500.0 . 800.0)) 0 0 'winding)
+        (mine-region r make-mine)))
+    (set-space-objects! ownspace (append upper-mines
+                                         lower-mines
+                                         upper-asteroids
+                                         lower-asteroids
+                                         nebulas))
 
     (define changes '())
     

@@ -63,7 +63,7 @@
 
   (define f (new-blue-fighter 0 0))
 
-  (define nebulas (nebula-polygon (cons -1000 -1000)
+  #;(define nebulas (nebula-polygon (cons -1000 -1000)
                                   (cons -1000 1000)
                                   (cons 1000 1000)
                                   (cons 1000 -1000)))
@@ -75,7 +75,7 @@
                        (list b1 b2 ;f
                              (new-red-fighter 300 0)
                              (new-red-fighter 800 200))
-                       nebulas
+                       ;nebulas
                        (space-objects ownspace)))
   
   (define real-orders (space 0 0 0 0 '() '() '()))  ; only care about orders

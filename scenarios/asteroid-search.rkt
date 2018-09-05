@@ -26,33 +26,20 @@
           (-2000.0 . 2000.0)
           (1000.0 . 2000.0)
           (2000.0 . -2000.0)))
-  (define-values (rx ry rw rh) (send r get-bounding-box))
-
-  (define asteroids '())
-  (define sep 500.0)
-  (define sep/2 (/ sep 2))
-  (define dd 10.0)
-  (for* ((x (in-range (+ rx sep/2) (- rw sep/2) sep))
-         (y (in-range (+ ry sep/2) (- rh sep/2) sep))
-         #:when (send r in-region? x y))
-    (define diam (exp (exp (random-between (log (log 25.0)) (log (log 250.0))))))
-    (define xd (random-between (* sep -0.5) (* sep 0.5)))
-    (define yd (random-between (* sep -0.5) (* sep 0.5)))
-    (define dx (random-between (- dd) dd))
-    (define dy (random-between (- dd) dd))
-    (define dr (random-between -0.5 0.5))
-    (define up? ((random) . < . 0.1))
-    (define a (make-ship "asteroid_87" "Asteroid" "_neutral" #:drag 0.1
-                         #:size diam
-                         #:x (+ x xd) #:y (+ y yd) #:dr dr #:dx dx #:dy dy
-                         #:hull (if up? 50 5000)
-                         #:invincible? #t
-                         #:cargo (if up?
-                                     (list (random-upgrade 0 #f)
-                                           (random-upgrade 0 #f))
-                                     '())
-                         #:overlays (list (cons "Empire" (overlay 'overlay-qm #t)))))
-    (prepend! asteroids a))
+  (define asteroids
+    (asteroid-region r
+      (lambda (diam x y dx dy dr)
+        (define up? ((random) . < . 0.1))
+        (make-ship "asteroid_87" "Asteroid" "_neutral" #:drag 0.1
+                   #:size diam
+                   #:x x #:y y #:dr dr #:dx dx #:dy dy
+                   #:hull (if up? 50 5000)
+                   #:invincible? #t
+                   #:cargo (if up?
+                               (list (random-upgrade 0 #f)
+                                     (random-upgrade 0 #f))
+                               '())
+                   #:overlays (list (cons "Empire" (overlay 'overlay-qm #t)))))))
 
   ; pick which asteroid will have the hidden base
   (define idx (random (length asteroids)))

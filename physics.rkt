@@ -496,8 +496,6 @@
      (physics! pv dt (ship-drag o))
      (steer! space o dt)
      (push-back! space o dt))
-    ((nebula? o)
-     (physics! pv dt))
     ((plasma? o)
      (physics! pv dt)
      (push-back! space o dt)
