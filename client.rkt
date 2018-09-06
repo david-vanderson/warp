@@ -88,6 +88,9 @@
   (define hangshipid #f)  ; id of a ship in the hangar we are maybe boarding or scrapping
   (define last-pbolt-time 0)  ; space-time of last pbolt fire
 
+  ; if current faction is different from this, reset our view
+  (define last-faction #f)
+
   (define pressed '())
   ; list of press structs from recently pressed buttons
   (define (press! key)
@@ -237,10 +240,14 @@
     (define rcship #f)
     (define topship #f)
     (define myshipid #f)
+    (define me #f)
+    (define myfaction #f)
+    (when ownspace
+      (set! me (findfid meid (space-players ownspace)))
+      (set! myfaction (player-faction me))
+      (when (player-rcid me)
+        (set! rcship (find-id ownspace ownspace (player-rcid me)))))
     (when my-stack
-      (define p (car my-stack))
-      (when (player-rcid p)
-        (set! rcship (find-id ownspace ownspace (player-rcid p))))
       (set! topship (get-topship my-stack))
       (set! shipcenter (or rcship topship))
       (set! myshipid (ob-id shipcenter)))
@@ -360,16 +367,14 @@
      (else
       ; we have ownspace      
       (timeit t2
-      (define p (findfid meid (space-players ownspace)))
-      (define fac (if p (player-faction p) #f))
-      (define ordertree (get-space-orders-for ownspace fac))
+      (define ordertree (get-space-orders-for ownspace myfaction))
       
       ; background starts as fog of war gray
       (set! background-gray 75)
 
       (define fowlist '())
       (cond
-        ((equal? fac "Observer")
+        ((equal? myfaction "Observer")
          ; sees everything via radar but later we special case so nothing ever disappears
          (define r (* 2.0 (max (space-width ownspace)
                                (space-height ownspace))))
@@ -383,11 +388,11 @@
         (else
          (for ((s (in-list (space-objects ownspace))))
            (cond
-             ((and fac
+             ((and myfaction
                    (or (spaceship? s)
                        (spacesuit? s)
                        (probe? s))
-                   ((faction-check fac (ship-faction s)) . > . 0))
+                   ((faction-check myfaction (ship-faction s)) . > . 0))
               ; for every friendly ship
               (define radar (+ (ship-visible s) (* (obj-neb s) (- (ship-radar s) (ship-visible s)))))
               (define f (fow (obj-x s) (obj-y s) radar (ship-visible s)))
@@ -458,7 +463,6 @@
       ; - stacked if we are on a ship inside another ship
       (timeit t5
       (when my-stack
-        (define p (car my-stack))
         (define ship (get-ship my-stack))
         (when (and in-hangar? (not (ship-hangar ship)))
           ; just to make sure, maybe our ship had a hangar and it went away?
@@ -527,7 +531,7 @@
                                  (lambda (x y)
                                    (when afford?
                                      (send-commands (command meid
-                                                             (player-cmdlevel p)
+                                                             (player-cmdlevel me)
                                                              'factory
                                                              (ob-id s)))))))
                (prepend! buttons b))
@@ -586,7 +590,7 @@
                                       w 40.0 "Scrap"
                                       (lambda (x y)
                                         (send-commands (command meid
-                                                                (player-cmdlevel p)
+                                                                (player-cmdlevel me)
                                                                 'factory
                                                                 (ob-id s))))))
                (when (and factory (ship-price s))
@@ -707,13 +711,13 @@
         (define r (obj-radius ownspace o #t))
         (when r
           (define fowa (get-alpha o r fowlist))
-          (when (equal? fac "Observer")
+          (when (equal? myfaction "Observer")
             (set! fowa (max fowa 0.5)))
           (when (equal? (ob-id o) myshipid)
             (set! fowa (max fowa 0.5)))
           (when (fowa . > . 0)
             (define spr (draw-object csd textr textsr center (get-scale) o ownspace myshipid
-                                     showtab fowa fac layer-ships layer-effects))
+                                     showtab fowa myfaction layer-ships layer-effects))
             (prepend! sprites spr))))
       )
       
@@ -724,7 +728,7 @@
                         (or showtab (not (ann-tab? a)))
                         (or (equal? (ann-faction a) #t)
                             (and CLIENT_SPECIAL? (not (ann-faction a)))
-                            (equal? (ann-faction a) fac))))
+                            (equal? (ann-faction a) myfaction))))
         (define-values (x y)
           (case (posvel-t (obj-posvel a))
             ((topleft)
@@ -818,9 +822,9 @@
                                         (and (ship? o)
                                              (ship-flying? o)
                                              (ship-start o)
-                                             (equal? fac (ship-faction o))))))
+                                             (equal? myfaction (ship-faction o))))))
         
-        (when (not fac)
+        (when (not myfaction)
           (prepend! sprites (textr "Waiting for faction assignment..."
                                    0.0 0.0 #:layer LAYER_UI
                                    #:r 255 #:g 255 #:b 255)))
@@ -928,7 +932,8 @@
          ; leaving this ship into mothership
          (define ms (cadr (get-ships my-stack)))
          (define b (button 'normal 'escape #f
-                           0.0 (- (bottom) 76) 160 40 "Exit to Mothership"
+                           0.0 (- (bottom) 76) 200 40
+                           (string-append "Exit to " (ship-name ms))
                            (lambda (x y)
                              (send-commands (chmov meid (ob-id ms) #f)))))
          (prepend! buttons b)))
@@ -1607,6 +1612,10 @@
     )
     
     (when ownspace
+      (define me (findfid meid (space-players ownspace)))
+      (when (not (equal? last-faction (player-faction me)))
+        (reset-view!)
+        (set! last-faction (player-faction me)))
 
       (timeit time-predict      
       (when ((+ target-time (- TICK)) . > . (space-time ownspace))

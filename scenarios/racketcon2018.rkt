@@ -168,7 +168,6 @@
     changes)
 
   (define (make-asteroid diam x y dx dy dr)
-    (printf "asteroid at ~a ~a\n" x y)
     (make-ship "asteroid_87" "Asteroid" "_neutral" #:drag 0.1
                #:size diam #:x x #:y y #:dr dr #:dx dx #:dy dy
                #:hull 5000 #:invincible? #t))
@@ -185,7 +184,7 @@
 
     (define nebulas
       (let ((r (new region%)))
-        (send r set-ellipse -1000 -1000 2000 2000)
+        (send r set-ellipse -1500 -1000 3500 2000)
         (nebula-region r)))
 
     (define upper-asteroids
@@ -209,19 +208,19 @@
     (define lower-mines
       (let ((r (new region%)))
         (send r set-polygon
-              '((-500.0 . -800.0)
-                (500.0 . -800.0)
-                (500.0 . -2200.0)
-                (-500.0 . -2200.0)))
+              '((-500.0 . -1000.0)
+                (500.0 . -1000.0)
+                (500.0 . -2000.0)
+                (-500.0 . -2000.0)))
         (mine-region r make-mine)))
 
     (define upper-mines
       (let ((r (new region%)))
         (send r set-polygon
-              '((-500.0 . 800.0)
-                (-500.0 . 2200.0)
-                (500.0 . 2200.0)
-                (500.0 . 800.0)) 0 0 'winding)
+              '((-500.0 . 1000.0)
+                (-500.0 . 2000.0)
+                (500.0 . 2000.0)
+                (500.0 . 1000.0)))
         (mine-region r make-mine)))
     (set-space-objects! ownspace (append upper-mines
                                          lower-mines
