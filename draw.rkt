@@ -315,10 +315,9 @@
                           (+ y (- (/ w 2.0)) (* i (+ size 2.0)) size)
                           idx #:layer layer #:m m #:theta (- pi/2))))
   (when (ship-ai ship)
-    (prepend! spr (text-sprite textr textsr "AI"
-                               (- x (/ w 2.0) -8.0)
-                               (- y (/ w 2.0) -4.0)
-                               layer)))
+    (prepend! spr (textr "COM" x (- y (/ w 2.0) -16.0)
+                         #:layer layer
+                         #:r 100 #:g 100 #:b 255)))
   spr)
     
    

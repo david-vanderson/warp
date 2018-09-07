@@ -489,9 +489,9 @@
            (define labelspace 20.0)
            (define hw (max shipmax (* 0.5 canon-width)))
            (define fh (+ shipmax labelspace))
-           (define hh (max (+ shipmax labelspace) (* 0.5 canon-height)))
-           (define hy (/ fh 2.0))
-           (define fy (- hy (/ hh 2.0) (/ fh 2.0) 10.0))
+           (define hh (max shipmax (* 0.5 canon-height)))
+           (define hy (+ (/ fh 2.0) labelspace))
+           (define fy (- hy labelspace (/ hh 2.0) (/ fh 2.0) 10.0))
            
            (when factory
              (define fw (max hw (* shipmax (length fships))))
@@ -499,15 +499,22 @@
                                             layer-hangar-back
                                             #:r 0 #:g 0 #:b 0
                                             #:a 0.75))
-             (prepend! sprites (rect-outline csd 0.0 fy fw fh 3.5
-                                             layer-hangar-back))
+
+             (define txt "Factory Materials ")
              (prepend! sprites
-                       (text-sprite textr textsr
-                                    (string-append "Factory Materials "
-                                                   (number->string (car (tool-val factory))))
-                                    (+ (- (/ fw 2.0)) 8.0)
+                       (text-sprite textr textsr txt
+                                    (- (/ fw 2.0))
                                     (+ fy (- (/ fh 2.0)) 2.0)
                                     LAYER_UI))
+             (let-values (((w h) (textsr txt)))
+               (prepend! sprites
+                         (text-sprite textr textsr
+                                      (number->string (car (tool-val factory)))
+                                      (+ (- (/ fw 2.0)) w)
+                                      (+ fy (- (/ fh 2.0)) 2.0)
+                                      LAYER_UI 1.0 (make-color 0 255 0 1.0))))
+
+             
 
              (for ((s (in-list fships))
                    (i (in-naturals)))
@@ -546,8 +553,8 @@
                                            layer-hangar-back))
            (prepend! sprites
                      (text-sprite textr textsr "Hangar"
-                                  (+ (- (/ hw 2.0)) 8.0)
-                                  (+ hy (- (/ hh 2.0)) 2.0)
+                                  (- (/ hw 2.0))
+                                  (- hy (/ hh 2.0) labelspace 4.0)
                                   LAYER_UI))
 
            (define hangship (for/first ((s (in-list (ship-hangar ship)))
@@ -565,7 +572,7 @@
              (define x (+ (* -0.5 hw)
                           (* (remainder i num-in-row) shipmax)
                           (/ shipmax 2)))
-             (define y (+ hy labelspace
+             (define y (+ hy
                           (* -0.5 hh)
                           (* (quotient i num-in-row) shipmax)
                           (/ shipmax 2)))
