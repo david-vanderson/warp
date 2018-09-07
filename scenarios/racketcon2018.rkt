@@ -81,11 +81,11 @@
                      (string-append (get-team-color team) "-frigate")
                      (string-append team " Frigate") team
                      #:hangar '() #:price 10 #:radar 400
-                     #:hull 100 #:mass 50 #:drag 0.4
+                     #:hull 100 #:mass 50 #:drag 0.3
                      #:tools (append (tools-pilot 35.0 #f 1.0)
                                      (list (tool-pbolt 8.0)
                                            (tool-mine 25.0)
-                                           (tool-warp 200.0 50.0)
+                                           (tool-warp 250.0 50.0)
                                            (tool-missile 5.0 10.0)
                                            (tool-regen 1.0)))))
 
@@ -94,12 +94,12 @@
                      (string-append team " Cruiser") team
                      #:hangar '() #:price 25 #:radar 500
                      #:hull 150 #:mass 100 #:drag 0.4
-                     #:tools (append (tools-pilot 20.0 #f 0.7)
+                     #:tools (append (tools-pilot 25.0 #f 0.7)
                                      (list (tool-pbolt 8.0)
                                            (tool-probe 10.0)
                                            (tool-missile 5.0 10.0)
                                            (tool-cannon 21.0)
-                                           (tool-warp 200.0 80.0)
+                                           (tool-warp 250.0 80.0)
                                            (tool-regen 1.0)))))
 
     (make-ship (string-append (get-team-color team) "-station")
@@ -175,7 +175,8 @@
   (define (make-mine x y)
     (make-ship "mine" "Mine" "_mine" #:x x #:y y
                #:hull 100 #:radar 75 #:drag 0.6
-               #:tools (tools-pilot 15.0 #f #f)))
+               #:tools (append (tools-pilot 15.0 #f #f)
+                               (list (tool-regen 0.5)))))
 
   (define (start-space oldspace)
 
