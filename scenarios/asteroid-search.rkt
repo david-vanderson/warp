@@ -44,6 +44,10 @@
   ; pick which asteroid will have the hidden base
   (define idx (random (length asteroids)))
   (define a (list-ref asteroids idx))
+;  (set! a (for/first ((o asteroids)
+;                      #:when (and ((obj-x o) . < . -1000)
+;                                  ((obj-y o) . < . -1000)))
+;            o))
   (set! hidden-base-id (ob-id a))
   (set-ship-hangar! a '())
   (set-ship-cargo! a '())
@@ -174,8 +178,19 @@
                 (upgrade-ship-random space ship)
                 (chrm (ob-id u))))
       ((parts)
-       (append! changes (chmov (ob-id u) (ob-id ship) #f))
-       (append! changes (make-message space (format "~a picked up parts" (ship-name ship))))))
+       (cond
+         ((equal? "Empire" (ship-faction ship))
+          (when (equal? (ob-id ship) hidden-base-id)
+            ; fighter died right next to base and the parts hit it?
+            (set! dock-base? #f))
+          (append! changes (chmov (ob-id u) (ob-id ship) #f))
+          (append! changes (make-message space (format "~a picked up parts" (ship-name ship)))))
+         (else
+          ; push upgrade away so it's not stuck under an asteroid
+          (define t (theta ship u))
+          (set-posvel-t! (obj-posvel u) 0)
+          (set-posvel-dx! (obj-posvel u) (+ (obj-dx u) (* 1.0 (cos t))))
+          (set-posvel-dy! (obj-posvel u) (+ (obj-dy u) (* 1.0 (sin t))))))))
     changes)
   
   ; return a list of changes

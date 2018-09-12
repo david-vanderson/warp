@@ -737,13 +737,13 @@
                             (and CLIENT_SPECIAL? (not (ann-faction a)))
                             (equal? (ann-faction a) myfaction))))
         (define-values (x y)
-          (case (posvel-t (obj-posvel a))
+          (case (posvel-dr (obj-posvel a))
             ((topleft)
              (values (left) (top)))
             ((center)
              (values 0.0 0.0))
             (else
-             (error "ann had unrecognized posvel-t"))))
+             (error "ann had unrecognized posvel-dr"))))
         (when (ann-button? a)
           (define ab (button 'normal (ob-id a) #f
                              (+ x (obj-x a)) (+ y (obj-y a))
@@ -1249,16 +1249,20 @@
               (set! help-screen? (not help-screen?)))
              #;((#\0)
               (debug-num (+ 1 (debug-num))))
+             #;((#\9)
+              (when my-stack
+                (send-commands (chdam (ob-id (get-ship my-stack)) 10.0 #t))))
+             #;((#\8)
+              (when my-stack
+                (send-commands (chfaction (ob-id (get-ship my-stack)) "_none"))))
+             #;((#\7)
+              (when my-stack
+                (send-commands (chadd (make-upgrade 0 'upgrade "orange" #f
+                                                    (obj-posvel (get-ship my-stack))) #f))))
              #;((#\n)
               (when ownspace
                 (send-commands (make-message ownspace
                                              (~a "message " (space-time ownspace))))))
-             #;((#\u)
-              (when ownspace
-                (send-commands (chadd (random-upgrade (space-time ownspace)
-                                                      (posvel -1 0 0 0
-                                                              (random 100)
-                                                              (random 100) 0)) #f))))
              )
            (when hold?
              ; nothing on release, just so holding down the key
@@ -1375,7 +1379,7 @@
   (plasma-setup-pre! sd)
   (explosion-setup-pre! sd)
   
-  (define csd (compile-sprite-db sd #:padding 2))
+  (define csd (compile-sprite-db sd #:padding 3))
   ;(save-csd! csd "csd" #:debug? #t)
    
   (plasma-setup-post! csd)

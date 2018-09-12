@@ -493,6 +493,7 @@
        (set-obj-alive?! o #f)))
     ((upgrade? o)
      (physics! pv dt 0.4)
+     (push-back! space o dt)
      (when (not (upgrade-alive? space o))
        (set-obj-alive?! o #f)))))
 

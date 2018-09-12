@@ -229,7 +229,7 @@
 ; e energy
 
 (define (make-nebula t x y rad dr)
-  (nebula (next-id) t #t 1.0 (posvel 0 x y 0.0 0.0 0.0 dr) rad))
+  (nebula (next-id) t #t 1.0 (posvel #f x y 0.0 0.0 0.0 dr) rad))
 (struct nebula obj (radius) #:mutable #:prefab)
 ; radius tells you how big this nebula is
 
@@ -297,7 +297,7 @@
                          #:pos [pos 'center]
                          #:tab? [tab? #f]
                          #:faction [faction #t])
-  (ann-button (next-id) 0 #t 1.0 (posvel pos x y 0 w h 0)
+  (ann-button (next-id) 0 #t 1.0 (posvel #f x y 0 w h pos)
               tab? faction txt msg))
 (struct ann-button ann (msg) #:mutable #:prefab)
 ; clickable button
@@ -311,7 +311,7 @@
 
 (define (make-ann-text x y start life txt
                        #:pos [pos 'center])
-  (ann-text (next-id) start #t 1.0 (posvel pos x y 0 0 0 0)
+  (ann-text (next-id) start #t 1.0 (posvel #f x y 0 0 0 pos)
             #f #t txt life))
 (struct ann-text ann (life) #:mutable #:prefab)
 ; text annotation
