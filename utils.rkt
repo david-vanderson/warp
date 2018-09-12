@@ -203,7 +203,7 @@
 (define (time-for age repeat (offset 0))
   (<= (+ 1 offset) (modulo age repeat) (+ offset TICK)))
 
-(define (time-toggle age repeat (div 2) (offset 0))
+(define (time-toggle age repeat (div 2.0) (offset 0))
   (<= (modulo (+ age offset) repeat) (/ repeat div)))
 
 (define (faction-check my-faction other-faction)

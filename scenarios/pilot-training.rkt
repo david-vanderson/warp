@@ -31,8 +31,8 @@
                  (define dx (random-between -100.0 100.0))
                  (define dy (random-between -100.0 100.0))
                  (define dr (random-between -1.0 1.0))
-                 (make-ship "asteroid_43" "Asteroid" "_neutral"
-                            #:x x #:y y #:r 0
+                 (make-ship "asteroid" "Asteroid" "_neutral"
+                            #:x x #:y y #:r 0 #:size 45
                             #:invincible? #t #:hull 10000
                             #:dx dx #:dy dy #:dr dr))
              )))

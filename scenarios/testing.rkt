@@ -40,7 +40,7 @@
 
   (define bf (for/list ((i 10)) (new-blue-fighter (* 50 i) 50)))
   (define rf (for/list ((i 50)) (new-red-fighter  (* 50 i) 150)))
-  (define a (make-ship "asteroid_87" "a" "Empire" #:x 95 #:y 95 #:dx -0.001))
+  (define a (make-ship "asteroid" "a" "Empire" #:x 95 #:y 95 #:dx -0.001))
 
   (define b1 (make-ship "blue-station" "b1" "Rebel" #:x 0 #:y 0 #:ai #f
                         #:hangar '() #:radar 500

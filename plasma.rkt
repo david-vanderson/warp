@@ -60,6 +60,7 @@
   (define t (modulo (obj-age space p) cycle))
   (define rot (* 2pi (/ t cycle)))
   (define-values (x y) (obj->screen p center scale))
-  (define size (/ (* (* 2.0 (plasma-radius space p)) scale) PLASMA_SPRITE_SIZE))
+  ; add 1 to plasma radius for the transparent pixel border
+  (define size (/ (* (* 2.0 (+ 1.0 (plasma-radius space p))) scale) PLASMA_SPRITE_SIZE))
   (sprite x y PLASMA_SPRITE_IDX
           #:layer layer-ships #:a fowa #:theta (exact->inexact (- rot)) #:m size))

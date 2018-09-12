@@ -21,8 +21,8 @@
 
   (define ships
     (for/list (((name si) (in-hash ship-list))
-               (x (in-range -1000 1000 100)))
-      (define s (make-ship name name "Test Faction" #:x x #:start-ship? #t
+               (x (in-naturals)))
+      (define s (make-ship name name "Test Faction" #:x (+ -2000 (* 200 x)) #:start-ship? #t
                            #:hull 100 #:mass 100 #:drag 0.4
                            #:tools (append (tools-pilot 40.0 #f 1.0)
                                            (list (tool-pbolt 8.0)))))

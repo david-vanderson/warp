@@ -662,7 +662,7 @@
            ; draw black circle on top of topship
            (prepend! sprites (obj-sprite topship csd center (get-scale)
                                          layer-hangar-back 'circle
-                                         (/ (* 2.2 (ship-radius topship)) 100)
+                                         (/ (* 2.2 (+ 1.0 (ship-radius topship))) 100)
                                          0.75 0.0 (make-color 0 0 0 1.0)))
            ; draw our ship inside black circle
            (define-values (x y) (obj->screen topship center (get-scale)))
@@ -802,8 +802,8 @@
             (when showtab
               (define color (send the-color-database find-color (if (ord-done? ot) "green" "red")))
               (prepend! sprites (xy-sprite (+ lefte (* 10 depth) 5) (+ tope (* 20 line) 10)
-                                           csd (get-scale) LAYER_UI 'circle
-                                           (/ 0.05 (get-scale))
+                                           csd (get-scale) LAYER_UI 'circle-small
+                                           (/ 0.5 (get-scale))
                                            1.0 0.0 color)))
             (define color (send the-color-database find-color (if highlight? "white" "gray")))
             (define txt (ord-text ot))
@@ -1314,7 +1314,9 @@
     (add-sprite!/value sd '2x150
                        (colorize (filled-rectangle 2 150) "black"))
     (add-sprite!/value sd 'circle
-                       (colorize (filled-ellipse 100 100) "black"))
+                       (colorize (inset (filled-ellipse 100 100) 1) "black"))
+    (add-sprite!/value sd 'circle-small
+                       (colorize (inset (filled-ellipse 10 10) 1) "black"))
     (add-sprite!/value sd 'shield
                        (colorize (filled-rounded-rectangle 10 100 -.5 #:draw-border? #f)
                                  "black"))

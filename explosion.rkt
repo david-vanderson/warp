@@ -45,4 +45,4 @@
   (define z (/ (min (explosion-size e) (explosion-maxsize e)) (explosion-maxsize e)))
   (define col (linear-color "white" "orange" (* z z) (explosion-fade e)))
   (obj-sprite e csd center scale layer-effects 'circle
-              (/ (* 2.0 (explosion-size e)) 100) (* fowa (explosion-fade e)) 0 col))
+              (/ (* 2.0 (+ 1.0 (explosion-radius e))) 100) (* fowa (explosion-fade e)) 0 col))

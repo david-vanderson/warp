@@ -134,7 +134,7 @@
   (define green (+ 100 (inexact->exact (round (* 50 (cycletri (obj-age space o) 23000))))))
   (obj-sprite o csd center scale LAYER_MAP
               'nebula
-              (/ (nebula-radius o) 25.0)
+              (/ (+ 1.0 (nebula-radius o)) 25.0)
               fowa (obj-r o)
               (make-color red blue green 1.0))
   )
@@ -197,6 +197,9 @@
 
             (define ship-scale (/ (exact->inexact (ship-sprite-size o))
                                   (sprite-size csd sym)))
+
+            (when (and (mine? o) (time-toggle (space-time space) 2000))
+              (set! sym 'mine2))
 
             (prepend! spr (obj-sprite o csd center scale layer-ships
                                       sym ship-scale

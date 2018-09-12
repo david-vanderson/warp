@@ -30,7 +30,7 @@
     (asteroid-region r
       (lambda (diam x y dx dy dr)
         (define up? ((random) . < . 0.1))
-        (make-ship "asteroid_87" "Asteroid" "_neutral" #:drag 0.1
+        (make-ship "asteroid" "Asteroid" "_neutral" #:drag 0.1
                    #:size diam
                    #:x x #:y y #:dr dr #:dx dx #:dy dy
                    #:hull (if up? 50 5000)

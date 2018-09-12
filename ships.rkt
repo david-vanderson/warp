@@ -44,59 +44,53 @@
                          (list "spacesuit" #f)
                          (list "probe" #f)
                          (list "missile" 10)
-                         (list "mine" 16)
+                         (list "mine" #f)
+                         (list "mine2" #f)  ; frame 2
                          (list "cannonball" 10)
-                         (list "asteroid_87" #f)
-                         (list "asteroid_43" #f)
+                         (list "asteroid" #f)
                          
                          (list "blue-station" #f)
                          ; need blue destroyer
                          (list "blue-cruiser" #f
-                               (engine -19.5 18.5 16 0)
-                               (engine -19.5 -18.5 16 0))
-                         (list "blue-frigate" #f)  ; need new blue frigate
+                               (engine -20 18.5 16 0)
+                               (engine -20 -18.5 16 0))
+                         (list "blue-frigate" #f
+                               (engine -10.5 13.5 16 0)
+                               (engine -10.5 -13.5 16 0))
                          (list "blue-fighter" 20
-                               (engine -9 0 16 0))
+                               (engine -10 0 16 0))
                          
                          (list "red-station" #f)
                          (list "red-destroyer" #f
-                               (engine -33.5 -1 18 0)
-                               (engine -30 24 13 0)
-                               (engine -18.5 -26 10.5 0))
+                               (engine -33 -1 18 0)
+                               (engine -29.5 24 13 0)
+                               (engine -17.5 -26 10.5 0))
                          (list "red-cruiser" #f
-                               (engine -22 8.5 6 0)
-                               (engine -22 -8.5 6 0))
+                               (engine -20.5 4.5 8 0)
+                               (engine -20.5 -4.5 8 0))
                          (list "red-frigate" #f
-                               (engine -21.5 6 12 0)
-                               (engine -21.5 -6 12 0))
+                               (engine -13.5 14.5 10 -.4)
+                               (engine -13.5 -14.5 10 .4))
                          (list "red-fighter" 24
-                               (engine -12 0 8 0))
+                               (engine -11.5 0 10 0))
                          
                          (list "green-frigate" #f
-                               (engine -15 0 7.5 0))
+                               (engine -14.5 0 9.5 0))
                          (list "green-fighter" 24
-                               (engine -16 9 7 0)
-                               (engine -16 -9 7 0))
+                               (engine -16.5 9 8 0)
+                               (engine -16.5 -9 8 0))
                          
                          (list "orange-frigate" #f
-                               (engine -15 0 7.5 0))
+                               (engine -14.5 0 9.5 0))
                          (list "orange-fighter" 24
-                               (engine -16 9 7 0)
-                               (engine -16 -9 7 0))
-                             
-                         ;"missile1" (ship-info "missile1" 16.0 #f)
-                         ;"missile2" (ship-info "missile2" #f #f)
-                         ;"missile3" (ship-info "missile3" #f #f)
-                         ;"probe1" (ship-info "probe1" #f #f)
-                         ;"probe2a" (ship-info "probe2a" #f #f)
-                         ;"probe2b" (ship-info "probe2b" #f #f)
-                         ;"probe3" (ship-info "probe3" #f #f)
+                               (engine -16.5 9 8 0)
+                               (engine -16.5 -9 8 0))
                          )))
             (define name (car s))
             (define size (cadr s))
             (define filename name)
             (when (equal? name "cannonball")
-              (set! filename "asteroid_43"))
+              (set! filename "asteroid"))
 
             (define sym (string->symbol name))
             (define b (read-bitmap (build-path IMAGEDIR (string-append filename ".png"))
@@ -199,7 +193,9 @@
                 (if price (inexact->exact (round price)) #f)
                 invincible?
                 (inexact->exact (round size))
-                (/ (exact->inexact size) 2.0)
+                ; for radius take half the visual size
+                ; - then subtract a bit for tighter collisions
+                (- (/ (exact->inexact size) 2.0) 1.5)
                 tools
                 '()  ; players
                 hangar
