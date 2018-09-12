@@ -160,7 +160,7 @@
     (define changes '())
     (when (and old? score-txtid)
       (append! changes (chrm score-txtid)))
-    (define s (make-ann-text 10 100 0 #f #:pos 'topleft
+    (define s (make-ann-text 10 100 0 #f #f #:pos 'topleft
                              (string-append "Team " team1 ": " (number->string team1-score) "\n"
                                             "Team " team2 ": " (number->string team2-score))))
     (set! score-txtid (ob-id s))
@@ -296,7 +296,7 @@
     (define changes '())
     (when (not countdown?)
       (set! countdown? (space-time ownspace))
-      (define a (make-ann-text -100 -100 0 #f (string-append "Team " team " Wins!")))
+      (define a (make-ann-text -100 -100 0 #f #f (string-append "Team " team " Wins!")))
       (append! changes (chadd a #f))
       (for ((fac (cons "Observer" teams)))
         (append! changes

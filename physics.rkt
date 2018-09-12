@@ -163,8 +163,8 @@
                             (* (dmag s2) (sin (- (dtheta s2) phi)) (sin (+ phi pi/2))))))
   
   ; make sure we send the new posvels right away
-  (set-posvel-t! (obj-posvel s1) 0)
-  (set-posvel-t! (obj-posvel s2) 0)
+  (set-posvel-t! (obj-posvel s1) #t)
+  (set-posvel-t! (obj-posvel s2) #t)
 
   ; damage ships by how much their velocities changed
   (define s1xch (- s1dx (obj-dx s1)))
@@ -486,10 +486,10 @@
      (when (effect-dead? space o)
        (set-obj-alive?! o #f)))
     ((message? o)
-     (when ((obj-age space o) . > . MSG_FADE_TIME)
+     (when ((obj-age space o) . > . (message-gone o))
        (set-obj-alive?! o #f)))
     ((and (ann-text? o) (ann-text-life o))
-     (when ((obj-age space o) . > . (+ (ann-text-life o) MSG_FADE_TIME))
+     (when ((obj-age space o) . > . (ann-text-gone o))
        (set-obj-alive?! o #f)))
     ((upgrade? o)
      (physics! pv dt 0.4)

@@ -21,7 +21,7 @@
            '()
            `(
              ,(standard-quit-scenario-button)
-             ,(make-ann-text -200 -100 0 5000
+             ,(make-ann-text -200 -100 0 5000 8000
                              "Scout your waypoints before time is up!")
              ,@(for/list ((i 30))
                  (define t (random-between 0 2pi))
@@ -110,7 +110,7 @@
                                     (if (check space (player-faction p) ot)
                                         " succeeded"
                                         " failed"))))
-      (append! changes (chadd (make-ann-text -200 -100 (space-time space) #f
+      (append! changes (chadd (make-ann-text -200 -100 (space-time space) #f #f
                                              (string-join txt "\n")) #f))
       ; add end scenario button
       (append! changes (chadd (standard-quit-scenario-button #f) #f))

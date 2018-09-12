@@ -331,7 +331,7 @@
                       (posvel-t (obj-posvel o))))
       (define pv (obj-posvel o))
       ;(printf " ~a" (posvel-t pv))
-      (cond ((= 0 (posvel-t pv))
+      (cond ((equal? #t (posvel-t pv))
              (set-posvel-t! pv (space-time ownspace))
              (prepend! pvupdates (pvupdate (ob-id o) pv)))
             #;((or (not oldest)

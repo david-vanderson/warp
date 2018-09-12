@@ -48,7 +48,6 @@
 
 (define PLASMA_SPEED 60.0)
 (define SHIELD_SPEED 60.0)
-(define MSG_FADE_TIME 10000.0)
 
 (define DMG_SIZE 50.0)
 (define DMG_FIX? #t)  ; whether damages start out with fixing?
@@ -309,15 +308,16 @@
 ; msg is used to easily know which button was clicked
 ;  - gets delivered to the scenario's on-message as a (anncmd client-id ann-button-id) struct
 
-(define (make-ann-text x y start life txt
+(define (make-ann-text x y start life gone txt
                        #:pos [pos 'center])
   (ann-text (next-id) start #t 1.0 (posvel #f x y 0 0 0 pos)
-            #f #t txt life))
-(struct ann-text ann (life) #:mutable #:prefab)
+            #f #t txt life gone))
+(struct ann-text ann (life gone) #:mutable #:prefab)
 ; text annotation
 ; obj-x/y is top-left corner (in canon coords)
-; life is msec to show the text, then fade then remove
+; life is msec to show the text before fade
 ; - if life is #f, show forever
+; gone is ms when it's completely faded
 
 (struct ann-circle ann (radius) #:mutable #:prefab)
 ; circle on map
@@ -414,10 +414,12 @@
 ; ship-id is the id of the ship
 ; strat is the list of new strategies
 
-(define (make-message ownspace msg)
-  (message (next-id) (space-time ownspace) #t 1.0 #f msg))
-(struct message obj (msg) #:mutable #:prefab)
+(define (make-message ownspace msg [life 5000] [gone 10000])
+  (message (next-id) (space-time ownspace) #t 1.0 #f msg life gone))
+(struct message obj (msg life gone) #:mutable #:prefab)
 ; msg is the text to display
+; life is ms time to display before fade
+; gone is ms time when it fades completely
 
 (struct chstat (id what val) #:mutable #:prefab)
 ; id is of the ship

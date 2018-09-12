@@ -61,7 +61,7 @@
     (space (next-id) 0 4000 4000 players '()
            `(
              ,(standard-quit-scenario-button)
-             ,(make-ann-text -200 -100 0 10000
+             ,(make-ann-text -200 -100 0 10000 15000
                              (string-append
                               "On mission to destroy a rebel outpost your engines have failed.\n"
                               "Use probes to search the asteroid field for a hidden base.\n"
@@ -155,7 +155,7 @@
   (define (end! win? txt)
     (define changes '())
     (set! playing? #f)  ; end scenario
-    (append! changes (chadd (make-ann-text -200 -100 (space-time ownspace) #f txt) #f))
+    (append! changes (chadd (make-ann-text -200 -100 (space-time ownspace) #f #f txt) #f))
     ; add end scenario button
     (append! changes (chadd (standard-quit-scenario-button #f) #f))
     changes)
@@ -188,7 +188,7 @@
          (else
           ; push upgrade away so it's not stuck under an asteroid
           (define t (theta ship u))
-          (set-posvel-t! (obj-posvel u) 0)
+          (set-posvel-t! (obj-posvel u) #t)
           (set-posvel-dx! (obj-posvel u) (+ (obj-dx u) (* 1.0 (cos t))))
           (set-posvel-dy! (obj-posvel u) (+ (obj-dy u) (* 1.0 (sin t))))))))
     changes)

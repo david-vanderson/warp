@@ -222,7 +222,7 @@
 (define (linear-fade age life death)
   (cond ((age . <= . life) 1.0)
         ((age . > . death) 0.0)
-        (else (/ (- death age)
+        (else (/ (exact->inexact (- death age))
                  (- death life)))))
 
 (define (clamp zmin zmax z)
