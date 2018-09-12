@@ -1,6 +1,7 @@
 #lang racket/base
 
-(require racket/math)
+(require racket/math
+         racket/string)
 
 (require "defs.rkt"
          "utils.rkt"
@@ -59,7 +60,10 @@
      (define changes '())
      (when (server?)
        (define a (command-arg cmd))
-       (define b (make-ship "cannonball" "Cannonball" (ship-faction ship)
+       (define type
+         (cond ((string-contains? (ship-type ship) "blue") "blue-cannonball")
+               (else "red-cannonball")))
+       (define b (make-ship type "Cannonball" (ship-faction ship)
                             #:ai (if (not (player? (car stack))) 'always #f)
                             #:r a
                             #:radar (ship-radar ship)
@@ -70,10 +74,10 @@
        (set-obj-posvel! b (posvel (space-time space)
                                   (+ (obj-x ship) (* d (cos a)))
                                   (+ (obj-y ship) (* d (sin a)))
-                                  a
+                                  0.0
                                   (+ (obj-dx ship) (* speed (cos a)))
                                   (+ (obj-dy ship) (* speed (sin a)))
-                                  2.0))
+                                  0.0))
 
        (append! changes (chadd b #f))
        (when (player? (car stack))

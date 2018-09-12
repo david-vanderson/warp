@@ -43,10 +43,13 @@
           (for/hash ((s (list
                          (list "spacesuit" #f)
                          (list "probe" #f)
-                         (list "missile" 10)
+                         (list "missile" #f)
                          (list "mine" #f)
                          (list "mine2" #f)  ; frame 2
-                         (list "cannonball" 10)
+                         (list "red-cannonball" #f)
+                         (list "red-cannonball2" #f)  ; frame 2
+                         (list "blue-cannonball" #f)
+                         (list "blue-cannonball2" #f)  ; frame 2
                          (list "asteroid" #f)
                          
                          (list "blue-station" #f)
@@ -88,12 +91,8 @@
                          )))
             (define name (car s))
             (define size (cadr s))
-            (define filename name)
-            (when (equal? name "cannonball")
-              (set! filename "asteroid"))
-
             (define sym (string->symbol name))
-            (define b (read-bitmap (build-path IMAGEDIR (string-append filename ".png"))
+            (define b (read-bitmap (build-path IMAGEDIR (string-append name ".png"))
                                    'png/alpha))
             (when (not size)
               (set! size (max (send b get-width) (send b get-height))))
@@ -213,7 +212,7 @@
     (case type
       (("spacesuit") spacesuit)
       (("missile") missile)
-      (("cannonball") cannonball)
+      (("red-cannonball" "blue-cannonball") cannonball)
       (("mine") mine)
       (("probe") probe)
       (else spaceship)))

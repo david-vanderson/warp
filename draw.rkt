@@ -198,8 +198,17 @@
             (define ship-scale (/ (exact->inexact (ship-sprite-size o))
                                   (sprite-size csd sym)))
 
-            (when (and (mine? o) (time-toggle (space-time space) 2000))
-              (set! sym 'mine2))
+            (cond
+              ((and (mine? o) (time-toggle (space-time space) 2000))
+               (set! sym 'mine2))
+              ((and (cannonball? o)
+                    (equal? (ship-type o) "blue-cannonball")
+                    (time-toggle (obj-age space o) 200))
+               (set! sym 'blue-cannonball2))
+              ((and (cannonball? o)
+                    (equal? (ship-type o) "red-cannonball")
+                    (time-toggle (obj-age space o) 200))
+               (set! sym 'red-cannonball2)))
 
             (prepend! spr (obj-sprite o csd center scale layer-ships
                                       sym ship-scale
