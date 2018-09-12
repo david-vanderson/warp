@@ -211,6 +211,20 @@
     
   (when tick?
 
+    (define qt #f)
+
+    ; physics
+    (timeit time-tick
+    (set! previous-physics-time (+ previous-physics-time TICK))
+    (define-values (qt2 updates2)
+      (tick-space! ownspace apply-all-changes!))
+    (set! qt qt2)
+    (append! updates updates2)
+    )
+
+    (define (addf o)
+      (add-to-qt! ownspace qt o))
+
     ; process player commands
     (timeit time-commands
     (let loop ()
@@ -237,9 +251,10 @@
               (printf "server client ~a named ~a\n" cid name)
               (set-client-status! c CLIENT_STATUS_WAITING_FOR_SPACE)
               (append! updates
-                       (apply-all-changes! ownspace (list (chadd (client-player c) #f)) "server"))
+                       (apply-all-changes! ownspace (list (chadd (client-player c) #f))
+                                           "server" #:addf addf))
               (define m (make-message ownspace (format "New Player: ~a" name)))
-              (append! updates (apply-all-changes! ownspace (list m) "server")))))
+              (append! updates (apply-all-changes! ownspace (list m) "server" #:addf addf)))))
           
           ((update? u)
            (cond
@@ -255,37 +270,25 @@
                   ((anncmd? ch)
                    (define changes
                      (scenario-on-message ownspace ch change-scenario!))
-                   (append! updates (apply-all-changes! ownspace changes "server")))
+                   (append! updates (apply-all-changes! ownspace changes "server" #:addf addf)))
                   (else
                    (define pids '())
                    (define command-changes
                      (apply-all-changes! ownspace (list ch) "server"
+                                         #:addf addf
                                          #:on-player-restart
                                          (lambda (pid) (append! pids pid))))
                    (append! updates command-changes)
                    (when scenario-on-player-restart
                      (for ((pid (in-list pids)))
                        (define changes (scenario-on-player-restart ownspace pid))
-                       (append! updates (apply-all-changes! ownspace changes "server"))))
+                       (append! updates (apply-all-changes! ownspace changes
+                                                            "server" #:addf addf))))
                    ))))))
           (else
            (printf "server got unexpected data ~v\n" u)))
         (loop)))
     )
-
-    (define qt #f)
-
-    ; physics
-    (timeit time-tick
-    (set! previous-physics-time (+ previous-physics-time TICK))
-    (define-values (qt2 updates2)
-      (tick-space! ownspace apply-all-changes!))
-    (set! qt qt2)
-    (append! updates updates2)
-    )
-
-    (define (addf o)
-      (add-to-qt! ownspace qt o))
 
     (timeit time-effects
     (for ((o (space-objects ownspace))
