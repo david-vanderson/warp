@@ -736,17 +736,21 @@
                         (or (equal? (ann-faction a) #t)
                             (and CLIENT_SPECIAL? (not (ann-faction a)))
                             (equal? (ann-faction a) myfaction))))
-        (define-values (x y)
-          (case (posvel-dr (obj-posvel a))
+        (define-values (x y zoom)
+          (case (obj-dr a)
             ((topleft)
-             (values (left) (top)))
+             (values (+ (left) (obj-x a)) (+ (top) (obj-y a)) 1.0))
             ((center)
-             (values 0.0 0.0))
+             (values (obj-x a) (obj-y a) 1.0))
+            ((space)
+             (define-values (x y)
+               (xy->screen (obj-x a) (obj-y a) center (get-scale)))
+             (values x y (get-scale)))
             (else
              (error "ann had unrecognized posvel-dr"))))
         (when (ann-button? a)
           (define ab (button 'normal (ob-id a) #f
-                             (+ x (obj-x a)) (+ y (obj-y a))
+                             x y
                              (obj-dx a) (obj-dy a) (ann-txt a)
                              (lambda (k y) (send-commands (anncmd meid (ob-id a))))))
           (prepend! buttons ab))
@@ -762,7 +766,8 @@
           (for ((t (in-list txts))
                 (i (in-naturals)))
             (prepend! sprites (text-sprite textr textsr t
-                                          (+ x (obj-x a)) (+ y (obj-y a) (* i 20))
+                                          x (+ y (* i 20)) #:zoom zoom
+                                          #:center (equal? 'space (obj-dr a))
                                           LAYER_UI_TEXT z)))))
 
       (when showplayers

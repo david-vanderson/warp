@@ -23,7 +23,11 @@
               (/ (* 2.0 (upgrade-radius space u)) 100) fowa 0.0
               (send the-color-database find-color (upgrade-color u))))
 
-
+(define (ship-msg space ship msg)
+  (define w (ship-w ship 1.0))
+  (make-ann-text (obj-x ship) (- (obj-y ship) w) #:pos 'space
+                 (space-time space) 1000 2000 msg))
+  
 ; return a list of changes
 (define (upgrade-ship-random space ship [alltypes '(engines turning hull radar)])
   (define changes '())
@@ -40,7 +44,7 @@
             (append! changes
                      (chstat (ob-id ship) 'toolval
                              (list 'engine (* 1.1 (tool-val t))))
-                     (make-message space "engines"))))
+                     (chadd (ship-msg space ship "engine") #f))))
          ((turning)
           (for ((tname '(turnleft turnright steer)))
             (define t (ship-tool ship tname))
@@ -49,15 +53,15 @@
                        (chstat (ob-id ship) 'toolval (list tname (* 1.1 (tool-val t)))))))
           (when (not (null? changes))
             (append! changes
-                     (make-message space "turning"))))
+                     (chadd (ship-msg space ship "turning") #f))))
          ((hull)
           (append! changes
                    (chstat (ob-id ship) 'hull (* 1.1 (ship-maxcon ship)))
-                   (make-message space "hull")))
+                   (chadd (ship-msg space ship "hull") #f)))
          ((radar)
           (append! changes
                    (chstat (ob-id ship) 'radar (* 1.1 (ship-radar ship)))
-                   (make-message space "radar"))))
+                   (chadd (ship-msg space ship "radar") #f))))
        (when (null? changes)
          (loop (filter (lambda (x) (not (equal? x t)))
                        types))))))
