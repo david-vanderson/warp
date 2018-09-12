@@ -86,7 +86,7 @@
      (quadtree-objs qt))
     ((= idx -1)
      (apply append (quadtree-objs qt)
-            (for/list ((qtst (quadtree-subtrees qt)))
+            (for/list ((qtst (in-list (quadtree-subtrees qt))))
               (qt-retrieve-internal qtst qto))))
     (else
      (append (quadtree-objs qt)

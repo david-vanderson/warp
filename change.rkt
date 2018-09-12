@@ -402,7 +402,6 @@
                           ((missile? o) (reduce-missile! space o d))
                           ((cannonball? o) (reduce-cannonball! space o d))
                           ((shield? o) (reduce-shield! space o d) '())
-                          ((upgrade? o) (set-upgrade-life! o 0) '())
                           ((ship? o)
                            (define cs (reduce-ship! space o d))
                            (when (and (obj-alive? o) (client?) (chdam-fx c))

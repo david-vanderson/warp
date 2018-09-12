@@ -36,8 +36,8 @@
                    #:hull (if up? 50 5000)
                    #:invincible? #t
                    #:cargo (if up?
-                               (list (random-upgrade 0 #f)
-                                     (random-upgrade 0 #f))
+                               (list (make-upgrade 0 'upgrade "orange" #f #f)
+                                     (make-upgrade 0 'upgrade "orange" #f #f))
                                '())
                    #:overlays (list (cons "Empire" (overlay 'overlay-qm #t)))))))
 
@@ -67,7 +67,7 @@
              )))
 
   ; put the spare parts upgrade in the hidden base
-  (define parts (upgrade (next-id) (space-time ownspace) #t 1.0 #f "parts" #f))
+  (define parts (make-upgrade 0 'parts "yellow" #f #f))
 
   ; the good guys in this scenario
   (define (new-red-fighter)
@@ -164,6 +164,19 @@
     (when frig
       (append! changes (chmov pid (ob-id frig) #f)))
     changes)
+
+  (define (upgrade-hit-ship space ship u)
+    (define changes '())
+    ;(printf "upgrade hit ship ~a ~a\n" (ship-name ship) (upgrade-type u))
+    (case (upgrade-type u)
+      ((upgrade)
+       (append! changes
+                (upgrade-ship-random space ship)
+                (chrm (ob-id u))))
+      ((parts)
+       (append! changes (chmov (ob-id u) (ob-id ship) #f))
+       (append! changes (make-message space (format "~a picked up parts" (ship-name ship))))))
+    changes)
   
   ; return a list of changes
   (define (on-tick ownspace qt change-scenario!)
@@ -222,30 +235,37 @@
       (define hb (find-top-id ownspace hidden-base-id))
 
       (for ((s (space-objects ownspace))
-            #:when (and (obj-alive? s)
-                        (or (spaceship? s) (probe? s))
-                        (equal? "Empire" (ship-faction s)))
-            (a (qt-retrieve qt (obj-x s) (obj-y s) (+ (/ (ship-radar s) 3.0) 50.0)))
-            #:when (and (obj-alive? a)
-                        (spaceship? a)
-                        (assoc "Empire" (ship-overlays a))
-                        ((distance s a) . < . (+ (ship-radius a) (/ (ship-radar s) 3.0)))))
-        ; remove the overlay
-        (append! changes (chstat (ob-id a) 'overlay (cons "Empire" #f)))
-        (when (not (null? (ship-cargo a)))
-          ; add the cargo overlay and remove invincibility
-          (append! changes (list (chstat (ob-id a) 'invincible #f)
-                                 (chstat (ob-id a) 'overlay
-                                         (cons "Empire" (overlay 'overlay-cargo #t))))))
-        ; check if this was the hidden base
-        (when (and (not found-base?) (equal? hidden-base-id (ob-id a)))
-          (set! found-base? #t)
-          (append! changes
-                   (chfaction (ob-id hb) "Empire")
-                   (chstat (ob-id hb) 'ai 'always)
-                   (chadd parts (ob-id hb))
-                   (make-message ownspace "Discovered Hidden Base!"))))
-
+            #:when (obj-alive? s))
+        (cond
+          ((and (or (spaceship? s) (probe? s))
+                (equal? "Empire" (ship-faction s)))
+           (for ((a (qt-retrieve qt (obj-x s) (obj-y s) (+ (/ (ship-radar s) 3.0) 50.0)))
+                 #:when (and (obj-alive? a)
+                             (spaceship? a)
+                             (assoc "Empire" (ship-overlays a))
+                             ((distance s a) . < . (+ (ship-radius a) (/ (ship-radar s) 3.0)))))
+             ; remove the overlay
+             (append! changes (chstat (ob-id a) 'overlay (cons "Empire" #f)))
+             (when (not (null? (ship-cargo a)))
+               ; add the cargo overlay and remove invincibility
+               (append! changes (list (chstat (ob-id a) 'invincible #f)
+                                      (chstat (ob-id a) 'overlay
+                                              (cons "Empire" (overlay 'overlay-cargo #t))))))
+             ; check if this was the hidden base
+             (when (and (not found-base?) (equal? hidden-base-id (ob-id a)))
+               (set! found-base? #t)
+               (append! changes
+                        (chfaction (ob-id hb) "Empire")
+                        (chstat (ob-id hb) 'ai 'always)
+                        (chadd parts (ob-id hb))
+                        (make-message ownspace "Discovered Hidden Base!")))))
+          ((upgrade? s)
+           (for ((a (qt-retrieve qt (obj-x s) (obj-y s) (upgrade-radius ownspace s)))
+                 #:when (and (obj-alive? a)
+                             (spaceship? a)
+                             (close? s a (+ (ship-radius a) (upgrade-radius ownspace s)))))
+             (append! changes (upgrade-hit-ship ownspace a s))))))
+          
       ; check if the good guys docked
       (when (and found-base? (not dock-base?) hb)
         (for/first ((s (in-list (ship-hangar hb))))

@@ -29,35 +29,6 @@
 
 
 ; return a list of changes
-(define (upgrade-hit-ship! space ship u)
-  (define changes '())
-  ;(printf "upgrade hit ship ~a ~a\n" (ship-name ship) (upgrade-type u))
-  (case (upgrade-type u)
-    (("engines")
-     (define t (ship-tool ship 'engine))
-     (when t (append! changes (chstat (ob-id ship) 'toolval
-                                      (list 'engine (* 1.1 (tool-val t)))))))
-    (("turning")
-     (for ((tname '(turnleft turnright steer)))
-       (define t (ship-tool ship tname))
-       (when t
-         (append! changes (chstat (ob-id ship) 'toolval (list tname (* 1.1 (tool-val t))))))))
-    (("hull")
-     (append! changes (chstat (ob-id ship) 'hull (* 1.1 (ship-maxcon ship)))))
-    (("radar")
-     (append! changes (chstat (ob-id ship) 'radar (* 1.1 (ship-radar ship))))))
-
-  (cond
-    ((not (null? changes))
-     (define m (make-message space (format "~a upgraded ~a" (ship-name ship) (upgrade-type u))))
-     (append! changes (list m (chdam (ob-id u) 1 #f))))
-    (else
-     (append! changes (chmov (ob-id u) (ob-id ship) #f))))
-   
-  changes)
-
-
-; return a list of changes
 (define (plasma-hit-ship! space ship p)
   (define changes '())
   ;(printf "plasma hit ship ~a (~a)\n" (ship-name ship) (ob-id ship))
@@ -262,11 +233,11 @@
         ((cannonball? o) 3)
         ((missile? o) 4)
         ((mine? o) 5)
-        ((upgrade? o) 6)
-        ((spaceship? o) 7)
-        ((probe? o) 7)
-        ((spacesuit? o) 7)
-        ((effect? o) 8)
+        ((spaceship? o) 6)
+        ((probe? o) 6)
+        ((spacesuit? o) 6)
+        ((effect? o) 7)
+        ((upgrade? o) 8)
         (else (printf "priority unknown for ~v\n" o) 9)))
 
 
@@ -343,10 +314,6 @@
               (define d (distance a b))
               (when (d . < . (hit-distance a b))
                 (ship-hit-ship! space a b)))))
-      ((upgrade? a)
-       (cond ((spaceship? b)
-              (when ((distance a b) . < . (+ (ship-radius b) (upgrade-radius space a)))
-                (upgrade-hit-ship! space b a)))))
       ((or (spaceship? a)
            (probe? a)
            (spacesuit? a))
@@ -553,8 +520,7 @@
         (define ss (make-spacesuit (player-name p) ship))
         (append! changes (chadd ss #f) (chmov (ob-id p) (ob-id ss) #f)))
       
-      (for ((u (in-list (ship-cargo ship)))
-            #:when (upgrade-color u))  ; if no color, then it's not meant to exist outside the ship
+      (for ((u (in-list (ship-cargo ship))))
         (define newpv (posvel (space-time space) (posvel-x pv) (posvel-y pv) 0
                               (+ (posvel-dx pv) (random-between -50 50))
                               (+ (posvel-dy pv) (random-between -50 50)) 0))

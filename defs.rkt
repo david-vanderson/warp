@@ -259,9 +259,14 @@
 (struct shield obj (e) #:mutable #:prefab)
 ; e is energy
 
-(struct upgrade obj (type life) #:mutable #:prefab)
-; type is string saying which part of the ship it upgrades
-; life is ms the upgrade should stay before disappearing of #f if doesn't die
+(define (make-upgrade start-time type color life pv)
+  (upgrade (next-id) start-time #t 1.0 pv type color life))
+
+(struct upgrade obj (type color life) #:mutable #:prefab)
+; type is symbol saying what it does
+; - ugprades are handled in the scenario on-tick, so the scenario can put whatever
+; color is string or make-color, what it looks like in space
+; life is ms the upgrade should stay before disappearing or #f if doesn't die
 
 (struct space (id time width height players orders objects) #:mutable #:prefab)
 ; id is used when we change scenarios to drop stuff coming in for the old space

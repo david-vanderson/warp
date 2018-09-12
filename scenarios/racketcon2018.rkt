@@ -168,7 +168,7 @@
     changes)
 
   (define (make-asteroid diam x y dx dy dr)
-    (make-ship "asteroid_87" "Asteroid" "_neutral" #:drag 0.1
+    (make-ship "asteroid" "Asteroid" "_neutral" #:drag 0.1
                #:size diam #:x x #:y y #:dr dr #:dx dx #:dy dy
                #:hull 5000 #:invincible? #t))
 

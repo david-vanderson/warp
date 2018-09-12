@@ -416,14 +416,23 @@
   (+ a (* (- b a) (random))))
 
 
-(define (distance o1 o2)
-  (define dx (- (posvel-x (obj-posvel o1)) (posvel-x (obj-posvel o2))))
-  (define dy (- (posvel-y (obj-posvel o1)) (posvel-y (obj-posvel o2))))
-  (sqrt (+ (* dx dx) (* dy dy))))
+(define (close? a b d)
+  ((distance2 a b) . < . (* d d)))
+
+(define (distance2 a b)
+  (define dx (- (obj-x a) (obj-x b)))
+  (define dy (- (obj-y a) (obj-y b)))
+  (+ (* dx dx) (* dy dy)))
+
+(define (distance a b)
+  (sqrt (distance2 a b)))
+
+(define (dist-polar2 r1 t1 r2 t2)
+  (+ (* r1 r1) (* r2 r2)
+     (- (* 2 r1 r2 (cos (- t2 t1))))))
 
 (define (dist-polar r1 t1 r2 t2)
-  (sqrt (+ (* r1 r1) (* r2 r2)
-           (- (* 2 r1 r2 (cos (- t2 t1)))))))
+  (sqrt (dist-polar2 r1 t1 r2 t2)))
 
 (define (atan0 y x)
   (if (= 0.0 x y) 0.0 (atan y x)))

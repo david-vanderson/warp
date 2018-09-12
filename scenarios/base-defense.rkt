@@ -6,6 +6,7 @@
          "../utils.rkt"
          "../ships.rkt"
          "../order.rkt"
+         "../quadtree.rkt"
          "../upgrade.rkt")
 
 (provide (all-defined-out))
@@ -95,6 +96,13 @@
     (when c
       (append! changes (chmov pid (ob-id c) #f)))
     changes)
+
+  (define (upgrade-hit-ship space ship u)
+    (define changes '())
+    (append! changes
+             (upgrade-ship-random space ship)
+             (chrm (ob-id u)))
+    changes)
   
   ; return a list of changes
   (define (on-tick ownspace qt change-scenario!)
@@ -110,6 +118,15 @@
         (append! changes (chfaction (ob-id p) "Rebel"))
         (when c
           (append! changes (chmov (ob-id p) (ob-id c) #f)))))
+
+    (for ((s (space-objects ownspace))
+            #:when (and (obj-alive? s)
+                        (upgrade? s)))
+      (for ((a (qt-retrieve qt (obj-x s) (obj-y s) (upgrade-radius ownspace s)))
+            #:when (and (obj-alive? a)
+                        (spaceship? a)
+                        (close? s a (+ (ship-radius a) (upgrade-radius ownspace s)))))
+        (append! changes (upgrade-hit-ship ownspace a s))))
 
     (for ((fo (space-orders real-orders)))
       (check ownspace (car fo) (cadr fo)))
@@ -151,8 +168,8 @@
                              #:tools (append (tools-pilot 20.0 #f 0.3)
                                              (list (tool-pbolt 10.0)))
                              #:hangar fighters
-                             #:cargo (list (random-upgrade 0 #f)
-                                                                (random-upgrade 0 #f))))
+                             #:cargo (list (make-upgrade 0 'upgrade "orange" #f #f)
+                                           (make-upgrade 0 'upgrade "orange" #f #f))))
         (set-ship-ai-strategy! f (list (strategy (space-time ownspace) "attack*" (ob-id base))))
         (append! changes (chadd f #f) m)))
 
