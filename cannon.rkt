@@ -96,7 +96,6 @@
     (let/ec done
       (for ((o (in-list (qt-retrieve qt (obj-x ownship) (obj-y ownship) (ship-radar ownship))))
             #:when (and (or (spaceship? o) (missile? o) (probe? o) (cannonball? o) (mine? o))
-                        ((distance ownship o) . <= . (ship-radar ownship))
                         ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)))
         (define t (target-angle ownship ownship o o CANNON_SPEED 30.0))
         (define spread (atan (/ (ship-radius o)
@@ -115,7 +114,6 @@
     (define any-closer?
       (for/or ((o (in-list (qt-retrieve qt (obj-x ownship) (obj-y ownship) (ship-radar ownship))))
                #:when (and (or (spaceship? o) (missile? o) (probe? o) (mine? o))
-                           ((distance ownship o) . <= . (ship-radar ownship))
                            ((faction-check (ship-faction ownship) (ship-faction o)) . < . 0)))
         ; get our relative motion to target
         (define vx (- (obj-dx ownship) (obj-dx o)))

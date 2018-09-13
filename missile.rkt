@@ -113,17 +113,16 @@
   (for ((o (in-list (qt-retrieve qt (obj-x m) (obj-y m) (ship-radar m))))
         #:when (missile-target? o))
     (define d (distance o m))
-    (when (d . <= . (ship-radar m))
-      (define foe? ((faction-check (ship-faction m) (ship-faction o)) . < . 0))
-      (when foe?
-        ; linearly incentivize flying towards enemies in general
-        (set! f (- f d)))
+    (define foe? ((faction-check (ship-faction m) (ship-faction o)) . < . 0))
+    (when foe?
+      ; linearly incentivize flying towards enemies in general
+      (set! f (- f d)))
 
-      (define hd (hit-distance o m))
-      (define maxd (+ hd AI_HIT_CLOSE))
-      (when (d . < . maxd)
-        (define z (- maxd d))  ; meters inside maxd
-        (set! f (+ f (* z z (if foe? 1.0 -1.0))))
-        (when (d . < . (+ hd (/ AI_HIT_CLOSE 2)))
-          (set! live? #f)))))
+    (define hd (hit-distance o m))
+    (define maxd (+ hd AI_HIT_CLOSE))
+    (when (d . < . maxd)
+      (define z (- maxd d))  ; meters inside maxd
+      (set! f (+ f (* z z (if foe? 1.0 -1.0))))
+      (when (d . < . (+ hd (/ AI_HIT_CLOSE 2)))
+        (set! live? #f))))
   (values f live?))

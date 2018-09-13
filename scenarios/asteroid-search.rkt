@@ -258,8 +258,7 @@
            (for ((a (qt-retrieve qt (obj-x s) (obj-y s) (+ (/ (ship-radar s) 3.0) 50.0)))
                  #:when (and (obj-alive? a)
                              (spaceship? a)
-                             (assoc "Empire" (ship-overlays a))
-                             ((distance s a) . < . (+ (ship-radius a) (/ (ship-radar s) 3.0)))))
+                             (assoc "Empire" (ship-overlays a))))
              ; remove the overlay
              (append! changes (chstat (ob-id a) 'overlay (cons "Empire" #f)))
              (when (not (null? (ship-cargo a)))
@@ -278,8 +277,7 @@
           ((upgrade? s)
            (for ((a (qt-retrieve qt (obj-x s) (obj-y s) (upgrade-radius ownspace s)))
                  #:when (and (obj-alive? a)
-                             (spaceship? a)
-                             (close? s a (+ (ship-radius a) (upgrade-radius ownspace s)))))
+                             (spaceship? a)))
              (append! changes (upgrade-hit-ship ownspace a s))))))
           
       ; check if the good guys docked

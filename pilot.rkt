@@ -30,9 +30,8 @@
       (define d (distance ship o))
       (define hd (hit-distance ship o))
       (define maxd (+ hd AI_HIT_CLOSE))
-      (when (d . < . maxd)
-        (define z (- maxd d))  ; meters inside maxd
-        (set! f (- f (* z z))))))
+      (define z (max 0.0 (- maxd d)))  ; meters inside maxd
+      (set! f (- f (* z z)))))
   
   
   (case (and strat (strategy-name strat))
@@ -252,8 +251,7 @@
   ; only worry about ships that are close to us
   (define ships (filter (lambda (o)
                           (and (spaceship? o)
-                               (not (= (ob-id ownship) (ob-id o)))
-                               ((distance ownship o) . <= . 500.0)))
+                               (not (= (ob-id ownship) (ob-id o)))))
                         (qt-retrieve qt (obj-x ownship) (obj-y ownship) 500.0)))
 
   (define-values (predict-secs fit-per-sec)

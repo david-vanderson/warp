@@ -84,7 +84,7 @@
                      #:hull 100 #:mass 50 #:drag 0.3
                      #:tools (append (tools-pilot 35.0 #f 1.0)
                                      (list (tool-pbolt 8.0)
-                                           (tool-mine 25.0)
+                                           (tool-mine 30.0)
                                            (tool-warp 250.0 50.0)
                                            (tool-missile 5.0 10.0)
                                            (tool-regen 1.0)))))

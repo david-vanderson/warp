@@ -63,19 +63,24 @@
 
   (define f (new-blue-fighter 0 0))
 
-  #;(define nebulas (nebula-polygon (cons -1000 -1000)
-                                  (cons -1000 1000)
-                                  (cons 1000 1000)
-                                  (cons 1000 -1000)))
+  (define nebulas
+    (let ((r (new region%)))
+      (send r set-ellipse -500 -500 500 500)
+      (nebula-region r)))
 
-  ;(define n (nebula (next-id) 0 #t (posvel 0 100.0 100.0 0.0 0.0 0.0 0.02) 500.0))
+  (define ss (make-ship "spacesuit"
+             "Spacesuit"
+             "spacesuit"
+             #:x 100 #:y 0
+             #:hull 1 #:drag 0.5 #:mass 1
+             #:radar 150 #:visible 150))
   
   (set-space-objects! ownspace
                       (append 
-                       (list b1 b2 ;f
+                       (list b1 b2 ss
                              (new-red-fighter 300 0)
                              (new-red-fighter 800 200))
-                       ;nebulas
+                       nebulas
                        (space-objects ownspace)))
   
   (define real-orders (space 0 0 0 0 '() '() '()))  ; only care about orders

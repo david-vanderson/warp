@@ -416,7 +416,7 @@
   (+ a (* (- b a) (random))))
 
 
-(define (close? a b d)
+(define (hit? a b d)
   ((distance2 a b) . < . (* d d)))
 
 (define (distance2 a b)
@@ -467,9 +467,8 @@
   (for ((e (in-list (qt-retrieve qt (obj-x ownship) (obj-y ownship) (ship-radar ownship))))
         #:when (and (filterf? e)
                     ((faction-check (ship-faction ownship) (ship-faction e)) . < . 0)))
-    (define d (distance ownship e))
-    (when (and (d . < . (ship-radar ownship))
-               (or (not ne) (d . < . ne-dist)))
+    (define d (distance2 ownship e))
+    (when (or (not ne) (d . < . ne-dist))
       (set! ne e)
       (set! ne-dist d)))
   ne)
@@ -482,8 +481,7 @@
   
   (for ((o (in-list (qt-retrieve qt (obj-x ship) (obj-y ship) (+ (ship-radius ship) max-dist))))
         #:when (and (spaceship? o)
-                    (not (= (ob-id ship) (ob-id o)))
-                    ((distance ship o) . < . (+ (hit-distance ship o) max-dist))))
+                    (not (= (ob-id ship) (ob-id o)))))
     
     (define a (angle-frto (angle-add pi (posvel-r (obj-posvel ship))) (theta ship o)))
     (when ((abs a) . < . max-ang)

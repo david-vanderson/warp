@@ -12,6 +12,15 @@
 ; o is object
 ; r is radius
 
+(define (qt-hit? a b)
+  (define d (+ (qtobj-r a) (qtobj-r b)))
+  ((qt-distance2 a b) . < . (* d d)))
+
+(define (qt-distance2 a b)
+  (define dx (- (qtobj-x a) (qtobj-x b)))
+  (define dy (- (qtobj-y a) (qtobj-y b)))
+  (+ (* dx dx) (* dy dy)))
+
 (struct quadtree (objs x y w h subtrees) #:mutable #:prefab)
 
 (define (qt-new x y w h)
@@ -74,22 +83,25 @@
     ((and bot? right?) 3)
     (else -1)))
 
-; return list of potentially colliding objects
+; return list of colliding objects
 (define (qt-retrieve qt x y r)
   (define qto (qtobj 'unused (exact->inexact x) (exact->inexact y) (exact->inexact r)))
   (map qtobj-o (qt-retrieve-internal qt qto)))
 
 (define (qt-retrieve-internal qt qto)
   (define idx (get-index qt qto))
+  (define lst (filter (lambda (o)
+                        (qt-hit? qto o))
+                      (quadtree-objs qt)))
   (cond
     ((null? (quadtree-subtrees qt))
-     (quadtree-objs qt))
+     lst)
     ((= idx -1)
-     (apply append (quadtree-objs qt)
+     (apply append lst
             (for/list ((qtst (in-list (quadtree-subtrees qt))))
               (qt-retrieve-internal qtst qto))))
     (else
-     (append (quadtree-objs qt)
+     (append lst
              (qt-retrieve-internal (list-ref (quadtree-subtrees qt) idx) qto)))))
 
 ; call coll! with every pair of objects that might collide
@@ -100,7 +112,8 @@
       ; test a against all other objects at this level, then all the parent objects
       (for* ((lst (cons (cdr objs) parent-obj-list))
              (b lst))
-        (coll! (qtobj-o a) (qtobj-o b)))
+        (when (qt-hit? a b)
+          (coll! (qtobj-o a) (qtobj-o b))))
       (loop (cdr objs))))
 
   (for ((st (quadtree-subtrees qt)))

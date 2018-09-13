@@ -49,7 +49,7 @@
                                                    (tool-probe 10.0)
                                                    (tool-missile 5.0 10.0)
                                                    (tool-cannon 21.0)
-                                                   (tool-mine 25.0)
+                                                   (tool-mine 30.0)
                                                    (tool-warp 200.0 80.0)
                                                    (tool-regen 1.0)))))
   
@@ -124,8 +124,7 @@
                         (upgrade? s)))
       (for ((a (qt-retrieve qt (obj-x s) (obj-y s) (upgrade-radius ownspace s)))
             #:when (and (obj-alive? a)
-                        (spaceship? a)
-                        (close? s a (+ (ship-radius a) (upgrade-radius ownspace s)))))
+                        (spaceship? a)))
         (append! changes (upgrade-hit-ship ownspace a s))))
 
     (for ((fo (space-orders real-orders)))
