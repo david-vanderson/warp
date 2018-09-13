@@ -313,7 +313,10 @@
                           (case (tool-name t)
                             ((missile) 'missile)
                             ((probe) 'probe)
-                            ((cannon) 'cannonball)
+                            ((cannon)
+                             (if (string-contains? (ship-type ship) "red")
+                                 'red-cannonball
+                                 'blue-cannonball))
                             ((mine) 'mine)
                             (else #f)))
                         (ship-tools ship))))
