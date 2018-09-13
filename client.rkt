@@ -736,16 +736,14 @@
                         (or (equal? (ann-faction a) #t)
                             (and CLIENT_SPECIAL? (not (ann-faction a)))
                             (equal? (ann-faction a) myfaction))))
-        (define-values (x y zoom)
+        (define-values (x y)
           (case (obj-dr a)
             ((topleft)
-             (values (+ (left) (obj-x a)) (+ (top) (obj-y a)) 1.0))
+             (values (+ (left) (obj-x a)) (+ (top) (obj-y a))))
             ((center)
-             (values (obj-x a) (obj-y a) 1.0))
+             (values (obj-x a) (obj-y a)))
             ((space)
-             (define-values (x y)
-               (xy->screen (obj-x a) (obj-y a) center (get-scale)))
-             (values x y (get-scale)))
+             (xy->screen (obj-x a) (obj-y a) center (get-scale)))
             (else
              (error "ann had unrecognized posvel-dr"))))
         (when (ann-button? a)
@@ -765,10 +763,16 @@
           (define txts (string-split (ann-txt a) "\n"))
           (for ((t (in-list txts))
                 (i (in-naturals)))
-            (prepend! sprites (text-sprite textr textsr t
-                                          x (+ y (* i 20)) #:zoom zoom
-                                          #:center (equal? 'space (obj-dr a))
-                                          LAYER_UI_TEXT z)))))
+            (cond
+              ((equal? 'space (obj-dr a))
+               (prepend! sprites (textr t x (+ y (* i 20))
+                                        #:layer LAYER_UI_TEXT
+                                        #:mx (get-scale) #:my (get-scale)
+                                        #:r 255 #:g 255 #:b 255 #:a z)))
+              (else
+               (prepend! sprites (text-sprite textr textsr t
+                                              x (+ y (* i 20))
+                                              LAYER_UI_TEXT z)))))))
 
       (when showplayers
         ; list all players by faction

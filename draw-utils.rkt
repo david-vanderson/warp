@@ -128,14 +128,12 @@
                       st))))
     st))
 
-(define (text-sprite textr textsr txt x y layer (a 1.0) (color "white")
-                     #:zoom [zoom 1.0] #:center [center #f])
+(define (text-sprite textr textsr txt x y layer (a 1.0) (color "white"))
   (when (string? color)
     (set! color (send the-color-database find-color color)))
   (define-values (width height) (textsr txt))
-  (define frac (if center 0.0 0.5))
-  (textr txt (exact->inexact (+ x (* frac width))) (exact->inexact (+ y (* frac height)))
-         #:layer layer #:mx zoom #:my zoom
+  (textr txt (+ x (* 0.5 width)) (+ y (* 0.5 height))
+         #:layer layer
          #:r (send color red) #:g (send color green) #:b (send color blue) #:a a))
 
 (define (get-red space ship)

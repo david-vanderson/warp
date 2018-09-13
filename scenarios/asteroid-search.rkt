@@ -183,8 +183,9 @@
           (when (equal? (ob-id ship) hidden-base-id)
             ; fighter died right next to base and the parts hit it?
             (set! dock-base? #f))
-          (append! changes (chmov (ob-id u) (ob-id ship) #f))
-          (append! changes (make-message space (format "~a picked up parts" (ship-name ship)))))
+          (append! changes
+                   (chmov (ob-id u) (ob-id ship) #f)
+                   (chadd (ship-msg space ship "got parts") #f)))
          (else
           ; push upgrade away so it's not stuck under an asteroid
           (define t (theta ship u))

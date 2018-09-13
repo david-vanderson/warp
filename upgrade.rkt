@@ -25,7 +25,10 @@
 
 (define (ship-msg space ship msg)
   (define w (ship-w ship 1.0))
-  (make-ann-text (obj-x ship) (- (obj-y ship) w) #:pos 'space
+  (define y (if ((obj-dy ship) . < . 0)
+                (+ (obj-y ship) w 16)
+                (- (obj-y ship) w 10)))
+  (make-ann-text (obj-x ship) y #:pos 'space
                  (space-time space) 1000 2000 msg))
   
 ; return a list of changes
