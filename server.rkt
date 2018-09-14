@@ -262,16 +262,22 @@
               (printf "server dropping update id ~a from ~a for old space (needed ~a)\n"
                       (update-id u) cid (space-id ownspace)))
              (else
-              (when (and (update-time u) ((- (space-time ownspace) (update-time u)) . > . 100))
+              (when (and (update-time u) ((- (space-time ownspace) (update-time u)) . > . 200))
                 (printf "~a : client ~a is behind ~a\n" (space-time ownspace) cid
                         (- (space-time ownspace) (update-time u))))
               (for ((ch (in-list (update-changes u))))
                 (cond
-                  ((anncmd? ch)
+                  ((and (anncmd? ch)
+                        (or (not SERVER_LOCKDOWN?)
+                            (equal? cid (anncmd-pid ch))))
                    (define changes
                      (scenario-on-message ownspace ch change-scenario!))
                    (append! updates (apply-all-changes! ownspace changes "server" #:addf addf)))
-                  (else
+                  ((or (not SERVER_LOCKDOWN?)
+                       (and (chmov? ch) (equal? cid (chmov-id ch)))
+                       (and (command? ch) (equal? cid (command-id ch)))
+                       (and (endrc? ch) (equal? cid (endrc-pid ch)))
+                       (and (endcb? ch) (equal? cid (endcb-pid ch))))
                    (define pids '())
                    (define command-changes
                      (apply-all-changes! ownspace (list ch) "server"
@@ -283,8 +289,9 @@
                      (for ((pid (in-list pids)))
                        (define changes (scenario-on-player-restart ownspace pid))
                        (append! updates (apply-all-changes! ownspace changes
-                                                            "server" #:addf addf))))
-                   ))))))
+                                                            "server" #:addf addf)))))
+                  (else
+                   (printf "server got unauthorized update from client ~a : ~v\n" cid ch)))))))
           (else
            (printf "server got unexpected data ~v\n" u)))
         (loop)))

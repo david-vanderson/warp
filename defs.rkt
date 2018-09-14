@@ -9,6 +9,7 @@
 
 (define-runtime-path IMAGEDIR "images")
 
+(define SERVER_LOCKDOWN? #t)  ; when #t server drops non-whitelisted stuff from clients
 (define CLIENT_SPECIAL? #f)  ; when #t client will show annotations with #f for faction
 (define CLIENT_OUTPUT_TIME #f)
 (define COMPRESS #t)
