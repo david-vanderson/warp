@@ -37,6 +37,8 @@
   
 (cond
   [combined?
+   ; note that start-client immediately changes the server? parameter to #f
+   ; so start the server thread first (need to fix it at some point)
    (thread (lambda () (start-server)))
    (start-client port #:ip address)]
   [run-server?

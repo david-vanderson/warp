@@ -34,6 +34,7 @@
                       #:new-eventspace? (new-eventspace? #f)
                       #:gui? (gui? #t)
                       #:spacebox (sspace #f))
+  (server? #f)
   (cond
     (new-eventspace?
       (thread
@@ -47,7 +48,7 @@
 
 
 (define (start-client* ip port name gui? sspace)
-  (server? #f)
+  (load-ships!)
 
   (when (not ip)
     (define prefip (get-preference 'warp:ip))
@@ -1385,7 +1386,6 @@
     )
    
   (define textfont (load-font! sd #:size TEXTH #:face "Verdana" #:family 'modern))
-  (load-ships!)
   (add-ship-sprites! sd)
   (plasma-setup-pre! sd)
   (explosion-setup-pre! sd)
@@ -1717,6 +1717,7 @@
     ; performance debugging for headless clients so they send some messages
     (when (and (not gui?)
                my-stack
+               (ship-tool (get-ship my-stack) 'pbolt)
                ((random) . < . 0.01))
       (define player (car my-stack))
       (define cmd (command meid (player-cmdlevel player) 'pbolt (list pi/2 pi/2 1.0)))
