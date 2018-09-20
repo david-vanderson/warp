@@ -62,7 +62,7 @@
     (define aifighter (make-ship
                        (string-append (get-team-color team) "-fighter")
                        (string-append team " Fighter") team
-                       #:price 2 #:ai 'always
+                       #:price 3 #:ai 'always
                        #:hull 50 #:mass 20 #:drag 0.4
                        #:tools (append (tools-pilot 50.0 #f 1.4)
                                        (list (tool-pbolt 8.0)
@@ -334,7 +334,7 @@
       (append! changes (redo-team-buttons)))
 
     
-    (define addpts? (time-for (space-time ownspace) 10000 0))
+    (define addpts? (time-for (space-time ownspace) 5000 0))
 
     (when (not base1-destroyed?)
       (define t1b (find-top-id ownspace base1id))

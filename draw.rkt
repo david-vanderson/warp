@@ -337,10 +337,12 @@
                             ((missile) 'missile)
                             ((probe) 'probe)
                             ((cannon)
-                             (if (string-contains? (ship-type ship) "red")
-                                 'red-cannonball
-                                 'blue-cannonball))
+                             (cond
+                               ((string-contains? (ship-type ship) "red") 'red-cannonball)
+                               ((string-contains? (ship-type ship) "blue") 'blue-cannonball)
+                               (else 'purple-cannonball)))
                             ((mine) 'mine)
+                            ((warp) 'warping-static-1)
                             (else #f)))
                         (ship-tools ship))))
   (when (not (null? (ship-playerids ship)))
