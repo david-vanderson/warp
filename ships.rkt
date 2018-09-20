@@ -57,6 +57,8 @@
                          (list "red-cannonball2" #f)  ; frame 2
                          (list "blue-cannonball" #f)
                          (list "blue-cannonball2" #f)  ; frame 2
+                         (list "purple-cannonball" #f)
+                         (list "purple-cannonball2" #f)  ; frame 2
                          (list "asteroid" #f)
                          
                          (list "blue-station" #f)
@@ -247,7 +249,9 @@
     (case type
       (("spacesuit") spacesuit)
       (("missile") missile)
-      (("red-cannonball" "blue-cannonball") cannonball)
+      (("red-cannonball"
+        "blue-cannonball"
+        "purple-cannonball") cannonball)
       (("mine") mine)
       (("probe") probe)
       (else spaceship)))

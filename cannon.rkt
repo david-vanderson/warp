@@ -62,7 +62,8 @@
        (define a (command-arg cmd))
        (define type
          (cond ((string-contains? (ship-type ship) "blue") "blue-cannonball")
-               (else "red-cannonball")))
+               ((string-contains? (ship-type ship) "red") "red-cannonball")
+               (else "purple-cannonball")))
        (define b (make-ship type "Cannonball" (ship-faction ship)
                             #:ai (if (not (player? (car stack))) 'always #f)
                             #:r a

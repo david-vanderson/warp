@@ -202,13 +202,13 @@
               ((and (mine? o) (time-toggle (space-time space) 2000))
                (set! sym 'mine2))
               ((and (cannonball? o)
-                    (equal? (ship-type o) "blue-cannonball")
                     (time-toggle (obj-age space o) 200))
-               (set! sym 'blue-cannonball2))
-              ((and (cannonball? o)
-                    (equal? (ship-type o) "red-cannonball")
-                    (time-toggle (obj-age space o) 200))
-               (set! sym 'red-cannonball2)))
+               (set! sym
+                     (cond
+                       ((equal? (ship-type o) "red-cannonball") 'red-cannonball2)
+                       ((equal? (ship-type o) "blue-cannonball") 'blue-cannonball2)
+                       ((equal? (ship-type o) "purple-cannonball") 'purple-cannonball2)
+                       (else sym)))))
 
             (prepend! spr (obj-sprite o csd center scale layer-ships
                                       sym ship-scale
