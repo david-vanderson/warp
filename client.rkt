@@ -1266,6 +1266,7 @@
              #;((#\0)
               (debug-num (+ 1 (debug-num))))
              #;((#\9)
+              (set! hold? #f)
               (when my-stack
                 (send-commands (chdam (ob-id (get-ship my-stack)) 10.0 #t))))
              #;((#\8)
@@ -1719,13 +1720,19 @@
     )
 
     ; performance debugging for headless clients so they send some messages
-    (when (and (not gui?)
-               my-stack
-               (ship-tool (get-ship my-stack) 'pbolt)
-               ((random) . < . 0.01))
-      (define player (car my-stack))
-      (define cmd (command meid (player-cmdlevel player) 'pbolt (list pi/2 pi/2 1.0)))
-      (send-commands cmd))
+    (when (not gui?)
+      (cond
+        ((and my-stack
+              (ship-tool (get-ship my-stack) 'pbolt)
+              ((random) . < . 0.01))
+	  (define player (car my-stack))
+	  (define cmd (command meid (player-cmdlevel player) 'pbolt (list pi/2 pi/2 1.0)))
+          (send-commands cmd))
+        ((and ownspace (not my-stack))
+         (for/first ((a (in-list (space-objects ownspace)))
+                     #:when (and (ann-button? a)
+                                 (equal? (ann-button-msg a) "Parens")))
+           (send-commands (anncmd meid (ob-id a)))))))
 
     ; for debugging low-fps situations
     ;(define sum 0)
