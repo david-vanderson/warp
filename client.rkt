@@ -1223,7 +1223,7 @@
            (define val (if (equal? key-for 'name) name ip))
            (define escape? #f)
            (case kc
-             ((escape)
+             ((escape #\return)
               (set! escape? #t))
              ((#\backspace #\rubout)
               (when ((string-length val) . > . 0)
