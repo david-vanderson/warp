@@ -320,6 +320,17 @@
 ; - if life is #f, show forever
 ; gone is ms when it's completely faded
 
+(define (make-ann-anim anim-name x y delay
+                       #:pos [pos 'center]
+                       #:faction [faction #t])
+  (ann-anim (next-id) #f #t 1.0 (posvel #f x y 0 0 0 pos)
+            #f faction anim-name delay))
+(struct ann-anim ann (delay) #:mutable #:prefab)
+; animation annotation
+; obj-x/y is from center (in canon coords)
+; - if x/y is #f, client will choose them randomly
+; delay is msec to show each frame
+
 (struct ann-circle ann (radius) #:mutable #:prefab)
 ; circle on map
 ; obj-x/y is center

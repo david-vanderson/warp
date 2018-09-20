@@ -4,6 +4,7 @@
 
 (require "defs.rkt"
          "utils.rkt"
+         "draw-utils.rkt"
          "ships.rkt"
          "pilot.rkt"
          "pbolt.rkt"
@@ -266,6 +267,11 @@
           (set-ship-ai-strat-time! o (space-time space))
           (for ((s (in-list (ship-ai-strategy o))))
             (set-strategy-t! s (space-time space))))
+        (when (and (client?) (ann-anim? o))
+          (when (not (obj-x o))
+            (set-posvel-x! (obj-posvel o) (random-between (left) (right))))
+          (when (not (obj-y o))
+            (set-posvel-y! (obj-posvel o) (random-between (bottom) (top)))))
         (add! o to who addf)
         (values #t '()))
        (else

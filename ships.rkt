@@ -26,7 +26,14 @@
 
 (define ship-list #f)
 (define engine-list #f)
+(define anim-list #f)
 (define ship-list-sema (make-semaphore 1))
+
+(define (anim-name base k)
+  (string-append base "-" (number->string k)))
+
+(define (anim-path base k (ext ".png"))
+  (build-path IMAGEDIR (string-append (anim-name base k) ext)))
 
 (define (engine-name base i k)
   (string-append "engine-" base "-" (number->string i) (number->string k)))
@@ -113,6 +120,18 @@
                         (define b (read-bitmap filename 'png/alpha))
                         (define sym (string->symbol (engine-name name i k)))
                         (bm sym #f b))))))
+
+    (set! anim-list
+          (for/hash ((name '("red-fireworks"
+                             "blue-fireworks")))
+            (values name
+                    (for/list ((k (in-naturals 1)))
+                      ; k goes over the frames of a single animation
+                      (define filename (anim-path name k))
+                      #:break (not (file-exists? filename))
+                      (define b (read-bitmap filename 'png/alpha))
+                      (define sym (string->symbol (anim-name name k)))
+                      (bm sym #f b)))))
     )
      
   (semaphore-post ship-list-sema))
@@ -124,8 +143,24 @@
   (for (((name lst) (in-hash engine-list)))
     (for* ((o (in-list lst))
            (bm (in-list o)))
-      (add-sprite!/value sd (bm-sym bm) (bm-bitmap bm)))))
+      (add-sprite!/value sd (bm-sym bm) (bm-bitmap bm))))
+  (for* (((name lst) (in-hash anim-list))
+         (bm (in-list lst)))
+    (add-sprite!/value sd (bm-sym bm) (bm-bitmap bm))))
 
+(define (anim-done? name frame)
+  (define frames (hash-ref anim-list name #f))
+  (if (not frames)
+      #t
+      (frame . >= . (length frames))))
+
+(define (anim-frame-sym name frame)
+  (define frames (hash-ref anim-list name #f))
+  (cond
+    ((not frames) #f)
+    (else
+     (define bm (list-ref frames (remainder frame (length frames))))
+     (bm-sym bm))))
 
 (define (engine-frame-sym engine-name size frame)
   (define lst (hash-ref engine-list engine-name #f))

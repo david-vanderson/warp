@@ -753,6 +753,10 @@
                              (obj-dx a) (obj-dy a) (ann-txt a)
                              (lambda (k y) (send-commands (anncmd meid (ob-id a))))))
           (prepend! buttons ab))
+        (when (ann-anim? a)
+          (define frame (quotient (obj-age ownspace a) (ann-anim-delay a)))
+          (define sym (anim-frame-sym (ann-txt a) frame))
+          (prepend! sprites (sprite x y (sprite-idx csd sym) #:layer LAYER_UI)))
         (when (ann-text? a)
           (define z
             (cond

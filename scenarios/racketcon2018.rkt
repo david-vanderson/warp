@@ -362,6 +362,14 @@
         
     (when countdown?
       (define time-since ((space-time ownspace) . - . countdown?))
+      (when (time-for time-since 300)
+        (append! changes
+                 (chadd
+                  (make-ann-anim "red-fireworks" #f #f 150) #f)))
+      (when (time-for time-since 300 150)
+        (append! changes
+                 (chadd
+                  (make-ann-anim "blue-fireworks" #f #f 150) #f)))
       (when (time-since . > . countdown-time)
         (change-scenario! (lambda (oldspace . xs)
                             (set! changes '())
