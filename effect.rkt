@@ -16,28 +16,11 @@
   (when (ship? o)
     (define eng (ship-tool o 'engine))
     (cond
-      ((warping? o)
-       (when (time-for (obj-age space o) 100)
-         (define l (- (ship-radius o)))
-         (define t (posvel-r (obj-posvel o)))
-         (define be (backeffect 0 (space-time space) #t 1.0
-                                (posvel 0
-                                        (+ (posvel-x (obj-posvel o)) (* l (cos t))
-                                           (* (random-between (- l) l) (sin t)))
-                                        (+ (posvel-y (obj-posvel o)) (* l (sin t))
-                                           (* (random-between (- l) l) (cos t)))
-                                        0
-                                        (- (* 1.5 (posvel-dx (obj-posvel o))))
-                                        (- (* 1.5 (posvel-dy (obj-posvel o))))
-                                        0) 1.5 1000))
-         be))
       ((and eng (or (missile? o) (probe? o)))
        (define c (tool-count space eng o))
        (when (or (and (missile? o) (time-for (obj-age space o) 200))
                  (and (time-for (obj-age space o) 800)
-                      (c . > . 0))
-                 #;(and (time-for (obj-age space o) 800 400)
-                      ((pod-energy (get-pod ftstack)) . > . 1.0)))
+                      (c . > . 0)))
          
          (define l (- (ship-radius o)))
          (define t (posvel-r (obj-posvel o)))
