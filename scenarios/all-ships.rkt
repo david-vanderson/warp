@@ -26,7 +26,8 @@
                            #:hull 100 #:mass 100 #:drag 0.4
                            #:tools (append (tools-pilot 40.0 #f 1.0)
                                            (list (tool-pbolt 8.0)
-                                                 (tool-cannon 25.0)))))
+                                                 (tool-cannon 25.0)
+                                                 (tool-warp 250.0 80.0)))))
       (when (or (missile? s) (probe? s))
         (set-ship-tools! s (cons (tool-endrc 10.0) (ship-tools s))))
       s))

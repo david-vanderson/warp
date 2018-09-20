@@ -213,6 +213,21 @@
             (prepend! spr (obj-sprite o csd center scale layer-ships
                                       sym ship-scale
                                       fowa (obj-r o) (make-color (get-red space o) 0 0 1.0)))
+
+            (when (warp-charging? space o)
+              (define age (obj-age space o))
+              (define frame (quotient age 100))
+              (define sym (anim-frame-sym "warp-charge" frame))
+              (define-values (x y) (obj->screen o center scale))
+              (define size (* 2.0 (/ (exact->inexact (ship-sprite-size o))
+                                     (sprite-size csd sym))))
+              (define r (* pi (sin (/ age 7000.0))))
+              (define w (ship-tool o 'warp))
+              (define a (* fowa (+ 0.3 (* 0.7 (/ (warp-energy w)
+                                                 (warp-threshold w))))))
+              (prepend! spr (xy-sprite x y csd scale LAYER_MAP
+                                       sym size a r
+                                       (make-color 0 0 0 1.0))))
             
             (define eng (ship-tool o 'engine))
             (cond

@@ -125,7 +125,8 @@
 
     (set! anim-list
           (for/hash ((name '("red-fireworks"
-                             "blue-fireworks")))
+                             "blue-fireworks"
+                             "warp-charge")))
             (values name
                     (for/list ((k (in-naturals 1)))
                       ; k goes over the frames of a single animation
