@@ -6,6 +6,7 @@
 
 (require "../defs.rkt"
          "../utils.rkt"
+         "../quadtree.rkt"
          "../ships.rkt"
          "../order.rkt"
          "../change.rkt"
@@ -309,6 +310,34 @@
     (define pts (car (tool-val (ship-tool base 'factory))))
     (chstat (ob-id base) 'toolval
             (list 'factory (add1 pts))))
+
+  (define (add-upgrade-asteroids ownspace)
+    (define changes '())
+    (when (time-for (space-time ownspace) 30000 0)
+      (define w (/ (space-width ownspace) 2.0))
+      (define h (/ (space-height ownspace) 2.0))
+      (define dx (random-between 0.0 100.0))
+      (define dy (random-between 0.0 100.0))
+      (define lst (list (cons (+ w dx) (+ h dy))
+                        (cons (+ w dx) (- (- h) dy))
+                        (cons (- (- w) dx) (- (- h) dy))
+                        (cons (- (- w) dx) (+ h dy))))
+      (define coords (list-ref lst (random (length lst))))
+      (define a (make-ship "asteroid" "Asteroid" "_neutral" #:drag 0.2
+                           #:size 50 #:x (car coords) #:y (cdr coords)
+                           #:dr (random-between -0.1 0.1)
+                           #:hull 100
+                           #:cargo (list (make-upgrade 0 'upgrade "orange" #f #f))))
+      (append! changes (chadd a #f)))
+    changes)
+
+  (define (upgrade-hit-ship space ship u)
+    (define changes '())
+    (append! changes
+             (upgrade-ship-random space ship)
+             (chrm (ob-id u)))
+    changes)
+      
   
   ; return a list of changes
   (define (on-tick ownspace qt change-scenario!)
@@ -375,6 +404,16 @@
                             (set! changes '())
                             (values (start-space oldspace)
                                     on-tick on-message on-player-restart)))))
+
+    (append! changes (add-upgrade-asteroids ownspace))
+
+    (for ((s (space-objects ownspace))
+            #:when (and (obj-alive? s)
+                        (upgrade? s)))
+      (for ((a (qt-retrieve qt (obj-x s) (obj-y s) (upgrade-radius ownspace s)))
+            #:when (and (obj-alive? a)
+                        (spaceship? a)))
+        (append! changes (upgrade-hit-ship ownspace a s))))
     
     changes)
   
