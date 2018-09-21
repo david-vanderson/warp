@@ -180,18 +180,7 @@
                #:tools (append (tools-pilot 15.0 #f #f)
                                (list (tool-regen 0.5)))))
   
-  (define derelict
-    (make-ship "red-destroyer" "Destroyer" "_neutral"
-               #:x 0 #:y 0 #:r (random-between 0.0 pi)
-               #:hangar '() #:radar 700
-               #:hull 250 #:mass 500 #:drag 0.4
-               #:tools (append (tools-pilot 20.0 #f 0.5 #:dock? #f)
-                               (list (tool-pbolt 12.0)
-                                     (tool-warp 250.0 100.0)
-                                     (tool-missile 10.0 20.0)
-                                     (tool-cannon 30.0)
-                                     (tool-probe 10.0)
-                                     (tool-regen 1.0)))))
+  (define derelict-id #f)
 
   (define corners #f)
   (define cornerquads #f)
@@ -292,9 +281,21 @@
     ; corner 1 - derelict
     (let ()
       (define coords (car cornerquads))
-      (set-posvel-x! (obj-posvel derelict) (+ (car coords) (random-between -250.0 250.0)))
-      (set-posvel-y! (obj-posvel derelict) (+ (cdr coords) (random-between -250.0 250.0)))
-      (append! changes (chadd derelict #f)))
+      (define d (make-ship "red-destroyer" "Destroyer" "_neutral"
+                           #:x (+ (car coords) (random-between -250.0 250.0))
+                           #:y (+ (cdr coords) (random-between -250.0 250.0))
+                           #:r (random-between 0.0 pi)
+                           #:hangar '() #:radar 700
+                           #:hull 250 #:mass 500 #:drag 0.4
+                           #:tools (append (tools-pilot 20.0 #f 0.5 #:dock? #f)
+                                           (list (tool-pbolt 12.0)
+                                                 (tool-warp 250.0 100.0)
+                                                 (tool-missile 10.0 20.0)
+                                                 (tool-cannon 30.0)
+                                                 (tool-probe 10.0)
+                                                 (tool-regen 1.0)))))
+      (set! derelict-id (ob-id d))
+      (append! changes (chadd d #f)))
 
     ; corner 2 - probe spawn upgrade
     (let ()
@@ -413,6 +414,7 @@
                            #:size 50 #:x (car coords) #:y (cdr coords)
                            #:dr (random-between -0.1 0.1)
                            #:hull 100
+                           #:tools (list (tool-regen 0.5))
                            #:cargo (list (make-upgrade 'upgrade "orange" #f #f))))
       (append! changes (chadd a #f)))
     changes)
@@ -579,7 +581,7 @@
                #:when (and (obj-alive? a)
                            (spaceship? a)))
            (append! changes (upgrade-hit-ship ownspace a s))))
-        ((and (equal? (ob-id derelict) (ob-id s))
+        ((and (equal? derelict-id (ob-id s))
               (equal? (ship-faction s) "_neutral"))
          ; derelict hasn't been claimed
          (for/first ((a (qt-retrieve qt (obj-x s) (obj-y s) (+ (ship-radius s) 50.0)))
