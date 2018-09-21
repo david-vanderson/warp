@@ -1274,7 +1274,7 @@
                 (send-commands (chfaction (ob-id (get-ship my-stack)) "_none"))))
              #;((#\7)
               (when my-stack
-                (send-commands (chadd (make-upgrade 0 'upgrade "orange" #f
+                (send-commands (chadd (make-upgrade 'upgrade "orange" #f
                                                     (obj-posvel (get-ship my-stack))) #f))))
              #;((#\n)
               (when ownspace

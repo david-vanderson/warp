@@ -36,8 +36,8 @@
                    #:hull (if up? 50 5000)
                    #:invincible? #t
                    #:cargo (if up?
-                               (list (make-upgrade 0 'upgrade "orange" #f #f)
-                                     (make-upgrade 0 'upgrade "orange" #f #f))
+                               (list (make-upgrade 'upgrade "orange" #f #f)
+                                     (make-upgrade 'upgrade "orange" #f #f))
                                '())
                    #:overlays (list (cons "Empire" (overlay 'overlay-qm #t)))))))
 
@@ -71,7 +71,7 @@
              )))
 
   ; put the spare parts upgrade in the hidden base
-  (define parts (make-upgrade 0 'parts "yellow" #f #f))
+  (define parts (make-upgrade 'parts "yellow" #f #f))
 
   ; the good guys in this scenario
   (define (new-red-fighter)

@@ -259,8 +259,8 @@
 (struct shield obj (e) #:mutable #:prefab)
 ; e is energy
 
-(define (make-upgrade start-time type color life pv)
-  (upgrade (next-id) start-time #t 1.0 pv type color life))
+(define (make-upgrade type color life pv)
+  (upgrade (next-id) 0 #t 1.0 pv type color life))
 
 (struct upgrade obj (type color life) #:mutable #:prefab)
 ; type is symbol saying what it does

@@ -167,8 +167,8 @@
                              #:tools (append (tools-pilot 20.0 #f 0.3)
                                              (list (tool-pbolt 10.0)))
                              #:hangar fighters
-                             #:cargo (list (make-upgrade 0 'upgrade "orange" #f #f)
-                                           (make-upgrade 0 'upgrade "orange" #f #f))))
+                             #:cargo (list (make-upgrade 'upgrade "orange" #f #f)
+                                           (make-upgrade 'upgrade "orange" #f #f))))
         (set-ship-ai-strategy! f (list (strategy (space-time ownspace) "attack*" (ob-id base))))
         (append! changes (chadd f #f) m)))
 

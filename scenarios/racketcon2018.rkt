@@ -2,6 +2,7 @@
 
 (require racket/math
          racket/class
+         racket/list
          racket/draw)
 
 (require "../defs.rkt"
@@ -192,6 +193,33 @@
                                      (tool-probe 10.0)
                                      (tool-regen 1.0)))))
 
+  (define corners #f)
+  (define cornerquads #f)
+
+  (define (random-corner)
+    (list-ref corners (random (length corners))))
+
+  (define (house-asteroids coords)
+    (define changes '())
+    (define d 65.0)
+    (append! changes (chadd (make-asteroid 100
+                                           (+ (car coords) d)
+                                           (+ (cdr coords) d)
+                                           0.0 0.0 0.1) #f))
+    (append! changes (chadd (make-asteroid 100
+                                           (- (car coords) d)
+                                           (+ (cdr coords) d)
+                                           0.0 0.0 0.1) #f))
+    (append! changes (chadd (make-asteroid 100
+                                           (- (car coords) d)
+                                           (- (cdr coords) d)
+                                           0.0 0.0 0.1) #f))
+    (append! changes (chadd (make-asteroid 100
+                                           (+ (car coords) d)
+                                           (- (cdr coords) d)
+                                           0.0 0.0 0.1) #f))
+    changes)
+
   (define (start-space oldspace)
 
     (define ownspace
@@ -237,19 +265,46 @@
                 (500.0 . 2000.0)
                 (500.0 . 1000.0)))
         (mine-region r make-mine)))
-    (set-space-objects! ownspace (append upper-mines
-                                         lower-mines
-                                         upper-asteroids
-                                         lower-asteroids
-                                         nebulas))
 
     (define changes '())
 
-    (define coords (random-corner ownspace))
-    (set-posvel-x! (obj-posvel derelict) (car coords))
-    (set-posvel-y! (obj-posvel derelict) (cdr coords))
+    (for ((o (append upper-mines
+                     lower-mines
+                     upper-asteroids
+                     lower-asteroids
+                     nebulas)))
+      (append! changes (chadd o #f)))
 
-    (append! changes (chadd derelict #f))
+    (let ()
+      (define w (/ (space-width ownspace) 2.0))
+      (define h (/ (space-height ownspace) 2.0))
+      (define dx (random-between 0.0 100.0))
+      (define dy (random-between 0.0 100.0))
+      (set! corners (shuffle (list (cons (+ w dx) (+ h dy))
+                                   (cons (+ w dx) (- (- h) dy))
+                                   (cons (- (- w) dx) (- (- h) dy))
+                                   (cons (- (- w) dx) (+ h dy)))))
+      (set! cornerquads (shuffle (list (cons (- w 1000.0) (- h 1000.0))
+                                       (cons (- w 1000.0) (- 1000.0 h))
+                                       (cons (- 1000.0 w) (- 1000.0 h))
+                                       (cons (- 1000.0 w) (- h 1000.0))))))
+
+    ; corner 1 - derelict
+    (let ()
+      (define coords (car cornerquads))
+      (set-posvel-x! (obj-posvel derelict) (+ (car coords) (random-between -250.0 250.0)))
+      (set-posvel-y! (obj-posvel derelict) (+ (cdr coords) (random-between -250.0 250.0)))
+      (append! changes (chadd derelict #f)))
+
+    ; corner 2 - probe spawn upgrade
+    (let ()
+      (define coords (cadr cornerquads))
+      (append! changes (house-asteroids coords))
+      (append! changes (chadd (make-upgrade 'probes "orange" #f
+                                            (posvel 0
+                                                    (car coords)
+                                                    (cdr coords)
+                                                    0.0 0.0 0.0 0.0)) #f)))
     
     ; add standard stuff
     (append! changes (chadd (make-ann-button 196 76 80 40 "Quit" "quit-scenario"
@@ -330,34 +385,47 @@
     (chstat (ob-id base) 'toolval
             (list 'factory (add1 pts))))
 
-  (define (random-corner ownspace)
-    (define w (/ (space-width ownspace) 2.0))
-    (define h (/ (space-height ownspace) 2.0))
-    (define dx (random-between 0.0 100.0))
-    (define dy (random-between 0.0 100.0))
-    (define lst (list (cons (+ w dx) (+ h dy))
-                      (cons (+ w dx) (- (- h) dy))
-                      (cons (- (- w) dx) (- (- h) dy))
-                      (cons (- (- w) dx) (+ h dy))))
-    (list-ref lst (random (length lst))))
-
   (define (add-upgrade-asteroids ownspace)
     (define changes '())
     (when (time-for (space-time ownspace) 30000 0)
-      (define coords (random-corner ownspace))
+      (define coords (random-corner))
       (define a (make-ship "asteroid" "Asteroid" "_neutral" #:drag 0.2
                            #:size 50 #:x (car coords) #:y (cdr coords)
                            #:dr (random-between -0.1 0.1)
                            #:hull 100
-                           #:cargo (list (make-upgrade 0 'upgrade "orange" #f #f))))
+                           #:cargo (list (make-upgrade 'upgrade "orange" #f #f))))
       (append! changes (chadd a #f)))
     changes)
 
   (define (upgrade-hit-ship space ship u)
     (define changes '())
-    (append! changes
-             (upgrade-ship-random space ship)
-             (chrm (ob-id u)))
+    (cond
+      ((equal? 'probes (upgrade-type u))
+       (define w (/ (space-width space) 2.0))
+       (define h (/ (space-height space) 2.0))
+       (for* ((x (in-range (- (- w) 500.0) (+ w 501.0) 1000.0))
+              (y (in-range (- (- h) 500.0) (+ h 501.0) 1000.0))
+              #:when (or (and (or (< x (- w)) (> x w))
+                              (< (- h) y h))
+                         (and (or (< y (- h)) (> y h))
+                              (< (- w) x w))))
+         (append! changes
+                  (chadd (make-ship "probe" "Probe" (ship-faction ship)
+                                    #:x (clamp (- (- w) 100.0) (+ w 100.0) x)
+                                    #:y (clamp (- (- h) 100.0) (+ h 100.0) y)
+                                    #:r (random-between 0.0 pi)
+                                    #:dx (random-between -100.0 100.0)
+                                    #:dy (random-between -100.0 100.0)
+                                    #:radar 1000 #:hull 10 #:drag 0.4 #:mass 1) #f)))
+       (append! changes
+                (chrm (ob-id u))
+                (chadd (ship-msg space ship "probe storm") #f)
+                (make-message space (string-append (ship-faction ship)
+                                                   " sending perimiter probes"))))
+      (else
+       (append! changes
+                (upgrade-ship-random space ship)
+                (chrm (ob-id u)))))
     changes)
       
   

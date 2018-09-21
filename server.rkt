@@ -56,7 +56,8 @@
      (append! changes (command (ob-id o) #f 'warp 'stop)))
     ((probe? o)
      (define t (ship-tool o 'endrc))
-     (when (and (tool-rc t)
+     (when (and t
+                (tool-rc t)
                 ((tool-rc t) . <= . (/ (obj-age space o) 1000.0)))
        (define player (findf (lambda (x) (equal? (player-rcid x) (ob-id o)))
                              (space-players space)))
