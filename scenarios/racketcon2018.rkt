@@ -305,6 +305,26 @@
                                                     (car coords)
                                                     (cdr coords)
                                                     0.0 0.0 0.0 0.0)) #f)))
+
+    ; corner 3 - attack force
+    (let ()
+      (define coords (caddr cornerquads))
+      (append! changes (house-asteroids coords))
+      (append! changes (chadd (make-upgrade 'attack "orange" #f
+                                            (posvel 0
+                                                    (car coords)
+                                                    (cdr coords)
+                                                    0.0 0.0 0.0 0.0)) #f)))
+
+    ; corner 4 - sneak attack force
+    (let ()
+      (define coords (cadddr cornerquads))
+      (append! changes (house-asteroids coords))
+      (append! changes (chadd (make-upgrade 'sneak "orange" #f
+                                            (posvel 0
+                                                    (car coords)
+                                                    (cdr coords)
+                                                    0.0 0.0 0.0 0.0)) #f)))
     
     ; add standard stuff
     (append! changes (chadd (make-ann-button 196 76 80 40 "Quit" "quit-scenario"
@@ -397,9 +417,63 @@
       (append! changes (chadd a #f)))
     changes)
 
+  (define (attack-force x y faction color enemyid)
+    (define changes '())
+    (for ((x (list (- x 100.0) (+ x 100.0))))
+      (append! changes
+               (chadd (make-ship
+                       (string-append color "-fighter")
+                       (string-append faction " Fighter") faction
+                       #:x x #:y y
+                       #:hull 50 #:mass 20 #:drag 0.4 #:ai 'always
+                       #:tools (append (tools-pilot 35.0 #f 1.4)
+                                       (list (tool-pbolt 8.0)
+                                             (tool-regen 1.0)))
+                       #:ai-strats (list (strategy 0 "attack*" enemyid))) #f)))
+
+    (append! changes
+             (chadd (make-ship
+                     (string-append color "-frigate")
+                     (string-append faction " Frigate") faction
+                     #:x x #:y y
+                     #:hangar '() #:radar 400
+                     #:hull 100 #:mass 50 #:drag 0.4 #:ai 'always
+                     #:tools (append (tools-pilot 35.0 #f 1.4)
+                                     (list (tool-pbolt 8.0)
+                                           (tool-missile 5.0 10.0)
+                                           (tool-regen 1.0)))
+                     #:ai-strats (list (strategy 0 "attack*" enemyid))) #f))
+    changes)
+
   (define (upgrade-hit-ship space ship u)
     (define changes '())
     (cond
+      ((equal? 'attack (upgrade-type u))
+       (append! changes
+                (chrm (ob-id u))
+                (chadd (ship-msg space ship "attack force") #f)
+                (make-message space (string-append (ship-faction ship)
+                                                   " added attack force")))
+       (define x (if ((obj-x u) . < . 0) (- (obj-x u) 200.0) (+ (obj-x u) 200.0)))
+       (define y (if ((obj-y u) . < . 0) (- (obj-y u) 200.0) (+ (obj-y u) 200.0)))
+       (append! changes
+                (attack-force x y (ship-faction ship) "green"
+                              (if (equal? (ship-faction ship) team1)
+                                  base2id
+                                  base1id))))
+      ((equal? 'sneak (upgrade-type u))
+       (append! changes
+                (chrm (ob-id u))
+                (chadd (ship-msg space ship "sneak attack") #f)
+                (make-message space (string-append (ship-faction ship)
+                                                   " launching sneak attack")))
+       (define eid (if (equal? (ship-faction ship) team1)
+                       base2id
+                       base1id))
+       (define x (random-between -100.0 100.0))
+       (define y (random-between -100.0 100.0))
+       (append! changes
+                (attack-force x y (ship-faction ship) "orange" eid)))
       ((equal? 'probes (upgrade-type u))
        (define w (/ (space-width space) 2.0))
        (define h (/ (space-height space) 2.0))
