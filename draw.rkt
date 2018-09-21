@@ -216,7 +216,7 @@
 
             (when (warp-charging? space o)
               (define age (obj-age space o))
-              (define frame (quotient age 100))
+              (define frame (quotient age 150))
               (define sym (anim-frame-sym "warp-charge" frame))
               (define size (* 2.0 (/ (exact->inexact (ship-sprite-size o))
                                      (sprite-size csd sym))))

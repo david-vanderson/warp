@@ -498,7 +498,7 @@
                                                    " sending perimiter probes"))))
       (else
        (append! changes
-                (upgrade-ship-random space ship)
+                (upgrade-ship-random space ship #:amount 1.5)
                 (chrm (ob-id u)))))
     changes)
       
