@@ -24,7 +24,11 @@
     
     ; explode
     (when (server?)
-      (define e (make-explosion space (obj-x b) (obj-y b) 10.0 50.0 100.0 100.0))
+      (define e (make-explosion space (obj-x b) (obj-y b)
+                                10.0  ; starts this big
+                                (* 2.5 (ship-maxcon b))  ; will get this big
+                                100.0  ; expands this much per second
+                                (* 5.0 (ship-maxcon b))))  ; does this damage per TICK
       (append! changes (chadd e #f))))
   
   changes)

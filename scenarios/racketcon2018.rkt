@@ -178,6 +178,19 @@
                #:hull 100 #:radar 75 #:drag 0.6
                #:tools (append (tools-pilot 15.0 #f #f)
                                (list (tool-regen 0.5)))))
+  
+  (define derelict
+    (make-ship "red-destroyer" "Destroyer" "_neutral"
+               #:x 0 #:y 0 #:r (random-between 0.0 pi)
+               #:hangar '() #:radar 700
+               #:hull 250 #:mass 500 #:drag 0.4
+               #:tools (append (tools-pilot 20.0 #f 0.5 #:dock? #f)
+                               (list (tool-pbolt 12.0)
+                                     (tool-warp 250.0 100.0)
+                                     (tool-missile 10.0 20.0)
+                                     (tool-cannon 30.0)
+                                     (tool-probe 10.0)
+                                     (tool-regen 1.0)))))
 
   (define (start-space oldspace)
 
@@ -231,6 +244,12 @@
                                          nebulas))
 
     (define changes '())
+
+    (define coords (random-corner ownspace))
+    (set-posvel-x! (obj-posvel derelict) (car coords))
+    (set-posvel-y! (obj-posvel derelict) (cdr coords))
+
+    (append! changes (chadd derelict #f))
     
     ; add standard stuff
     (append! changes (chadd (make-ann-button 196 76 80 40 "Quit" "quit-scenario"
@@ -311,18 +330,21 @@
     (chstat (ob-id base) 'toolval
             (list 'factory (add1 pts))))
 
+  (define (random-corner ownspace)
+    (define w (/ (space-width ownspace) 2.0))
+    (define h (/ (space-height ownspace) 2.0))
+    (define dx (random-between 0.0 100.0))
+    (define dy (random-between 0.0 100.0))
+    (define lst (list (cons (+ w dx) (+ h dy))
+                      (cons (+ w dx) (- (- h) dy))
+                      (cons (- (- w) dx) (- (- h) dy))
+                      (cons (- (- w) dx) (+ h dy))))
+    (list-ref lst (random (length lst))))
+
   (define (add-upgrade-asteroids ownspace)
     (define changes '())
     (when (time-for (space-time ownspace) 30000 0)
-      (define w (/ (space-width ownspace) 2.0))
-      (define h (/ (space-height ownspace) 2.0))
-      (define dx (random-between 0.0 100.0))
-      (define dy (random-between 0.0 100.0))
-      (define lst (list (cons (+ w dx) (+ h dy))
-                        (cons (+ w dx) (- (- h) dy))
-                        (cons (- (- w) dx) (- (- h) dy))
-                        (cons (- (- w) dx) (+ h dy))))
-      (define coords (list-ref lst (random (length lst))))
+      (define coords (random-corner ownspace))
       (define a (make-ship "asteroid" "Asteroid" "_neutral" #:drag 0.2
                            #:size 50 #:x (car coords) #:y (cdr coords)
                            #:dr (random-between -0.1 0.1)
@@ -408,12 +430,24 @@
     (append! changes (add-upgrade-asteroids ownspace))
 
     (for ((s (space-objects ownspace))
-            #:when (and (obj-alive? s)
-                        (upgrade? s)))
-      (for ((a (qt-retrieve qt (obj-x s) (obj-y s) (upgrade-radius ownspace s)))
-            #:when (and (obj-alive? a)
-                        (spaceship? a)))
-        (append! changes (upgrade-hit-ship ownspace a s))))
+            #:when (obj-alive? s))
+      (cond
+        ((upgrade? s)
+         (for ((a (qt-retrieve qt (obj-x s) (obj-y s) (upgrade-radius ownspace s)))
+               #:when (and (obj-alive? a)
+                           (spaceship? a)))
+           (append! changes (upgrade-hit-ship ownspace a s))))
+        ((and (equal? (ob-id derelict) (ob-id s))
+              (equal? (ship-faction s) "_neutral"))
+         ; derelict hasn't been claimed
+         (for/first ((a (qt-retrieve qt (obj-x s) (obj-y s) (+ (ship-radius s) 50.0)))
+                     #:when (and (obj-alive? a)
+                                 (spaceship? a)
+                                 (member (ship-faction a) teams)))
+           (append! changes
+                    (chfaction (ob-id s) (ship-faction a))
+                    (make-message ownspace (string-append (ship-faction a)
+                                                          " found derelict destroyer!")))))))
     
     changes)
   

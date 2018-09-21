@@ -547,12 +547,7 @@
                                   (+ (* s (sin t)) (posvel-dy pv))
                                   0)
                           e))
-        (append! changes (chadd p #f)))
-
-      (when (spaceship? ship)
-        (define msg (make-message space
-                                  (format "~a Destroyed" (ship-name ship))))
-        (append! changes msg))))
+        (append! changes (chadd p #f)))))
   changes)
 
 

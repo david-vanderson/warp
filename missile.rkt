@@ -19,7 +19,11 @@
     
     (when (server?)
       ; missile is detonating
-      (define e (make-explosion space (obj-x m) (obj-y m) 2.0 20.0 50.0 50.0))
+      (define e (make-explosion space (obj-x m) (obj-y m)
+                                2.0  ; starts this big
+                                (* 2.0 (ship-maxcon m))  ; will get this big
+                                50.0  ; expands this much per second
+                                (* 5.0 (ship-maxcon m))))  ; does this damage per TICK
       (append! changes (chadd e #f))))
   changes)
 
