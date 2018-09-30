@@ -182,11 +182,19 @@
   
   (define derelict-id #f)
 
-  (define corners #f)
   (define cornerquads #f)
 
-  (define (random-corner)
-    (list-ref corners (random (length corners))))
+  (define (random-corner ownspace)
+    (define w (/ (space-width ownspace) 2.0))
+    (define h (/ (space-height ownspace) 2.0))
+    (define dx (random-between 0.0 100.0))
+    (define dy (random-between 0.0 100.0))
+    (cons (if ((random) . < . 0.5)
+              (+ w dx)
+              (- (- w) dx))
+          (if ((random) . < . 0.5)
+              (+ h dy)
+              (- (- h) dy))))
 
   (define (house-asteroids coords)
     (define changes '())
@@ -267,12 +275,6 @@
     (let ()
       (define w (/ (space-width ownspace) 2.0))
       (define h (/ (space-height ownspace) 2.0))
-      (define dx (random-between 0.0 100.0))
-      (define dy (random-between 0.0 100.0))
-      (set! corners (shuffle (list (cons (+ w dx) (+ h dy))
-                                   (cons (+ w dx) (- (- h) dy))
-                                   (cons (- (- w) dx) (- (- h) dy))
-                                   (cons (- (- w) dx) (+ h dy)))))
       (set! cornerquads (shuffle (list (cons (- w 1000.0) (- h 1000.0))
                                        (cons (- w 1000.0) (- 1000.0 h))
                                        (cons (- 1000.0 w) (- 1000.0 h))
@@ -409,8 +411,8 @@
   (define (add-upgrade-asteroids ownspace)
     (define changes '())
     (when (time-for (space-time ownspace) 30000 0)
-      (define coords (random-corner))
-      (define a (make-ship "asteroid" "Asteroid" "_neutral" #:drag 0.2
+      (define coords (random-corner ownspace))
+      (define a (make-ship "asteroid" "Asteroid" "_neutral" #:drag 0.3
                            #:size 50 #:x (car coords) #:y (cdr coords)
                            #:dr (random-between -0.1 0.1)
                            #:hull 100
